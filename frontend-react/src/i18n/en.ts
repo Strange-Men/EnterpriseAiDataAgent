@@ -1,0 +1,83 @@
+const en = {
+  translation: {
+    "app.title": "Enterprise AI Data Agent",
+    "app.subtitle": "Multi-Agent Data Analysis Platform",
+    "app.language": "Language",
+
+    "nav.file-upload": "File Upload",
+    "nav.data-preview": "Data Preview",
+    "nav.chat": "AI Assistant",
+    "nav.quality": "Data Quality",
+    "nav.charts": "Visualizations",
+    "nav.logs": "Agent Logs",
+    "nav.status": "System Status",
+
+    "upload.dropzone": "Drag & drop CSV or Excel files here",
+    "upload.no-files": "No files uploaded yet.",
+    "upload.db-tables": "Database Tables",
+    "upload.type": "Type",
+    "upload.uploaded": "Uploaded",
+    "upload.table": "Table",
+    "upload.rows": "Rows",
+    "upload.columns": "Columns",
+    "upload.fields": "Fields",
+    "upload.drop-table": "Drop table",
+
+    "chat.placeholder": "Ask about your data...",
+    "chat.empty": "Start a conversation by typing below.",
+    "chat.mock-reply": "AI integration will be added in a later phase.",
+
+    "preview.title": "Data Preview",
+    "preview.no-data": "No data loaded. Upload a CSV or Excel file to begin.",
+    "preview.table": "Table",
+    "preview.tab-preview": "Preview",
+    "preview.tab-schema": "Schema",
+    "preview.tab-quality": "Quality",
+    "preview.showing": "Showing {{shown}} of {{total}} rows",
+
+    "quality.title": "Data Quality Score",
+    "quality.no-data": "No data loaded. Upload a file to see quality analysis.",
+    "quality.completeness": "Completeness",
+    "quality.consistency": "Consistency",
+    "quality.validity": "Validity",
+    "quality.uniqueness": "Uniqueness",
+    "quality.tab-missing": "Missing Values",
+    "quality.tab-outliers": "Outliers",
+    "quality.tab-duplicates": "Duplicates",
+    "quality.tab-fields": "Field Health",
+    "quality.warnings": "Warning",
+    "quality.warnings_plural": "Warnings",
+    "quality.no-warnings": "No quality warnings detected.",
+
+    "status.title": "System Status",
+    "status.operational": "Operational",
+    "status.error": "Error",
+    "status.warning": "Warning",
+    "status.unknown": "Unknown",
+    "status.api": "LLM API",
+    "status.db": "Database",
+    "status.rag": "RAG Engine",
+    "status.version": "Version",
+    "status.uptime": "Uptime",
+
+    "logs.title": "Agent Logs",
+    "logs.empty": "No agent activity yet.",
+
+    "charts.title": "Visualizations",
+    "charts.empty": "No charts generated yet.",
+
+    "schema.column": "Column",
+    "schema.dtype": "Type",
+    "schema.non-null": "Non-Null",
+    "schema.null": "Null",
+    "schema.null-pct": "Null %",
+    "schema.unique": "Unique",
+
+    "table.column-resize": "Drag to resize",
+    "table.sort": "Sort",
+    "table.filter": "Filter",
+    "table.no-data": "No data available.",
+  },
+};
+
+export default en;
