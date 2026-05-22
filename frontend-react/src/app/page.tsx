@@ -1,5 +1,6 @@
 "use client";
 
+import { ClientProviders } from "@/components/client-providers";
 import { Header } from "@/layout/header";
 import { WorkspaceLayout } from "@/layout/workspace-layout";
 import { FileUploadPanel } from "@/panels/file-upload-panel";
@@ -9,7 +10,7 @@ import { StatusPanel } from "@/panels/status-panel";
 import { TabGroup } from "@/components/ui/tab-group";
 import { useTranslation } from "react-i18next";
 
-export default function HomePage() {
+function WorkspaceContent() {
   const { t } = useTranslation();
 
   return (
@@ -20,7 +21,7 @@ export default function HomePage() {
           left={
             <div className="space-y-6">
               <FileUploadPanel />
-              <hr className="border-[var(--border-default)]" />
+              <hr className="border-[#30363D]" />
               <StatusPanel />
             </div>
           }
@@ -37,7 +38,7 @@ export default function HomePage() {
                   id: "charts",
                   label: t("charts.title"),
                   content: (
-                    <div className="flex items-center justify-center h-64 text-sm text-[var(--text-muted)]">
+                    <div className="flex items-center justify-center h-64 text-sm text-[#8B949E]">
                       {t("charts.empty")}
                     </div>
                   ),
@@ -46,7 +47,7 @@ export default function HomePage() {
                   id: "logs",
                   label: t("logs.title"),
                   content: (
-                    <div className="text-sm text-[var(--text-muted)] p-4">
+                    <div className="text-sm text-[#8B949E] p-4">
                       {t("logs.empty")}
                     </div>
                   ),
@@ -57,5 +58,13 @@ export default function HomePage() {
         />
       </main>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <ClientProviders>
+      <WorkspaceContent />
+    </ClientProviders>
   );
 }

@@ -13,6 +13,7 @@ const en = {
     "nav.status": "System Status",
 
     "upload.dropzone": "Drag & drop CSV or Excel files here",
+    "upload.uploading": "Uploading...",
     "upload.no-files": "No files uploaded yet.",
     "upload.db-tables": "Database Tables",
     "upload.type": "Type",
@@ -48,6 +49,13 @@ const en = {
     "quality.warnings": "Warning",
     "quality.warnings_plural": "Warnings",
     "quality.no-warnings": "No quality warnings detected.",
+    "quality.overall": "Overall",
+    "quality.null-cells": "Null cells",
+    "quality.duplicates": "Duplicates",
+    "quality.outliers": "Outliers",
+    "quality.nulls": "Nulls",
+    "quality.score": "Score",
+    "quality.empty": "No quality data. Select a table to analyze.",
 
     "status.title": "System Status",
     "status.operational": "Operational",
@@ -72,6 +80,9 @@ const en = {
     "schema.null": "Null",
     "schema.null-pct": "Null %",
     "schema.unique": "Unique",
+    "schema.nullable": "Nullable",
+    "schema.type": "Type",
+    "schema.empty": "No schema data. Select a table to view.",
 
     "table.column-resize": "Drag to resize",
     "table.sort": "Sort",

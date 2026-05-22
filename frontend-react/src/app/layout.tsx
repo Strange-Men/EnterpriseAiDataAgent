@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import "@/i18n";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
@@ -14,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-secondary)] antialiased">
+      <body className="min-h-screen bg-[#0E1117] text-[#C9D1D9] antialiased">
         {children}
       </body>
     </html>

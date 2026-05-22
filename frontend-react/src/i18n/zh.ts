@@ -13,6 +13,7 @@ const zh = {
     "nav.status": "系统状态",
 
     "upload.dropzone": "拖拽 CSV 或 Excel 文件到此",
+    "upload.uploading": "上传中...",
     "upload.no-files": "暂无已上传文件。",
     "upload.db-tables": "数据库表",
     "upload.type": "类型",
@@ -48,6 +49,13 @@ const zh = {
     "quality.warnings": "警告",
     "quality.warnings_plural": "警告",
     "quality.no-warnings": "未检测到质量警告。",
+    "quality.overall": "总分",
+    "quality.null-cells": "空值单元格",
+    "quality.duplicates": "重复行",
+    "quality.outliers": "异常值",
+    "quality.nulls": "空值",
+    "quality.score": "评分",
+    "quality.empty": "暂无质量数据。请选择表进行分析。",
 
     "status.title": "系统状态",
     "status.operational": "正常",
@@ -72,6 +80,9 @@ const zh = {
     "schema.null": "空值",
     "schema.null-pct": "空值%",
     "schema.unique": "唯一",
+    "schema.nullable": "可空",
+    "schema.type": "类型",
+    "schema.empty": "暂无结构数据。请选择表查看。",
 
     "table.column-resize": "拖动调整列宽",
     "table.sort": "排序",
