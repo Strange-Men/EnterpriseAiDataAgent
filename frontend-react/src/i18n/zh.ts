@@ -1,7 +1,7 @@
 const zh = {
   translation: {
     "app.title": "Enterprise AI Data Agent",
-    "app.subtitle": "多智能体数据分析平台",
+    "app.subtitle": "DuckDB 数据管理控制台",
     "app.language": "语言",
 
     "nav.file-upload": "文件上传",
@@ -11,6 +11,8 @@ const zh = {
     "nav.charts": "可视化",
     "nav.logs": "智能体日志",
     "nav.status": "系统状态",
+    "nav.sql": "SQL 工作区",
+    "nav.tables": "表管理",
 
     "upload.dropzone": "拖拽 CSV 或 Excel 文件到此",
     "upload.uploading": "上传中...",
@@ -88,6 +90,34 @@ const zh = {
     "table.sort": "排序",
     "table.filter": "筛选",
     "table.no-data": "暂无数据。",
+    "table.management": "表管理",
+    "table.refresh": "刷新表列表",
+    "table.no-tables": "数据库中暂无表。",
+    "table.query": "生成 SELECT 查询",
+    "table.rename": "重命名表",
+    "table.rename-btn": "重命名",
+    "table.export": "导出为 CSV",
+    "table.delete": "删除表",
+    "table.confirm-delete": "确认删除表",
+    "table.confirm": "确认",
+    "table.cancel": "取消",
+    "table.tables-total": "张表",
+    "table.rows-total": "总行数",
+
+    "sql.title": "SQL 工作区",
+    "sql.execute": "执行",
+    "sql.running": "执行中...",
+    "sql.clear": "清空",
+    "sql.hint": "Ctrl+Enter 执行",
+    "sql.placeholder": "SELECT * FROM table_name LIMIT 100;",
+    "sql.executing": "正在执行查询...",
+    "sql.error": "查询错误",
+    "sql.empty": "在上方输入 SQL 查询并点击执行。",
+    "sql.rows": "行",
+    "sql.time": "耗时",
+
+    "history.title": "查询历史",
+    "history.empty": "暂无查询记录。",
   },
 };
 

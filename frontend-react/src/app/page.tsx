@@ -4,8 +4,10 @@ import { ClientProviders } from "@/components/client-providers";
 import { Header } from "@/layout/header";
 import { WorkspaceLayout } from "@/layout/workspace-layout";
 import { FileUploadPanel } from "@/panels/file-upload-panel";
-import { ChatPanel } from "@/panels/chat-panel";
+import { TableManagementPanel } from "@/panels/table-management-panel";
+import { SqlWorkspacePanel } from "@/panels/sql-workspace-panel";
 import { DataPreviewPanel } from "@/panels/data-preview-panel";
+import { SqlHistoryPanel } from "@/panels/sql-history-panel";
 import { StatusPanel } from "@/panels/status-panel";
 import { TabGroup } from "@/components/ui/tab-group";
 import { useTranslation } from "react-i18next";
@@ -20,12 +22,14 @@ function WorkspaceContent() {
         <WorkspaceLayout
           left={
             <div className="space-y-6">
+              <TableManagementPanel />
+              <hr className="border-[#30363D]" />
               <FileUploadPanel />
               <hr className="border-[#30363D]" />
               <StatusPanel />
             </div>
           }
-          center={<ChatPanel />}
+          center={<SqlWorkspacePanel />}
           right={
             <TabGroup
               tabs={[
@@ -35,22 +39,9 @@ function WorkspaceContent() {
                   content: <DataPreviewPanel />,
                 },
                 {
-                  id: "charts",
-                  label: t("charts.title"),
-                  content: (
-                    <div className="flex items-center justify-center h-64 text-sm text-[#8B949E]">
-                      {t("charts.empty")}
-                    </div>
-                  ),
-                },
-                {
-                  id: "logs",
-                  label: t("logs.title"),
-                  content: (
-                    <div className="text-sm text-[#8B949E] p-4">
-                      {t("logs.empty")}
-                    </div>
-                  ),
+                  id: "history",
+                  label: t("history.title"),
+                  content: <SqlHistoryPanel />,
                 },
               ]}
             />

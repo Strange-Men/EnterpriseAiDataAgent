@@ -47,6 +47,40 @@ export async function deleteTable(tableName: string): Promise<void> {
   await apiFetch(`/tables/${encodeURIComponent(tableName)}`, { method: "DELETE" });
 }
 
+export async function renameTable(tableName: string, newName: string): Promise<void> {
+  await apiFetch(`/table/${encodeURIComponent(tableName)}/rename`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ new_name: newName }),
+  });
+}
+
+// ── SQL Query ──────────────────────────────────────────────
+
+export interface QueryResult {
+  sql: string;
+  columns: string[];
+  data: Record<string, unknown>[];
+  rowCount: number;
+  runtimeMs: number;
+  status: "success" | "error";
+  error: string | null;
+}
+
+export async function executeQuery(sql: string, limit: number = 500): Promise<QueryResult> {
+  return apiFetch<QueryResult>("/query", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sql, limit }),
+  });
+}
+
+export async function fetchQueryHistory(limit: number = 50): Promise<
+  { id: number; sql: string; status: string; runtimeMs: number; rowCount: number; error: string | null; timestamp: string }[]
+> {
+  return apiFetch(`/query/history?limit=${limit}`);
+}
+
 // ── File Upload ────────────────────────────────────────────
 
 export async function uploadFile(

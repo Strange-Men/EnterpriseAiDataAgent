@@ -1,0 +1,201 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import { useDataStore } from "@/stores/data-store";
+import { useSqlWorkspaceStore } from "@/stores/sql-workspace-store";
+import { Tooltip } from "@/components/ui/tooltip";
+import {
+  fetchTables,
+  deleteTable as apiDeleteTable,
+  renameTable as apiRenameTable,
+  fetchTableData,
+  fetchQualityReport,
+} from "@/services/api";
+import type { TableInfo } from "@/types";
+
+export function TableManagementPanel() {
+  const { t } = useTranslation();
+  const { tables, setTables, setDbStatus, setCurrentTable, setCurrentData, setQualityReport } = useDataStore();
+  const { setCurrentSql, setSelectedTable } = useSqlWorkspaceStore();
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const loadTables = useCallback(async () => {
+    try {
+      const tbls = await fetchTables();
+      setTables(tbls);
+      setDbStatus("connected");
+    } catch {
+      setDbStatus("error");
+    }
+  }, [setTables, setDbStatus]);
+
+  useEffect(() => {
+    loadTables();
+  }, [loadTables]);
+
+  const handleSelect = async (table: TableInfo) => {
+    setSelectedTable(table.name);
+    setCurrentTable(table.name);
+    setCurrentSql(`SELECT * FROM "${table.name}" LIMIT 100;`);
+    try {
+      const { columns, data } = await fetchTableData(table.name);
+      setCurrentData(data, columns);
+    } catch {
+      setCurrentData(null);
+    }
+    try {
+      const report = await fetchQualityReport(table.name);
+      setQualityReport(report);
+    } catch {
+      setQualityReport(null);
+    }
+  };
+
+  const handleDelete = async (tableName: string) => {
+    if (!confirm(`${t("table.confirm-delete")} "${tableName}"?`)) return;
+    setLoading(true);
+    try {
+      await apiDeleteTable(tableName);
+      await loadTables();
+      if (useDataStore.getState().currentTable === tableName) {
+        setCurrentTable(null);
+        setCurrentData(null);
+      }
+    } catch {
+      // error handled by UI
+    }
+    setLoading(false);
+  };
+
+  const handleRename = async (tableName: string) => {
+    if (!newName.trim()) return;
+    setLoading(true);
+    try {
+      await apiRenameTable(tableName, newName.trim());
+      setRenaming(null);
+      setNewName("");
+      await loadTables();
+    } catch {
+      // error handled by UI
+    }
+    setLoading(false);
+  };
+
+  const handleExport = (tableName: string) => {
+    window.open(`/api/table/${encodeURIComponent(tableName)}/export`, "_blank");
+  };
+
+  const startRename = (tableName: string) => {
+    setRenaming(tableName);
+    setNewName(tableName);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)]">
+        <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
+          {t("table.management")}
+        </span>
+        <button
+          onClick={loadTables}
+          className="px-2 py-1 text-xs border border-[var(--border-default)] text-[var(--text-muted)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+          title={t("table.refresh")}
+        >
+          ↻
+        </button>
+      </div>
+
+      {/* Table list */}
+      {tables.length === 0 ? (
+        <p className="text-sm text-[var(--text-muted)]">{t("table.no-tables")}</p>
+      ) : (
+        <div className="space-y-1">
+          {tables.map((tbl: TableInfo) => (
+            <div
+              key={tbl.name}
+              className="group px-3 py-2 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] transition-colors"
+            >
+              {/* Table name row */}
+              <div className="flex items-center justify-between mb-1">
+                {renaming === tbl.name ? (
+                  <div className="flex items-center gap-1 flex-1">
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleRename(tbl.name)}
+                      className="flex-1 px-2 py-0.5 text-sm bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--accent)] rounded focus:outline-none"
+                      autoFocus
+                    />
+                    <button onClick={() => handleRename(tbl.name)} className="text-xs text-green-400 hover:text-green-300" title={t("table.confirm")}>✓</button>
+                    <button onClick={() => setRenaming(null)} className="text-xs text-red-400 hover:text-red-300" title={t("table.cancel")}>✕</button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleSelect(tbl)}
+                      className="text-sm text-[var(--text-primary)] hover:text-[var(--accent)] text-left truncate max-w-[160px]"
+                      data-tooltip={tbl.name}
+                    >
+                      <Tooltip text={tbl.name} maxLen={22} />
+                    </button>
+                    <span className="text-xs text-[var(--text-muted)] tabular-nums">
+                      {tbl.rowCount.toLocaleString()} × {tbl.columnCount}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              {renaming !== tbl.name && (
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => setCurrentSql(`SELECT * FROM "${tbl.name}" LIMIT 100;`)}
+                    className="px-1.5 py-0.5 text-[10px] border border-[var(--border-default)] text-[var(--text-muted)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                    title={t("table.query")}
+                  >
+                    SQL
+                  </button>
+                  <button
+                    onClick={() => startRename(tbl.name)}
+                    disabled={loading}
+                    className="px-1.5 py-0.5 text-[10px] border border-[var(--border-default)] text-[var(--text-muted)] rounded hover:text-[var(--info)] hover:border-[var(--info)] transition-colors disabled:opacity-50"
+                    title={t("table.rename")}
+                  >
+                    {t("table.rename-btn")}
+                  </button>
+                  <button
+                    onClick={() => handleExport(tbl.name)}
+                    className="px-1.5 py-0.5 text-[10px] border border-[var(--border-default)] text-[var(--text-muted)] rounded hover:text-[var(--success)] hover:border-[var(--success)] transition-colors"
+                    title={t("table.export")}
+                  >
+                    CSV
+                  </button>
+                  <button
+                    onClick={() => handleDelete(tbl.name)}
+                    disabled={loading}
+                    className="px-1.5 py-0.5 text-[10px] border border-[var(--border-default)] text-[var(--text-muted)] rounded hover:text-[var(--error)] hover:border-[var(--error)] transition-colors disabled:opacity-50"
+                    title={t("table.delete")}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Stats */}
+      {tables.length > 0 && (
+        <div className="text-xs text-[var(--text-muted)] pt-2 border-t border-[var(--border-default)]">
+          {tables.length} {t("table.tables-total")} · {tables.reduce((s, t) => s + t.rowCount, 0).toLocaleString()} {t("table.rows-total")}
+        </div>
+      )}
+    </div>
+  );
+}
