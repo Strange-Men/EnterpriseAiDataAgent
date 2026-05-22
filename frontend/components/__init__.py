@@ -10,6 +10,7 @@ from frontend.components import data_result
 from frontend.components import chart_viewer
 from frontend.components import system_status
 from frontend.components import agent_log
+from frontend.components import data_quality_panel
 
 __all__ = [
     "file_upload",
@@ -18,4 +19,5 @@ __all__ = [
     "chart_viewer",
     "system_status",
     "agent_log",
+    "data_quality_panel",
 ]

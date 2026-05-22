@@ -12,6 +12,7 @@ from datetime import datetime
 from database.file_loader import load_file, FileLoadError, SUPPORTED_FORMATS
 from database.db_manager import DatabaseManager
 from database.schema_detector import detect_schema, get_data_quality_report, sanitize_table_name
+from database.data_quality import analyze_dataframe
 
 
 def render():
@@ -72,6 +73,11 @@ def _process_files(files):
             st.session_state.current_table = import_result["table_name"]
             st.session_state.data_quality_report = get_data_quality_report(df)
 
+            # 5. Run full quality analysis
+            dq_report = analyze_dataframe(df)
+            st.session_state.data_quality_score = _quality_report_to_dict(dq_report)
+            st.session_state.data_warnings = dq_report.warnings
+
         except FileLoadError as e:
             entry["status"] = "error"
             entry["error"] = str(e)
@@ -126,6 +132,11 @@ def _load_table_to_preview(table_name: str):
         st.session_state.current_dataframe = df
         st.session_state.current_table = table_name
         st.session_state.data_quality_report = get_data_quality_report(df)
+
+        # Run quality analysis
+        dq_report = analyze_dataframe(df)
+        st.session_state.data_quality_score = _quality_report_to_dict(dq_report)
+        st.session_state.data_warnings = dq_report.warnings
     except Exception as e:
         st.error(f"Failed to load table '{table_name}': {e}")
 
@@ -139,6 +150,8 @@ def _drop_table(table_name: str):
             st.session_state.current_dataframe = None
             st.session_state.current_table = None
             st.session_state.data_quality_report = None
+            st.session_state.data_quality_score = None
+            st.session_state.data_warnings = []
         _refresh_db_tables(db)
         st.rerun()
     except Exception as e:
@@ -166,3 +179,51 @@ def _render_file_list():
                     st.caption(f"Fields: {', '.join(f['columns'][:10])}")
             elif f["status"] == "error":
                 st.error(f.get("error", "Unknown error"))
+
+
+# ── Quality report serialization ───────────────────────────────
+
+def _quality_report_to_dict(report) -> dict:
+    """Convert a QualityReport dataclass to a plain dict for session_state."""
+    return {
+        "total_rows": report.total_rows,
+        "total_columns": report.total_columns,
+        "total_cells": report.total_cells,
+        "overall_score": report.overall_score,
+        "completeness_score": report.completeness_score,
+        "consistency_score": report.consistency_score,
+        "validity_score": report.validity_score,
+        "uniqueness_score": report.uniqueness_score,
+        "null_cells": report.null_cells,
+        "null_pct": report.null_pct,
+        "missing_by_column": report.missing_by_column,
+        "duplicate_rows": report.duplicate_rows,
+        "duplicate_pct": report.duplicate_pct,
+        "duplicate_candidate_keys": report.duplicate_candidate_keys,
+        "total_outliers": report.total_outliers,
+        "outliers_by_column": report.outliers_by_column,
+        "type_anomalies": report.type_anomalies,
+        "field_health": [
+            {
+                "name": fh.name,
+                "dtype": fh.dtype,
+                "null_count": fh.null_count,
+                "null_pct": fh.null_pct,
+                "unique_count": fh.unique_count,
+                "unique_ratio": fh.unique_ratio,
+                "is_empty": fh.is_empty,
+                "is_constant": fh.is_constant,
+                "is_high_cardinality": fh.is_high_cardinality,
+                "is_low_cardinality": fh.is_low_cardinality,
+                "outlier_count": fh.outlier_count,
+                "outlier_pct": fh.outlier_pct,
+                "type_anomaly_count": fh.type_anomaly_count,
+                "warnings": fh.warnings,
+                "score": fh.score,
+            }
+            for fh in report.field_health
+        ],
+        "empty_columns": report.empty_columns,
+        "constant_columns": report.constant_columns,
+        "warnings": report.warnings,
+    }

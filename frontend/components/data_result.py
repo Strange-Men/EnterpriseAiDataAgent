@@ -6,6 +6,7 @@ Output: read-only display with preview, schema, and data quality stats
 
 import streamlit as st
 import pandas as pd
+from frontend.components import data_quality_panel
 
 
 def render():
@@ -24,7 +25,7 @@ def render():
         st.markdown(f"**Table:** `{table}`")
 
     # ── Tabs: Preview | Schema | Quality ─────────────────────────
-    tab_preview, tab_schema, tab_quality = st.tabs(["Preview", "Schema", "Data Quality"])
+    tab_preview, tab_schema, tab_quality = st.tabs(["Preview", "Schema", "Quality"])
 
     with tab_preview:
         _render_preview(df)
@@ -33,7 +34,7 @@ def render():
         _render_schema(df)
 
     with tab_quality:
-        _render_quality(df)
+        data_quality_panel.render()
 
 
 def _render_preview(df: pd.DataFrame):
@@ -65,36 +66,3 @@ def _render_schema(df: pd.DataFrame):
         use_container_width=True,
         hide_index=True,
     )
-
-
-def _render_quality(df: pd.DataFrame):
-    """Show data quality summary and missing value stats."""
-    report = st.session_state.get("data_quality_report", {})
-
-    if report:
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Total Rows", report.get("total_rows", len(df)))
-        col2.metric("Total Columns", report.get("total_columns", len(df.columns)))
-        col3.metric("Null Cells", report.get("null_cells", 0))
-        col4.metric("Duplicate Rows", report.get("duplicate_rows", 0))
-
-        null_pct = report.get("null_percentage", 0)
-        if null_pct > 0:
-            st.warning(f"Data has {null_pct}% missing values across all cells.")
-
-    # Per-column null breakdown
-    st.markdown("**Missing Values by Column**")
-    null_data = []
-    for col in df.columns:
-        null_count = int(df[col].isna().sum())
-        if null_count > 0:
-            null_data.append({
-                "Column": str(col),
-                "Null Count": null_count,
-                "Null %": f"{round(null_count / len(df) * 100, 2)}%",
-            })
-
-    if null_data:
-        st.dataframe(pd.DataFrame(null_data), use_container_width=True, hide_index=True)
-    else:
-        st.success("No missing values detected.")
