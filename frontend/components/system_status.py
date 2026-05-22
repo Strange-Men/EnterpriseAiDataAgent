@@ -28,9 +28,17 @@ def render():
 
     status = st.session_state.get("system_status", {})
 
+    # Override DB status with real database_status
+    db_status = st.session_state.get("database_status", "idle")
+    real_status = dict(status)
+    if db_status == "connected":
+        real_status["db"] = "ok"
+    elif db_status == "error":
+        real_status["db"] = "error"
+
     cols = st.columns(3)
     for i, (key, label) in enumerate(_COMPONENT_LABELS.items()):
-        val = status.get(key, "unknown")
+        val = real_status.get(key, "unknown")
         text, css_class = _STATUS_LABEL.get(val, ("Unknown", "status-warn"))
         cols[i].markdown(
             f'<span class="{css_class}">● {text}</span>  \n{label}',

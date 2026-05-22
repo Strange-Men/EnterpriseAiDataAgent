@@ -39,6 +39,14 @@ STATE_DEFAULTS = {
     # Agent logs
     "agent_logs": [],              # list[dict]  {agent, action, status, detail, time}
     "agent_filter": "all",         # all | data | chat | report
+
+    # Data ingestion (v0.3)
+    "current_dataframe": None,     # pd.DataFrame | None  — last loaded DataFrame
+    "current_table": None,         # str | None  — DuckDB table name
+    "database_status": "idle",     # idle | connected | error
+    "db_tables": [],               # list[dict]  — tables in DuckDB
+    "data_quality_report": None,   # dict | None
+    "ingestion_log": [],           # list[dict]  — upload/import history
 }
 
 
