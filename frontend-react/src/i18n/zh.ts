@@ -1,0 +1,83 @@
+const zh = {
+  translation: {
+    "app.title": "Enterprise AI Data Agent",
+    "app.subtitle": "多智能体数据分析平台",
+    "app.language": "语言",
+
+    "nav.file-upload": "文件上传",
+    "nav.data-preview": "数据预览",
+    "nav.chat": "AI 助手",
+    "nav.quality": "数据质量",
+    "nav.charts": "可视化",
+    "nav.logs": "智能体日志",
+    "nav.status": "系统状态",
+
+    "upload.dropzone": "拖拽 CSV 或 Excel 文件到此",
+    "upload.no-files": "暂无已上传文件。",
+    "upload.db-tables": "数据库表",
+    "upload.type": "类型",
+    "upload.uploaded": "上传时间",
+    "upload.table": "表名",
+    "upload.rows": "行数",
+    "upload.columns": "列数",
+    "upload.fields": "字段",
+    "upload.drop-table": "删除表",
+
+    "chat.placeholder": "输入你的问题...",
+    "chat.empty": "在下方输入开始对话。",
+    "chat.mock-reply": "AI 集成将在后续版本中添加。",
+
+    "preview.title": "数据预览",
+    "preview.no-data": "暂无数据。请上传 CSV 或 Excel 文件。",
+    "preview.table": "表名",
+    "preview.tab-preview": "预览",
+    "preview.tab-schema": "结构",
+    "preview.tab-quality": "质量",
+    "preview.showing": "显示 {{shown}} / {{total}} 行",
+
+    "quality.title": "数据质量评分",
+    "quality.no-data": "暂无数据。请上传文件查看质量分析。",
+    "quality.completeness": "完整性",
+    "quality.consistency": "一致性",
+    "quality.validity": "有效性",
+    "quality.uniqueness": "唯一性",
+    "quality.tab-missing": "缺失值",
+    "quality.tab-outliers": "异常值",
+    "quality.tab-duplicates": "重复行",
+    "quality.tab-fields": "字段健康",
+    "quality.warnings": "警告",
+    "quality.warnings_plural": "警告",
+    "quality.no-warnings": "未检测到质量警告。",
+
+    "status.title": "系统状态",
+    "status.operational": "正常",
+    "status.error": "异常",
+    "status.warning": "警告",
+    "status.unknown": "未知",
+    "status.api": "LLM API",
+    "status.db": "数据库",
+    "status.rag": "RAG 引擎",
+    "status.version": "版本",
+    "status.uptime": "运行时间",
+
+    "logs.title": "智能体日志",
+    "logs.empty": "暂无智能体活动。",
+
+    "charts.title": "可视化",
+    "charts.empty": "暂无图表。",
+
+    "schema.column": "列名",
+    "schema.dtype": "类型",
+    "schema.non-null": "非空",
+    "schema.null": "空值",
+    "schema.null-pct": "空值%",
+    "schema.unique": "唯一",
+
+    "table.column-resize": "拖动调整列宽",
+    "table.sort": "排序",
+    "table.filter": "筛选",
+    "table.no-data": "暂无数据。",
+  },
+};
+
+export default zh;
