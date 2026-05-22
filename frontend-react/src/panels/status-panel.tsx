@@ -1,12 +1,33 @@
 "use client";
 
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { fetchStatus } from "@/services/api";
 
 export function StatusPanel() {
   const { t } = useTranslation();
-  const { systemStatus } = useDataStore();
+  const { systemStatus, setSystemStatus } = useDataStore();
+
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const s = await fetchStatus();
+        setSystemStatus({
+          api: s.api as "ok" | "error" | "unknown",
+          db: s.db as "ok" | "error" | "unknown",
+          version: s.version,
+          uptime: s.uptime,
+        });
+      } catch {
+        setSystemStatus({ api: "error" });
+      }
+    };
+    poll();
+    const interval = setInterval(poll, 10000);
+    return () => clearInterval(interval);
+  }, [setSystemStatus]);
 
   return (
     <div className="space-y-4">

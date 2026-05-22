@@ -1,9 +1,7 @@
 /**
- * API Service Layer.
+ * API Service Layer — connects to the FastAPI backend.
  *
- * Currently a placeholder for future FastAPI integration.
- * All methods return mock/empty data. Replace with real HTTP calls
- * when the Python backend exposes a REST API.
+ * All endpoints proxy through Next.js rewrites: /api/* → http://localhost:8000/api/*
  */
 
 import type { TableInfo, QualityReport } from "@/types";
@@ -14,11 +12,11 @@ const API_BASE = "/api";
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...options,
   });
   if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
+    const body = await res.text().catch(() => "");
+    throw new Error(`API ${res.status}: ${body || res.statusText}`);
   }
   return res.json();
 }
@@ -26,45 +24,59 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 // ── Database ───────────────────────────────────────────────
 
 export async function fetchTables(): Promise<TableInfo[]> {
-  // TODO: return apiFetch<TableInfo[]>("/tables");
-  return [];
+  return apiFetch<TableInfo[]>("/tables");
 }
 
 export async function fetchTableData(
   tableName: string,
   limit: number = 100
 ): Promise<{ columns: string[]; data: Record<string, unknown>[] }> {
-  // TODO: return apiFetch(`/tables/${tableName}?limit=${limit}`);
-  return { columns: [], data: [] };
+  const res = await apiFetch<{ columns: string[]; data: Record<string, unknown>[]; rowCount: number }>(
+    `/tables/${encodeURIComponent(tableName)}?limit=${limit}`
+  );
+  return { columns: res.columns, data: res.data };
+}
+
+export async function fetchTableSchema(
+  tableName: string
+): Promise<{ name: string; dtype: string; nullable: boolean; uniqueCount: number }[]> {
+  return apiFetch(`/tables/${encodeURIComponent(tableName)}/schema`);
 }
 
 export async function deleteTable(tableName: string): Promise<void> {
-  // TODO: return apiFetch(`/tables/${tableName}`, { method: "DELETE" });
+  await apiFetch(`/tables/${encodeURIComponent(tableName)}`, { method: "DELETE" });
 }
 
 // ── File Upload ────────────────────────────────────────────
 
-export async function uploadFile(file: File): Promise<{ tableName: string }> {
-  // TODO: const formData = new FormData();
-  //       formData.append("file", file);
-  //       return apiFetch("/upload", { method: "POST", body: formData });
-  return { tableName: file.name.replace(/\.[^.]+$/, "") };
+export async function uploadFile(
+  file: File
+): Promise<{ tableName: string; rowCount: number; columnCount: number }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiFetch<{ tableName: string; rowCount: number; columnCount: number; status: string }>(
+    "/upload",
+    { method: "POST", body: formData }
+  );
+  return { tableName: res.tableName, rowCount: res.rowCount, columnCount: res.columnCount };
 }
 
 // ── Quality ────────────────────────────────────────────────
 
 export async function fetchQualityReport(
   tableName: string
-): Promise<QualityReport | null> {
-  // TODO: return apiFetch<QualityReport>(`/quality/${tableName}`);
-  return null;
+): Promise<QualityReport> {
+  return apiFetch<QualityReport>(`/quality/${encodeURIComponent(tableName)}`);
 }
 
-// ── Chat ───────────────────────────────────────────────────
+// ── Status ─────────────────────────────────────────────────
 
-export async function sendChatMessage(
-  message: string
-): Promise<{ reply: string }> {
-  // TODO: return apiFetch("/chat", { method: "POST", body: JSON.stringify({ message }) });
-  return { reply: `Mock reply to: ${message}` };
+export async function fetchStatus(): Promise<{
+  api: string;
+  db: string;
+  rag: string;
+  version: string;
+  uptime: string;
+}> {
+  return apiFetch("/status");
 }
