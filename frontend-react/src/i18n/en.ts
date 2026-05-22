@@ -1,7 +1,7 @@
 const en = {
   translation: {
     "app.title": "Enterprise AI Data Agent",
-    "app.subtitle": "Multi-Agent Data Analysis Platform",
+    "app.subtitle": "DuckDB Management Console",
     "app.language": "Language",
 
     "nav.file-upload": "File Upload",
@@ -11,6 +11,8 @@ const en = {
     "nav.charts": "Visualizations",
     "nav.logs": "Agent Logs",
     "nav.status": "System Status",
+    "nav.sql": "SQL Workspace",
+    "nav.tables": "Tables",
 
     "upload.dropzone": "Drag & drop CSV or Excel files here",
     "upload.uploading": "Uploading...",
@@ -88,6 +90,34 @@ const en = {
     "table.sort": "Sort",
     "table.filter": "Filter",
     "table.no-data": "No data available.",
+    "table.management": "Table Management",
+    "table.refresh": "Refresh table list",
+    "table.no-tables": "No tables in database.",
+    "table.query": "Generate SELECT query",
+    "table.rename": "Rename table",
+    "table.rename-btn": "Rename",
+    "table.export": "Export as CSV",
+    "table.delete": "Delete table",
+    "table.confirm-delete": "Delete table",
+    "table.confirm": "Confirm",
+    "table.cancel": "Cancel",
+    "table.tables-total": "tables",
+    "table.rows-total": "total rows",
+
+    "sql.title": "SQL Workspace",
+    "sql.execute": "Execute",
+    "sql.running": "Running...",
+    "sql.clear": "Clear",
+    "sql.hint": "Ctrl+Enter to execute",
+    "sql.placeholder": "SELECT * FROM table_name LIMIT 100;",
+    "sql.executing": "Executing query...",
+    "sql.error": "Query Error",
+    "sql.empty": "Write a SQL query above and click Execute.",
+    "sql.rows": "rows",
+    "sql.time": "time",
+
+    "history.title": "Query History",
+    "history.empty": "No queries executed yet.",
   },
 };
 

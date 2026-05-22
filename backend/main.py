@@ -11,10 +11,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routes import upload, tables, quality
+from backend.routes import upload, tables, quality, query, table_manage
 from backend.services.data_service import check_db_connection, get_uptime
 
-app = FastAPI(title="Enterprise AI Data Agent API", version="0.3.3.1")
+app = FastAPI(title="Enterprise AI Data Agent API", version="0.3.4")
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,6 +28,8 @@ app.add_middleware(
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 app.include_router(tables.router, prefix="/api", tags=["tables"])
 app.include_router(quality.router, prefix="/api", tags=["quality"])
+app.include_router(query.router, prefix="/api", tags=["query"])
+app.include_router(table_manage.router, prefix="/api", tags=["table-manage"])
 
 
 @app.get("/api/health")
@@ -46,6 +48,6 @@ async def status():
         "api": "ok",
         "db": "ok" if db_ok else "error",
         "rag": "unknown",
-        "version": "0.3.3.1",
+        "version": "0.3.4",
         "uptime": get_uptime(),
     }

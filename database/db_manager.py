@@ -143,6 +143,12 @@ class DatabaseManager:
             "status": "success",
         }
 
+    def rename_table(self, old_name: str, new_name: str) -> bool:
+        """Rename a table. Returns True on success."""
+        conn = self.connect()
+        conn.execute(f'ALTER TABLE "{old_name}" RENAME TO "{new_name}";')
+        return True
+
     def drop_table(self, table_name: str) -> bool:
         """Drop a table. Returns True if it existed."""
         conn = self.connect()
