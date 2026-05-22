@@ -8,11 +8,12 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+from frontend.i18n import t
 
 
 def render():
     """Render the chart display zone."""
-    st.markdown('<div class="section-header">Visualizations</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-header">{t("charts.title")}</div>', unsafe_allow_html=True)
 
     charts = st.session_state.get("charts", [])
 
@@ -24,10 +25,8 @@ def render():
 
 
 def _render_placeholder():
-    """Show placeholder with mock chart."""
-    st.caption("No charts generated yet. Showing demo chart.")
+    st.caption(t("charts.empty"))
 
-    # Mock demo chart
     df = px.data.gapminder().query("continent == 'Oceania'")
     fig = px.line(
         df, x="year", y="lifeExp", color="country",
@@ -44,7 +43,6 @@ def _render_placeholder():
 
 
 def _render_tabs(charts: list):
-    """Render charts in tabs."""
     if len(charts) == 1:
         _render_single_chart(charts[0])
         return
@@ -58,14 +56,13 @@ def _render_tabs(charts: list):
 
 
 def _render_single_chart(chart: dict):
-    """Render a single chart based on its type."""
     chart_type = chart.get("type", "bar")
     data = chart.get("data", [])
     title = chart.get("title", "Chart")
     df = pd.DataFrame(data)
 
     if df.empty:
-        st.caption("No data for this chart.")
+        st.caption(t("charts.no_data"))
         return
 
     fig = go.Figure()

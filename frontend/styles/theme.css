@@ -207,3 +207,54 @@ h1, h2, h3, h4, h5, h6 {
     padding-bottom: 6px;
     border-bottom: 1px solid #21262D;
 }
+
+/* --- Tooltip (truncated text) --- */
+.truncated-text {
+    cursor: help;
+    border-bottom: 1px dashed #484F58;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+
+.truncated-text:hover {
+    border-bottom-color: #00D4AA;
+}
+
+/* --- Responsive font scaling --- */
+@media (max-width: 1200px) {
+    html { font-size: 14px; }
+}
+
+@media (max-width: 800px) {
+    html { font-size: 13px; }
+}
+
+/* --- Hover animations --- */
+.stButton > button {
+    transition: all 0.2s ease;
+}
+
+.streamlit-expanderHeader {
+    transition: background-color 0.15s ease;
+}
+
+.streamlit-expanderHeader:hover {
+    background-color: #30363D;
+}
+
+/* --- Sticky dataframe header --- */
+[data-testid="stDataFrame"] thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+/* --- Dataframe scrollable --- */
+[data-testid="stDataFrame"] {
+    overflow: auto;
+    max-height: 60vh;
+}

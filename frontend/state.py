@@ -51,6 +51,11 @@ STATE_DEFAULTS = {
     # Data quality (v0.3.2)
     "data_quality_score": None,    # dict | None  — full QualityReport as dict
     "data_warnings": [],           # list[str]    — aggregated warnings
+
+    # Workspace (v0.3.2.1)
+    "language": "en",              # "en" | "zh"
+    "workspace_layout": "default", # layout preset name
+    "panel_status": {},            # dict[str, bool]  — panel collapsed states
 }
 
 

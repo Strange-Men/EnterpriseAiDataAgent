@@ -1,12 +1,14 @@
 """Data Quality Panel Component — v0.3.2.
 
 Enterprise-grade data quality dashboard.
-Input:  session_state.data_quality_report (QualityReport dict)
+Input:  session_state.data_quality_score (QualityReport dict)
 Output: read-only display with score card, warnings, field health
 """
 
 import streamlit as st
 import pandas as pd
+from frontend.i18n import t
+from frontend.utils import tooltip
 
 
 def render():
@@ -14,23 +16,22 @@ def render():
     report = st.session_state.get("data_quality_score")
 
     if not report:
-        st.info("No data loaded. Upload a file to see quality analysis.")
+        st.info(t("quality.no_data"))
         return
 
     if report.get("overall_score") is None:
-        st.info("Quality analysis pending.")
+        st.info(t("quality.pending"))
         return
 
-    # ── Score Card Row ───────────────────────────────────────────
     _render_score_card(report)
-
-    # ── Warnings ─────────────────────────────────────────────────
     _render_warnings(report)
 
-    # ── Detail Tabs ──────────────────────────────────────────────
-    tab_missing, tab_outlier, tab_duplicate, tab_fields = st.tabs(
-        ["Missing Values", "Outliers", "Duplicates", "Field Health"]
-    )
+    tab_missing, tab_outlier, tab_duplicate, tab_fields = st.tabs([
+        t("quality.tab_missing"),
+        t("quality.tab_outliers"),
+        t("quality.tab_duplicates"),
+        t("quality.tab_fields"),
+    ])
 
     with tab_missing:
         _render_missing_table(report)
@@ -55,8 +56,6 @@ def _render_score_card(report: dict):
     consistency = report.get("consistency_score", 0)
     validity = report.get("validity_score", 0)
     uniqueness = report.get("uniqueness_score", 0)
-
-    # Overall score with color
     score_color = _score_color(overall)
 
     st.markdown(
@@ -82,7 +81,7 @@ def _render_score_card(report: dict):
             ">{overall}</div>
             <div>
                 <div style="font-size: 1.1rem; font-weight: 600; color: #E6EDF3; margin-bottom: 4px;">
-                    Data Quality Score
+                    {t("quality.title")}
                 </div>
                 <div style="font-size: 0.8rem; color: #8B949E;">
                     {report.get('total_rows', 0)} rows × {report.get('total_columns', 0)} columns
@@ -94,43 +93,47 @@ def _render_score_card(report: dict):
         unsafe_allow_html=True,
     )
 
-    # Dimension scores
+    null_pct = report.get("null_pct", 0)
+    anomaly_count = len(report.get("type_anomalies", {}))
+    outlier_count = report.get("total_outliers", 0)
+    dup_count = report.get("duplicate_rows", 0)
+
     c1, c2, c3, c4 = st.columns(4)
     c1.metric(
-        "Completeness",
+        t("quality.completeness"),
         f"{completeness}",
-        delta=f"{report.get('null_pct', 0)}% null" if report.get('null_pct', 0) > 0 else "No nulls",
+        delta=f"{null_pct}%{t('quality.null_pct')}" if null_pct > 0 else t("quality.no_nulls"),
         delta_color="inverse",
     )
     c2.metric(
-        "Consistency",
+        t("quality.consistency"),
         f"{consistency}",
-        delta=f"{len(report.get('type_anomalies', {}))} anomalies",
+        delta=f"{anomaly_count} {t('quality.anomalies')}" if anomaly_count > 0 else t("quality.no_anomalies"),
         delta_color="inverse",
     )
     c3.metric(
-        "Validity",
+        t("quality.validity"),
         f"{validity}",
-        delta=f"{report.get('total_outliers', 0)} outliers",
+        delta=f"{outlier_count} {t('quality.outliers_label')}" if outlier_count > 0 else t("quality.no_outliers"),
         delta_color="inverse",
     )
     c4.metric(
-        "Uniqueness",
+        t("quality.uniqueness"),
         f"{uniqueness}",
-        delta=f"{report.get('duplicate_rows', 0)} duplicates",
+        delta=f"{dup_count} {t('quality.tab_duplicates').lower()}" if dup_count > 0 else t("quality.no_duplicates"),
         delta_color="inverse",
     )
 
 
 def _score_color(score: float) -> str:
     if score >= 90:
-        return "#3FB950"  # green
+        return "#3FB950"
     elif score >= 70:
-        return "#D29922"  # yellow
+        return "#D29922"
     elif score >= 50:
-        return "#DB6D28"  # orange
+        return "#DB6D28"
     else:
-        return "#F85149"  # red
+        return "#F85149"
 
 
 # ════════════════════════════════════════════════════════════════
@@ -140,8 +143,10 @@ def _score_color(score: float) -> str:
 def _render_warnings(report: dict):
     warnings = report.get("warnings", [])
     if not warnings:
-        st.success("No quality warnings detected.")
+        st.success(t("quality.no_warnings"))
         return
+
+    warn_label = t("quality.warnings") if len(warnings) == 1 else t("quality.warnings_plural")
 
     st.markdown(
         f"""
@@ -153,7 +158,7 @@ def _render_warnings(report: dict):
             margin-bottom: 16px;
         ">
             <div style="color: #D29922; font-weight: 600; margin-bottom: 8px;">
-                ⚠ {len(warnings)} Warning{'s' if len(warnings) != 1 else ''}
+                ⚠ {len(warnings)} {warn_label}
             </div>
         """,
         unsafe_allow_html=True,
@@ -175,23 +180,29 @@ def _render_warnings(report: dict):
 def _render_missing_table(report: dict):
     missing = report.get("missing_by_column", {})
     if not missing:
-        st.success("No missing values.")
+        st.success(t("quality.missing_none"))
         return
 
     rows = []
     for col, info in sorted(missing.items(), key=lambda x: -x[1]["count"]):
         if info["count"] > 0:
+            if info["pct"] >= 15:
+                status = f"⚠ {t('quality.high')}"
+            elif info["pct"] >= 5:
+                status = f"  {t('quality.moderate')}"
+            else:
+                status = f"✅ {t('quality.low')}"
             rows.append({
                 "Column": col,
                 "Missing": info["count"],
                 "Missing %": f"{info['pct']}%",
-                "Status": "⚠ High" if info["pct"] >= 15 else ("  Moderate" if info["pct"] >= 5 else "✅ Low"),
+                "Status": status,
             })
 
     if rows:
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     else:
-        st.success("No missing values detected.")
+        st.success(t("quality.missing_none"))
 
 
 # ════════════════════════════════════════════════════════════════
@@ -201,22 +212,23 @@ def _render_missing_table(report: dict):
 def _render_outlier_table(report: dict):
     outliers = report.get("outliers_by_column", {})
     if not outliers:
-        st.success("No numeric columns or no outliers detected.")
+        st.success(t("quality.outlier_none"))
         return
 
     rows = []
     for col, info in sorted(outliers.items(), key=lambda x: -x[1]["count"]):
+        status = f"⚠ {t('quality.high')}" if info["pct"] > 3 else f"✅ {t('quality.normal')}"
         rows.append({
             "Column": col,
             "Outliers": info["count"],
             "Outlier %": f"{info['pct']}%",
             "Lower Bound": info["lower_bound"],
             "Upper Bound": info["upper_bound"],
-            "Status": "⚠ High" if info["pct"] > 3 else "✅ Normal",
+            "Status": status,
         })
 
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-    st.caption("Method: IQR (Interquartile Range) with 1.5× multiplier")
+    st.caption(t("quality.outlier_method"))
 
 
 # ════════════════════════════════════════════════════════════════
@@ -229,16 +241,16 @@ def _render_duplicate_info(report: dict):
     candidate_keys = report.get("duplicate_candidate_keys", [])
 
     col1, col2 = st.columns(2)
-    col1.metric("Duplicate Rows", dup_rows)
-    col2.metric("Duplicate Rate", f"{dup_pct}%")
+    col1.metric(t("quality.dup_rows"), dup_rows)
+    col2.metric(t("quality.dup_rate"), f"{dup_pct}%")
 
     if dup_rows > 0:
         st.warning(f"Found {dup_rows} fully duplicated rows ({dup_pct}% of data).")
     else:
-        st.success("No fully duplicated rows detected.")
+        st.success(t("quality.dup_none"))
 
     if candidate_keys:
-        st.markdown("**Candidate Primary Keys** (unique, no nulls):")
+        st.markdown(f"**{t('quality.candidate_keys')}:**")
         for key in candidate_keys:
             st.markdown(f"- `{key}`")
 
@@ -247,15 +259,28 @@ def _render_duplicate_info(report: dict):
 # Field Health
 # ════════════════════════════════════════════════════════════════
 
+_HEALTH_LABELS = {
+    (90, 101): "quality.excellent",
+    (70, 90): "quality.good",
+    (50, 70): "quality.fair",
+    (0, 50): "quality.poor",
+}
+
+
 def _render_field_health(report: dict):
     fields = report.get("field_health", [])
     if not fields:
-        st.info("No field health data available.")
+        st.info(t("quality.field_health_none"))
         return
 
     rows = []
     for f in fields:
         warnings_text = "; ".join(f.get("warnings", [])) if f.get("warnings") else ""
+        health_key = "quality.poor"
+        for (lo, hi), key in _HEALTH_LABELS.items():
+            if lo <= f["score"] < hi:
+                health_key = key
+                break
         rows.append({
             "Field": f["name"],
             "Type": f["dtype"],
@@ -263,7 +288,7 @@ def _render_field_health(report: dict):
             "Unique": f["unique_count"],
             "Outliers": f.get("outlier_count", 0),
             "Score": f["score"],
-            "Health": _health_badge(f["score"]),
+            "Health": t(health_key),
             "Warnings": warnings_text,
         })
 
@@ -280,21 +305,9 @@ def _render_field_health(report: dict):
         },
     )
 
-    # Summary
     empty = report.get("empty_columns", [])
     constant = report.get("constant_columns", [])
     if empty:
-        st.error(f"Empty columns: {', '.join(empty)}")
+        st.error(f"{t('quality.empty_cols')}: {', '.join(empty)}")
     if constant:
-        st.warning(f"Constant columns: {', '.join(constant)}")
-
-
-def _health_badge(score: float) -> str:
-    if score >= 90:
-        return "Excellent"
-    elif score >= 70:
-        return "Good"
-    elif score >= 50:
-        return "Fair"
-    else:
-        return "Poor"
+        st.warning(f"{t('quality.constant_cols')}: {', '.join(constant)}")
