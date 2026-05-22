@@ -20,7 +20,7 @@ import streamlit as st
 from frontend.state import init_session_state
 from frontend.styles import load_theme
 from frontend.components import file_upload, chat_panel, data_result, chart_viewer, system_status, agent_log
-from frontend.mock import seed_mock_data
+from database.db_manager import DatabaseManager
 
 
 # ── Page config ────────────────────────────────────────────────
@@ -39,7 +39,17 @@ st.markdown(f"<style>{load_theme()}</style>", unsafe_allow_html=True)
 # ── State ──────────────────────────────────────────────────────
 
 init_session_state()
-seed_mock_data()
+
+# ── Database init ──────────────────────────────────────────────
+
+db = DatabaseManager()
+try:
+    db.connect()
+    st.session_state.database_status = "connected"
+    st.session_state.db_tables = db.list_tables()
+except Exception as e:
+    st.session_state.database_status = "error"
+    st.error(f"Database connection failed: {e}")
 
 # ── Header ─────────────────────────────────────────────────────
 
