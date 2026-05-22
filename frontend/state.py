@@ -45,8 +45,12 @@ STATE_DEFAULTS = {
     "current_table": None,         # str | None  — DuckDB table name
     "database_status": "idle",     # idle | connected | error
     "db_tables": [],               # list[dict]  — tables in DuckDB
-    "data_quality_report": None,   # dict | None
+    "data_quality_report": None,   # dict | None  — v0.3 schema report
     "ingestion_log": [],           # list[dict]  — upload/import history
+
+    # Data quality (v0.3.2)
+    "data_quality_score": None,    # dict | None  — full QualityReport as dict
+    "data_warnings": [],           # list[str]    — aggregated warnings
 }
 
 
