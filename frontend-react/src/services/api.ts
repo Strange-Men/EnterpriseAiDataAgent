@@ -108,6 +108,9 @@ export interface QueryResult {
   columns: string[];
   data: Record<string, unknown>[];
   rowCount: number;
+  totalRows?: number;
+  hasMore?: boolean;
+  truncated?: boolean;
   runtimeMs: number;
   status: "success" | "error";
   error: string | null;

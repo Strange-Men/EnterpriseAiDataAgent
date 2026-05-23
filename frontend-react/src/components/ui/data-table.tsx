@@ -98,12 +98,10 @@ export function DataTable({
       onLoadMore();
     }
   }, [
-    rowVirtualizer.getVirtualItems(),
+    rows.length,
     onLoadMore,
     hasMore,
     isLoading,
-    rows.length,
-    rowVirtualizer,
   ]);
 
   if (!data.length) {

@@ -51,6 +51,7 @@ desktop.ini
 htmlcov/
 .coverage
 coverage.xml
+coverage/
 
 # Pytest
 .pytest_cache/

@@ -62,15 +62,20 @@ async def execute_query(req: QueryRequest):
                 "error": result["error"],
             }
 
+        total_rows = result["row_count"]
+        truncated = total_rows > req.limit
         data = _sanitize_for_json(result["data"][:req.limit])
-        query_history.add(sql, "success", runtime_ms, result["row_count"])
+        query_history.add(sql, "success", runtime_ms, total_rows)
 
         return {
             "queryId": query_id,
             "sql": sql,
             "columns": result["columns"],
             "data": data,
-            "rowCount": result["row_count"],
+            "rowCount": len(data),
+            "totalRows": total_rows,
+            "hasMore": truncated,
+            "truncated": truncated,
             "runtimeMs": runtime_ms,
             "status": "success",
             "error": None,
