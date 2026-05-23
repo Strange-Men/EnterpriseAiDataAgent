@@ -4,9 +4,9 @@ Use this template at the start of each new Claude session to restore context qui
 
 ## Current Version
 
-- **Version**: v0.3.10
-- **Phase**: v0.3.x Enterprise Data Platform
-- **Status**: Stable — Enterprise Maintenance System complete
+- **Version**: v0.3.12
+- **Phase**: v0.3.x Enterprise Data Platform — STABLE
+- **Status**: Maintainability, Governance & Bug Fixes complete
 
 ## What Was Recently Done
 
@@ -14,6 +14,8 @@ Use this template at the start of each new Claude session to restore context qui
 - v0.3.8: AI Engineering Governance (CLAUDE.md, Testing, Error Logging, A/B Testing, Skill Engineering)
 - v0.3.9: Stability & Consistency Pass (500-row limit fix, DataTable fix, docs restructuring)
 - v0.3.10: Enterprise Maintenance System (SQL execution fix, docs architecture, E2E testing, workflow governance)
+- v0.3.11: Repository Architecture Governance (FILE_SYSTEM_RULES, SKILL_LIFECYCLE, REPOSITORY_HEALTH)
+- v0.3.12: Maintainability & Governance (repo cleanup, coverage audit, skills, bug hunt, ISSUE-006 partial fix)
 
 ## Known Issues
 

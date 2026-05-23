@@ -1,117 +1,98 @@
 # Repository Health Audit — Enterprise AI Data Agent
 
-> Auto-generated: 2026-05-23 | Version: v0.3.11
+> Auto-generated: 2026-05-23 | Version: v0.3.12
 
-## Health Score: 78/100
+## Health Score: 82/100
 
-| Category | Score | Status |
-|----------|-------|--------|
-| Structure Quality | 82/100 | Good |
-| Naming Consistency | 85/100 | Good |
-| Duplication Risk | 70/100 | Fair |
-| Governance Coverage | 90/100 | Excellent |
-| Maintainability | 75/100 | Good |
-| Test Coverage | 70/100 | Fair |
+| Category | Score | Status | Change |
+|----------|-------|--------|--------|
+| Structure Quality | 88/100 | Excellent | +6 |
+| Naming Consistency | 85/100 | Good | — |
+| Duplication Risk | 85/100 | Good | +15 |
+| Governance Coverage | 92/100 | Excellent | +2 |
+| Maintainability | 78/100 | Good | +3 |
+| Test Coverage | 70/100 | Fair | — |
 
-## 1. Structure Quality (82/100)
+## 1. Structure Quality (88/100)
 
 ### What's Good
 - Clear frontend/backend/database separation
+- Legacy `frontend/` archived to `docs/archive/legacy_frontend/`
+- Stale `backend/data/enterprise.duckdb` removed
+- `scripts/` directory created with start-dev and backup utilities
 - Zustand stores properly organized in `stores/`
-- Components split by concern (ui/, panels/, layout/)
-- Backend routes properly separated from services
-- Documentation well-organized in `docs/` subdirectories
+- Skills lifecycle system in place (`skills/active/`)
 
 ### Issues Found
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| Legacy `frontend/` (Streamlit) directory still present | Low | Note — consider archiving |
-| `backend/data/enterprise.duckdb` exists (stale copy) | Low | Note — active DB is `data/enterprise.duckdb` |
-| No `scripts/` directory for automation | Low | Create when needed |
+| No CI/CD configuration | Low | Future |
 | No `database/schemas/` or `database/migrations/` yet | Low | Create when needed |
 
 ### Remediation
-- [ ] Archive legacy `frontend/` to `docs/archive/legacy-frontend/` or mark as deprecated
-- [ ] Remove stale `backend/data/enterprise.duckdb` if confirmed unused
-- [ ] Create `scripts/` directory with `.gitkeep` when automation scripts are added
+- [ ] Add CI/CD configuration when deployment is established
 
 ## 2. Naming Consistency (85/100)
 
 ### What's Good
-- Frontend: kebab-case consistently used (`sql-workspace-panel.tsx`, `data-store.ts`)
-- Backend: snake_case consistently used (`data_service.py`, `query_executor.py`)
-- Governance docs: UPPER-KEBAB-CASE (`FILE_SYSTEM_RULES.md`, `SKILL_LIFECYCLE.md`)
-- Stores: consistent `-store.ts` suffix
+- Frontend: kebab-case consistently used
+- Backend: snake_case consistently used
+- Governance docs: UPPER-KEBAB-CASE
+- Skills: kebab-case in `skills/active/`
+- Reports: version-prefixed naming
 
 ### Issues Found
 
 | Issue | Severity | Location |
 |-------|----------|----------|
-| Chinese filenames in `docs/architecture/` | Low | `版本记录.md`, `项目架构说明.md`, `开发路线图.md` |
+| Chinese filenames in `docs/architecture/` | Low | `版本记录.md`, `项目架构说明.md` |
 | `docs/frontend_rules/` uses underscore instead of hyphen | Low | Directory name |
-| `SKILL_REGISTRY.md` uppercase but other skills docs are mixed | Low | `docs/skills/` |
 
-### Notes
-- Chinese filenames in `docs/architecture/` are acceptable — they contain Chinese-language content
-- `docs/frontend_rules/` was established early; renaming would break references
-- Naming is otherwise consistent within each layer
+## 3. Duplication Risk (85/100)
 
-## 3. Duplication Risk (70/100)
+### Resolved Duplications
 
-### Identified Duplications
+| Item | Resolution | Version |
+|------|-----------|---------|
+| DuckDB files | Removed stale `backend/data/enterprise.duckdb` | v0.3.12 |
+| Frontend codebase | Archived legacy `frontend/` to `docs/archive/` | v0.3.12 |
 
-| Item | Location A | Location B | Risk |
-|------|-----------|-----------|------|
-| DuckDB files | `data/enterprise.duckdb` (2.8MB, active) | `backend/data/enterprise.duckdb` (1MB, stale) | Medium |
-| Frontend codebase | `frontend-react/` (active) | `frontend/` (legacy Streamlit) | Low |
-| i18n files | `frontend-react/src/i18n/` (active) | `frontend/i18n/` (legacy) | Low |
-
-### Remediation
-- [ ] Confirm `backend/data/enterprise.duckdb` is stale and can be deleted
-- [ ] Document `frontend/` as legacy in README or archive it
-
-## 4. Governance Coverage (90/100)
+## 4. Governance Coverage (92/100)
 
 ### Existing Governance Documents
 
 | Document | Status | Last Updated |
 |----------|--------|-------------|
-| `CLAUDE.md` | Active | v0.3.10 |
+| `CLAUDE.md` | Active | v0.3.11 |
 | `PROJECT_RULES.md` | Active | v0.3.6 |
-| `KNOWN_ISSUES.md` | Active | v0.3.10 |
-| `CURRENT_SESSION.md` | Active | v0.3.10 |
-| `SESSION_SUMMARY_TEMPLATE.md` | Active | v0.3.10 |
+| `KNOWN_ISSUES.md` | Active | v0.3.12 |
+| `CURRENT_SESSION.md` | Active | v0.3.12 |
 | `docs/governance/FILE_SYSTEM_RULES.md` | Active | v0.3.11 |
 | `docs/governance/SKILL_LIFECYCLE.md` | Active | v0.3.11 |
-| `docs/governance/claude-workflow.md` | Active | v0.3.10 |
-| `docs/governance/DOCUMENTATION_LIFECYCLE.md` | Active | v0.3.8 |
-| `docs/governance/DOCUMENTATION_NAMING.md` | Active | v0.3.8 |
-| `docs/governance/AB_TESTING.md` | Active | v0.3.8 |
-| `docs/governance/ERROR_ANALYSIS.md` | Active | v0.3.8 |
-| `docs/testing/TESTING_STRATEGY.md` | Active | v0.3.8 |
-| `docs/skills/SKILL_REGISTRY.md` | Active | v0.3.8 |
+| `docs/skills/SKILL_REGISTRY.md` | Active | v0.3.12 |
+| `skills/active/virtual-scroll-debugging.md` | Active | v0.3.12 |
+| `skills/active/performance-audit.md` | Active | v0.3.12 |
 
-### Coverage Gaps
+### New in v0.3.12
+- `scripts/start-dev.sh` — development startup automation
+- `scripts/backup-duckdb.py` — database backup utility
+- `docs/reports/coverage-improvement-plan.md` — test coverage roadmap
+- `docs/reports/ISSUE-006-decision.md` — pagination architecture decision
+- `docs/reports/v0.3.12-bug-hunt.md` — automated bug hunt results
 
-| Gap | Priority | Action |
-|-----|----------|--------|
-| No API contract governance | Medium | Consider adding `docs/governance/API_CONTRACTS.md` |
-| No deployment/runbook docs | Low | Add when CI/CD is established |
-
-## 5. Maintainability (75/100)
+## 5. Maintainability (78/100)
 
 ### Strengths
+- Scripts directory created for automation
+- Bug hunt process established and documented
 - Clear separation of concerns across layers
-- Zustand stores are well-organized and typed
-- Backend follows FastAPI best practices (routes/services/models)
-- Documentation is comprehensive and indexed
+- Coverage improvement plan with prioritized phases
 
 ### Weaknesses
-- No `scripts/` directory for common automation
-- No CI/CD configuration (GitHub Actions, etc.)
+- No CI/CD configuration
 - No pre-commit hooks for linting/formatting
-- `.env.example` exists but may be incomplete
+- Coverage below target (38% frontend, 47% backend)
 
 ## 6. Test Coverage (70/100)
 
@@ -119,80 +100,64 @@
 
 | Layer | Type | Count | Location |
 |-------|------|-------|----------|
-| Frontend | Unit (Vitest) | 3 | `frontend-react/src/stores/__tests__/` |
-| Frontend | E2E (Playwright) | 12 | `frontend-react/e2e/` |
-| Backend | Unit (pytest) | 3 | `tests/` |
+| Frontend | Unit (Vitest) | 3 files / 21 tests | `src/stores/__tests__/` |
+| Frontend | E2E (Playwright) | 12 tests | `e2e/` |
+| Backend | Unit (pytest) | 3 files / 28 tests | `tests/` |
 
-### Gaps
-- No integration tests for API + DB flow
-- No component-level tests (React Testing Library)
-- No backend route-level tests
-- No performance regression tests (automated)
+### Coverage Metrics
 
-## Repository File Tree (Post-Cleanup)
+| Layer | Lines | Branches | Target | Gap |
+|-------|-------|----------|--------|-----|
+| Frontend | 38.25% | 23.88% | 85% | -46.75% |
+| Backend | 47% | — | 85% | -38% |
+
+### Lowest Coverage Modules
+
+| Module | Coverage | Priority |
+|--------|----------|----------|
+| `database/schema_detector.py` | 17% | P0 |
+| `database/file_loader.py` | 20% | P0 |
+| `models/schemas.py` | 0% | P0 |
+| `database/data_quality.py` | 31% | P1 |
+| `services/api.ts` | 0% | P0 |
+| `stores/data-store.ts` | 0% | P0 |
+
+## Repository File Tree (v0.3.12)
 
 ```
 EnterpriseAiDataAgent/
 │
 ├── frontend-react/           # Active frontend (Next.js 15 + React 19)
-│   ├── src/
-│   │   ├── app/              # Routes
-│   │   ├── components/       # Shared components
-│   │   │   └── ui/           # UI primitives
-│   │   ├── hooks/            # React hooks
-│   │   ├── i18n/             # Internationalization
-│   │   ├── layout/           # Layout components
-│   │   ├── panels/           # Workspace panels
-│   │   ├── services/         # API services
-│   │   ├── stores/           # Zustand stores
-│   │   │   └── __tests__/    # Store unit tests
-│   │   ├── styles/           # Global styles
-│   │   ├── types/            # TypeScript types
-│   │   └── utils/            # Utilities
-│   ├── e2e/                  # Playwright E2E tests
-│   ├── public/               # Static assets
-│   ├── playwright.config.ts
-│   ├── vitest.config.ts
-│   └── package.json
-│
 ├── backend/                  # FastAPI backend
-│   ├── routes/               # API endpoints
-│   ├── services/             # Business logic
-│   ├── models/               # Pydantic schemas
-│   ├── main.py               # Entry point
-│   └── data/                 # (stale DuckDB — use data/ instead)
-│
 ├── database/                 # DuckDB layer
-│   ├── db_manager.py         # Connection management
-│   ├── query_executor.py     # Query execution
-│   ├── file_loader.py        # File import
-│   ├── data_quality.py       # Quality checks
-│   └── schema_detector.py    # Schema inference
-│
 ├── tests/                    # Backend tests (pytest)
-│
+├── scripts/                  # NEW: Automation scripts
+│   ├── start-dev.sh          # Start backend + frontend
+│   └── backup-duckdb.py      # DB backup utility
+├── skills/                   # NEW: Skill lifecycle
+│   ├── active/               # Current skills
+│   ├── stable/               # Mature skills
+│   ├── archived/             # Historical skills
+│   └── deprecated/           # Superseded skills
 ├── docs/                     # All documentation
-│   ├── architecture/         # System design (zh)
-│   ├── governance/           # Rules and workflows
-│   ├── testing/              # Test strategy
+│   ├── architecture/
+│   ├── governance/
+│   ├── testing/
 │   ├── reports/              # Version reports
-│   ├── skills/               # Reusable skills
-│   ├── frontend_rules/       # Frontend architecture rules
-│   └── archive/              # Deprecated docs
+│   ├── skills/
+│   ├── frontend_rules/
+│   └── archive/
+│       └── legacy_frontend/  # NEW: Archived Streamlit frontend
+├── error_logs/
+├── data/                     # DuckDB database (active)
+├── testExcel/
 │
-├── frontend/                 # LEGACY Streamlit frontend (archive candidate)
-│
-├── error_logs/               # Error reports
-├── testExcel/                # Test datasets
-│
-├── CLAUDE.md                 # Root governance (MUST read)
-├── PROJECT_RULES.md          # Development rules (MUST read)
-├── KNOWN_ISSUES.md           # Issue tracker
-├── CURRENT_SESSION.md        # Session persistence
-├── SESSION_SUMMARY_TEMPLATE.md
+├── CLAUDE.md
+├── PROJECT_RULES.md
+├── KNOWN_ISSUES.md
+├── CURRENT_SESSION.md
 ├── REPOSITORY_HEALTH.md      # This file
-├── README.md                 # Project overview
-├── requirements.txt          # Python deps
+├── README.md
 └── .gitignore
 ```
 
@@ -200,13 +165,11 @@ EnterpriseAiDataAgent/
 
 | Priority | Action | Status |
 |----------|--------|--------|
-| Medium | Archive legacy `frontend/` directory | Pending |
-| Medium | Remove stale `backend/data/enterprise.duckdb` | Pending |
-| Low | Create `scripts/` directory when needed | Future |
-| Low | Add API contract governance doc | Future |
+| High | Coverage improvement Phase 1 (API + stores) | Planned v0.3.13 |
+| Medium | Coverage improvement Phase 2 (schema + loader) | Planned v0.3.14 |
 | Low | Add CI/CD configuration | Future |
+| Low | Add pre-commit hooks | Future |
 
 ---
 
 > This health audit should be regenerated at every major version bump.
-> Run the repository scan from `docs/governance/FILE_SYSTEM_RULES.md` section 6 to verify compliance.

@@ -101,9 +101,50 @@ export const useXxxStore = create<XxxState>()(
 5. Add i18n keys for new format
 6. Test with actual data
 
+### virtual-scroll-debugging
+
+**When to use**: Diagnosing blank rows, FPS drops, or scroll issues in virtual tables.
+
+**Steps**:
+1. Open DevTools → Elements, count `<tr>` nodes in tbody
+2. Check `overscan` parameter (10-20 recommended)
+3. Profile with Performance tab, check FPS during scroll
+4. Inspect for `contain: strict` on parent (use `layout style` instead)
+5. Verify `estimateSize` matches actual CSS row height
+6. Check `React.memo` on row/cell components
+
+**Key files**: `src/components/ui/data-table.tsx`, `src/components/VirtualDataTable.tsx`
+**Location**: `skills/active/virtual-scroll-debugging.md`
+
+### performance-audit
+
+**When to use**: Before releases, after new features, or when slowness is reported.
+
+**Steps**:
+1. Run Lighthouse audit (target: Performance >= 80)
+2. Chrome Performance profile (record 30s of user flows)
+3. Check for long tasks > 50ms
+4. Memory heap snapshot comparison (baseline vs. after 10 queries)
+5. Bundle size check (`npx next build`)
+6. Generate performance report using template
+
+**Key files**: All frontend source, `.next/static/` for bundle analysis
+**Location**: `skills/active/performance-audit.md`
+
+## Skill Lifecycle
+
+Skills are stored in `skills/` with lifecycle states:
+
+| State | Directory | Description |
+|-------|-----------|-------------|
+| active | `skills/active/` | Currently used in development |
+| stable | `skills/stable/` | Mature, unlikely to change |
+| archived | `skills/archived/` | Historical reference |
+| deprecated | `skills/deprecated/` | Superseded by better approach |
+
 ## Adding New Skills
 
-1. Add entry to this file following the template
-2. Include: **When to use**, **Steps**, **Key files**
+1. Create `skills/active/{skill-name}.md` following the template in `docs/governance/SKILL_LIFECYCLE.md`
+2. Add entry to this file with: **When to use**, **Steps**, **Key files**, **Location**
 3. Keep steps actionable (Claude can follow them directly)
 4. Commit with the version that uses the skill

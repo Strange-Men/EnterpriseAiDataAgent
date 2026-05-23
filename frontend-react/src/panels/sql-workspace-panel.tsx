@@ -35,6 +35,16 @@ export function SqlWorkspacePanel() {
   const activeTab = getActiveTab();
   const currentSql = activeTab?.sql || "";
 
+  // Cleanup: abort any in-flight query on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+
   // Query state — use ref (not useState) so handleCancel always reads current value
   const queryIdRef = useRef<number | null>(null);
 
@@ -182,11 +192,12 @@ export function SqlWorkspacePanel() {
 
   // Load saved query into tab
   const handleLoadSaved = useCallback((q: SavedQuery) => {
-    if (activeTab) {
-      updateTabSql(activeTab.id, q.sql);
+    const tab = useQueryTabsStore.getState().getActiveTab();
+    if (tab) {
+      updateTabSql(tab.id, q.sql);
     }
     setShowSavedPanel(false);
-  }, [activeTab, updateTabSql]);
+  }, [updateTabSql]);
 
   // Export history
   const handleExportHistory = useCallback(() => {
@@ -485,6 +496,11 @@ export function SqlWorkspacePanel() {
             </svg>
             <span className="tabular-nums">{queryResult.rowCount.toLocaleString()}</span>
             <span>{t("stats.rows")}</span>
+            {queryResult.truncated && queryResult.totalRows && (
+              <span className="text-yellow-500 ml-1">
+                (of {queryResult.totalRows.toLocaleString()} total — use EXPORT for full data)
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1 text-[var(--text-muted)]">
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

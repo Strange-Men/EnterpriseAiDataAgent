@@ -84,7 +84,13 @@ export function MonacoSqlEditor({
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const completionDisposableRef = useRef<{ dispose: () => void } | null>(null);
+  const onExecuteRef = useRef(onExecute);
   const [isReady, setIsReady] = useState(false);
+
+  // Keep onExecute ref up to date
+  useEffect(() => {
+    onExecuteRef.current = onExecute;
+  }, [onExecute]);
 
   // Register SQL autocomplete provider
   const registerCompletionProvider = useCallback(
@@ -232,7 +238,7 @@ export function MonacoSqlEditor({
 
       // Keyboard shortcuts
       editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
-        onExecute?.();
+        onExecuteRef.current?.();
       });
 
       editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Slash, () => {
@@ -241,7 +247,7 @@ export function MonacoSqlEditor({
 
       setIsReady(true);
     },
-    [theme, registerCompletionProvider, onExecute]
+    [theme, registerCompletionProvider]
   );
 
   // Update theme when it changes
