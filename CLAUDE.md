@@ -10,24 +10,17 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.3.11 (Repository Architecture Governance)
-- **Phase**: v0.3.x Enterprise Data Platform — STABLE
-- **Next**: v0.4.x AI Analysis Layer — DO NOT START until v0.3.x is fully stable
+- **Current**: v0.4.1 (AI Workspace Integration & User Workflow Completion)
+- **Phase**: v0.4.x Enterprise Reliability & Intelligence — ACTIVE
+- **Next**: v0.4.2+ (E2E tests, chart rendering, prompt optimization)
 
 ## Version Freeze Rules
 
-**v0.4.x is FROZEN.** Claude must NOT:
+**v0.4.x scope**: AI Analysis Layer with single-agent intelligence only.
+Claude must NOT:
 - Proactively add LangGraph, Multi-Agent, or RAG features
-- Suggest implementing AI Agent capabilities
-- Add any v0.4.x planned features
-
-**v0.3.x priorities only:**
-- Workspace Stability
-- Query Stability
-- API Stability
-- Performance
-- Bug fixes
-- Test coverage
+- Suggest implementing multi-agent capabilities
+- Add features beyond v0.4.x scope without user approval
 
 ## Development Rules
 
@@ -117,3 +110,10 @@ Backend at `http://localhost:8000/api/`:
 - `/upload` (POST) — upload CSV/Excel
 - `/quality/{name}` (GET) — quality report
 - `/status` (GET) — system status
+- `/ai/status` (GET) — AI service config & health
+- `/ai/query` (POST) — NL → SQL → execute → explain
+- `/ai/explain` (POST) — explain existing results
+- `/ai/insights` (POST) — generate structured insights
+- `/ai/chart-suggest` (POST) — suggest chart types
+- `/analyze/{table}` (POST) — full analysis pipeline
+- `/analyze/{table}/profile` (GET) — data profile only

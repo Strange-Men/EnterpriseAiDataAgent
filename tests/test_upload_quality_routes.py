@@ -115,3 +115,63 @@ class TestTableRoutes:
         data = res.json()
         assert len(data["data"]) <= 2
         assert data["totalRows"] == 5
+
+
+class TestAIStatusRoute:
+    def test_ai_status_endpoint(self, client):
+        res = client.get("/api/ai/status")
+        assert res.status_code == 200
+        data = res.json()
+        assert "configured" in data
+        assert "connection" in data
+        assert "model" in data
+        assert "temperature" in data
+        assert "api_key_preview" in data
+        assert data["connection"] in ["ok", "error", "not_configured"]
+
+    def test_ai_status_model_is_string(self, client):
+        res = client.get("/api/ai/status")
+        data = res.json()
+        assert isinstance(data["model"], str)
+        assert len(data["model"]) > 0
+
+
+class TestAnalyzeRoute:
+    def test_analyze_profile(self, client):
+        csv_content = b"id,name,val\n1,Alice,100\n2,Bob,200\n3,Charlie,300"
+        fname = _unique_name("analyze") + ".csv"
+        files = {"file": (fname, io.BytesIO(csv_content), "text/csv")}
+        upload_res = client.post("/api/upload", files=files)
+        assert upload_res.status_code == 200
+        table_name = upload_res.json()["tableName"]
+
+        res = client.get(f"/api/analyze/{table_name}/profile")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "success"
+        assert data["table"] == table_name
+        profile = data["profile"]
+        assert profile["row_count"] == 3
+        assert profile["column_count"] == 3
+        assert len(profile["columns"]) == 3
+
+    def test_analyze_profile_nonexistent(self, client):
+        res = client.get("/api/analyze/nonexistent_xyz_99999/profile")
+        assert res.status_code in [404, 500]
+
+    def test_analyze_profile_columns_have_stats(self, client):
+        csv_content = b"score,grade\n95,A\n87,B\n92,A"
+        fname = _unique_name("prof") + ".csv"
+        files = {"file": (fname, io.BytesIO(csv_content), "text/csv")}
+        upload_res = client.post("/api/upload", files=files)
+        table_name = upload_res.json()["tableName"]
+
+        res = client.get(f"/api/analyze/{table_name}/profile")
+        profile = res.json()["profile"]
+        # score column should have numeric stats
+        score_col = next(c for c in profile["columns"] if c["name"] == "score")
+        assert "stats" in score_col
+        assert "mean" in score_col["stats"]
+        # grade column should have top_values
+        grade_col = next(c for c in profile["columns"] if c["name"] == "grade")
+        assert "top_values" in grade_col

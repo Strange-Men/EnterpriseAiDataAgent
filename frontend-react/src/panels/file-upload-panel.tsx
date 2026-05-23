@@ -5,10 +5,12 @@ import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { Tooltip } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
-import { fetchTables, uploadFile, fetchTableData, fetchQualityReport } from "@/services/api";
+import { fetchTables, uploadFile, fetchTableData, fetchQualityReport, analyzeTable, getTableProfile } from "@/services/api";
 import { logger } from "@/services/logger";
 import toast from "react-hot-toast";
 import type { UploadedFile, TableInfo } from "@/types";
+import { AIAnalysisPanel } from "@/panels/ai-analysis-panel";
+import type { AnalysisMode } from "@/panels/ai-analysis-panel";
 
 export function FileUploadPanel() {
   const { t } = useTranslation();
@@ -19,6 +21,8 @@ export function FileUploadPanel() {
     setCurrentTable, setCurrentData, setQualityReport,
   } = useDataStore();
   const [uploading, setUploading] = useState(false);
+  const [analyzingTable, setAnalyzingTable] = useState<string | null>(null);
+  const [analysisMode, setAnalysisMode] = useState<AnalysisMode | null>(null);
 
   const loadTables = useCallback(async () => {
     try {
@@ -104,6 +108,17 @@ export function FileUploadPanel() {
     }
   };
 
+  const handleAnalyze = (tableName: string, mode: AnalysisMode) => {
+    if (analyzingTable === tableName && analysisMode === mode) {
+      // Toggle off
+      setAnalyzingTable(null);
+      setAnalysisMode(null);
+    } else {
+      setAnalyzingTable(tableName);
+      setAnalysisMode(mode);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider pb-2 border-b border-[var(--border-default)]">
@@ -135,15 +150,38 @@ export function FileUploadPanel() {
           <p className="text-sm font-medium text-[var(--text-primary)] mb-2">{t("upload.db-tables")}</p>
           <div className="space-y-1">
             {tables.map((tbl: TableInfo) => (
-              <div
-                key={tbl.name}
-                className="flex items-center justify-between px-3 py-2 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] transition-colors cursor-pointer"
-                onClick={() => handleTableClick(tbl.name)}
-              >
-                <Tooltip text={tbl.name} maxLen={25} />
-                <span className="text-xs text-[var(--text-muted)]">
-                  {tbl.rowCount} × {tbl.columnCount}
-                </span>
+              <div key={tbl.name} className="space-y-1">
+                <div
+                  className="flex items-center justify-between px-3 py-2 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] transition-colors cursor-pointer"
+                  onClick={() => handleTableClick(tbl.name)}
+                >
+                  <Tooltip text={tbl.name} maxLen={25} />
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleAnalyze(tbl.name, "full-analysis"); }}
+                      className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${
+                        analyzingTable === tbl.name && analysisMode === "full-analysis"
+                          ? "border-purple-500 bg-purple-500/10 text-purple-400"
+                          : "border-[var(--border-default)] text-[var(--text-muted)] hover:text-purple-400 hover:border-purple-500/50"
+                      }`}
+                    >
+                      AI
+                    </button>
+                    <span className="text-xs text-[var(--text-muted)]">
+                      {tbl.rowCount} × {tbl.columnCount}
+                    </span>
+                  </div>
+                </div>
+                {/* Inline AI Analysis Panel for tables */}
+                {analyzingTable === tbl.name && analysisMode && (
+                  <div className="max-h-[400px]">
+                    <AIAnalysisPanel
+                      mode={analysisMode}
+                      tableName={tbl.name}
+                      onClose={() => { setAnalyzingTable(null); setAnalysisMode(null); }}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -152,7 +190,7 @@ export function FileUploadPanel() {
 
       {/* Uploaded files */}
       {uploadedFiles.length > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-2">
           {uploadedFiles.map((f, i) => (
             <div
               key={i}
@@ -163,12 +201,49 @@ export function FileUploadPanel() {
                 <Tooltip text={f.name} maxLen={20} />
               </div>
               {f.status === "success" && (
-                <p className="text-xs text-[var(--text-muted)] mt-1">
-                  {t("upload.rows")}: {f.rowCount} · {t("upload.columns")}: {f.columnCount}
-                </p>
+                <>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
+                    {t("upload.rows")}: {f.rowCount} · {t("upload.columns")}: {f.columnCount}
+                  </p>
+                  {f.tableName && (
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <button
+                        onClick={() => handleAnalyze(f.tableName!, "full-analysis")}
+                        className={`px-2 py-1 text-[10px] rounded-md border transition-colors ${
+                          analyzingTable === f.tableName && analysisMode === "full-analysis"
+                            ? "border-purple-500 bg-purple-500/10 text-purple-400"
+                            : "border-[var(--border-default)] text-[var(--text-muted)] hover:text-purple-400 hover:border-purple-500/50"
+                        }`}
+                      >
+                        {t("upload.analyze")}
+                      </button>
+                      <button
+                        onClick={() => handleAnalyze(f.tableName!, "charts")}
+                        className={`px-2 py-1 text-[10px] rounded-md border transition-colors ${
+                          analyzingTable === f.tableName && analysisMode === "charts"
+                            ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                            : "border-[var(--border-default)] text-[var(--text-muted)] hover:text-blue-400 hover:border-blue-500/50"
+                        }`}
+                      >
+                        {t("ai.charts-title")}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
               {f.status === "error" && (
                 <p className="text-xs text-red-400 mt-1">{f.error}</p>
+              )}
+
+              {/* Inline AI Analysis Panel */}
+              {f.tableName && analyzingTable === f.tableName && analysisMode && (
+                <div className="mt-2 max-h-[400px]">
+                  <AIAnalysisPanel
+                    mode={analysisMode}
+                    tableName={f.tableName}
+                    onClose={() => { setAnalyzingTable(null); setAnalysisMode(null); }}
+                  />
+                </div>
               )}
             </div>
           ))}
