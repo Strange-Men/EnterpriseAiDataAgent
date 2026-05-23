@@ -1,24 +1,27 @@
 # Documentation Index — Enterprise AI Data Agent
 
-> Last updated: 2026-05-23 (v0.3.10)
+> Last updated: 2026-05-23 (v0.3.11)
 
 ## Recommended Reading Order (for new sessions)
 
-1. `../CLAUDE.md` — Long-term development rules
-2. `../PROJECT_RULES.md` — 10 mandatory rules
-3. `../KNOWN_ISSUES.md` — Current open issues
-4. `../SESSION_SUMMARY_TEMPLATE.md` — Context restore
-5. `governance/claude-workflow.md` — Development workflow
-6. This file — Documentation map
+1. `../CURRENT_SESSION.md` — Session restore (read FIRST)
+2. `../CLAUDE.md` — Long-term development rules
+3. `../PROJECT_RULES.md` — 10 mandatory rules
+4. `governance/FILE_SYSTEM_RULES.md` — File placement rules (mandatory)
+5. `../KNOWN_ISSUES.md` — Current open issues
+6. `governance/claude-workflow.md` — Development workflow
+7. This file — Documentation map
 
 ## Root-Level Governance (mandatory reads)
 
 | File | Description |
 |------|-------------|
+| [CURRENT_SESSION.md](../CURRENT_SESSION.md) | Session persistence — read FIRST |
 | [CLAUDE.md](../CLAUDE.md) | Long-term Claude co-development rules |
 | [PROJECT_RULES.md](../PROJECT_RULES.md) | 10 mandatory development rules |
 | [KNOWN_ISSUES.md](../KNOWN_ISSUES.md) | Open issues tracker |
 | [SESSION_SUMMARY_TEMPLATE.md](../SESSION_SUMMARY_TEMPLATE.md) | New session context restore |
+| [REPOSITORY_HEALTH.md](../REPOSITORY_HEALTH.md) | Repository health audit (auto-generated) |
 | [README.md](../README.md) | Project overview |
 
 ## Architecture (`docs/architecture/`)
@@ -33,11 +36,13 @@
 
 | File | Description |
 |------|-------------|
+| [FILE_SYSTEM_RULES.md](governance/FILE_SYSTEM_RULES.md) | File placement rules and repository structure |
+| [SKILL_LIFECYCLE.md](governance/SKILL_LIFECYCLE.md) | Skill lifecycle states and governance |
 | [DOCUMENTATION_LIFECYCLE.md](governance/DOCUMENTATION_LIFECYCLE.md) | Doc lifecycle states (active/stable/archived/deprecated) |
 | [DOCUMENTATION_NAMING.md](governance/DOCUMENTATION_NAMING.md) | File naming conventions |
 | [claude-workflow.md](governance/claude-workflow.md) | Claude development workflow rules |
-| [ab-testing.md](governance/ab-testing.md) | Technical decision A/B tests |
-| [error-analysis.md](governance/error-analysis.md) | Error categorization and patterns |
+| [AB_TESTING.md](governance/AB_TESTING.md) | Technical decision A/B tests |
+| [ERROR_ANALYSIS.md](governance/ERROR_ANALYSIS.md) | Error categorization and patterns |
 
 ## Testing (`docs/testing/`)
 

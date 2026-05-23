@@ -10,7 +10,7 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.3.10 (Enterprise Maintenance System)
+- **Current**: v0.3.11 (Repository Architecture Governance)
 - **Phase**: v0.3.x Enterprise Data Platform — STABLE
 - **Next**: v0.4.x AI Analysis Layer — DO NOT START until v0.3.x is fully stable
 
@@ -32,10 +32,12 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 ## Development Rules
 
 ### Before Starting
-1. Read `PROJECT_RULES.md` (mandatory)
-2. Read `docs/frontend_rules/` files (mandatory)
-3. Check `KNOWN_ISSUES.md` for open bugs
-4. Check current version in `docs/architecture/版本记录.md`
+1. Read `CURRENT_SESSION.md` (mandatory — session restore)
+2. Read `PROJECT_RULES.md` (mandatory)
+3. Read `docs/governance/FILE_SYSTEM_RULES.md` (mandatory — file placement)
+4. Read `docs/frontend_rules/` files (mandatory)
+5. Check `KNOWN_ISSUES.md` for open bugs
+6. Check current version in `docs/architecture/版本记录.md`
 
 ### Git Rules
 - Every version MUST be committed: `git add .` + `git commit -m "version-name"`
