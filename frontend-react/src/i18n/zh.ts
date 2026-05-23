@@ -108,21 +108,77 @@ const zh = {
     "sql.execute": "执行",
     "sql.running": "执行中...",
     "sql.clear": "清空",
-    "sql.hint": "Ctrl+Enter 执行",
+    "sql.hint": "Ctrl+Enter 执行，Ctrl+S 保存，Ctrl+/ 注释",
     "sql.placeholder": "SELECT * FROM table_name LIMIT 100;",
     "sql.executing": "正在执行查询...",
     "sql.error": "查询错误",
-    "sql.empty": "在上方输入 SQL 查询并点击执行。",
+    "sql.empty": "输入 SQL 查询后按 Ctrl+Enter 执行。",
     "sql.rows": "行",
     "sql.time": "耗时",
 
     "history.title": "查询历史",
     "history.empty": "暂无查询记录。",
+    "history.search": "搜索 SQL...",
+    "history.filter-all": "全部",
+    "history.filter-success": "成功",
+    "history.filter-error": "失败",
+    "history.no-results": "未找到匹配的查询。",
+    "history.try-different": "请尝试其他搜索词。",
+    "history.confirm-clear": "清空所有历史记录？",
+    "history.clear": "清空历史",
+    "history.export": "导出历史",
+    "history.exported": "历史已导出",
+    "history.rerun": "在新标签页重新运行",
+    "history.delete": "删除记录",
 
     "header.show-left": "显示左侧面板",
     "header.hide-left": "隐藏左侧面板",
     "header.show-right": "显示右侧面板",
     "header.hide-right": "隐藏右侧面板",
+
+    // Query Tabs
+    "tabs.add": "新建标签页",
+
+    // Query Explain
+    "explain.title": "查询计划",
+    "explain.button": "Explain",
+    "explain.hint": "显示执行计划",
+    "explain.loading": "分析查询计划...",
+    "explain.error": "Explain 错误",
+    "explain.steps": "步骤",
+
+    // Query Cancel
+    "query.cancel": "取消",
+    "query.cancelled": "查询已取消",
+
+    // Export
+    "export.button": "导出",
+    "export.csv": "导出 CSV",
+    "export.json": "导出 JSON",
+    "export.excel": "导出 Excel",
+    "export.exporting": "导出中...",
+    "export.success": "已导出为 {{format}}",
+
+    // Saved Queries
+    "saved.button": "已保存",
+    "saved.title": "已保存的查询",
+    "saved.save": "保存",
+    "saved.save-title": "保存查询",
+    "saved.name-placeholder": "查询名称...",
+    "saved.save-success": "查询已保存",
+
+    // Query Statistics
+    "stats.success": "成功",
+    "stats.error": "错误",
+    "stats.rows": "行",
+    "stats.ms": "ms",
+    "stats.columns": "列",
+
+    // SQL Formatting
+    "format.button": "格式化",
+    "format.hint": "格式化 SQL (sql-formatter)",
+    "format.success": "SQL 已格式化",
+    "format.error": "格式化失败",
   },
 };
 

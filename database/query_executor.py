@@ -75,6 +75,42 @@ class QueryExecutor:
                 "error": str(e),
             }
 
+    def explain(self, sql: str) -> dict:
+        """Execute EXPLAIN on a SQL query and return the plan.
+
+        Returns:
+            {
+                "sql": str,
+                "plan": list[dict],
+                "status": "success" | "error",
+                "error": str | None,
+            }
+        """
+        sql = sql.strip()
+        if not sql:
+            return {"sql": sql, "plan": [], "status": "error", "error": "Empty SQL query."}
+
+        # Strip trailing semicolons for EXPLAIN wrapping
+        sql_clean = sql.rstrip(";").strip()
+
+        try:
+            explain_sql = f"EXPLAIN {sql_clean}"
+            df = self.db.execute_query(explain_sql)
+            plan_rows = []
+            for _, row in df.iterrows():
+                plan_rows.append({
+                    "operator": str(row.iloc[0]) if len(row) > 0 else "",
+                    "detail": str(row.iloc[1]) if len(row) > 1 else "",
+                })
+            return {
+                "sql": sql,
+                "plan": plan_rows,
+                "status": "success",
+                "error": None,
+            }
+        except Exception as e:
+            return {"sql": sql, "plan": [], "status": "error", "error": str(e)}
+
     @staticmethod
     def _error_result(sql: str, message: str) -> dict:
         return {
