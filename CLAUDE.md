@@ -10,7 +10,7 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.3.8 (AI Engineering Governance)
+- **Current**: v0.3.9 (Stability & Consistency Pass)
 - **Phase**: v0.3.x Enterprise Data Platform — STABLE
 - **Next**: v0.4.x AI Analysis Layer — DO NOT START until v0.3.x is fully stable
 
@@ -35,7 +35,7 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 1. Read `PROJECT_RULES.md` (mandatory)
 2. Read `docs/frontend_rules/` files (mandatory)
 3. Check `KNOWN_ISSUES.md` for open bugs
-4. Check current version in `docs/版本记录.md`
+4. Check current version in `docs/architecture/版本记录.md`
 
 ### Git Rules
 - Every version MUST be committed: `git add .` + `git commit -m "version-name"`
@@ -64,7 +64,7 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ### Documentation Rules
 - Update README.md for every major version
-- Update docs/版本记录.md for every version
+- Update docs/architecture/版本记录.md for every version
 - Update CLAUDE.md if development rules change
 
 ## Architecture

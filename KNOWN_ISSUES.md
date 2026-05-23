@@ -20,23 +20,23 @@ Track all open issues, bugs, and improvements here.
 |----|-------|----------|-------------|--------|-------|------------|
 | ISSUE-001 | Monaco Editor loads large workers (~2MB) on first load | Medium | Yes | Open | Claude | Acceptable for enterprise use |
 | ISSUE-002 | Query history lost on server restart (in-memory deque) | Medium | Yes | Open | Claude | Frontend localStorage persists history |
-| ISSUE-003 | No backend test suite exists | Medium | Yes | Open | Claude | Manual curl tests |
-| ISSUE-004 | No frontend unit tests | Medium | Yes | Open | Claude | Manual browser testing |
 | ISSUE-005 | `docs/frontend_rules/` files reference Vue/Element Plus (different project) | Low | Yes | Open | Claude | Keep as reference pattern; not directly applicable |
+| ISSUE-006 | SQL query API returns all data in one response (no pagination) | Medium | Yes | Open | Claude | Works for <10K rows; for larger use virtual-table page |
 
 ## Closed Issues
 
 | id | title | severity | status | closed_date | notes |
 |----|-------|----------|--------|-------------|-------|
-| — | — | — | — | — | No closed issues yet |
+| ISSUE-003 | No backend test suite exists | Medium | Fixed | 2026-05-23 | 28 pytest tests added (v0.3.8) |
+| ISSUE-004 | No frontend unit tests | Medium | Fixed | 2026-05-23 | 21 Vitest tests added (v0.3.8) |
+| ISSUE-007 | SQL query limit hardcoded to 500 rows | High | Fixed | 2026-05-23 | Increased to 10,000 (v0.3.9) |
+| ISSUE-008 | DataTable `contain: strict` breaks virtualization scroll | Medium | Fixed | 2026-05-23 | Changed to `contain: layout style` (v0.3.9) |
 
 ## Backlog (Future Improvements)
 
+- [ ] Add server-side pagination to SQL query endpoint (like `/tables/{name}/data`)
 - [ ] Persist query history to DuckDB or file (instead of in-memory deque)
-- [ ] Add comprehensive backend pytest suite
-- [ ] Add Vitest frontend unit tests
 - [ ] Add Playwright E2E tests
 - [ ] Add query result caching with TTL
 - [ ] Support for multiple database connections
-- [ ] Dark/light theme toggle refinement
 - [ ] Mobile responsive improvements

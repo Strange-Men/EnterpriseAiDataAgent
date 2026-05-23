@@ -18,7 +18,7 @@ _active_queries: dict[int, bool] = {}
 
 class QueryRequest(BaseModel):
     sql: str
-    limit: int = 500
+    limit: int = 10000
 
 
 class ExplainRequest(BaseModel):

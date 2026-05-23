@@ -69,7 +69,7 @@ export function SqlWorkspacePanel() {
     abortControllerRef.current = controller;
 
     try {
-      const result = await executeQuery(sql, 500, controller.signal);
+      const result = await executeQuery(sql, 10000, controller.signal);
       setQueryId(result.queryId);
       setQueryResult(result);
       addEntry({

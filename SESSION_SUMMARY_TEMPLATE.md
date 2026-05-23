@@ -4,7 +4,7 @@ Use this template at the start of each new Claude session to restore context qui
 
 ## Current Version
 
-- **Version**: v0.3.8
+- **Version**: v0.3.9
 - **Phase**: v0.3.x Enterprise Data Platform
 - **Status**: Stable — AI Engineering Governance complete
 

@@ -105,7 +105,7 @@ export interface QueryResult {
 
 export async function executeQuery(
   sql: string,
-  limit: number = 500,
+  limit: number = 10000,
   signal?: AbortSignal
 ): Promise<QueryResult> {
   return apiFetchAbortable<QueryResult>("/query", {

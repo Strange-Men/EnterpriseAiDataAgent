@@ -155,7 +155,7 @@ export function DataTable({
       <div
         ref={containerRef}
         className="flex-1 overflow-auto rounded-md border border-[var(--border-default)]"
-        style={{ contain: "strict" }}
+        style={{ contain: "layout style" }}
       >
         {/* Sticky header */}
         <div className="sticky top-0 z-10 bg-[var(--bg-tertiary)]">
