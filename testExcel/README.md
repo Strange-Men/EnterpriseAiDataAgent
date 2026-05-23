@@ -113,5 +113,6 @@
 python testExcel/generate_test_data.py
 
 # 启动应用后，通过文件上传界面上传 Excel 文件
-streamlit run frontend/app.py
+cd frontend-react && npm run dev
+# 然后在 http://localhost:3000 的左侧上传面板中上传文件
 ```
