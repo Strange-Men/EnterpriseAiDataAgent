@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { TabGroup } from "@/components/ui/tab-group";
 import { DataTable } from "@/components/ui/data-table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { fetchTableSchema } from "@/services/api";
 
 interface SchemaCol {
@@ -18,22 +20,37 @@ export function DataPreviewPanel() {
   const { t } = useTranslation();
   const { currentTable, currentData, currentColumns, qualityReport } = useDataStore();
   const [schema, setSchema] = useState<SchemaCol[]>([]);
+  const [schemaLoading, setSchemaLoading] = useState(false);
 
   useEffect(() => {
     if (!currentTable) {
       setSchema([]);
       return;
     }
+    setSchemaLoading(true);
     fetchTableSchema(currentTable)
       .then(setSchema)
-      .catch(() => setSchema([]));
+      .catch(() => setSchema([]))
+      .finally(() => setSchemaLoading(false));
   }, [currentTable]);
+
+  if (!currentTable) {
+    return (
+      <EmptyState
+        icon=" "
+        title={t("preview.no-data")}
+        description="Select a table from the left panel to preview its data"
+      />
+    );
+  }
 
   if (!currentData || currentData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-sm text-[var(--text-muted)]">{t("preview.no-data")}</p>
-      </div>
+      <EmptyState
+        icon=" "
+        title="No data loaded"
+        description="Click on a table name to load its data"
+      />
     );
   }
 
@@ -48,7 +65,9 @@ export function DataPreviewPanel() {
       label: t("preview.tab-schema"),
       content: (
         <div className="overflow-auto">
-          {schema.length > 0 ? (
+          {schemaLoading ? (
+            <div className="p-4"><Skeleton rows={8} className="h-4" /></div>
+          ) : schema.length > 0 ? (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--border-default)] text-left text-[var(--text-muted)]">
@@ -70,7 +89,7 @@ export function DataPreviewPanel() {
               </tbody>
             </table>
           ) : (
-            <p className="text-sm text-[var(--text-muted)] p-4">{t("schema.empty")}</p>
+            <EmptyState icon=" " title={t("schema.empty")} description="Schema information unavailable" />
           )}
         </div>
       ),
@@ -137,7 +156,11 @@ export function DataPreviewPanel() {
               )}
             </div>
           ) : (
-            <p className="text-sm text-[var(--text-muted)] p-4">{t("quality.empty")}</p>
+            <EmptyState
+              icon=" "
+              title={t("quality.empty")}
+              description="Select a table to view its quality report"
+            />
           )}
         </div>
       ),

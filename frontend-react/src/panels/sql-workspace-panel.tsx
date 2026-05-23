@@ -5,7 +5,10 @@ import { useTranslation } from "react-i18next";
 import { useSqlWorkspaceStore } from "@/stores/sql-workspace-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { DataTable } from "@/components/ui/data-table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { executeQuery } from "@/services/api";
+import { logger } from "@/services/logger";
+import toast from "react-hot-toast";
 
 export function SqlWorkspacePanel() {
   const { t } = useTranslation();
@@ -38,14 +41,22 @@ export function SqlWorkspacePanel() {
         error: result.error,
         timestamp: new Date().toISOString(),
       });
+      logger.query(sql, result.rowCount, result.runtimeMs);
+      if (result.status === "error") {
+        toast.error(`Query failed: ${result.error}`);
+        logger.query(sql, 0, result.runtimeMs, result.error ?? undefined);
+      } else {
+        toast.success(`Query OK (${result.rowCount} rows, ${result.runtimeMs}ms)`);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Query failed";
+      const ms = Date.now() - startTimeRef.current;
       setQueryResult({
         sql,
         columns: [],
         data: [],
         rowCount: 0,
-        runtimeMs: Date.now() - startTimeRef.current,
+        runtimeMs: ms,
         status: "error",
         error: msg,
       });
@@ -53,11 +64,13 @@ export function SqlWorkspacePanel() {
         id: Date.now(),
         sql,
         status: "error",
-        runtimeMs: Date.now() - startTimeRef.current,
+        runtimeMs: ms,
         rowCount: 0,
         error: msg,
         timestamp: new Date().toISOString(),
       });
+      toast.error(`Query failed: ${msg}`);
+      logger.query(sql, 0, ms, msg);
     } finally {
       setExecuting(false);
     }
@@ -153,15 +166,17 @@ export function SqlWorkspacePanel() {
       {/* Result table */}
       {queryResult?.status === "success" && queryResult.columns.length > 0 && (
         <div className="flex-1 min-h-0">
-          <DataTable data={queryResult.data} columns={queryResult.columns} maxRows={500} />
+          <DataTable data={queryResult.data} columns={queryResult.columns} />
         </div>
       )}
 
       {/* Empty state */}
       {!queryResult && !isExecuting && (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-sm text-[var(--text-muted)]">{t("sql.empty")}</p>
-        </div>
+        <EmptyState
+          icon="⚡"
+          title={t("sql.empty")}
+          description="Write a SQL query and press Ctrl+Enter to execute"
+        />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ClientProviders } from "@/components/client-providers";
 import { Header } from "@/layout/header";
 import { WorkspaceLayout } from "@/layout/workspace-layout";
@@ -11,9 +12,27 @@ import { SqlHistoryPanel } from "@/panels/sql-history-panel";
 import { StatusPanel } from "@/panels/status-panel";
 import { TabGroup } from "@/components/ui/tab-group";
 import { useTranslation } from "react-i18next";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 
 function WorkspaceContent() {
   const { t } = useTranslation();
+  const { setPanelCollapsed } = useWorkspaceStore();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Auto-collapse side panels on mobile
+  useEffect(() => {
+    const check = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setPanelCollapsed("left", true);
+        setPanelCollapsed("right", true);
+      }
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [setPanelCollapsed]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -23,9 +42,9 @@ function WorkspaceContent() {
           left={
             <div className="space-y-6">
               <TableManagementPanel />
-              <hr className="border-[#30363D]" />
+              <hr className="border-[var(--border-default)]" />
               <FileUploadPanel />
-              <hr className="border-[#30363D]" />
+              <hr className="border-[var(--border-default)]" />
               <StatusPanel />
             </div>
           }

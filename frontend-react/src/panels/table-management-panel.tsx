@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { useSqlWorkspaceStore } from "@/stores/sql-workspace-store";
 import { Tooltip } from "@/components/ui/tooltip";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   fetchTables,
   deleteTable as apiDeleteTable,
@@ -12,6 +13,8 @@ import {
   fetchTableData,
   fetchQualityReport,
 } from "@/services/api";
+import { logger } from "@/services/logger";
+import toast from "react-hot-toast";
 import type { TableInfo } from "@/types";
 
 export function TableManagementPanel() {
@@ -59,13 +62,17 @@ export function TableManagementPanel() {
     setLoading(true);
     try {
       await apiDeleteTable(tableName);
+      toast.success(`Deleted "${tableName}"`);
+      logger.info("store", `Deleted table: ${tableName}`);
       await loadTables();
       if (useDataStore.getState().currentTable === tableName) {
         setCurrentTable(null);
         setCurrentData(null);
       }
-    } catch {
-      // error handled by UI
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Delete failed";
+      toast.error(msg);
+      logger.error("store", `Delete failed: ${tableName}`, err);
     }
     setLoading(false);
   };
@@ -75,17 +82,22 @@ export function TableManagementPanel() {
     setLoading(true);
     try {
       await apiRenameTable(tableName, newName.trim());
+      toast.success(`Renamed to "${newName.trim()}"`);
+      logger.info("store", `Renamed: ${tableName} → ${newName.trim()}`);
       setRenaming(null);
       setNewName("");
       await loadTables();
-    } catch {
-      // error handled by UI
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Rename failed";
+      toast.error(msg);
+      logger.error("store", `Rename failed: ${tableName}`, err);
     }
     setLoading(false);
   };
 
   const handleExport = (tableName: string) => {
     window.open(`/api/table/${encodeURIComponent(tableName)}/export`, "_blank");
+    toast.success(`Exporting "${tableName}"`);
   };
 
   const startRename = (tableName: string) => {
@@ -111,7 +123,11 @@ export function TableManagementPanel() {
 
       {/* Table list */}
       {tables.length === 0 ? (
-        <p className="text-sm text-[var(--text-muted)]">{t("table.no-tables")}</p>
+        <EmptyState
+          icon=" "
+          title={t("table.no-tables")}
+          description="Upload a file to create your first table"
+        />
       ) : (
         <div className="space-y-1">
           {tables.map((tbl: TableInfo) => (

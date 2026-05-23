@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface SqlHistoryEntry {
   id: number;
@@ -16,9 +17,16 @@ interface SqlHistoryState {
   addEntry: (entry: SqlHistoryEntry) => void;
 }
 
-export const useSqlHistoryStore = create<SqlHistoryState>((set) => ({
-  history: [],
-  setHistory: (history) => set({ history }),
-  addEntry: (entry) =>
-    set((state) => ({ history: [entry, ...state.history].slice(0, 200) })),
-}));
+export const useSqlHistoryStore = create<SqlHistoryState>()(
+  persist(
+    (set) => ({
+      history: [],
+      setHistory: (history) => set({ history }),
+      addEntry: (entry) =>
+        set((state) => ({
+          history: [entry, ...state.history].slice(0, 200),
+        })),
+    }),
+    { name: "sql-history" }
+  )
+);

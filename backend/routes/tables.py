@@ -51,3 +51,43 @@ async def remove_table(table_name: str):
         return {"status": "deleted"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/tables/{table_name}/data")
+async def get_table_data_paginated(
+    table_name: str,
+    page: int = 0,
+    page_size: int = 100,
+):
+    """Paginated data fetch with server-side OFFSET for virtual scrolling."""
+    try:
+        import time
+        from database.db_manager import DatabaseManager
+        from backend.services.data_service import _sanitize_for_json
+
+        db = DatabaseManager()
+        conn = db.connect()
+
+        offset = page * page_size
+        count_row = conn.execute(
+            f'SELECT COUNT(*) FROM "{table_name}"'
+        ).fetchone()
+        total_rows = count_row[0] if count_row else 0
+
+        rows = conn.execute(
+            f'SELECT * FROM "{table_name}" LIMIT {page_size} OFFSET {offset}'
+        ).fetchdf()
+
+        columns = list(rows.columns)
+        data = _sanitize_for_json(rows.to_dict(orient="records"))
+
+        return {
+            "columns": columns,
+            "data": data,
+            "page": page,
+            "pageSize": page_size,
+            "totalRows": total_rows,
+            "hasMore": offset + page_size < total_rows,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
