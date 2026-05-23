@@ -51,3 +51,11 @@ desktop.ini
 htmlcov/
 .coverage
 coverage.xml
+
+# Debug artifacts
+debug*.png
+debug*.py
+
+# Playwright test results
+test-results/
+playwright-report/

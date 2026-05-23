@@ -31,12 +31,16 @@ Track all open issues, bugs, and improvements here.
 | ISSUE-004 | No frontend unit tests | Medium | Fixed | 2026-05-23 | 21 Vitest tests added (v0.3.8) |
 | ISSUE-007 | SQL query limit hardcoded to 500 rows | High | Fixed | 2026-05-23 | Increased to 10,000 (v0.3.9) |
 | ISSUE-008 | DataTable `contain: strict` breaks virtualization scroll | Medium | Fixed | 2026-05-23 | Changed to `contain: layout style` (v0.3.9) |
+| ISSUE-009 | Corrupted `.next` build cache causes blank page (SSR 500, missing webpack chunk) | Critical | Fixed | 2026-05-23 | Root cause: stale `.next` cache. Fix: `npm run dev:clean`. Added `clean` script to package.json (v0.3.10) |
+| ISSUE-010 | DuckDB file locked by stale Python process — SQL execution fails with "另一个程序正在使用此文件" | Critical | Fixed | 2026-05-23 | Root cause: orphaned Python process (PID 15232) held exclusive DuckDB lock. Fix: kill stale process. Added `dev:clean` workflow (v0.3.10) |
+| ISSUE-011 | `queryId` always null when Cancel button clicked — backend cancel never called | Critical | Fixed | 2026-05-23 | Root cause: `queryId` in `useState` only set after query completes, but Cancel only visible during execution. Fix: moved to `useRef` (v0.3.10) |
+| ISSUE-012 | `handleExecute` recreated on every `isExecuting` change — stale closure risk in Monaco | Medium | Fixed | 2026-05-23 | Root cause: `isExecuting` in dependency array causes new function ref on every state change. Fix: read from `useSqlWorkspaceStore.getState()` directly (v0.3.10) |
 
 ## Backlog (Future Improvements)
 
 - [ ] Add server-side pagination to SQL query endpoint (like `/tables/{name}/data`)
 - [ ] Persist query history to DuckDB or file (instead of in-memory deque)
-- [ ] Add Playwright E2E tests
+- [ ] Add more E2E tests (CSV upload, virtual scrolling, export, workspace restore)
 - [ ] Add query result caching with TTL
 - [ ] Support for multiple database connections
 - [ ] Mobile responsive improvements

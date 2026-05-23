@@ -35,8 +35,8 @@ export function SqlWorkspacePanel() {
   const activeTab = getActiveTab();
   const currentSql = activeTab?.sql || "";
 
-  // Query state
-  const [queryId, setQueryId] = useState<number | null>(null);
+  // Query state — use ref (not useState) so handleCancel always reads current value
+  const queryIdRef = useRef<number | null>(null);
 
   // Explain state
   const [explainResult, setExplainResult] = useState<ExplainResult | null>(null);
@@ -57,12 +57,13 @@ export function SqlWorkspacePanel() {
 
   const handleExecute = useCallback(async () => {
     const sql = currentSql.trim();
-    if (!sql || isExecuting) return;
+    if (!sql || useSqlWorkspaceStore.getState().isExecuting) return;
 
     setExecuting(true);
     setQueryResult(null);
     setShowExplain(false);
     setExplainResult(null);
+    queryIdRef.current = null;
     startTimeRef.current = Date.now();
 
     const controller = new AbortController();
@@ -70,7 +71,7 @@ export function SqlWorkspacePanel() {
 
     try {
       const result = await executeQuery(sql, 10000, controller.signal);
-      setQueryId(result.queryId);
+      queryIdRef.current = result.queryId;
       setQueryResult(result);
       addEntry({
         id: Date.now(),
@@ -118,7 +119,7 @@ export function SqlWorkspacePanel() {
       setExecuting(false);
       abortControllerRef.current = null;
     }
-  }, [currentSql, isExecuting, setExecuting, setQueryResult, addEntry]);
+  }, [currentSql, setExecuting, setQueryResult, addEntry]);
 
   // EXPLAIN handler
   const handleExplain = useCallback(async () => {
@@ -149,12 +150,12 @@ export function SqlWorkspacePanel() {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    if (queryId) {
+    if (queryIdRef.current) {
       try {
-        await cancelQuery(queryId);
+        await cancelQuery(queryIdRef.current);
       } catch { /* ignore */ }
     }
-  }, [queryId]);
+  }, []);
 
   // SQL Format handler
   const handleFormat = useCallback(() => {

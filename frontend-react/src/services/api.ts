@@ -18,7 +18,12 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     const body = await res.text().catch(() => "");
     throw new Error(`API ${res.status}: ${body || res.statusText}`);
   }
-  return res.json();
+  try {
+    return await res.json();
+  } catch {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Invalid JSON response: ${text.slice(0, 200)}`);
+  }
 }
 
 // ── Generic fetch with abort support ──────────────────────
@@ -34,7 +39,12 @@ async function apiFetchAbortable<T>(
     const body = await res.text().catch(() => "");
     throw new Error(`API ${res.status}: ${body || res.statusText}`);
   }
-  return res.json();
+  try {
+    return await res.json();
+  } catch {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Invalid JSON response: ${text.slice(0, 200)}`);
+  }
 }
 
 // ── Database ───────────────────────────────────────────────

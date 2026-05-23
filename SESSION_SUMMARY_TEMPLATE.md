@@ -4,14 +4,16 @@ Use this template at the start of each new Claude session to restore context qui
 
 ## Current Version
 
-- **Version**: v0.3.9
+- **Version**: v0.3.10
 - **Phase**: v0.3.x Enterprise Data Platform
-- **Status**: Stable — AI Engineering Governance complete
+- **Status**: Stable — Enterprise Maintenance System complete
 
 ## What Was Recently Done
 
 - v0.3.7: Enterprise Query Experience (Monaco Editor, Query Tabs, Saved Queries, Explain, Cancel, Export, Shortcuts, Statistics, Formatting, History Upgrade)
 - v0.3.8: AI Engineering Governance (CLAUDE.md, Testing, Error Logging, A/B Testing, Skill Engineering)
+- v0.3.9: Stability & Consistency Pass (500-row limit fix, DataTable fix, docs restructuring)
+- v0.3.10: Enterprise Maintenance System (SQL execution fix, docs architecture, E2E testing, workflow governance)
 
 ## Known Issues
 
@@ -40,9 +42,9 @@ Use this template at the start of each new Claude session to restore context qui
 - `CLAUDE.md` — Claude long-term rules (MUST read)
 - `docs/frontend_rules/` — frontend architecture rules (MUST read)
 - `KNOWN_ISSUES.md` — open issues tracker
-- `TESTING_STRATEGY.md` — testing approach
+- `docs/testing/testing-strategy.md` — testing approach
 - `README.md` — project overview
-- `docs/版本记录.md` — version history
+- `docs/architecture/版本记录.md` — version history
 
 ## Quick Commands
 
