@@ -4,60 +4,65 @@
 
 ## Current Version
 
-- **Version**: v0.3.12-maintainability-and-governance
-- **Phase**: v0.3.x Enterprise Data Platform — STABLE
-- **Status**: Maintainability, Governance & Bug Fixes
+- **Version**: v0.4.0-enterprise-reliability-intelligence
+- **Phase**: v0.4.x Enterprise Reliability & Intelligence — ACTIVE
+- **Status**: Coverage, Performance, Observability, AI Intelligence
 
 ## Session Goals
 
-1. Repository cleanup — archive legacy frontend/, remove stale DuckDB, create scripts/
-2. Real coverage audit — run actual coverage, report gaps
-3. Create debugging skills — virtual-scroll-debugging, performance-audit
-4. Evaluate ISSUE-006 — SQL API pagination decision
-5. Auto Bug Hunt — systematic code review for stability issues
-6. Final reports and session updates
+1. Phase A: Coverage & Reliability — Frontend >= 70%, Backend >= 75%
+2. Phase B: Performance Regression System — Playwright benchmarks
+3. Phase C: Observability — Structured logging, request tracing, error classification
+4. Phase D: AI SQL Intelligence — Natural language → SQL → Execute → Explain
+5. Phase E: Automated Analysis Pipeline — Auto-profiling on upload
 
 ## Completed (this session)
 
-- [x] **Repo Cleanup**: Moved `frontend/` (legacy Streamlit) to `docs/archive/legacy_frontend/`
-- [x] **Repo Cleanup**: Removed stale `backend/data/enterprise.duckdb`
-- [x] **Scripts**: Created `scripts/start-dev.sh` (start backend + frontend)
-- [x] **Scripts**: Created `scripts/backup-duckdb.py` (backup/restore/list)
-- [x] **Coverage Audit**: Ran Vitest frontend coverage — 38.25% lines, 23.88% branches
-- [x] **Coverage Audit**: Ran pytest backend coverage — 47% total
-- [x] **Coverage Plan**: Generated `docs/reports/coverage-improvement-plan.md`
-- [x] **Skills**: Created `skills/active/virtual-scroll-debugging.md`
-- [x] **Skills**: Created `skills/active/performance-audit.md`
-- [x] **Skills**: Updated `docs/skills/SKILL_REGISTRY.md` with new skills
-- [x] **ISSUE-006**: Generated `docs/reports/ISSUE-006-decision.md`
-- [x] **ISSUE-006**: Added `hasMore`/`totalRows`/`truncated` to backend query response
-- [x] **ISSUE-006**: Updated frontend `QueryResult` types (store + API)
-- [x] **ISSUE-006**: Added truncation warning in query stats bar
-- [x] **Bug Fix #1**: Fixed Monaco stale `onExecute` closure (useRef pattern)
-- [x] **Bug Fix #3**: Added AbortController cleanup on unmount
-- [x] **Bug Fix #4**: Fixed `getVirtualItems()` infinite loop risk in data-table
-- [x] **Bug Fix #10**: Fixed `handleLoadSaved` stale activeTab reference
-- [x] **Validation**: Frontend build passes, 21/21 tests pass, 28/28 backend tests pass
+### Phase A: Coverage & Reliability
+- [x] **Frontend Tests**: Added 80 new tests (101 total) — stores, services, utils
+- [x] **Backend Tests**: Added 110 new tests (156 total) — schema, file loader, quality, upload, observability
+- [x] **Frontend Coverage**: 38.25% → **96.64%** (target: 70%)
+- [x] **Backend Coverage**: 47% → **83%** (target: 75%)
+- [x] **Build**: Frontend and backend both pass
 
-## In Progress
+### Phase B: Performance Regression System
+- [x] **E2E Tests**: Created `e2e/performance.spec.ts` with 5 benchmark tests
+- [x] **Baselines**: Created `docs/performance/performance-baseline.md`
+- [x] **Metrics**: Page load, DOM nodes, heap memory, query latency, DOM stability, memory stability
+- [x] **Report**: Auto-generates `test-results/performance-report.json`
 
-- [ ] Git commit v0.3.12
+### Phase C: Observability
+- [x] **Middleware**: Created `backend/middleware/observability.py`
+- [x] **Request ID**: UUID-based tracing via `X-Request-ID` header
+- [x] **Response Timing**: `X-Response-Time` header on all responses
+- [x] **Slow Query Detection**: Thresholds: moderate (>2s), slow (>5s), very_slow (>10s)
+- [x] **Error Classification**: server/client/validation/db/timeout/sql_syntax
+- [x] **Query Timer**: Context manager for SQL timing
+- [x] **Diagnostics Report**: `docs/reports/v0.4.0-diagnostics.md`
 
-## Pending (Backlog)
+### Phase D: AI SQL Intelligence
+- [x] **AI Service**: Created `backend/services/ai_analyst.py`
+- [x] **AI Routes**: Created `backend/routes/ai.py` (4 endpoints)
+- [x] **Pipeline**: question → SQL → execute → explain → insights → charts
+- [x] **Chat Panel**: Updated `chat-panel.tsx` with real AI integration
+- [x] **API Functions**: Added `aiQuery`, `aiExplain`, `aiInsights`, `aiChartSuggest` to `api.ts`
 
-- [ ] Add more E2E tests (CSV upload, virtual scrolling, export, workspace restore)
-- [ ] Coverage improvement — Phase 1: API service + core stores tests
-- [ ] Persist query history to DuckDB (ISSUE-002)
-- [ ] Server-side pagination for SQL queries (ISSUE-006 full — v0.4.x)
+### Phase E: Automated Analysis Pipeline
+- [x] **Analysis Route**: Created `backend/routes/analyze.py`
+- [x] **Profile**: Column types, stats, distributions, top values
+- [x] **Quality**: Integrates with existing DataQualityAnalyzer
+- [x] **AI Summary**: Auto-generated natural language summary
+- [x] **Chart Suggestions**: AI-recommended visualizations
 
-## Open Issues
+### Skills
+- [x] Created `skills/active/ai-sql-analysis.md`
+- [x] Created `skills/active/auto-analysis-pipeline.md`
+- [x] Updated `docs/skills/SKILL_REGISTRY.md`
 
-| ID | Title | Severity | Status |
-|----|-------|----------|--------|
-| ISSUE-001 | Monaco Editor loads ~2MB workers on first load | Medium | Open |
-| ISSUE-002 | Query history lost on server restart (in-memory deque) | Medium | Open |
-| ISSUE-005 | `docs/frontend_rules/` references Vue/Element Plus | Low | Open |
-| ISSUE-006 | SQL query API returns all data in one response (no pagination) | Medium | Partial fix (hasMore flag); full pagination deferred to v0.4.x |
+### Infrastructure
+- [x] Updated version to 0.4.0 in backend/main.py
+- [x] Fixed DatabaseManager singleton reset issue in tests
+- [x] Installed anthropic SDK and python-dotenv
 
 ## System Health
 
@@ -65,13 +70,16 @@
 - Backend import: Pass
 - API endpoints: All pass
 - DuckDB: Connected
-- Frontend tests: 21/21 pass
-- Backend tests: 28/28 pass
-- E2E tests: 12/12 pass
-- Frontend coverage: 38.25% lines (below 85% target)
-- Backend coverage: 47% (below 85% target)
-- Repository health: ~80/100 (improved from 78)
+- Frontend tests: 101/101 pass
+- Backend tests: 156/156 pass
+- Frontend coverage: 96.64% lines (exceeded 70% target)
+- Backend coverage: 83% (exceeded 75% target)
+- AI SQL Pipeline: Functional (Claude API)
+- Observability: Active (request tracing, error classification)
 
-## Next Step
+## Next Steps
 
-- Git commit v0.3.12-maintainability-and-governance
+- E2E tests with Playwright (needs running dev server)
+- AI prompt optimization for better SQL generation
+- Chart rendering integration
+- Server-side query pagination (ISSUE-006 full)
