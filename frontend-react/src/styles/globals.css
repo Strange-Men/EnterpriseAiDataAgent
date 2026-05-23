@@ -2,9 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme Variables ──────────────────────────────────────── */
+/* ── Dark Theme (default) ────────────────────────────────── */
 
-:root {
+:root,
+[data-theme="dark"] {
   --bg-primary: #0E1117;
   --bg-secondary: #161B22;
   --bg-tertiary: #21262D;
@@ -19,6 +20,27 @@
   --warning: #D29922;
   --error: #F85149;
   --info: #58A6FF;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+/* ── Light Theme ─────────────────────────────────────────── */
+
+[data-theme="light"] {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F6F8FA;
+  --bg-tertiary: #EAECEF;
+  --border-default: #D0D7DE;
+  --border-hover: #AFB8C1;
+  --text-primary: #1F2328;
+  --text-secondary: #24292F;
+  --text-muted: #656D76;
+  --accent: #00876C;
+  --accent-hover: #006D55;
+  --success: #1A7F37;
+  --warning: #9A6700;
+  --error: #CF222E;
+  --info: #0969DA;
+  --shadow-color: rgba(0, 0, 0, 0.08);
 }
 
 /* ── Base ─────────────────────────────────────────────────── */
@@ -26,7 +48,9 @@
 body {
   background-color: var(--bg-primary);
   color: var(--text-secondary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Noto Sans SC", sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────── */
@@ -90,4 +114,29 @@ body {
 
 [data-resize-handle]:hover {
   background-color: var(--accent) !important;
+}
+
+/* ── Skeleton Animation ──────────────────────────────────── */
+
+@keyframes shimmer {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── Toast Styles ────────────────────────────────────────── */
+
+[data-hot-toast] {
+  font-family: inherit !important;
+  font-size: 0.8rem !important;
 }

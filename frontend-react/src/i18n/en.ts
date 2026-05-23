@@ -118,6 +118,11 @@ const en = {
 
     "history.title": "Query History",
     "history.empty": "No queries executed yet.",
+
+    "header.show-left": "Show left panel",
+    "header.hide-left": "Hide left panel",
+    "header.show-right": "Show right panel",
+    "header.hide-right": "Hide right panel",
   },
 };
 

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { useSqlWorkspaceStore } from "@/stores/sql-workspace-store";
+import { EmptyState } from "@/components/ui/empty-state";
 import { fetchQueryHistory } from "@/services/api";
 
 export function SqlHistoryPanel() {
@@ -19,9 +20,11 @@ export function SqlHistoryPanel() {
 
   if (history.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-sm text-[var(--text-muted)]">{t("history.empty")}</p>
-      </div>
+      <EmptyState
+        icon=" "
+        title={t("history.empty")}
+        description="Your query history will appear here"
+      />
     );
   }
 

@@ -37,6 +37,25 @@ export async function fetchTableData(
   return { columns: res.columns, data: res.data };
 }
 
+export interface PaginatedData {
+  columns: string[];
+  data: Record<string, unknown>[];
+  page: number;
+  pageSize: number;
+  totalRows: number;
+  hasMore: boolean;
+}
+
+export async function fetchTableDataPaginated(
+  tableName: string,
+  page: number = 0,
+  pageSize: number = 200
+): Promise<PaginatedData> {
+  return apiFetch<PaginatedData>(
+    `/tables/${encodeURIComponent(tableName)}/data?page=${page}&page_size=${pageSize}`
+  );
+}
+
 export async function fetchTableSchema(
   tableName: string
 ): Promise<{ name: string; dtype: string; nullable: boolean; uniqueCount: number }[]> {
@@ -76,7 +95,7 @@ export async function executeQuery(sql: string, limit: number = 500): Promise<Qu
 }
 
 export async function fetchQueryHistory(limit: number = 50): Promise<
-  { id: number; sql: string; status: string; runtimeMs: number; rowCount: number; error: string | null; timestamp: string }[]
+  { id: number; sql: string; status: "success" | "error"; runtimeMs: number; rowCount: number; error: string | null; timestamp: string }[]
 > {
   return apiFetch(`/query/history?limit=${limit}`);
 }

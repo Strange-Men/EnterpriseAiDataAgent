@@ -118,6 +118,11 @@ const zh = {
 
     "history.title": "查询历史",
     "history.empty": "暂无查询记录。",
+
+    "header.show-left": "显示左侧面板",
+    "header.hide-left": "隐藏左侧面板",
+    "header.show-right": "显示右侧面板",
+    "header.hide-right": "隐藏右侧面板",
   },
 };
 

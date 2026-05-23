@@ -4,7 +4,10 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { Tooltip } from "@/components/ui/tooltip";
+import { EmptyState } from "@/components/ui/empty-state";
 import { fetchTables, uploadFile, fetchTableData, fetchQualityReport } from "@/services/api";
+import { logger } from "@/services/logger";
+import toast from "react-hot-toast";
 import type { UploadedFile, TableInfo } from "@/types";
 
 export function FileUploadPanel() {
@@ -36,7 +39,11 @@ export function FileUploadPanel() {
     if (!files || files.length === 0) return;
     setUploading(true);
 
+    const id = toast.loading(`Uploading ${files.length} file(s)...`);
     const newFiles: UploadedFile[] = [...uploadedFiles];
+    let successCount = 0;
+    let failCount = 0;
+
     for (const file of Array.from(files)) {
       const entry: UploadedFile = {
         name: file.name,
@@ -55,9 +62,13 @@ export function FileUploadPanel() {
         entry.tableName = result.tableName;
         entry.rowCount = result.rowCount;
         entry.columnCount = result.columnCount;
+        successCount++;
+        logger.info("upload", `${file.name} → ${result.tableName} (${result.rowCount} rows)`);
       } catch (err: unknown) {
         entry.status = "error";
         entry.error = err instanceof Error ? err.message : "Upload failed";
+        failCount++;
+        logger.error("upload", `Failed: ${file.name}`, err);
       }
     }
 
@@ -65,7 +76,15 @@ export function FileUploadPanel() {
     setUploading(false);
     await loadTables();
 
-    // Clear input so same file can be re-uploaded
+    toast.dismiss(id);
+    if (failCount === 0) {
+      toast.success(`Uploaded ${successCount} file(s) successfully`);
+    } else if (successCount > 0) {
+      toast.error(`${successCount} succeeded, ${failCount} failed`);
+    } else {
+      toast.error(`All ${failCount} file(s) failed to upload`);
+    }
+
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -156,8 +175,13 @@ export function FileUploadPanel() {
         </div>
       )}
 
+      {/* Empty state */}
       {tables.length === 0 && uploadedFiles.length === 0 && (
-        <p className="text-sm text-[var(--text-muted)]">{t("upload.no-files")}</p>
+        <EmptyState
+          icon=""
+          title={t("upload.no-files")}
+          description="Upload CSV or Excel files to get started"
+        />
       )}
     </div>
   );
