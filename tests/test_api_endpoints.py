@@ -25,7 +25,7 @@ class TestHealthAndStatus:
         res = client.get("/api/status")
         assert res.status_code == 200
         data = res.json()
-        assert data["version"] == "0.3.7"
+        assert data["version"] == "0.4.0"
 
 
 class TestQueryEndpoints:

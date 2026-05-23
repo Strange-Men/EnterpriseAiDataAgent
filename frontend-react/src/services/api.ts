@@ -225,3 +225,116 @@ export async function fetchStatus(): Promise<{
 }> {
   return apiFetch("/status");
 }
+
+// ── AI Analysis ─────────────────────────────────────────────────
+
+export interface AIQueryResult {
+  question: string;
+  sql: string;
+  columns?: string[];
+  data?: Record<string, unknown>[];
+  rowCount?: number;
+  truncated?: boolean;
+  explanation?: string;
+  status: "success" | "error" | "cannot_answer" | "sql_error";
+  error?: string;
+  generation_ms?: number;
+  execution_error?: string;
+  explanation_ms?: number;
+}
+
+export async function aiQuery(
+  question: string,
+  execute: boolean = true,
+  explain: boolean = true
+): Promise<AIQueryResult> {
+  return apiFetch<AIQueryResult>("/ai/query", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, execute, explain }),
+  });
+}
+
+export async function aiExplain(
+  question: string,
+  sql: string,
+  results: Record<string, unknown>[]
+): Promise<{ explanation: string; status: string }> {
+  return apiFetch("/ai/explain", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, sql, results }),
+  });
+}
+
+export async function aiInsights(
+  question: string,
+  results: Record<string, unknown>[]
+): Promise<{ insights: string[]; trends: string[]; suggested_next_steps: string[] }> {
+  return apiFetch("/ai/insights", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, results }),
+  });
+}
+
+export async function aiChartSuggest(
+  results: Record<string, unknown>[],
+  question: string = ""
+): Promise<{ recommended_charts: { type: string; title: string; x_axis: string; y_axis: string; reason: string }[] }> {
+  return apiFetch("/ai/chart-suggest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ results, question }),
+  });
+}
+
+// ── Automated Analysis ──────────────────────────────────────────
+
+export interface AnalysisProfile {
+  table: string;
+  row_count: number;
+  column_count: number;
+  total_cells: number;
+  null_cells: number;
+  null_pct: number;
+  duplicate_rows: number;
+  columns: {
+    name: string;
+    dtype: string;
+    count: number;
+    null_count: number;
+    null_pct: number;
+    unique_count: number;
+    stats?: {
+      mean: number;
+      median: number;
+      std: number;
+      min: number;
+      max: number;
+      q25: number;
+      q75: number;
+    };
+    top_values?: { value: string; count: number }[];
+  }[];
+}
+
+export interface AnalysisResult {
+  table: string;
+  profile: AnalysisProfile;
+  quality: QualityReport;
+  ai_summary: string;
+  chart_suggestions: { type: string; title: string; x_axis: string; y_axis: string; reason: string }[];
+  elapsed_ms: number;
+  status: string;
+}
+
+export async function analyzeTable(tableName: string): Promise<AnalysisResult> {
+  return apiFetch<AnalysisResult>(`/analyze/${encodeURIComponent(tableName)}`, {
+    method: "POST",
+  });
+}
+
+export async function getTableProfile(tableName: string): Promise<{ table: string; profile: AnalysisProfile; status: string }> {
+  return apiFetch(`/analyze/${encodeURIComponent(tableName)}/profile`);
+}

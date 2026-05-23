@@ -131,6 +131,33 @@ export const useXxxStore = create<XxxState>()(
 **Key files**: All frontend source, `.next/static/` for bundle analysis
 **Location**: `skills/active/performance-audit.md`
 
+### ai-sql-analysis
+
+**When to use**: User asks natural language questions about data.
+
+**Steps**:
+1. Build schema context from available tables
+2. Generate SQL from question via Claude API
+3. Execute SQL via QueryExecutor
+4. Generate natural language explanation
+5. Suggest chart types for visualization
+
+**Key files**: `backend/services/ai_analyst.py`, `backend/routes/ai.py`, `frontend-react/src/panels/chat-panel.tsx`
+**Location**: `skills/active/ai-sql-analysis.md`
+
+### auto-analysis-pipeline
+
+**When to use**: New data is uploaded or user requests data profiling.
+
+**Steps**:
+1. Profile data (types, stats, distributions)
+2. Run quality checks (nulls, duplicates, outliers)
+3. Generate AI summary and chart suggestions
+4. Return structured analysis report
+
+**Key files**: `backend/routes/analyze.py`, `database/data_quality.py`
+**Location**: `skills/active/auto-analysis-pipeline.md`
+
 ## Skill Lifecycle
 
 Skills are stored in `skills/` with lifecycle states:
