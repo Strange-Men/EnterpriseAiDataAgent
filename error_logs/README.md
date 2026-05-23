@@ -37,7 +37,7 @@ error_logs/
 ## Analysis Process
 
 1. Collect error logs into `error_logs/reports/`
-2. Review `ERROR_ANALYSIS.md` for patterns
+2. Review `docs/governance/error-analysis.md` for patterns
 3. Track in `KNOWN_ISSUES.md`
 4. Fix and verify
 
