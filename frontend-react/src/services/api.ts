@@ -21,6 +21,22 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+// ── Generic fetch with abort support ──────────────────────
+
+async function apiFetchAbortable<T>(
+  path: string,
+  options?: RequestInit & { signal?: AbortSignal }
+): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`API ${res.status}: ${body || res.statusText}`);
+  }
+  return res.json();
+}
+
 // ── Database ───────────────────────────────────────────────
 
 export async function fetchTables(): Promise<TableInfo[]> {
@@ -77,6 +93,7 @@ export async function renameTable(tableName: string, newName: string): Promise<v
 // ── SQL Query ──────────────────────────────────────────────
 
 export interface QueryResult {
+  queryId: number;
   sql: string;
   columns: string[];
   data: Record<string, unknown>[];
@@ -86,11 +103,16 @@ export interface QueryResult {
   error: string | null;
 }
 
-export async function executeQuery(sql: string, limit: number = 500): Promise<QueryResult> {
-  return apiFetch<QueryResult>("/query", {
+export async function executeQuery(
+  sql: string,
+  limit: number = 500,
+  signal?: AbortSignal
+): Promise<QueryResult> {
+  return apiFetchAbortable<QueryResult>("/query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sql, limit }),
+    signal,
   });
 }
 
@@ -98,6 +120,63 @@ export async function fetchQueryHistory(limit: number = 50): Promise<
   { id: number; sql: string; status: "success" | "error"; runtimeMs: number; rowCount: number; error: string | null; timestamp: string }[]
 > {
   return apiFetch(`/query/history?limit=${limit}`);
+}
+
+// ── Query Explain ──────────────────────────────────────────
+
+export interface ExplainPlan {
+  operator: string;
+  detail: string;
+}
+
+export interface ExplainResult {
+  sql: string;
+  plan: ExplainPlan[];
+  status: "success" | "error";
+  error: string | null;
+}
+
+export async function explainQuery(sql: string): Promise<ExplainResult> {
+  return apiFetch<ExplainResult>("/query/explain", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sql }),
+  });
+}
+
+// ── Query Cancel ───────────────────────────────────────────
+
+export async function cancelQuery(queryId: number): Promise<{ cancelled: boolean; queryId: number }> {
+  return apiFetch("/query/cancel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query_id: queryId }),
+  });
+}
+
+// ── Query Export ───────────────────────────────────────────
+
+export async function exportQueryResult(
+  sql: string,
+  format: "csv" | "json" | "excel",
+  limit: number = 50000
+): Promise<Blob> {
+  const res = await fetch(`${API_BASE}/query/export`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sql, format, limit }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Export failed: ${body || res.statusText}`);
+  }
+  return res.blob();
+}
+
+// ── Schema for Autocomplete ────────────────────────────────
+
+export async function fetchAllSchemas(): Promise<Record<string, string[]>> {
+  return apiFetch<Record<string, string[]>>("/query/schema");
 }
 
 // ── File Upload ────────────────────────────────────────────

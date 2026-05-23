@@ -1,0 +1,77 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export interface SavedQuery {
+  id: string;
+  name: string;
+  sql: string;
+  favorite: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface SavedQueriesState {
+  queries: SavedQuery[];
+
+  saveQuery: (name: string, sql: string) => string;
+  renameQuery: (id: string, name: string) => void;
+  deleteQuery: (id: string) => void;
+  toggleFavorite: (id: string) => void;
+  updateQuery: (id: string, sql: string) => void;
+  getFavorites: () => SavedQuery[];
+}
+
+function generateId(): string {
+  return `sq-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+export const useSavedQueriesStore = create<SavedQueriesState>()(
+  persist(
+    (set, get) => ({
+      queries: [],
+
+      saveQuery: (name: string, sql: string) => {
+        const id = generateId();
+        const now = new Date().toISOString();
+        const query: SavedQuery = { id, name, sql, favorite: false, createdAt: now, updatedAt: now };
+        set((state) => ({ queries: [query, ...state.queries] }));
+        return id;
+      },
+
+      renameQuery: (id: string, name: string) => {
+        set((state) => ({
+          queries: state.queries.map((q) =>
+            q.id === id ? { ...q, name, updatedAt: new Date().toISOString() } : q
+          ),
+        }));
+      },
+
+      deleteQuery: (id: string) => {
+        set((state) => ({
+          queries: state.queries.filter((q) => q.id !== id),
+        }));
+      },
+
+      toggleFavorite: (id: string) => {
+        set((state) => ({
+          queries: state.queries.map((q) =>
+            q.id === id ? { ...q, favorite: !q.favorite, updatedAt: new Date().toISOString() } : q
+          ),
+        }));
+      },
+
+      updateQuery: (id: string, sql: string) => {
+        set((state) => ({
+          queries: state.queries.map((q) =>
+            q.id === id ? { ...q, sql, updatedAt: new Date().toISOString() } : q
+          ),
+        }));
+      },
+
+      getFavorites: () => {
+        return get().queries.filter((q) => q.favorite);
+      },
+    }),
+    { name: "saved-queries" }
+  )
+);

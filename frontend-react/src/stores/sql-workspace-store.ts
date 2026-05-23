@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 interface QueryResult {
+  queryId: number;
   sql: string;
   columns: string[];
   data: Record<string, unknown>[];

@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.routes import upload, tables, quality, query, table_manage
 from backend.services.data_service import check_db_connection, get_uptime
 
-app = FastAPI(title="Enterprise AI Data Agent API", version="0.3.4")
+app = FastAPI(title="Enterprise AI Data Agent API", version="0.3.7")
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,6 +48,6 @@ async def status():
         "api": "ok",
         "db": "ok" if db_ok else "error",
         "rag": "unknown",
-        "version": "0.3.4",
+        "version": "0.3.7",
         "uptime": get_uptime(),
     }

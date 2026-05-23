@@ -108,21 +108,77 @@ const en = {
     "sql.execute": "Execute",
     "sql.running": "Running...",
     "sql.clear": "Clear",
-    "sql.hint": "Ctrl+Enter to execute",
+    "sql.hint": "Ctrl+Enter to execute, Ctrl+S to save, Ctrl+/ to comment",
     "sql.placeholder": "SELECT * FROM table_name LIMIT 100;",
     "sql.executing": "Executing query...",
     "sql.error": "Query Error",
-    "sql.empty": "Write a SQL query above and click Execute.",
+    "sql.empty": "Write a SQL query and press Ctrl+Enter to execute.",
     "sql.rows": "rows",
     "sql.time": "time",
 
     "history.title": "Query History",
     "history.empty": "No queries executed yet.",
+    "history.search": "Search SQL...",
+    "history.filter-all": "All",
+    "history.filter-success": "Success",
+    "history.filter-error": "Error",
+    "history.no-results": "No matching queries found.",
+    "history.try-different": "Try a different search term.",
+    "history.confirm-clear": "Clear all history?",
+    "history.clear": "Clear history",
+    "history.export": "Export history",
+    "history.exported": "History exported",
+    "history.rerun": "Re-run in new tab",
+    "history.delete": "Delete entry",
 
     "header.show-left": "Show left panel",
     "header.hide-left": "Hide left panel",
     "header.show-right": "Show right panel",
     "header.hide-right": "Hide right panel",
+
+    // Query Tabs
+    "tabs.add": "New Tab",
+
+    // Query Explain
+    "explain.title": "Query Plan",
+    "explain.button": "Explain",
+    "explain.hint": "Show execution plan",
+    "explain.loading": "Analyzing query plan...",
+    "explain.error": "Explain Error",
+    "explain.steps": "steps",
+
+    // Query Cancel
+    "query.cancel": "Cancel",
+    "query.cancelled": "Query cancelled",
+
+    // Export
+    "export.button": "Export",
+    "export.csv": "Export CSV",
+    "export.json": "Export JSON",
+    "export.excel": "Export Excel",
+    "export.exporting": "Exporting...",
+    "export.success": "Exported as {{format}}",
+
+    // Saved Queries
+    "saved.button": "Saved",
+    "saved.title": "Saved Queries",
+    "saved.save": "Save",
+    "saved.save-title": "Save Query",
+    "saved.name-placeholder": "Query name...",
+    "saved.save-success": "Query saved",
+
+    // Query Statistics
+    "stats.success": "Success",
+    "stats.error": "Error",
+    "stats.rows": "rows",
+    "stats.ms": "ms",
+    "stats.columns": "columns",
+
+    // SQL Formatting
+    "format.button": "Format",
+    "format.hint": "Format SQL (sql-formatter)",
+    "format.success": "SQL formatted",
+    "format.error": "Format failed",
   },
 };
 
