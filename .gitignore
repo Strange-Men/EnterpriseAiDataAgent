@@ -52,6 +52,9 @@ htmlcov/
 .coverage
 coverage.xml
 
+# Pytest
+.pytest_cache/
+
 # Debug artifacts
 debug*.png
 debug*.py
@@ -59,3 +62,6 @@ debug*.py
 # Playwright test results
 test-results/
 playwright-report/
+
+# Temp files
+temp/
