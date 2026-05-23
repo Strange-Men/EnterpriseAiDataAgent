@@ -7,14 +7,8 @@ Endpoints:
 
 import time
 from fastapi import APIRouter, HTTPException
-from backend.services.data_service import (
-    _executor,
-    _db,
-    _sanitize_for_json,
-    get_quality_report,
-)
+from backend.services import data_service
 from backend.services.ai_analyst import explain_results, suggest_charts
-from backend.services.data_service import list_tables
 
 router = APIRouter()
 
@@ -33,7 +27,7 @@ async def analyze_table(table_name: str):
 
     try:
         # 1. Get sample data
-        df = _db.get_sample_data(table_name, limit=10000)
+        df = data_service._db.get_sample_data(table_name, limit=10000)
         if df.empty:
             raise HTTPException(status_code=404, detail=f"Table '{table_name}' is empty")
 
@@ -41,10 +35,10 @@ async def analyze_table(table_name: str):
         profile = _build_profile(df, table_name)
 
         # 3. Quality report
-        quality = get_quality_report(table_name)
+        quality = data_service.get_quality_report(table_name)
 
         # 4. AI-generated summary (if data available)
-        sample_data = _sanitize_for_json(df.head(20).to_dict(orient="records"))
+        sample_data = data_service._sanitize_for_json(df.head(20).to_dict(orient="records"))
         columns = list(df.columns)
 
         ai_summary = ""
@@ -88,7 +82,7 @@ async def analyze_table(table_name: str):
 async def get_profile(table_name: str):
     """Get data profile for a table (no AI, fast)."""
     try:
-        df = _db.get_sample_data(table_name, limit=10000)
+        df = data_service._db.get_sample_data(table_name, limit=10000)
         if df.empty:
             raise HTTPException(status_code=404, detail=f"Table '{table_name}' is empty")
         profile = _build_profile(df, table_name)

@@ -1,12 +1,14 @@
 """AI Analysis Routes — Natural language to SQL intelligence.
 
 Endpoints:
+- GET  /api/ai/status — AI service health check
 - POST /api/ai/query — Generate SQL from natural language, execute, explain
 - POST /api/ai/explain — Explain existing query results
 - POST /api/ai/insights — Generate insights from results
 - POST /api/ai/chart-suggest — Suggest chart types
 """
 
+import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from backend.services.ai_analyst import (
@@ -15,10 +17,41 @@ from backend.services.ai_analyst import (
     generate_insights,
     suggest_charts,
     build_schema_context,
+    MODEL,
+    TEMPERATURE,
 )
 from backend.services.data_service import _executor, _sanitize_for_json, list_tables
 
 router = APIRouter()
+
+
+@router.get("/ai/status")
+async def ai_status():
+    """Check AI service configuration and health."""
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    base_url = os.getenv("ANTHROPIC_BASE_URL", "")
+
+    has_key = bool(api_key and api_key != "")
+    masked_key = f"...{api_key[-4:]}" if len(api_key) > 8 else "(not set)" if not api_key else "***"
+
+    # Quick connectivity test
+    connection_ok = False
+    try:
+        from backend.services.ai_analyst import _get_client
+        client = _get_client()
+        if has_key:
+            connection_ok = True
+    except Exception:
+        pass
+
+    return {
+        "configured": has_key,
+        "connection": "ok" if connection_ok else ("not_configured" if not has_key else "error"),
+        "model": MODEL,
+        "temperature": TEMPERATURE,
+        "base_url": base_url or "default",
+        "api_key_preview": masked_key,
+    }
 
 
 class AIQueryRequest(BaseModel):

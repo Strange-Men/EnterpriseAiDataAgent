@@ -13,6 +13,8 @@ import { QueryExplain } from "@/components/query-explain";
 import { ExportDropdown } from "@/components/export-dropdown";
 import { executeQuery, explainQuery, cancelQuery } from "@/services/api";
 import type { ExplainResult } from "@/services/api";
+import { AIAnalysisPanel } from "@/panels/ai-analysis-panel";
+import type { AnalysisMode } from "@/panels/ai-analysis-panel";
 import { logger } from "@/services/logger";
 import toast from "react-hot-toast";
 import { format } from "sql-formatter";
@@ -65,6 +67,15 @@ export function SqlWorkspacePanel() {
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
+  // AI Analysis state
+  const [aiMode, setAiMode] = useState<AnalysisMode | null>(null);
+  const [showAiPanel, setShowAiPanel] = useState(false);
+
+  const handleAiAction = useCallback((mode: AnalysisMode) => {
+    setAiMode(mode);
+    setShowAiPanel(true);
+  }, []);
+
   const handleExecute = useCallback(async () => {
     const sql = currentSql.trim();
     if (!sql || useSqlWorkspaceStore.getState().isExecuting) return;
@@ -73,6 +84,8 @@ export function SqlWorkspacePanel() {
     setQueryResult(null);
     setShowExplain(false);
     setExplainResult(null);
+    setShowAiPanel(false);
+    setAiMode(null);
     queryIdRef.current = null;
     startTimeRef.current = Date.now();
 
@@ -347,6 +360,33 @@ export function SqlWorkspacePanel() {
           {t("explain.button")}
         </button>
 
+        {/* AI buttons — visible when query has results */}
+        {queryResult?.status === "success" && queryResult.data.length > 0 && (
+          <>
+            <button
+              onClick={() => handleAiAction("explain")}
+              className="px-3 py-1.5 text-xs border border-purple-500/30 text-purple-400 rounded-md hover:bg-purple-500/10 hover:border-purple-500/50 transition-colors"
+              title={t("sql.ai-explain")}
+            >
+              {t("ai.explain-btn")}
+            </button>
+            <button
+              onClick={() => handleAiAction("insights")}
+              className="px-3 py-1.5 text-xs border border-purple-500/30 text-purple-400 rounded-md hover:bg-purple-500/10 hover:border-purple-500/50 transition-colors"
+              title={t("sql.ai-insights")}
+            >
+              {t("ai.insights-btn")}
+            </button>
+            <button
+              onClick={() => handleAiAction("charts")}
+              className="px-3 py-1.5 text-xs border border-purple-500/30 text-purple-400 rounded-md hover:bg-purple-500/10 hover:border-purple-500/50 transition-colors"
+              title={t("ai.charts-title")}
+            >
+              {t("ai.charts-title")}
+            </button>
+          </>
+        )}
+
         <button
           onClick={handleFormat}
           disabled={!currentSql.trim()}
@@ -544,6 +584,19 @@ export function SqlWorkspacePanel() {
       {queryResult?.status === "success" && queryResult.columns.length > 0 && (
         <div className="flex-1 min-h-0">
           <DataTable data={queryResult.data} columns={queryResult.columns} />
+        </div>
+      )}
+
+      {/* ── AI Analysis Panel ─────────────────────────────── */}
+      {showAiPanel && aiMode && queryResult?.status === "success" && (
+        <div className="mt-2 min-h-[200px] max-h-[400px]">
+          <AIAnalysisPanel
+            mode={aiMode}
+            sql={queryResult.sql}
+            question={queryResult.sql}
+            results={queryResult.data}
+            onClose={() => { setShowAiPanel(false); setAiMode(null); }}
+          />
         </div>
       )}
 

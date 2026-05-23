@@ -226,6 +226,21 @@ export async function fetchStatus(): Promise<{
   return apiFetch("/status");
 }
 
+// ── AI Status ───────────────────────────────────────────────────
+
+export interface AIStatus {
+  configured: boolean;
+  connection: "ok" | "error" | "not_configured";
+  model: string;
+  temperature: number;
+  base_url: string;
+  api_key_preview: string;
+}
+
+export async function fetchAIStatus(): Promise<AIStatus> {
+  return apiFetch<AIStatus>("/ai/status");
+}
+
 // ── AI Analysis ─────────────────────────────────────────────────
 
 export interface AIQueryResult {
