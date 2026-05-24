@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { generateId } from "@/utils/id";
 
 export interface SavedQuery {
@@ -69,6 +69,6 @@ export const useSavedQueriesStore = create<SavedQueriesState>()(
         return get().queries.filter((q) => q.favorite);
       },
     }),
-    { name: "saved-queries" }
+    { name: "saved-queries", storage: createJSONStorage(() => localStorage) }
   )
 );

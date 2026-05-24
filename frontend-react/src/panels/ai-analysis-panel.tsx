@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import {
@@ -45,10 +45,10 @@ function AnalysisSkeleton() {
 // ── Suggested questions ───────────────────────────────────────
 function SuggestedQuestions({
   questions,
-  onSqlGenerated,
+  onQuestionClick,
 }: {
   questions: { question: string; reason: string }[];
-  onSqlGenerated?: (sql: string) => void;
+  onQuestionClick?: (question: string) => void;
 }) {
   const { t } = useTranslation();
 
@@ -63,11 +63,7 @@ function SuggestedQuestions({
         {questions.map((q, i) => (
           <button
             key={i}
-            onClick={() => {
-              if (onSqlGenerated) {
-                // Populate follow-up input — handled by parent
-              }
-            }}
+            onClick={() => onQuestionClick?.(q.question)}
             className="w-full text-left px-3 py-2 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] transition-colors group"
           >
             <p className="text-xs text-[var(--text-primary)] group-hover:text-[var(--accent)]">{q.question}</p>
@@ -107,6 +103,16 @@ export function AIAnalysisPanel({
   const [suggestedQuestions, setSuggestedQuestions] = useState<{ question: string; reason: string }[]>([]);
   const [multiResult, setMultiResult] = useState<MultiStepResult | null>(null);
   const [trace, setTrace] = useState<TraceSnapshot | null>(null);
+  const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
+
+  const streamAbortRef = useRef<AbortController | null>(null);
+
+  // Abort streaming on unmount
+  useEffect(() => {
+    return () => {
+      streamAbortRef.current?.abort();
+    };
+  }, []);
 
   // ── Run analysis ──────────────────────────────────────────
   const runAnalysis = useCallback(async () => {
@@ -127,6 +133,7 @@ export function AIAnalysisPanel({
       const builtSections: AnalysisSection[] = [];
       let raw: unknown = null;
       let runTrace: TraceSnapshot | null = null;
+      let storeMultiResult: MultiStepResult | null = null;
 
       if (mode === "explain" && sql && question && results) {
         const sessionStore = useAiSessionStore.getState();
@@ -138,7 +145,7 @@ export function AIAnalysisPanel({
         let accumulated = "";
         setStreamingContent("");
         await new Promise<void>((resolve, reject) => {
-          streamAiExplain(question, sql, results, {
+          const ctrl = streamAiExplain(question, sql, results, {
             onChunk: (text) => {
               accumulated += text;
               setStreamingContent(accumulated);
@@ -146,6 +153,7 @@ export function AIAnalysisPanel({
             onDone: () => resolve(),
             onError: (err) => reject(err),
           }, history.length > 0 ? history : undefined, i18n.language);
+          streamAbortRef.current = ctrl;
         });
         builtSections.push({
           title: t("ai.explanation"),
@@ -156,11 +164,12 @@ export function AIAnalysisPanel({
         sessionStore.addAssistantTurn(accumulated, sql);
         setStreamingContent(null);
 
+        let explainChartSpecs: ChartSpec[] = [];
         if (results && results.length > 0) {
           try {
             const chartRes = await aiChartSuggest(results, question, i18n.language);
             if (chartRes.recommended_charts?.length) {
-              const specs: ChartSpec[] = chartRes.recommended_charts
+              explainChartSpecs = chartRes.recommended_charts
                 .filter((c) => ["bar", "line", "pie", "scatter"].includes(c.type))
                 .slice(0, 2)
                 .map((c) => ({
@@ -170,7 +179,7 @@ export function AIAnalysisPanel({
                   yKey: c.y_axis,
                   data: results,
                 }));
-              setChartSpecs(specs);
+              setChartSpecs(explainChartSpecs);
             }
           } catch { /* non-fatal */ }
         }
@@ -180,7 +189,7 @@ export function AIAnalysisPanel({
         useAnalysisStore.getState().updateRun(runId, {
           status: "success",
           sections: builtSections,
-          chartSpecs,
+          chartSpecs: explainChartSpecs,
         });
         return;
       } else if (mode === "insights" && question && results) {
@@ -231,6 +240,18 @@ export function AIAnalysisPanel({
             md += `- **Y-Axis**: ${c.y_axis}\n`;
             md += `- **Why**: ${c.reason}\n\n`;
           });
+          // Render actual chart components
+          const chartSpecsFromSuggest = res.recommended_charts
+            .filter((c) => ["bar", "line", "pie", "scatter"].includes(c.type))
+            .slice(0, 2)
+            .map((c) => ({
+              type: c.type as ChartSpec["type"],
+              title: c.title,
+              xKey: c.x_axis,
+              yKey: c.y_axis,
+              data: results,
+            }));
+          if (chartSpecsFromSuggest.length) setChartSpecs(chartSpecsFromSuggest);
         }
         builtSections.push({
           title: t("ai.chart-suggestions"),
@@ -258,15 +279,58 @@ export function AIAnalysisPanel({
         });
         builtSections.push({ title: t("ai.column-details"), content: colMd, type: "markdown" });
 
-        if (res.ai_summary) {
+        // Structured insights (replaces old plain-text ai_summary)
+        const insights = (res as unknown as { insights?: unknown[] }).insights;
+        const trends = (res as unknown as { trends?: unknown[] }).trends;
+        const qualityNotes = (res as unknown as { data_quality_notes?: string[] }).data_quality_notes;
+        const nextSteps = (res as unknown as { suggested_next_steps?: string[] }).suggested_next_steps;
+
+        if (Array.isArray(insights) && insights.length > 0) {
+          let insMd = "";
+          insights.forEach((i: unknown) => {
+            if (typeof i === "string") {
+              insMd += `- ${i}\n`;
+            } else if (typeof i === "object" && i !== null) {
+              const item = i as { text?: string; confidence?: number; severity?: string };
+              const conf = item.confidence != null ? ` (${Math.round(item.confidence * 100)}%)` : "";
+              const badge = item.severity === "high" ? " **[HIGH]**" : item.severity === "medium" ? " [MED]" : "";
+              insMd += `- ${item.text || ""}${conf}${badge}\n`;
+            }
+          });
+          if (insMd) builtSections.push({ title: t("ai.key-insights"), content: insMd, type: "markdown" });
+        } else if (res.ai_summary) {
           builtSections.push({ title: t("ai.summary"), content: res.ai_summary, type: "markdown" });
+        }
+
+        if (Array.isArray(trends) && trends.length > 0) {
+          let trendMd = "";
+          trends.forEach((tr: unknown) => {
+            if (typeof tr === "string") {
+              trendMd += `- ${tr}\n`;
+            } else if (typeof tr === "object" && tr !== null) {
+              const item = tr as { text?: string; confidence?: number };
+              const conf = item.confidence != null ? ` (${Math.round(item.confidence * 100)}%)` : "";
+              trendMd += `- ${item.text || ""}${conf}\n`;
+            }
+          });
+          if (trendMd) builtSections.push({ title: t("ai.trends"), content: trendMd, type: "markdown" });
+        }
+
+        if (Array.isArray(qualityNotes) && qualityNotes.length > 0) {
+          let qMd = "";
+          qualityNotes.forEach((n) => { qMd += `- ${n}\n`; });
+          builtSections.push({ title: t("ai.data-quality"), content: qMd, type: "markdown" });
+        }
+
+        if (Array.isArray(nextSteps) && nextSteps.length > 0) {
+          let nsMd = "";
+          nextSteps.forEach((s) => { nsMd += `- [ ] ${s}\n`; });
+          builtSections.push({ title: t("ai.next-steps"), content: nsMd, type: "markdown" });
         }
 
         try {
           const semCols = profile.columns.map((c) => ({ name: c.name, dtype: c.dtype }));
-          const sampleRows = res.profile.columns.length > 0
-            ? (res as unknown as { data?: Record<string, unknown>[] }).data?.slice(0, 5) ?? []
-            : [];
+          const sampleRows = res.data?.slice(0, 5) ?? [];
           const semRes = await aiSemantics(tableName, semCols, sampleRows, i18n.language);
           if (semRes.status === "success" && semRes.summary) {
             let semMd = `**${semRes.summary}**\n\n`;
@@ -298,6 +362,21 @@ export function AIAnalysisPanel({
             chartMd += `#### ${c.title}\n- **${t("ai.chart-type")}**: ${c.type}\n- **X**: ${c.x_axis} | **Y**: ${c.y_axis}\n- ${c.reason}\n\n`;
           });
           builtSections.push({ title: t("ai.chart-suggestions"), content: chartMd, type: "markdown" });
+
+          // Render actual chart components if data is available
+          if (res.data?.length) {
+            const fullAnalysisChartSpecs = res.chart_suggestions
+              .filter((c) => ["bar", "line", "pie", "scatter"].includes(c.type))
+              .slice(0, 2)
+              .map((c) => ({
+                type: c.type as ChartSpec["type"],
+                title: c.title,
+                xKey: c.x_axis,
+                yKey: c.y_axis,
+                data: res.data!,
+              }));
+            if (fullAnalysisChartSpecs.length) setChartSpecs(fullAnalysisChartSpecs);
+          }
         }
 
         try {
@@ -314,7 +393,7 @@ export function AIAnalysisPanel({
         let execSummary = "";
 
         await new Promise<void>((resolve, reject) => {
-          streamAiAnalyzeMulti(q, tableName, cols, [], {
+          const ctrl = streamAiAnalyzeMulti(q, tableName, cols, [], {
             onPlan: (plan) => {
               planSteps = plan;
               let planMd = "";
@@ -378,6 +457,7 @@ export function AIAnalysisPanel({
               resolve();
             },
           }, i18n.language);
+          streamAbortRef.current = ctrl;
         });
 
         const finalResult: MultiStepResult = {
@@ -389,6 +469,7 @@ export function AIAnalysisPanel({
         };
         setMultiResult(finalResult);
         raw = finalResult;
+        storeMultiResult = finalResult;
         if (runTrace) setTrace(runTrace);
       }
 
@@ -396,13 +477,12 @@ export function AIAnalysisPanel({
       setRawData(raw);
       setHasRun(true);
 
-      // Update analysis store
+      // Update analysis store (use local vars, not closure — React state is async)
       useAnalysisStore.getState().updateRun(runId, {
         status: "success",
         sections: builtSections,
-        chartSpecs,
-        multiResult,
-        trace,
+        multiResult: storeMultiResult,
+        trace: runTrace,
       });
 
       if (mode === "full-analysis" && tableName && onComplete) {
@@ -504,12 +584,12 @@ export function AIAnalysisPanel({
 
         {/* Suggested questions */}
         {suggestedQuestions.length > 0 && (
-          <SuggestedQuestions questions={suggestedQuestions} onSqlGenerated={onSqlGenerated} />
+          <SuggestedQuestions questions={suggestedQuestions} onQuestionClick={setFollowUpQuestion} />
         )}
 
         {/* Follow-up */}
         {hasRun && !isLoading && (
-          <FollowUpInput results={results} onSqlGenerated={onSqlGenerated} />
+          <FollowUpInput results={results} onSqlGenerated={onSqlGenerated} question={followUpQuestion ?? undefined} onQuestionChange={setFollowUpQuestion} />
         )}
       </div>
     </div>

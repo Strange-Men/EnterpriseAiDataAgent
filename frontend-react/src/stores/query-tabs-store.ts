@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { generateId } from "@/utils/id";
 
 export interface QueryTab {
@@ -25,7 +25,7 @@ const DEFAULT_TAB: QueryTab = {
   id: "tab-default",
   name: "Query 1",
   sql: "",
-  createdAt: new Date().toISOString(),
+  createdAt: "2026-01-01T00:00:00.000Z",
 };
 
 export const useQueryTabsStore = create<QueryTabsState>()(
@@ -82,6 +82,6 @@ export const useQueryTabsStore = create<QueryTabsState>()(
         return tabs.find((t) => t.id === activeTabId);
       },
     }),
-    { name: "query-tabs" }
+    { name: "query-tabs", storage: createJSONStorage(() => localStorage) }
   )
 );

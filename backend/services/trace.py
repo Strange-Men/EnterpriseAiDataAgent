@@ -9,6 +9,8 @@ import time
 import uuid
 from dataclasses import dataclass, field
 
+from backend.runtime.token_budget import estimate_tokens
+
 
 @dataclass
 class TraceEvent:
@@ -70,8 +72,8 @@ class TraceRecorder:
         sql: str | None = None,
         step: int | None = None,
     ):
-        input_tokens = len(input_text) // 3
-        output_tokens = len(output_text) // 3
+        input_tokens = estimate_tokens(input_text)
+        output_tokens = estimate_tokens(output_text)
         event = TraceEvent(
             timestamp=time.time(),
             operation=operation,

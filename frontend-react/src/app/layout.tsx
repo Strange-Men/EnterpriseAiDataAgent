@@ -12,8 +12,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-[#0E1117] text-[#C9D1D9] antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var s = localStorage.getItem('workspace-theme');
+                var t = s ? JSON.parse(s).state.theme : 'dark';
+                document.documentElement.setAttribute('data-theme', t);
+              } catch(e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+              }
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-screen antialiased">
         {children}
       </body>
     </html>

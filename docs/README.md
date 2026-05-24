@@ -1,6 +1,6 @@
 # Documentation Index — Enterprise AI Data Agent
 
-> Last updated: 2026-05-24 (v0.5.5)
+> Last updated: 2026-05-25 (v0.5.8)
 
 ## Recommended Reading Order (for new sessions)
 
@@ -65,6 +65,7 @@
 | [runtime-guardrails.md](../skills/active/runtime-guardrails.md) | Execution limits and safety |
 | [token-budget-control.md](../skills/active/token-budget-control.md) | Token budget management |
 | [virtual-scroll-debugging.md](../skills/active/virtual-scroll-debugging.md) | Virtual table debugging |
+| [analysis-workspace.md](../skills/active/analysis-workspace.md) | Analysis workspace panel |
 | [SKILL_REGISTRY.md](../skills/SKILL_REGISTRY.md) | Master skill registry |
 
 ## Frontend Rules (`docs/frontend_rules/`)

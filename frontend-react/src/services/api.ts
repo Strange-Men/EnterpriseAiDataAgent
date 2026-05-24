@@ -301,9 +301,9 @@ export interface StreamCallbacks {
   onError: (err: Error) => void;
 }
 
-function consumeSseStream(response: Promise<Response>, callbacks: StreamCallbacks): AbortController {
+function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Response>, callbacks: StreamCallbacks): AbortController {
   const controller = new AbortController();
-  response.then(async (res) => {
+  createResponse(controller.signal).then(async (res) => {
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       callbacks.onError(new Error(`API ${res.status}: ${body || res.statusText}`));
@@ -321,10 +321,30 @@ function consumeSseStream(response: Promise<Response>, callbacks: StreamCallback
         buffer = lines.pop() || "";
         for (const line of lines) {
           if (line.startsWith("data: ")) {
-            const data = JSON.parse(line.slice(6));
-            if (data.type === "text") callbacks.onChunk(data.content);
-            else if (data.type === "done") callbacks.onDone();
-            else if (data.type === "error") callbacks.onError(new Error(data.error));
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === "text") callbacks.onChunk(data.content);
+              else if (data.type === "done") callbacks.onDone();
+              else if (data.type === "error") callbacks.onError(new Error(data.error));
+            } catch {
+              // Skip malformed SSE line
+            }
+          }
+        }
+      }
+      // Drain remaining buffer after stream ends
+      buffer += decoder.decode();
+      if (buffer.trim()) {
+        for (const line of buffer.split("\n")) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === "text") callbacks.onChunk(data.content);
+              else if (data.type === "done") callbacks.onDone();
+              else if (data.type === "error") callbacks.onError(new Error(data.error));
+            } catch {
+              // Skip malformed SSE line
+            }
           }
         }
       }
@@ -349,10 +369,11 @@ export function streamAiExplain(
   if (conversationHistory) body.conversation_history = conversationHistory;
   if (language) body.language = language;
   return consumeSseStream(
-    fetch(`${API_BASE}/ai/explain/stream`, {
+    (signal) => fetch(`${API_BASE}/ai/explain/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal,
     }),
     callbacks,
   );
@@ -367,10 +388,11 @@ export function streamAiInsights(
   const body: Record<string, unknown> = { question, results };
   if (language) body.language = language;
   return consumeSseStream(
-    fetch(`${API_BASE}/ai/insights/stream`, {
+    (signal) => fetch(`${API_BASE}/ai/insights/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal,
     }),
     callbacks,
   );
@@ -598,13 +620,36 @@ export function streamAiAnalyzeMulti(
         buffer = lines.pop() || "";
         for (const line of lines) {
           if (line.startsWith("data: ")) {
-            const data: MultiStreamEvent = JSON.parse(line.slice(6));
-            if (data.type === "plan" && data.plan) callbacks.onPlan(data.plan);
-            else if (data.type === "step_start" && data.step != null) callbacks.onStepStart(data.step, data.purpose || "");
-            else if (data.type === "step_result") callbacks.onStepResult(data);
-            else if (data.type === "summary" && data.summary != null) callbacks.onSummary(data.summary);
-            else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
-            else if (data.type === "done") callbacks.onDone(data);
+            try {
+              const data: MultiStreamEvent = JSON.parse(line.slice(6));
+              if (data.type === "plan" && data.plan) callbacks.onPlan(data.plan);
+              else if (data.type === "step_start" && data.step != null) callbacks.onStepStart(data.step, data.purpose || "");
+              else if (data.type === "step_result") callbacks.onStepResult(data);
+              else if (data.type === "summary" && data.summary != null) callbacks.onSummary(data.summary);
+              else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
+              else if (data.type === "done") callbacks.onDone(data);
+            } catch {
+              // Skip malformed SSE line
+            }
+          }
+        }
+      }
+      // Drain remaining buffer after stream ends
+      buffer += decoder.decode();
+      if (buffer.trim()) {
+        for (const line of buffer.split("\n")) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data: MultiStreamEvent = JSON.parse(line.slice(6));
+              if (data.type === "plan" && data.plan) callbacks.onPlan(data.plan);
+              else if (data.type === "step_start" && data.step != null) callbacks.onStepStart(data.step, data.purpose || "");
+              else if (data.type === "step_result") callbacks.onStepResult(data);
+              else if (data.type === "summary" && data.summary != null) callbacks.onSummary(data.summary);
+              else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
+              else if (data.type === "done") callbacks.onDone(data);
+            } catch {
+              // Skip malformed SSE line
+            }
           }
         }
       }
@@ -656,6 +701,7 @@ export interface AnalysisResult {
   quality: QualityReport;
   ai_summary: string;
   chart_suggestions: { type: string; title: string; x_axis: string; y_axis: string; reason: string }[];
+  data?: Record<string, unknown>[];
   elapsed_ms: number;
   status: string;
 }
