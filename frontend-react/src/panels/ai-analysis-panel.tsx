@@ -125,6 +125,7 @@ export function AIAnalysisPanel({
     setSuggestedQuestions([]);
     setMultiResult(null);
     setTrace(null);
+    setFollowUpQuestion(null);
 
     // Record in analysis store
     const runId = useAnalysisStore.getState().addRun(mode, question || tableName || "", tableName);
@@ -280,10 +281,10 @@ export function AIAnalysisPanel({
         builtSections.push({ title: t("ai.column-details"), content: colMd, type: "markdown" });
 
         // Structured insights (replaces old plain-text ai_summary)
-        const insights = (res as unknown as { insights?: unknown[] }).insights;
-        const trends = (res as unknown as { trends?: unknown[] }).trends;
-        const qualityNotes = (res as unknown as { data_quality_notes?: string[] }).data_quality_notes;
-        const nextSteps = (res as unknown as { suggested_next_steps?: string[] }).suggested_next_steps;
+        const insights = res.insights;
+        const trends = res.trends;
+        const qualityNotes = res.data_quality_notes;
+        const nextSteps = res.suggested_next_steps;
 
         if (Array.isArray(insights) && insights.length > 0) {
           let insMd = "";
@@ -431,17 +432,19 @@ export function AIAnalysisPanel({
                 summary: execSummary,
                 status: "success",
               });
-              setSections((prev) => prev.filter((s) => s.title !== t("ai.running-steps")));
+              // Don't remove running indicator here; onStepStart will update it
             },
             onSummary: (summary) => {
               execSummary = summary;
               setSections((prev) => [
-                ...prev,
+                ...prev.filter((s) => s.title !== t("ai.running-steps")),
                 { title: t("ai.executive-summary"), content: summary, type: "markdown" },
               ]);
             },
             onError: (err) => reject(err),
             onDone: (data) => {
+              // Clean up running indicator
+              setSections((prev) => prev.filter((s) => s.title !== t("ai.running-steps")));
               // Extract trace from done event
               const rawTrace = data?.trace;
               if (rawTrace) {

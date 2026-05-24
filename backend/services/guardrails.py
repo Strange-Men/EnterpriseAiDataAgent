@@ -44,6 +44,7 @@ class AnalysisGuard:
         self.steps_executed = 0
         self.sql_queries = 0
         self.consecutive_failures = 0
+        self.step_start_time: float | None = None
 
     def check_before_step(self, step_def: dict, executed_steps: list[dict]):
         """在执行每一步之前检查 guardrail。"""
@@ -56,6 +57,18 @@ class AnalysisGuard:
         elapsed = time.time() - self.start_time
         if elapsed > self.config.max_total_time_seconds:
             raise GuardrailViolation("total_timeout", f"分析超时 {self.config.max_total_time_seconds}s")
+
+        # Per-step timeout: check how long the PREVIOUS step took
+        if self.step_start_time is not None:
+            step_elapsed = time.time() - self.step_start_time
+            if step_elapsed > self.config.max_step_time_seconds:
+                raise GuardrailViolation(
+                    "step_timeout",
+                    f"步骤超时 {step_elapsed:.1f}s (限制: {self.config.max_step_time_seconds}s)"
+                )
+
+        # Record start of this step
+        self.step_start_time = time.time()
 
         depth = self._chain_depth(step_def, executed_steps)
         if depth > self.config.max_recursion_depth:

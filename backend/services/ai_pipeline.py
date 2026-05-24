@@ -18,6 +18,7 @@ from backend.runtime.token_budget import WorkflowTokenTracker, get_budget
 from backend.services.guardrails import AnalysisGuard, AnalysisGuardrails, GuardrailViolation, DEFAULT_GUARDRAILS
 from backend.services.trace import TraceRecorder
 import json
+import time
 
 
 def _infer_column_types(data: list[dict], columns: list[str]) -> list[dict]:
@@ -34,13 +35,15 @@ def _infer_column_types(data: list[dict], columns: list[str]) -> list[dict]:
             val = row.get(col)
             if val is None:
                 continue
-            if isinstance(val, bool):
-                dtype = "BOOLEAN"
-            elif isinstance(val, int):
-                dtype = "INTEGER"
-            elif isinstance(val, float):
+            if isinstance(val, float):
                 dtype = "DOUBLE"
-            break
+                break  # maximally widened, no further scanning needed
+            elif isinstance(val, bool):
+                if dtype == "VARCHAR":
+                    dtype = "BOOLEAN"
+            elif isinstance(val, int):
+                if dtype in ("VARCHAR", "BOOLEAN"):
+                    dtype = "INTEGER"
         result.append({"name": col, "dtype": dtype})
     return result
 
@@ -59,7 +62,6 @@ def _derive_step_summary(step_result: dict) -> str:
         sample_str = ", ".join(f"{k}={v}" for k, v in list(sample.items())[:5])
         parts.append(f"First row: {sample_str}")
     return "; ".join(parts)
-import time
 
 
 def run_ai_query(
@@ -352,13 +354,24 @@ def run_autonomous_analysis(
         except Exception:
             summary = "Summary generation failed."
 
-    trace.finish("success")
+    # Determine actual status based on step outcomes
+    successful_steps = [s for s in executed_steps if s["status"] == "success" and s.get("data")]
+    has_errors = any(s["status"] == "error" for s in executed_steps)
+    guardrail_failed = bool(guardrail_violations)
+    if not successful_steps:
+        overall_status = "error"
+    elif has_errors or guardrail_failed:
+        overall_status = "partial"
+    else:
+        overall_status = "success"
+
+    trace.finish(overall_status)
     return {
         "question": question,
         "plan": plan,
         "steps": executed_steps,
         "summary": summary,
-        "status": "success",
+        "status": overall_status,
         "elapsed_ms": round((time.time() - start) * 1000, 2),
         "token_budget": tracker.to_dict(),
         "guardrails": guard.to_dict(),
@@ -551,6 +564,16 @@ def run_autonomous_analysis_stream(
         except Exception:
             summary = "Summary generation failed."
 
-    trace.finish("success")
+    # Determine actual status based on step outcomes
+    has_errors = any(s["status"] == "error" for s in executed_steps)
+    guardrail_failed = bool(guardrail_violations)
+    if not successful_steps:
+        overall_status = "error"
+    elif has_errors or guardrail_failed:
+        overall_status = "partial"
+    else:
+        overall_status = "success"
+
+    trace.finish(overall_status)
     yield {"type": "summary", "summary": summary}
     yield {"type": "done", "elapsed_ms": round((time.time() - start) * 1000, 2), "token_budget": tracker.to_dict(), "guardrails": guard.to_dict(), "guardrail_violations": guardrail_violations, "trace": trace.to_dict()}

@@ -301,6 +301,70 @@ export interface StreamCallbacks {
   onError: (err: Error) => void;
 }
 
+export interface GenericStreamCallbacks {
+  onEvent: (data: Record<string, unknown>) => void;
+  onDone: (data?: Record<string, unknown>) => void;
+  onError: (err: Error) => void;
+}
+
+function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promise<Response>, callbacks: GenericStreamCallbacks): AbortController {
+  const controller = new AbortController();
+  createResponse(controller.signal).then(async (res) => {
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      callbacks.onError(new Error(`API ${res.status}: ${body || res.statusText}`));
+      return;
+    }
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === "done") callbacks.onDone(data);
+              else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
+              else callbacks.onEvent(data);
+            } catch {
+              // Skip malformed SSE line
+            }
+          }
+        }
+      }
+      // Drain remaining buffer after stream ends
+      buffer += decoder.decode();
+      if (buffer.trim()) {
+        for (const line of buffer.split("\n")) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === "done") callbacks.onDone(data);
+              else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
+              else callbacks.onEvent(data);
+            } catch {
+              // Skip malformed SSE line
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        callbacks.onError(err instanceof Error ? err : new Error("Stream failed"));
+      }
+    }
+  }).catch((err) => {
+    if (err.name !== "AbortError") callbacks.onError(err);
+  });
+  return controller;
+}
+
 function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Response>, callbacks: StreamCallbacks): AbortController {
   const controller = new AbortController();
   createResponse(controller.signal).then(async (res) => {
@@ -595,74 +659,26 @@ export function streamAiAnalyzeMulti(
 ): AbortController {
   const body: Record<string, unknown> = { question, table, columns, sample_rows: sampleRows, max_rows: maxRows };
   if (language) body.language = language;
-  const controller = new AbortController();
 
-  fetch(`${API_BASE}/ai/analyze-multi/stream`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: controller.signal,
-  }).then(async (res) => {
-    if (!res.ok) {
-      const bodyText = await res.text().catch(() => "");
-      callbacks.onError(new Error(`API ${res.status}: ${bodyText || res.statusText}`));
-      return;
+  return consumeSseStreamGeneric(
+    (signal) => fetch(`${API_BASE}/ai/analyze-multi/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal,
+    }),
+    {
+      onEvent: (data) => {
+        const type = data.type as string;
+        if (type === "plan" && data.plan) callbacks.onPlan(data.plan as PlanStep[]);
+        else if (type === "step_start" && data.step != null) callbacks.onStepStart(data.step as number, (data.purpose as string) || "");
+        else if (type === "step_result") callbacks.onStepResult(data as unknown as MultiStreamEvent);
+        else if (type === "summary" && data.summary != null) callbacks.onSummary(data.summary as string);
+      },
+      onDone: (data) => callbacks.onDone(data as unknown as MultiStreamEvent),
+      onError: callbacks.onError,
     }
-    const reader = res.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data: MultiStreamEvent = JSON.parse(line.slice(6));
-              if (data.type === "plan" && data.plan) callbacks.onPlan(data.plan);
-              else if (data.type === "step_start" && data.step != null) callbacks.onStepStart(data.step, data.purpose || "");
-              else if (data.type === "step_result") callbacks.onStepResult(data);
-              else if (data.type === "summary" && data.summary != null) callbacks.onSummary(data.summary);
-              else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
-              else if (data.type === "done") callbacks.onDone(data);
-            } catch {
-              // Skip malformed SSE line
-            }
-          }
-        }
-      }
-      // Drain remaining buffer after stream ends
-      buffer += decoder.decode();
-      if (buffer.trim()) {
-        for (const line of buffer.split("\n")) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data: MultiStreamEvent = JSON.parse(line.slice(6));
-              if (data.type === "plan" && data.plan) callbacks.onPlan(data.plan);
-              else if (data.type === "step_start" && data.step != null) callbacks.onStepStart(data.step, data.purpose || "");
-              else if (data.type === "step_result") callbacks.onStepResult(data);
-              else if (data.type === "summary" && data.summary != null) callbacks.onSummary(data.summary);
-              else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
-              else if (data.type === "done") callbacks.onDone(data);
-            } catch {
-              // Skip malformed SSE line
-            }
-          }
-        }
-      }
-    } catch (err) {
-      if ((err as Error).name !== "AbortError") {
-        callbacks.onError(err instanceof Error ? err : new Error("Stream failed"));
-      }
-    }
-  }).catch((err) => {
-    if (err.name !== "AbortError") callbacks.onError(err);
-  });
-
-  return controller;
+  );
 }
 
 // ── Automated Analysis ──────────────────────────────────────────
@@ -700,6 +716,10 @@ export interface AnalysisResult {
   profile: AnalysisProfile;
   quality: QualityReport;
   ai_summary: string;
+  insights?: (string | { text: string; confidence?: number; severity?: string; impact?: string; category?: string })[];
+  trends?: (string | { text: string; confidence?: number })[];
+  data_quality_notes?: string[];
+  suggested_next_steps?: string[];
   chart_suggestions: { type: string; title: string; x_axis: string; y_axis: string; reason: string }[];
   data?: Record<string, unknown>[];
   elapsed_ms: number;

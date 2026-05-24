@@ -125,11 +125,34 @@ export const useAnalysisStore = create<AnalysisState>()(
         ...state,
         runs: state.runs.map((r) => ({
           ...r,
-          // Exclude large fields from persistence to prevent localStorage overflow
-          sections: [],
-          multiResult: null,
-          chartSpecs: [],
-          trace: null,
+          // Keep section titles + truncated content for history display
+          sections: r.sections.map((s) => ({
+            ...s,
+            content: s.content.length > 500 ? s.content.slice(-500) : s.content,
+          })),
+          // Keep chart metadata but drop data arrays (too large for localStorage)
+          chartSpecs: r.chartSpecs.map((c) => ({
+            ...c,
+            data: [],
+          })),
+          // Keep multi-step summary + step metadata, drop row data
+          multiResult: r.multiResult ? {
+            ...r.multiResult,
+            steps: r.multiResult.steps.map((s) => ({
+              ...s,
+              columns: s.columns,
+              data: [],
+            })),
+          } : null,
+          // Keep trace summary only, drop event details
+          trace: r.trace ? {
+            trace_id: r.trace.trace_id,
+            total_llm_calls: r.trace.total_llm_calls,
+            total_input_tokens: r.trace.total_input_tokens,
+            total_output_tokens: r.trace.total_output_tokens,
+            events: [],
+            guardrail_violations: r.trace.guardrail_violations,
+          } : null,
         })),
       }),
     }
