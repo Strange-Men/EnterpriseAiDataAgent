@@ -1,214 +1,195 @@
 # Enterprise AI Data Agent
 
-企业级 AI 数据分析智能体平台 — DuckDB 数据管理控制台。
+Enterprise-grade AI Data Analysis Platform — SQL Workspace + AI Analyst + DuckDB.
 
-## 项目简介
+## Project Overview
 
-EnterpriseAiDataAgent 是一个面向企业场景的 AI 数据分析平台，集成以下核心能力：
+EnterpriseAiDataAgent is an enterprise-grade AI data analysis platform with integrated capabilities:
 
-- **Enterprise Query Experience**：企业级 SQL 查询体验（v0.3.7）
-- **SQL Auto Complete**：基于 Monaco Editor 的 SQL 自动补全，支持关键字、表名、列名、DuckDB 函数
-- **Query Tabs**：多标签页查询系统，支持新建、删除、重命名、切换
-- **Saved Queries**：保存、收藏、管理常用 SQL 查询
-- **Query Explain**：DuckDB EXPLAIN 可视化，展示执行计划
-- **Query Cancel**：AbortController 支持的查询取消
-- **Export System**：CSV / JSON / Excel 三种格式导出查询结果
-- **SQL Formatting**：sql-formatter 格式化 SQL
-- **Keyboard Shortcuts**：Ctrl+Enter 执行、Ctrl+S 保存、Ctrl+L 清空、Ctrl+/ 注释
-- **Query Statistics**：行数、耗时、列数等查询统计信息
-- **Query History**：增强历史记录，支持搜索、筛选、删除、重新运行
-- **Data Quality**：自动检测缺失值、异常值、重复行，生成质量评分
-- **DuckDB Management**：表列表、删除、重命名、导出
-- **Workspace**：3-panel 可调整布局、暗色/亮色主题、中英文切换
+### Enterprise Query Experience (v0.3.x)
+- **SQL Auto Complete**: Monaco Editor with keywords, table names, column names, DuckDB functions
+- **Query Tabs**: Multi-tab system (new, delete, rename, switch)
+- **Saved Queries**: Save, favorite, manage SQL queries
+- **Query Explain**: DuckDB EXPLAIN visualization
+- **Query Cancel**: AbortController-based query cancellation
+- **Export System**: CSV / JSON / Excel
+- **SQL Formatting**: sql-formatter
+- **Keyboard Shortcuts**: Ctrl+Enter/S/L//
+- **Query Statistics**: Row count, duration, column count
+- **Query History**: Search, filter, delete, re-run
+- **Data Quality**: Missing values, outliers, duplicates, quality scoring
+- **DuckDB Management**: Table list, delete, rename, export
 
-## 技术栈
+### AI Data Analyst (v0.5.x)
+- **AI SQL Generation**: Natural language → SQL → execute → explain
+- **AI Explain**: Streaming SSE explanation of query results
+- **AI Insights**: Structured insight generation with confidence/severity
+- **AI Chart Suggest**: AI-driven chart type recommendation
+- **AI Semantics**: Automatic column role detection (metric/dimension/KPI)
+- **Smart Questions**: AI-suggested analytical questions per dataset
+- **Multi-step Analysis**: Autonomous analysis with planning engine
+- **Progressive Streaming**: Real-time SSE (plan → steps → summary)
+- **Prompt Architecture**: 8 prompt modules with contracts and registry
+- **Token Budget**: Per-operation token budgets with workflow tracking
+- **Runtime Guardrails**: Step limits, timeouts, loop detection
+- **Analysis Trace**: LLM call recording for debugging and audit
+- **AI Evaluation**: Golden question harness with hallucination detection
 
-| 层级 | 技术 |
-|------|------|
-| 前端 | Next.js 15, React 19, TypeScript, TailwindCSS v3 |
-| SQL 编辑器 | Monaco Editor (sql-formatter) |
-| 后端 API | FastAPI, Uvicorn |
-| 数据库 | DuckDB |
-| 数据处理 | Pandas, NumPy |
-| 状态管理 | Zustand (6 stores, persist) |
-| 表格组件 | TanStack Table + Virtual |
-| 导出 | csv, json, xlsx (openpyxl) |
-| 布局 | react-resizable-panels |
-| 国际化 | react-i18next (en/zh) |
+### Workspace
+- 3-panel resizable layout, dark/light theme, i18n (en/zh)
 
-## 快速开始
+## Tech Stack
 
-### 后端 (FastAPI)
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 15, React 19, TypeScript, TailwindCSS v3 |
+| SQL Editor | Monaco Editor (sql-formatter) |
+| Backend API | FastAPI, Uvicorn |
+| Database | DuckDB |
+| Data Processing | Pandas, NumPy |
+| State Management | Zustand (6 stores, persist) |
+| Table Components | TanStack Table + Virtual |
+| Export | csv, json, xlsx (openpyxl) |
+| Layout | react-resizable-panels |
+| i18n | react-i18next (en/zh) |
+| AI | Anthropic SDK (Claude API, streaming, tool use) |
+| Charts | Recharts (bar/line/pie/scatter) |
+
+## Quick Start
+
+### Backend (FastAPI)
 
 ```bash
-# 1. 创建虚拟环境
+# 1. Create virtual environment
 python -m venv .venv
 .venv\Scripts\activate        # Windows
 # source .venv/bin/activate   # Linux/macOS
 
-# 2. 安装依赖
-pip install fastapi uvicorn python-multipart duckdb pandas openpyxl
+# 2. Install dependencies
+pip install -r requirements.txt
 
-# 3. 启动后端 API
+# 3. Start backend API
 uvicorn backend.main:app --reload --port 8000
 ```
 
-### 前端 (React)
+### Frontend (React)
 
 ```bash
-# 1. 进入前端目录
+# 1. Enter frontend directory
 cd frontend-react
 
-# 2. 安装依赖
+# 2. Install dependencies
 npm install
 
-# 3. 启动开发服务器
+# 3. Start dev server
 npm run dev
 ```
 
-前端默认运行在 `http://localhost:3000`，通过 Next.js rewrite 代理 `/api/*` 请求到后端 `http://localhost:8000`。
+Frontend runs at `http://localhost:3000`, proxies `/api/*` to backend `http://localhost:8000`.
 
-## 快捷键
+## Keyboard Shortcuts
 
-| 快捷键 | 功能 |
-|--------|------|
-| Ctrl+Enter | 执行 SQL 查询 |
-| Ctrl+S | 保存当前查询 |
-| Ctrl+L | 清空当前查询 |
-| Ctrl+/ | SQL 注释切换 |
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+Enter | Execute SQL query |
+| Ctrl+S | Save current query |
+| Ctrl+L | Clear current query |
+| Ctrl+/ | Toggle SQL comment |
 
-## API 端点
+## API Endpoints
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/health` | 健康检查 |
-| GET | `/api/status` | 系统状态 |
-| POST | `/api/upload` | 上传 CSV/Excel 文件 |
-| POST | `/api/query` | 执行 SQL 查询 |
-| POST | `/api/query/explain` | EXPLAIN 查询计划 |
-| POST | `/api/query/cancel` | 取消运行中的查询 |
-| POST | `/api/query/export` | 导出查询结果 (CSV/JSON/Excel) |
-| GET | `/api/query/schema` | 获取所有表的 schema (用于自动补全) |
-| GET | `/api/query/history` | 查询历史记录 |
-| GET | `/api/tables` | 列出所有数据库表 |
-| GET | `/api/tables/{name}?limit=N` | 获取表数据预览 |
-| GET | `/api/tables/{name}/schema` | 获取表结构 |
-| DELETE | `/api/tables/{name}` | 删除表 |
-| PUT | `/api/table/{name}/rename` | 重命名表 |
-| GET | `/api/table/{name}/export` | 导出表为 CSV |
-| GET | `/api/quality/{name}` | 获取数据质量报告 |
+### Data API
 
-## 系统架构
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/status` | System status |
+| POST | `/api/upload` | Upload CSV/Excel |
+| POST | `/api/query` | Execute SQL |
+| POST | `/api/query/explain` | EXPLAIN query plan |
+| POST | `/api/query/cancel` | Cancel running query |
+| POST | `/api/query/export` | Export results (CSV/JSON/Excel) |
+| GET | `/api/query/schema` | All table schemas (autocomplete) |
+| GET | `/api/query/history` | Query history |
+| GET | `/api/tables` | List all tables |
+| GET | `/api/tables/{name}` | Table data preview |
+| DELETE | `/api/tables/{name}` | Delete table |
+| GET | `/api/quality/{name}` | Data quality report |
+
+### AI API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/ai/status` | AI service config & health |
+| POST | `/api/ai/query` | NL → SQL → execute → explain |
+| POST | `/api/ai/explain` | Explain existing results |
+| POST | `/api/ai/explain/stream` | Streaming explain (SSE) |
+| POST | `/api/ai/insights` | Generate structured insights |
+| POST | `/api/ai/insights/stream` | Streaming insights (SSE) |
+| POST | `/api/ai/chart-suggest` | Suggest chart types |
+| POST | `/api/ai/semantics` | Semantic dataset analysis |
+| POST | `/api/ai/suggest-questions` | Smart question suggestions |
+| POST | `/api/ai/plan` | Generate analysis plan |
+| POST | `/api/ai/analyze-multi` | Multi-step autonomous analysis |
+| POST | `/api/ai/analyze-multi/stream` | Streaming multi-step analysis (SSE) |
+
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                  React Frontend (3000)                       │
-│  ┌──────────┐  ┌──────────────────┐  ┌──────────────────┐   │
-│  │  Left     │  │   Center Panel   │  │   Right Panel    │   │
-│  │  Panel    │  │                  │  │                  │   │
-│  │           │  │ Query Tabs       │  │ Data Preview     │   │
-│  │ Tables    │  │ Monaco Editor    │  │ Schema View      │   │
-│  │ Upload    │  │ + Autocomplete   │  │ Quality Report   │   │
-│  │ Status    │  │ Explain Plan     │  │ Query History    │   │
-│  │           │  │ Export (CSV/     │  │  + Search        │   │
-│  │           │  │  JSON/Excel)     │  │  + Filter        │   │
-│  │           │  │ Statistics       │  │  + Re-run        │   │
-│  │           │  │ Saved Queries    │  │                  │   │
-│  └──────────┘  └──────────────────┘  └──────────────────┘   │
+│  Monaco Editor | Query Tabs | AI Analysis | Charts (Recharts)│
 │                       │ /api/* proxy                        │
 └───────────────────────┼─────────────────────────────────────┘
                         │
 ┌───────────────────────┼─────────────────────────────────────┐
 │              FastAPI Backend (8000)                          │
-│  ┌──────────┐ ┌───────┐ ┌────────┐ ┌───────┐ ┌────────┐   │
-│  │ /upload  │ │/query │ │/tables │ │/table │ │/quality│   │
-│  │ /explain │ │       │ │        │ │       │ │        │   │
-│  │ /cancel  │ │       │ │        │ │       │ │        │   │
-│  │ /export  │ │       │ │        │ │       │ │        │   │
-│  │ /schema  │ │       │ │        │ │       │ │        │   │
-│  └────┬─────┘ └───┬───┘ └───┬────┘ └───┬───┘ └───┬────┘   │
-│       │           │         │          │         │          │
-│  ┌────▼───────────▼─────────▼──────────▼─────────▼──────┐  │
-│  │              Data Service Layer                       │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────────────┐      │  │
-│  │  │ Query    │ │ Query    │ │ Data Quality     │      │  │
-│  │  │ Executor │ │ History  │ │ Analyzer         │      │  │
-│  │  │ +Explain │ │          │ │                  │      │  │
-│  │  └──────────┘ └──────────┘ └──────────────────┘      │  │
-│  └──────────────────────────────────────────────────────┘  │
+│                                                              │
+│  Data API:  /query /tables /upload /quality                 │
+│  AI API:    /ai/query /ai/explain /ai/insights /ai/plan     │
+│             /ai/analyze-multi /ai/semantics /ai/status      │
+│                                                              │
+│  AI System: prompts/ (8 modules) | runtime/ (token budget)  │
+│             services/ (ai_analyst, ai_pipeline, guardrails,  │
+│                        trace)                                │
+│                                                              │
+│  Data:      QueryExecutor | QueryHistory | DataQuality       │
 │                        │                                    │
-│  ┌─────────────────────▼────────────────────────────────┐   │
-│  │           DuckDB (data/enterprise.duckdb)            │   │
-│  └──────────────────────────────────────────────────────┘   │
+│             DuckDB (data/enterprise.duckdb)                 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 项目结构
+## Project Structure
 
 ```
 EnterpriseAiDataAgent/
-├── backend/                    # FastAPI 后端 API
-│   ├── main.py                 # FastAPI 应用入口 (v0.3.7)
-│   ├── routes/                 # API 路由
-│   │   ├── upload.py           # 文件上传
-│   │   ├── tables.py           # 表 CRUD
-│   │   ├── query.py            # SQL 执行 + 历史 + Explain + Export + Cancel
-│   │   ├── quality.py          # 数据质量
-│   │   └── table_manage.py     # 表重命名 + 导出
-│   ├── models/                 # Pydantic 响应模型
-│   └── services/               # 业务逻辑层
-│       ├── data_service.py     # 数据服务 (DuckDB 封装)
-│       └── query_history.py    # 查询历史 (内存存储)
-├── frontend-react/             # React 前端 (Next.js 15)
-│   ├── src/app/                # 页面与布局
-│   ├── src/panels/             # 工作区面板
-│   │   ├── sql-workspace-panel.tsx    # SQL 编辑器 + Tab + Explain + Export
-│   │   ├── sql-history-panel.tsx      # 查询历史 + 搜索/筛选/删除
-│   │   ├── table-management-panel.tsx # 表管理
-│   │   ├── file-upload-panel.tsx      # 文件上传
-│   │   ├── data-preview-panel.tsx     # 数据预览
-│   │   └── status-panel.tsx           # 系统状态
-│   ├── src/components/         # 通用 UI 组件
-│   │   ├── monaco-sql-editor.tsx      # Monaco Editor + SQL 自动补全
-│   │   ├── query-explain.tsx          # Query Plan 可视化
-│   │   ├── export-dropdown.tsx        # 导出下拉菜单
-│   │   └── ui/                 # data-table, tooltip, tab-group
-│   ├── src/stores/             # Zustand 状态管理
-│   │   ├── data-store.ts       # 全局数据状态
-│   │   ├── workspace-store.ts  # 布局/语言状态
-│   │   ├── sql-workspace-store.ts     # SQL 编辑器状态
-│   │   ├── sql-history-store.ts       # 查询历史 (搜索/筛选)
-│   │   ├── query-tabs-store.ts        # 多标签页系统
-│   │   └── saved-queries-store.ts     # 保存的查询
-│   ├── src/services/           # API 服务层
-│   ├── src/i18n/               # 国际化 (en/zh)
-│   └── src/hooks/              # React hooks
-├── database/                   # 数据库核心模块
-│   ├── db_manager.py           # DuckDB 连接管理 (singleton)
-│   ├── file_loader.py          # CSV/Excel 文件加载
-│   ├── schema_detector.py      # 模式检测与类型映射
-│   ├── data_quality.py         # 数据质量分析引擎
-│   └── query_executor.py       # SQL 查询执行 + EXPLAIN
-├── testExcel/                  # 测试数据集
-├── requirements.txt            # Python 依赖
-├── PROJECT_RULES.md            # 企业级开发规范
-└── README.md
+├── backend/
+│   ├── main.py                  # FastAPI entry
+│   ├── routes/                  # API routes (query, tables, upload, quality, ai, analyze)
+│   ├── services/                # Business logic (ai_analyst, ai_pipeline, guardrails, trace)
+│   ├── prompts/                 # Prompt architecture (8 modules + registry + locale)
+│   ├── runtime/                 # Token budget system
+│   └── models/                  # Pydantic models
+├── frontend-react/
+│   ├── src/panels/              # Workspace panels (SQL, AI Analysis, History, etc.)
+│   ├── src/components/          # UI components (Monaco, DataTable, AI Charts)
+│   ├── src/stores/              # Zustand stores (6 + ai-session-store)
+│   ├── src/services/            # API layer (incl. SSE streaming)
+│   └── src/i18n/                # i18n (en/zh)
+├── database/                    # DuckDB core (db_manager, query_executor, data_quality)
+├── tests/                       # Backend tests + AI evaluation harness
+├── skills/                      # Reusable skill documentation (active/stable/archived)
+├── docs/                        # Architecture, governance, reports, testing
+└── testExcel/                   # Test datasets
 ```
 
-## 版本路线
+## Version Roadmap
 
-| 版本 | 内容 | 状态 |
-|------|------|------|
-| v0.3.1 | React Workspace Foundation | Done |
-| v0.3.2 | Workspace Refactor | Done |
-| v0.3.3 | React Workspace + Feature Migration | Done |
-| v0.3.4 | DuckDB Management Layer | Done |
-| v0.3.5 | Data Quality | Done |
-| v0.3.6 | Workspace Polish | Done |
-| v0.3.7 | Enterprise Query Experience | Done |
-| v0.4.x | AI Analysis Layer | Planned |
-| v0.5.x | Multi-Agent + LangGraph | Planned |
+| Version | Content | Status |
+|---------|---------|--------|
+| v0.3.x | Enterprise Data Platform (SQL Workspace, DuckDB, Quality) | Done |
+| v0.5.x | AI Data Analyst MVP (Streaming, Semantics, Planning, Guardrails) | Done |
+| v0.6.x | Anomaly Detection, Multi-turn UX, E2E Tests | Next |
 
-## 许可证
+## License
 
-待定
+TBD

@@ -13,7 +13,7 @@
 | **Governance** | `docs/governance/` | Rules, workflows, standards |
 | **Architecture** | `docs/architecture/` | System design, roadmaps, version history |
 | **Reports** | `docs/reports/` | Version deliverable reports |
-| **Skills** | `docs/skills/` | Reusable skill documentation |
+| **Skills** | `skills/active/`, `skills/stable/`, `skills/archived/` | Reusable skill documentation |
 | **Scripts** | `scripts/` | Automation scripts (create if needed) |
 | **Logs** | `error_logs/` | Error reports and debug logs |
 | **Test Data** | `testExcel/` | Test datasets (CSV, XLSX) |
@@ -90,7 +90,7 @@
 | Governance | `docs/governance/` | `UPPER-KEBAB-CASE.md` | `FILE_SYSTEM_RULES.md` |
 | Testing | `docs/testing/` | `kebab-case.md` | `testing-strategy.md` |
 | Reports | `docs/reports/` | `v{ver}-{type}.md` | `v0.3.10-bug-fixes.md` |
-| Skills | `docs/skills/` | `kebab-case.md` | `skill-registry.md` |
+| Skills | `skills/active/`, `skills/stable/`, `skills/archived/` | `kebab-case.md` | `ai-sql-analysis.md` |
 | Frontend Rules | `docs/frontend_rules/` | `kebab-case.md` | `agents-capability-guide.md` |
 | Archive | `docs/archive/` | Original names preserved | — |
 
@@ -127,7 +127,7 @@
 - Backend docs in `frontend-react/`
 - Governance docs outside `docs/governance/`
 - Reports outside `docs/reports/`
-- Skills outside `docs/skills/`
+- Skills outside `skills/` directory
 
 ## 4. File Naming Convention
 
@@ -165,9 +165,9 @@ E2E:      e2e/{feature}.spec.ts
 ### Skill Naming
 
 ```
-docs/skills/{skill-name}.md
-Example: debug-sql-execution.md
-Example: optimize-virtual-table.md
+skills/{state}/{skill-name}.md
+Example: skills/active/ai-sql-analysis.md
+Example: skills/active/runtime-guardrails.md
 ```
 
 ### Error Log Naming

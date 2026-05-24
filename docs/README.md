@@ -1,6 +1,6 @@
 # Documentation Index — Enterprise AI Data Agent
 
-> Last updated: 2026-05-23 (v0.3.11)
+> Last updated: 2026-05-24 (v0.5.5)
 
 ## Recommended Reading Order (for new sessions)
 
@@ -28,9 +28,11 @@
 
 | File | Description |
 |------|-------------|
-| [项目架构说明.md](architecture/项目架构说明.md) | System architecture (React/FastAPI/DuckDB) |
-| [开发路线图.md](architecture/开发路线图.md) | Version roadmap (v0.3.1 - v0.5.x) |
+| [项目架构说明.md](architecture/项目架构说明.md) | System architecture (React/FastAPI/DuckDB/AI) |
+| [开发路线图.md](architecture/开发路线图.md) | Version roadmap (v0.3.x — v0.5.x) |
 | [版本记录.md](architecture/版本记录.md) | Complete version history |
+| [v0.5.1-plan.md](architecture/v0.5.1-plan.md) | v0.5.1 implementation plan |
+| [v0.5.4-plan.md](architecture/v0.5.4-plan.md) | v0.5.4 implementation plan |
 
 ## Governance (`docs/governance/`)
 
@@ -50,11 +52,20 @@
 |------|-------------|
 | [testing-strategy.md](testing/testing-strategy.md) | Testing pyramid strategy |
 
-## Skills (`docs/skills/`)
+## Skills (`skills/active/`)
 
 | File | Description |
 |------|-------------|
-| [skill-registry.md](skills/skill-registry.md) | Reusable skill workflows |
+| [ai-evaluation-harness.md](../skills/active/ai-evaluation-harness.md) | Golden question evaluation framework |
+| [ai-sql-analysis.md](../skills/active/ai-sql-analysis.md) | NL → SQL analysis workflow |
+| [analysis-trace.md](../skills/active/analysis-trace.md) | LLM call tracing and audit |
+| [auto-analysis-pipeline.md](../skills/active/auto-analysis-pipeline.md) | Data profiling pipeline |
+| [performance-audit.md](../skills/active/performance-audit.md) | Performance regression testing |
+| [prompt-architecture.md](../skills/active/prompt-architecture.md) | Prompt module governance |
+| [runtime-guardrails.md](../skills/active/runtime-guardrails.md) | Execution limits and safety |
+| [token-budget-control.md](../skills/active/token-budget-control.md) | Token budget management |
+| [virtual-scroll-debugging.md](../skills/active/virtual-scroll-debugging.md) | Virtual table debugging |
+| [SKILL_REGISTRY.md](../skills/SKILL_REGISTRY.md) | Master skill registry |
 
 ## Frontend Rules (`docs/frontend_rules/`)
 
@@ -64,6 +75,12 @@
 | [agents-config-raw.md](frontend_rules/agents-config-raw.md) | .agents config reference |
 | [agents-structure-blueprint.md](frontend_rules/agents-structure-blueprint.md) | .agents structure reference |
 
+## Performance (`docs/performance/`)
+
+| File | Description |
+|------|-------------|
+| [performance-baseline.md](performance/performance-baseline.md) | Performance baseline metrics |
+
 ## Reports (`docs/reports/`)
 
 Version deliverable reports. Named: `v{version}-{type}.md`
@@ -71,6 +88,8 @@ Version deliverable reports. Named: `v{version}-{type}.md`
 ## Archive (`docs/archive/`)
 
 Deprecated or superseded documents.
+- `docs/archive/reports/` — Archived version reports (v0.3.x, v0.4.0)
+- `docs/archive/legacy_frontend/` — Legacy Streamlit frontend
 
 ## Test Data
 

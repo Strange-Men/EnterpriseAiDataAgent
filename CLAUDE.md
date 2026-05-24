@@ -10,17 +10,17 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.5.4 (AI System Engineering — Prompt Architecture, Token Budget, Guardrails, Trace, Evaluation)
-- **Phase**: v0.5.x AI Data Analyst MVP — AI System Engineering
-- **Next**: v0.5.5+ (anomaly detection, multi-turn UX polish, E2E tests)
+- **Current**: v0.5.5 (Documentation Governance — doc cleanup, version alignment, lifecycle rules)
+- **Phase**: v0.5.x AI Data Analyst MVP — DONE
+- **Next**: v0.6.x (anomaly detection, multi-turn UX polish, E2E tests)
 
-## Version Freeze Rules
+## Scope Rules
 
-**v0.4.x scope**: AI Analysis Layer with single-agent intelligence only.
+**v0.5.x completed scope**: AI Data Analyst MVP (streaming, semantics, planning, guardrails, trace, evaluation).
 Claude must NOT:
 - Proactively add LangGraph, Multi-Agent, or RAG features
 - Suggest implementing multi-agent capabilities
-- Add features beyond v0.4.x scope without user approval
+- Add features beyond v0.6.x scope without user approval
 
 ## Development Rules
 
@@ -68,6 +68,9 @@ Claude must NOT:
 - Update README.md for every major version
 - Update docs/architecture/版本记录.md for every version
 - Update CLAUDE.md if development rules change
+- Follow documentation lifecycle: active → stable → archived
+- Skills live in `skills/active/` — never in `docs/skills/`
+- Check `skills/SKILL_REGISTRY.md` before creating new workflows
 
 ## Architecture
 
@@ -106,6 +109,8 @@ uvicorn backend.main:app --reload --port 8000   # Dev server
 ## API Endpoints
 
 Backend at `http://localhost:8000/api/`:
+
+Data API:
 - `/query` (POST) — execute SQL
 - `/query/explain` (POST) — EXPLAIN plan
 - `/query/cancel` (POST) — cancel running query
@@ -117,10 +122,17 @@ Backend at `http://localhost:8000/api/`:
 - `/upload` (POST) — upload CSV/Excel
 - `/quality/{name}` (GET) — quality report
 - `/status` (GET) — system status
+
+AI API:
 - `/ai/status` (GET) — AI service config & health
 - `/ai/query` (POST) — NL → SQL → execute → explain
 - `/ai/explain` (POST) — explain existing results
+- `/ai/explain/stream` (POST) — streaming explain (SSE)
 - `/ai/insights` (POST) — generate structured insights
+- `/ai/insights/stream` (POST) — streaming insights (SSE)
 - `/ai/chart-suggest` (POST) — suggest chart types
-- `/analyze/{table}` (POST) — full analysis pipeline
-- `/analyze/{table}/profile` (GET) — data profile only
+- `/ai/semantics` (POST) — semantic dataset analysis
+- `/ai/suggest-questions` (POST) — smart question suggestions
+- `/ai/plan` (POST) — generate analysis plan
+- `/ai/analyze-multi` (POST) — multi-step autonomous analysis
+- `/ai/analyze-multi/stream` (POST) — streaming multi-step analysis (SSE)

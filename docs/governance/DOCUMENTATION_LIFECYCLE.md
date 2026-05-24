@@ -56,8 +56,12 @@ Claude must check documentation lifecycle at:
 | KNOWN_ISSUES.md | active | root |
 | SESSION_SUMMARY_TEMPLATE.md | active | root |
 | README.md | active | root |
+| CURRENT_SESSION.md | active | root |
 | docs/architecture/* | active | docs/architecture/ |
 | docs/governance/* | active | docs/governance/ |
 | docs/testing/* | active | docs/testing/ |
-| docs/skills/* | active | docs/skills/ |
 | docs/frontend_rules/* | active | docs/frontend_rules/ |
+| docs/performance/* | active | docs/performance/ |
+| skills/active/* | active | skills/active/ |
+| docs/reports/* | active | docs/reports/ |
+| docs/archive/* | archived | docs/archive/ |
