@@ -22,7 +22,7 @@ import toast from "react-hot-toast";
 import { format } from "sql-formatter";
 
 export function SqlWorkspacePanel() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     isExecuting, setExecuting,
     queryResult, setQueryResult,
@@ -86,7 +86,7 @@ export function SqlWorkspacePanel() {
     if (!wfTable || generatingSql) return;
     setGeneratingSql(true);
     try {
-      const res = await aiQuery(`Show all data from ${wfTable}`, false, false);
+      const res = await aiQuery(`Show all data from ${wfTable}`, false, false, undefined, i18n.language);
       if (res.sql && activeTab) {
         updateTabSql(activeTab.id, res.sql);
         wfAdvance("sql-ready", { table: wfTable, sql: res.sql });

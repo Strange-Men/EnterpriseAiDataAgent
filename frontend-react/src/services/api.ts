@@ -249,10 +249,12 @@ export async function aiQuery(
   question: string,
   execute: boolean = true,
   explain: boolean = true,
-  followUpContext?: FollowUpContext
+  followUpContext?: FollowUpContext,
+  language?: string
 ): Promise<AIQueryResult> {
   const body: Record<string, unknown> = { question, execute, explain };
   if (followUpContext) body.follow_up_context = followUpContext;
+  if (language) body.language = language;
   return apiFetch<AIQueryResult>("/ai/query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -264,23 +266,30 @@ export async function aiExplain(
   question: string,
   sql: string,
   results: Record<string, unknown>[],
-  conversationHistory?: { role: string; content: string }[]
+  conversationHistory?: { role: string; content: string }[],
+  language?: string
 ): Promise<{ explanation: string; status: string }> {
+  const body: Record<string, unknown> = { question, sql, results };
+  if (conversationHistory) body.conversation_history = conversationHistory;
+  if (language) body.language = language;
   return apiFetch("/ai/explain", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, sql, results, conversation_history: conversationHistory }),
+    body: JSON.stringify(body),
   });
 }
 
 export async function aiInsights(
   question: string,
-  results: Record<string, unknown>[]
+  results: Record<string, unknown>[],
+  language?: string
 ): Promise<{ insights: string[]; trends: string[]; suggested_next_steps: string[] }> {
+  const body: Record<string, unknown> = { question, results };
+  if (language) body.language = language;
   return apiFetch("/ai/insights", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, results }),
+    body: JSON.stringify(body),
   });
 }
 
@@ -333,13 +342,17 @@ export function streamAiExplain(
   sql: string,
   results: Record<string, unknown>[],
   callbacks: StreamCallbacks,
-  conversationHistory?: { role: string; content: string }[]
+  conversationHistory?: { role: string; content: string }[],
+  language?: string
 ): AbortController {
+  const body: Record<string, unknown> = { question, sql, results };
+  if (conversationHistory) body.conversation_history = conversationHistory;
+  if (language) body.language = language;
   return consumeSseStream(
     fetch(`${API_BASE}/ai/explain/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, sql, results, conversation_history: conversationHistory }),
+      body: JSON.stringify(body),
     }),
     callbacks,
   );
@@ -349,12 +362,15 @@ export function streamAiInsights(
   question: string,
   results: Record<string, unknown>[],
   callbacks: StreamCallbacks,
+  language?: string
 ): AbortController {
+  const body: Record<string, unknown> = { question, results };
+  if (language) body.language = language;
   return consumeSseStream(
     fetch(`${API_BASE}/ai/insights/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, results }),
+      body: JSON.stringify(body),
     }),
     callbacks,
   );
@@ -362,12 +378,75 @@ export function streamAiInsights(
 
 export async function aiChartSuggest(
   results: Record<string, unknown>[],
-  question: string = ""
+  question: string = "",
+  language?: string
 ): Promise<{ recommended_charts: { type: string; title: string; x_axis: string; y_axis: string; reason: string }[] }> {
+  const body: Record<string, unknown> = { results, question };
+  if (language) body.language = language;
   return apiFetch("/ai/chart-suggest", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ results, question }),
+    body: JSON.stringify(body),
+  });
+}
+
+// ── Semantic Dataset Understanding ─────────────────────────────
+
+export interface ColumnSemantics {
+  name: string;
+  dtype: string;
+  semantic_role: "identifier" | "metric" | "dimension" | "datetime" | "text";
+  business_meaning: string;
+  is_metric: boolean;
+  is_dimension: boolean;
+}
+
+export interface DatasetSemantics {
+  summary: string;
+  columns: ColumnSemantics[];
+  detected_metrics: string[];
+  detected_dimensions: string[];
+  suggested_focus: string;
+  status: string;
+  elapsed_ms?: number;
+}
+
+export async function aiSemantics(
+  table: string,
+  columns: { name: string; dtype: string }[],
+  sampleRows: Record<string, unknown>[],
+  language?: string
+): Promise<DatasetSemantics> {
+  const body: Record<string, unknown> = { table, columns, sample_rows: sampleRows };
+  if (language) body.language = language;
+  return apiFetch<DatasetSemantics>("/ai/semantics", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+// ── Smart Suggested Questions ──────────────────────────────────
+
+export interface SuggestedQuestion {
+  question: string;
+  category: "overview" | "comparison" | "trend" | "breakdown" | "anomaly";
+  reason: string;
+}
+
+export async function aiSuggestQuestions(
+  table: string,
+  profile: Record<string, unknown>,
+  semantics?: Record<string, unknown>,
+  language?: string
+): Promise<{ questions: SuggestedQuestion[]; status: string }> {
+  const body: Record<string, unknown> = { table, profile };
+  if (semantics) body.semantics = semantics;
+  if (language) body.language = language;
+  return apiFetch("/ai/suggest-questions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
 }
 
@@ -411,8 +490,9 @@ export interface AnalysisResult {
   status: string;
 }
 
-export async function analyzeTable(tableName: string): Promise<AnalysisResult> {
-  return apiFetch<AnalysisResult>(`/analyze/${encodeURIComponent(tableName)}`, {
+export async function analyzeTable(tableName: string, language?: string): Promise<AnalysisResult> {
+  const query = language ? `?language=${encodeURIComponent(language)}` : "";
+  return apiFetch<AnalysisResult>(`/analyze/${encodeURIComponent(tableName)}${query}`, {
     method: "POST",
   });
 }

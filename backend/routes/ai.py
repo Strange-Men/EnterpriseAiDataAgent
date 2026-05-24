@@ -19,6 +19,8 @@ from backend.services.ai_analyst import (
     generate_insights,
     generate_insights_stream,
     suggest_charts,
+    generate_semantics,
+    suggest_questions,
     MODEL,
     TEMPERATURE,
 )
@@ -63,6 +65,7 @@ class AIQueryRequest(BaseModel):
     explain: bool = True
     max_rows: int = 1000
     follow_up_context: FollowUpContext | None = None
+    language: str = "en"
 
 
 class ExplainRequest(BaseModel):
@@ -70,16 +73,19 @@ class ExplainRequest(BaseModel):
     sql: str
     results: list[dict]
     conversation_history: list[dict] | None = None
+    language: str = "en"
 
 
 class InsightsRequest(BaseModel):
     question: str
     results: list[dict]
+    language: str = "en"
 
 
 class ChartSuggestRequest(BaseModel):
     results: list[dict]
     question: str = ""
+    language: str = "en"
 
 
 @router.post("/ai/query")
@@ -88,13 +94,13 @@ async def ai_query(req: AIQueryRequest):
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Empty question")
     ctx = req.follow_up_context.model_dump() if req.follow_up_context else None
-    return run_ai_query(req.question, req.execute, req.explain, req.max_rows, ctx)
+    return run_ai_query(req.question, req.execute, req.explain, req.max_rows, ctx, req.language)
 
 
 @router.post("/ai/explain")
 async def ai_explain(req: ExplainRequest):
     """Explain existing query results."""
-    result = explain_results(req.question, req.sql, req.results, req.conversation_history)
+    result = explain_results(req.question, req.sql, req.results, req.conversation_history, req.language)
     if result["status"] == "error":
         raise HTTPException(status_code=500, detail=result.get("error", "Explanation failed"))
     return result
@@ -103,7 +109,7 @@ async def ai_explain(req: ExplainRequest):
 @router.post("/ai/insights")
 async def ai_insights(req: InsightsRequest):
     """Generate structured insights from results."""
-    result = generate_insights(req.question, req.results)
+    result = generate_insights(req.question, req.results, req.language)
     if result["status"] == "error":
         raise HTTPException(status_code=500, detail=result.get("error", "Insights generation failed"))
     return result
@@ -112,7 +118,7 @@ async def ai_insights(req: InsightsRequest):
 @router.post("/ai/chart-suggest")
 async def ai_chart_suggest(req: ChartSuggestRequest):
     """Suggest chart types for data."""
-    return suggest_charts(req.results, req.question)
+    return suggest_charts(req.results, req.question, req.language)
 
 
 # ── Streaming Endpoints ─────────────────────────────────────────
@@ -127,7 +133,7 @@ async def ai_explain_stream(req: ExplainRequest):
     """Stream AI explanation as SSE."""
     def event_generator():
         try:
-            for chunk in explain_results_stream(req.question, req.sql, req.results, req.conversation_history):
+            for chunk in explain_results_stream(req.question, req.sql, req.results, req.conversation_history, req.language):
                 yield _sse_event({"type": "text", "content": chunk})
             yield _sse_event({"type": "done"})
         except Exception as e:
@@ -141,10 +147,38 @@ async def ai_insights_stream(req: InsightsRequest):
     """Stream AI insights as SSE (raw JSON text chunks)."""
     def event_generator():
         try:
-            for chunk in generate_insights_stream(req.question, req.results):
+            for chunk in generate_insights_stream(req.question, req.results, req.language):
                 yield _sse_event({"type": "text", "content": chunk})
             yield _sse_event({"type": "done"})
         except Exception as e:
             yield _sse_event({"type": "error", "error": str(e)})
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+# ── Semantic Dataset Understanding ────────────────────────────
+
+class SemanticsRequest(BaseModel):
+    table: str
+    columns: list[dict]
+    sample_rows: list[dict]
+    language: str = "en"
+
+
+@router.post("/ai/semantics")
+async def ai_semantics(req: SemanticsRequest):
+    """Generate semantic understanding of a dataset."""
+    return generate_semantics(req.table, req.columns, req.sample_rows, req.language)
+
+
+class SuggestQuestionsRequest(BaseModel):
+    table: str
+    profile: dict
+    semantics: dict | None = None
+    language: str = "en"
+
+
+@router.post("/ai/suggest-questions")
+async def ai_suggest_questions(req: SuggestQuestionsRequest):
+    """Suggest analytical questions for a dataset."""
+    return suggest_questions(req.table, req.profile, req.semantics, req.language)

@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.post("/analyze/{table_name}")
-async def analyze_table(table_name: str):
+async def analyze_table(table_name: str, language: str = "en"):
     """Run full automated analysis on a table."""
     start = time.time()
 
@@ -35,6 +35,7 @@ async def analyze_table(table_name: str):
                 question=f"Summarize the key characteristics of the '{table_name}' dataset",
                 sql=f"SELECT * FROM {table_name} LIMIT 20",
                 results=sample_data,
+                language=language,
             )
             ai_summary = summary_result.get("explanation", "")
         except Exception:
@@ -42,7 +43,7 @@ async def analyze_table(table_name: str):
 
         charts = []
         try:
-            chart_result = suggest_charts(sample_data, f"What are the key patterns in {table_name}?")
+            chart_result = suggest_charts(sample_data, f"What are the key patterns in {table_name}?", language=language)
             charts = chart_result.get("recommended_charts", [])
         except Exception:
             pass
