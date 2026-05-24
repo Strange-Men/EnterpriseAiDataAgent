@@ -26,8 +26,24 @@ from backend.services.ai_analyst import (
     TEMPERATURE,
 )
 from backend.services.ai_pipeline import run_ai_query, run_autonomous_analysis, run_autonomous_analysis_stream
+from backend.services.guardrails import AnalysisGuardrails
 
 router = APIRouter()
+
+
+def _parse_guardrails(config: dict | None) -> AnalysisGuardrails | None:
+    """将 guardrails dict 解析为 AnalysisGuardrails 对象。"""
+    if not config:
+        return None
+    valid_fields = {
+        "max_steps", "max_sql_queries", "max_consecutive_failures",
+        "max_total_time_seconds", "max_step_time_seconds",
+        "max_recursion_depth", "require_minimum_success",
+    }
+    filtered = {k: v for k, v in config.items() if k in valid_fields and isinstance(v, int)}
+    if not filtered:
+        return None
+    return AnalysisGuardrails(**filtered)
 
 
 @router.get("/ai/status")
@@ -212,6 +228,7 @@ class MultiAnalyzeRequest(BaseModel):
     sample_rows: list[dict]
     language: str = "en"
     max_rows: int = 500
+    guardrails: dict | None = None
 
 
 @router.post("/ai/analyze-multi")
@@ -219,18 +236,20 @@ async def ai_analyze_multi(req: MultiAnalyzeRequest):
     """Autonomous multi-step analysis: plan → execute → summarize."""
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Empty question")
+    gr = _parse_guardrails(req.guardrails)
     return run_autonomous_analysis(
-        req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows
+        req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows, gr
     )
 
 
 @router.post("/ai/analyze-multi/stream")
 async def ai_analyze_multi_stream(req: MultiAnalyzeRequest):
     """Stream autonomous analysis as SSE: plan → step_start → step_result → summary → done."""
+    gr = _parse_guardrails(req.guardrails)
     def event_generator():
         try:
             for event in run_autonomous_analysis_stream(
-                req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows
+                req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows, gr
             ):
                 yield _sse_event(event)
         except Exception as e:

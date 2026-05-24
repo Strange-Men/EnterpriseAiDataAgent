@@ -158,6 +158,21 @@ export const useXxxStore = create<XxxState>()(
 **Key files**: `backend/routes/analyze.py`, `database/data_quality.py`
 **Location**: `skills/active/auto-analysis-pipeline.md`
 
+### runtime-guardrails
+
+**When to use**: Running autonomous multi-step analysis; need to enforce execution limits.
+
+**Steps**:
+1. Import `AnalysisGuard`, `GuardrailViolation`, `DEFAULT_GUARDRAILS` from `backend/services/guardrails.py`
+2. Create guard: `guard = AnalysisGuard(config)`
+3. Before each step: `guard.check_before_step(step_def, executed_steps)`
+4. After each step: `guard.record_step_result(success=bool)`
+5. After all steps: `guard.check_after_all(executed_steps)`
+6. Export guard state: `guard.to_dict()` for API response
+
+**Key files**: `backend/services/guardrails.py`, `backend/services/ai_pipeline.py`
+**Location**: `skills/active/runtime-guardrails.md`
+
 ## Skill Lifecycle
 
 Skills are stored in `skills/` with lifecycle states:
