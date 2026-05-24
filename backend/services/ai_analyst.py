@@ -1,8 +1,7 @@
 """AI Analyst Service — Single-Agent SQL Intelligence.
 
-Natural language → SQL → Execute → Explain → Insights → Chart suggestions.
-
-Uses Claude API for LLM capabilities. No LangGraph, no Multi-Agent.
+所有 prompt 已迁移至 backend/prompts/。
+本文件只保留 LLM 调用和业务逻辑。
 """
 
 import json
@@ -13,6 +12,46 @@ from backend.config import (
     ANTHROPIC_BASE_URL,
     DEFAULT_LLM_MODEL,
     DEFAULT_TEMPERATURE,
+)
+
+# Prompt 层导入
+from backend.prompts.locale import apply_language
+from backend.prompts.sql_generation import (
+    CONTRACT as SQL_GEN_CONTRACT,
+    SYSTEM_PROMPT as SQL_GEN_SYSTEM,
+    build_user_message as build_sql_user_message,
+)
+from backend.prompts.explanation import (
+    CONTRACT as EXPLAIN_CONTRACT,
+    SYSTEM_PROMPT as EXPLAIN_SYSTEM,
+    build_user_message as build_explain_user_message,
+)
+from backend.prompts.insights import (
+    CONTRACT as INSIGHTS_CONTRACT,
+    SYSTEM_PROMPT as INSIGHTS_SYSTEM,
+    build_user_message as build_insights_user_message,
+)
+from backend.prompts.chart_suggest import (
+    CONTRACT as CHART_CONTRACT,
+    SYSTEM_PROMPT as CHART_SYSTEM,
+    build_user_message as build_chart_user_message,
+)
+from backend.prompts.semantics import (
+    CONTRACT as SEMANTICS_CONTRACT,
+    SYSTEM_PROMPT as SEMANTICS_SYSTEM,
+    build_user_message as build_semantics_user_message,
+)
+from backend.prompts.suggest_questions import (
+    CONTRACT as QUESTIONS_CONTRACT,
+    SYSTEM_PROMPT as QUESTIONS_SYSTEM,
+    build_user_message as build_questions_user_message,
+    build_profile_summary,
+    build_semantics_summary,
+)
+from backend.prompts.analysis_plan import (
+    CONTRACT as PLAN_CONTRACT,
+    SYSTEM_PROMPT as PLAN_SYSTEM,
+    build_user_message as build_plan_user_message,
 )
 
 
@@ -34,7 +73,7 @@ TEMPERATURE = DEFAULT_TEMPERATURE
 # ── Schema Context Builder ──────────────────────────────────────
 
 def build_schema_context(tables: list[dict]) -> str:
-    """Build a text description of available tables and columns for the LLM."""
+    """构建可用表和列的文本描述，供 LLM 使用。"""
     if not tables:
         return "No tables available in the database."
 
@@ -54,13 +93,9 @@ def build_schema_context(tables: list[dict]) -> str:
 
 
 def build_follow_up_context(ctx: dict) -> str:
-    """Build structured previous-analysis context for follow-up queries.
+    """构建结构化的前序分析上下文，用于追问查询。
 
-    Token budget: ~220-500 tokens.
-    - previous_sql: full text (~50-100 tokens)
-    - previous_result_schema: col name + dtype (~20-50 tokens)
-    - previous_sample_rows: max 5 rows JSON (~50-150 tokens)
-    - previous_insight_summary: truncated to 500 chars (~100-200 tokens)
+    Token 预算: ~220-500 tokens。
     """
     parts = ["=== PREVIOUS ANALYSIS CONTEXT ===\n"]
 
@@ -90,129 +125,32 @@ def build_follow_up_context(ctx: dict) -> str:
     return "\n".join(parts)
 
 
-# ── Prompts ─────────────────────────────────────────────────────
-
-SQL_GENERATION_SYSTEM = """You are an expert SQL analyst. Given a database schema and a user question, generate a SQL query.
-
-Rules:
-1. Only use tables and columns that exist in the schema
-2. Use standard SQL syntax compatible with DuckDB
-3. Return ONLY the SQL query, no explanation
-4. Use proper aliases for readability
-5. Limit results to 1000 rows by default unless the user asks for all
-6. If the question cannot be answered with available data, return: -- CANNOT_ANSWER: explain why
-
-Output format: Just the SQL query, nothing else."""
-
-EXPLANATION_SYSTEM = """You are a data analyst explaining query results to a business user.
-
-Given:
-- The user's original question
-- The SQL query used
-- The query results (as JSON)
-
-Provide a clear, concise explanation that:
-1. Summarizes what the data shows
-2. Highlights key findings and patterns
-3. Points out any anomalies or notable values
-4. Uses business-friendly language
-
-Keep the explanation under 200 words."""
-
-INSIGHTS_SYSTEM = """You are an AI data analyst generating insights from query results.
-
-Given the query results and the original question, provide ranked insights.
-
-Output as JSON:
-{
-  "insights": [
-    {
-      "text": "insight description",
-      "confidence": 0.0-1.0,
-      "severity": "high|medium|low",
-      "impact": "high|medium|low",
-      "category": "trend|anomaly|distribution|correlation|quality"
-    }
-  ],
-  "trends": [{"text": "trend description", "confidence": 0.0-1.0}],
-  "data_quality_notes": ["note 1"],
-  "suggested_next_steps": ["step 1", "step 2"]
-}
-
-Rules:
-- confidence: how certain you are based on the data (0.0 = guess, 1.0 = definitive)
-- severity: how critical this finding is for the business
-- impact: how much this finding could affect decisions
-- category: type of finding"""
-
-CHART_SUGGESTION_SYSTEM = """You are a data visualization expert. Given query results, suggest the best chart types.
-
-Output as JSON:
-{
-  "recommended_charts": [
-    {
-      "type": "bar|line|pie|scatter|table|heatmap",
-      "title": "Chart title",
-      "x_axis": "column name",
-      "y_axis": "column name",
-      "reason": "why this chart type"
-    }
-  ],
-  "best_chart_index": 0
-}
-
-Consider:
-- Data types (numeric, categorical, temporal)
-- Number of data points
-- Relationships between columns
-- The user's original question"""
-
-
 # ── LLM Call ────────────────────────────────────────────────────
 
-_LOCALE_SUFFIX = {
-    "zh": "\n\nIMPORTANT: 请用中文回答。所有解释、洞察和建议必须使用中文。",
-    "en": "",
-}
-
-
-def _apply_language(system: str, language: str) -> str:
-    """Append language instruction to system prompt."""
-    suffix = _LOCALE_SUFFIX.get(language)
-    if suffix is None:
-        suffix = f'\n\nIMPORTANT: Respond in {language}. All explanations, insights, and suggestions must be written in {language}.'
-    return system + suffix
-
-
 def _call_llm(system: str, user_message: str, max_tokens: int = 1024, language: str = "en") -> str:
-    """Make a call to the LLM."""
+    """调用 LLM（同步）。"""
     client = _get_client()
     response = client.messages.create(
         model=MODEL,
         max_tokens=max_tokens,
         temperature=TEMPERATURE,
-        system=_apply_language(system, language),
+        system=apply_language(system, language),
         messages=[{"role": "user", "content": user_message}],
     )
-    # Extract text from response, handling different block types
     for block in response.content:
         if hasattr(block, "text"):
             return block.text
-    # Fallback: convert first block to string
     return str(response.content[0])
 
 
 def _call_llm_stream(system: str, user_message: str, max_tokens: int = 1024, language: str = "en"):
-    """Yield text chunks from Anthropic streaming API.
-
-    This is a sync generator suitable for use with FastAPI StreamingResponse.
-    """
+    """流式调用 LLM，yield 文本块。"""
     client = _get_client()
     with client.messages.stream(
         model=MODEL,
         max_tokens=max_tokens,
         temperature=TEMPERATURE,
-        system=_apply_language(system, language),
+        system=apply_language(system, language),
         messages=[{"role": "user", "content": user_message}],
     ) as stream:
         for text in stream.text_stream:
@@ -222,18 +160,12 @@ def _call_llm_stream(system: str, user_message: str, max_tokens: int = 1024, lan
 # ── Public API ──────────────────────────────────────────────────
 
 def generate_sql(question: str, schema_context: str, follow_up_context: str | None = None, language: str = "en") -> dict:
-    """Generate SQL from a natural language question."""
+    """从自然语言问题生成 SQL。"""
     start = time.time()
-    parts = []
-    if follow_up_context:
-        parts.append(follow_up_context)
-    parts.append(f"Database schema:\n{schema_context}")
-    parts.append(f"User question: {question}")
-    user_msg = "\n\n".join(parts)
+    user_msg = build_sql_user_message(schema_context, question, follow_up_context)
     try:
-        sql = _call_llm(SQL_GENERATION_SYSTEM, user_msg, max_tokens=512, language=language)
+        sql = _call_llm(SQL_GEN_SYSTEM, user_msg, max_tokens=SQL_GEN_CONTRACT.max_output_tokens, language=language)
         sql = sql.strip()
-        # Strip markdown code blocks if present
         if sql.startswith("```"):
             lines = sql.split("\n")
             sql = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
@@ -253,37 +185,16 @@ def generate_sql(question: str, schema_context: str, follow_up_context: str | No
         }
 
 
-def _build_explain_user_msg(
-    question: str, sql: str, results: list[dict],
-    conversation_history: list[dict] | None = None,
-) -> str:
-    """Build the user message for explain, optionally including conversation history."""
-    truncated = results[:50]
-    parts = []
-    if conversation_history:
-        parts.append("Previous conversation:")
-        for turn in conversation_history[-6:]:
-            parts.append(f"[{turn['role']}]: {turn['content']}")
-        parts.append("")
-    parts.append(f"Original question: {question}")
-    parts.append(f"SQL query: {sql}")
-    parts.append(
-        f"Results ({len(results)} rows total, showing first {len(truncated)}):\n"
-        f"{json.dumps(truncated, default=str, ensure_ascii=False)}"
-    )
-    return "\n\n".join(parts)
-
-
 def explain_results(
     question: str, sql: str, results: list[dict],
     conversation_history: list[dict] | None = None,
     language: str = "en",
 ) -> dict:
-    """Explain query results in natural language."""
+    """用业务语言解释查询结果。"""
     start = time.time()
-    user_msg = _build_explain_user_msg(question, sql, results, conversation_history)
+    user_msg = build_explain_user_message(question, sql, results, conversation_history)
     try:
-        explanation = _call_llm(EXPLANATION_SYSTEM, user_msg, max_tokens=1024, language=language)
+        explanation = _call_llm(EXPLAIN_SYSTEM, user_msg, max_tokens=EXPLAIN_CONTRACT.max_output_tokens, language=language)
         return {
             "explanation": explanation,
             "status": "success",
@@ -303,23 +214,17 @@ def explain_results_stream(
     conversation_history: list[dict] | None = None,
     language: str = "en",
 ):
-    """Yield text chunks for streaming explanation."""
-    user_msg = _build_explain_user_msg(question, sql, results, conversation_history)
-    yield from _call_llm_stream(EXPLANATION_SYSTEM, user_msg, max_tokens=1024, language=language)
+    """流式生成解释。"""
+    user_msg = build_explain_user_message(question, sql, results, conversation_history)
+    yield from _call_llm_stream(EXPLAIN_SYSTEM, user_msg, max_tokens=EXPLAIN_CONTRACT.max_output_tokens, language=language)
 
 
 def generate_insights(question: str, results: list[dict], language: str = "en") -> dict:
-    """Generate structured insights from query results."""
+    """生成结构化洞察。"""
     start = time.time()
-    truncated = results[:50]
-    user_msg = (
-        f"Question: {question}\n\n"
-        f"Results ({len(results)} rows, showing first {len(truncated)}):\n"
-        f"{json.dumps(truncated, default=str, ensure_ascii=False)}"
-    )
+    user_msg = build_insights_user_message(question, results)
     try:
-        raw = _call_llm(INSIGHTS_SYSTEM, user_msg, max_tokens=1024, language=language)
-        # Parse JSON from response
+        raw = _call_llm(INSIGHTS_SYSTEM, user_msg, max_tokens=INSIGHTS_CONTRACT.max_output_tokens, language=language)
         insights = json.loads(raw)
         return {
             **insights,
@@ -344,34 +249,22 @@ def generate_insights(question: str, results: list[dict], language: str = "en") 
 
 
 def generate_insights_stream(question: str, results: list[dict], language: str = "en"):
-    """Yield text chunks for streaming insights (raw JSON text)."""
-    truncated = results[:50]
-    user_msg = (
-        f"Question: {question}\n\n"
-        f"Results ({len(results)} rows, showing first {len(truncated)}):\n"
-        f"{json.dumps(truncated, default=str, ensure_ascii=False)}"
-    )
-    yield from _call_llm_stream(INSIGHTS_SYSTEM, user_msg, max_tokens=1024, language=language)
+    """流式生成洞察。"""
+    user_msg = build_insights_user_message(question, results)
+    yield from _call_llm_stream(INSIGHTS_SYSTEM, user_msg, max_tokens=INSIGHTS_CONTRACT.max_output_tokens, language=language)
 
 
 def suggest_charts(results: list[dict], question: str = "", language: str = "en") -> dict:
-    """Suggest appropriate chart types for the data."""
+    """推荐图表类型。"""
     start = time.time()
     if not results:
         return {"recommended_charts": [], "status": "empty"}
 
-    # Build column info
     columns = list(results[0].keys()) if results else []
     sample = results[:10]
-
-    user_msg = (
-        f"Columns: {columns}\n"
-        f"Sample data (first {len(sample)} rows):\n"
-        f"{json.dumps(sample, default=str, ensure_ascii=False)}\n"
-        f"Question: {question}"
-    )
+    user_msg = build_chart_user_message(columns, sample, question)
     try:
-        raw = _call_llm(CHART_SUGGESTION_SYSTEM, user_msg, max_tokens=512, language=language)
+        raw = _call_llm(CHART_SYSTEM, user_msg, max_tokens=CHART_CONTRACT.max_output_tokens, language=language)
         charts = json.loads(raw)
         return {
             **charts,
@@ -389,54 +282,18 @@ def suggest_charts(results: list[dict], question: str = "", language: str = "en"
 
 # ── Semantic Dataset Understanding ────────────────────────────
 
-SEMANTICS_SYSTEM = """You are a data analyst interpreting dataset structure.
-Given column names, types, and sample data, identify for each column:
-1. Semantic role: identifier, metric, dimension, datetime, or text
-2. Business-friendly description
-3. Whether it is a core KPI (key performance indicator)
-4. Whether it is a business metric (quantities to measure/aggregate)
-5. Whether it is an analysis dimension (categories to group by)
-6. Whether it is a time column (dates, timestamps)
-7. Whether it is a business entity ID (customer_id, product_id, etc.)
-8. Suggested aggregation method for metrics (sum, avg, count, min, max)
-
-Also provide:
-- A one-sentence summary of what this dataset represents
-- Detected KPIs, measures, time columns, and entity IDs
-- Suggested analytical focus areas
-
-Output as JSON:
-{
-  "summary": "...",
-  "columns": [{"name": "...", "dtype": "...", "semantic_role": "identifier|metric|dimension|datetime|text", "business_meaning": "...", "is_kpi": true/false, "is_measure": true/false, "is_time_column": true/false, "is_entity_id": true/false, "aggregation_hint": "sum|avg|count|min|max|null", "is_metric": true/false, "is_dimension": true/false}],
-  "detected_kpis": ["..."],
-  "detected_measures": ["..."],
-  "detected_time_columns": ["..."],
-  "detected_entities": ["..."],
-  "detected_dimensions": ["..."],
-  "suggested_focus": "..."
-}"""
-
-
 def generate_semantics(
     table: str,
     columns: list[dict],
     sample_rows: list[dict],
     language: str = "en",
 ) -> dict:
-    """Generate semantic understanding of a dataset."""
+    """生成数据集的语义理解。"""
     start = time.time()
-    # Truncate to 20 columns to control token cost
     cols = columns[:20]
-    col_desc = [f"  - {c['name']} ({c.get('dtype', 'VARCHAR')})" for c in cols]
-    user_msg = (
-        f"Table: {table}\n\n"
-        f"Columns:\n" + "\n".join(col_desc) + "\n\n"
-        f"Sample data (first {len(sample_rows)} rows):\n"
-        f"{json.dumps(sample_rows[:5], default=str, ensure_ascii=False)}"
-    )
+    user_msg = build_semantics_user_message(table, cols, sample_rows[:5])
     try:
-        raw = _call_llm(SEMANTICS_SYSTEM, user_msg, max_tokens=1024, language=language)
+        raw = _call_llm(SEMANTICS_SYSTEM, user_msg, max_tokens=SEMANTICS_CONTRACT.max_output_tokens, language=language)
         result = json.loads(raw)
         return {
             **result,
@@ -463,68 +320,21 @@ def generate_semantics(
 
 # ── Smart Suggested Questions ─────────────────────────────────
 
-SUGGESTED_QUESTIONS_SYSTEM = """You are a data analyst suggesting questions to explore a dataset.
-Given the dataset profile and optional semantic understanding, suggest 5 analytical questions.
-
-Rules:
-1. Questions must be answerable with SQL against the available columns
-2. Mix of: overview, comparison, trend, breakdown, anomaly questions
-3. Use business-friendly language
-4. Each question should explore a different aspect of the data
-5. Questions should be specific and actionable
-
-Output as JSON:
-{
-  "questions": [
-    {"question": "...", "category": "overview|comparison|trend|breakdown|anomaly", "reason": "..."}
-  ]
-}"""
-
-
 def suggest_questions(
     table: str,
     profile: dict,
     semantics: dict | None = None,
     language: str = "en",
 ) -> dict:
-    """Suggest analytical questions based on dataset profile."""
+    """基于数据集概览推荐分析问题。"""
     start = time.time()
 
-    # Build concise profile summary
-    col_lines = []
-    for col in profile.get("columns", [])[:20]:
-        stats = ""
-        if col.get("stats"):
-            s = col["stats"]
-            stats = f" (mean={s.get('mean', '?')}, min={s.get('min', '?')}, max={s.get('max', '?')})"
-        elif col.get("top_values"):
-            tops = ", ".join(f"{v['value']}" for v in col["top_values"][:3])
-            stats = f" (top: {tops})"
-        col_lines.append(f"  - {col['name']} ({col.get('dtype', '?')}){stats}")
-
-    profile_summary = (
-        f"Table: {table}\n"
-        f"Rows: {profile.get('row_count', '?')}, Columns: {profile.get('column_count', '?')}\n"
-        f"Columns:\n" + "\n".join(col_lines)
-    )
-
-    semantics_summary = ""
-    if semantics and semantics.get("summary"):
-        sem_parts = [f"Dataset summary: {semantics['summary']}"]
-        if semantics.get("detected_metrics"):
-            sem_parts.append(f"Metrics: {', '.join(semantics['detected_metrics'])}")
-        if semantics.get("detected_dimensions"):
-            sem_parts.append(f"Dimensions: {', '.join(semantics['detected_dimensions'])}")
-        if semantics.get("suggested_focus"):
-            sem_parts.append(f"Suggested focus: {semantics['suggested_focus']}")
-        semantics_summary = "\n".join(sem_parts)
-
-    user_msg = profile_summary
-    if semantics_summary:
-        user_msg += f"\n\nSemantic understanding:\n{semantics_summary}"
+    profile_summary = build_profile_summary(table, profile)
+    semantics_summary = build_semantics_summary(semantics) if semantics else None
+    user_msg = build_questions_user_message(profile_summary, semantics_summary)
 
     try:
-        raw = _call_llm(SUGGESTED_QUESTIONS_SYSTEM, user_msg, max_tokens=512, language=language)
+        raw = _call_llm(QUESTIONS_SYSTEM, user_msg, max_tokens=QUESTIONS_CONTRACT.max_output_tokens, language=language)
         result = json.loads(raw)
         return {
             **result,
@@ -542,27 +352,6 @@ def suggest_questions(
 
 # ── Analysis Planning Engine ──────────────────────────────────
 
-ANALYSIS_PLAN_SYSTEM = """You are a senior data analyst creating an investigation plan.
-
-Given a question and dataset schema, break the question into 3-6 analytical steps.
-
-Rules:
-1. Each step must have: purpose (why), sql_goal (what SQL should achieve)
-2. Steps can depend on previous steps' results (use depends_on)
-3. First step should establish baseline/overview
-4. Later steps should investigate specific hypotheses
-5. Steps must be answerable with SQL against available columns
-6. Maximum 6 steps
-
-Output as JSON:
-{
-  "plan": [
-    {"step": 1, "purpose": "...", "sql_goal": "...", "depends_on": null},
-    {"step": 2, "purpose": "...", "sql_goal": "...", "depends_on": 1}
-  ]
-}"""
-
-
 def generate_analysis_plan(
     question: str,
     table: str,
@@ -570,21 +359,13 @@ def generate_analysis_plan(
     sample_rows: list[dict],
     language: str = "en",
 ) -> dict:
-    """Generate a multi-step analysis plan for a complex question."""
+    """为复杂问题生成多步骤分析计划。"""
     start = time.time()
     cols = columns[:20]
-    col_desc = [f"  - {c['name']} ({c.get('dtype', 'VARCHAR')})" for c in cols]
-    user_msg = (
-        f"Question: {question}\n\n"
-        f"Table: {table}\n"
-        f"Columns:\n" + "\n".join(col_desc) + "\n\n"
-        f"Sample data (first {len(sample_rows[:5])} rows):\n"
-        f"{json.dumps(sample_rows[:5], default=str, ensure_ascii=False)}"
-    )
+    user_msg = build_plan_user_message(question, table, cols, sample_rows[:5])
     try:
-        raw = _call_llm(ANALYSIS_PLAN_SYSTEM, user_msg, max_tokens=1024, language=language)
+        raw = _call_llm(PLAN_SYSTEM, user_msg, max_tokens=PLAN_CONTRACT.max_output_tokens, language=language)
         result = json.loads(raw)
-        # Enforce max 6 steps
         if "plan" in result:
             result["plan"] = result["plan"][:6]
         return {

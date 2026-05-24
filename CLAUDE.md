@@ -10,9 +10,9 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.5.3 (Insight Ranking, Semantic Metric Layer, Analysis Planning & Multi-step Executor)
-- **Phase**: v0.5.x AI Data Analyst MVP — ACTIVE
-- **Next**: v0.5.4+ (anomaly detection, multi-turn UX polish, E2E tests)
+- **Current**: v0.5.4 (AI System Engineering — Prompt Architecture, Token Budget, Guardrails, Trace, Evaluation)
+- **Phase**: v0.5.x AI Data Analyst MVP — AI System Engineering
+- **Next**: v0.5.5+ (anomaly detection, multi-turn UX polish, E2E tests)
 
 ## Version Freeze Rules
 
@@ -56,6 +56,13 @@ Claude must NOT:
 - NO temporary solutions ("fix later")
 - Enterprise-grade architecture always
 - Prefer editing existing files over creating new ones
+
+### Prompt Architecture Rules (v0.5.4+)
+- ALL prompts must live in `backend/prompts/` — never in service/route files
+- Each prompt module exports: CONTRACT, SYSTEM_PROMPT, build_user_message()
+- Use PromptContract.max_output_tokens, not hardcoded values
+- Language handling via `apply_language()` from `backend.prompts.locale`
+- Register new prompts in `registry.py`
 
 ### Documentation Rules
 - Update README.md for every major version
