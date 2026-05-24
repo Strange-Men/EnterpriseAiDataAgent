@@ -188,6 +188,21 @@ export const useXxxStore = create<XxxState>()(
 **Key files**: `backend/services/trace.py`, `backend/services/ai_analyst.py`, `backend/services/ai_pipeline.py`
 **Location**: `skills/active/analysis-trace.md`
 
+### ai-evaluation-harness
+
+**When to use**: After prompt changes, before releases, or when evaluating SQL generation quality.
+
+**Steps**:
+1. Define new `GoldenQuestion` in `tests/ai/golden_questions.py`
+2. Run: `pytest tests/ai/test_golden_questions.py -v`
+3. Check pass_rate (target: >= 60%, improve over time)
+4. Check hallucination_count (must be 0)
+5. Review failed cases in report output
+6. Add new questions to cover discovered failure modes
+
+**Key files**: `tests/ai/golden_questions.py`, `tests/ai/eval_sql.py`, `tests/ai/runner.py`, `tests/ai/test_golden_questions.py`
+**Location**: `skills/active/ai-evaluation-harness.md`
+
 ## Skill Lifecycle
 
 Skills are stored in `skills/` with lifecycle states:
