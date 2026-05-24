@@ -283,7 +283,7 @@ export async function aiInsights(
   question: string,
   results: Record<string, unknown>[],
   language?: string
-): Promise<{ insights: string[]; trends: string[]; suggested_next_steps: string[] }> {
+): Promise<{ insights: (string | { text: string; confidence?: number; severity?: string; impact?: string; category?: string })[]; trends: (string | { text: string; confidence?: number })[]; suggested_next_steps: string[] }> {
   const body: Record<string, unknown> = { question, results };
   if (language) body.language = language;
   return apiFetch("/ai/insights", {
@@ -397,6 +397,11 @@ export interface ColumnSemantics {
   dtype: string;
   semantic_role: "identifier" | "metric" | "dimension" | "datetime" | "text";
   business_meaning: string;
+  is_kpi?: boolean;
+  is_measure?: boolean;
+  is_time_column?: boolean;
+  is_entity_id?: boolean;
+  aggregation_hint?: string | null;
   is_metric: boolean;
   is_dimension: boolean;
 }
@@ -404,6 +409,10 @@ export interface ColumnSemantics {
 export interface DatasetSemantics {
   summary: string;
   columns: ColumnSemantics[];
+  detected_kpis?: string[];
+  detected_measures?: string[];
+  detected_time_columns?: string[];
+  detected_entities?: string[];
   detected_metrics: string[];
   detected_dimensions: string[];
   suggested_focus: string;
@@ -448,6 +457,164 @@ export async function aiSuggestQuestions(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+
+// ── Analysis Planning ──────────────────────────────────────────
+
+export interface PlanStep {
+  step: number;
+  purpose: string;
+  sql_goal: string;
+  depends_on: number | null;
+}
+
+export interface AnalysisPlan {
+  plan: PlanStep[];
+  status: string;
+  elapsed_ms?: number;
+  error?: string;
+}
+
+export async function aiGeneratePlan(
+  question: string,
+  table: string,
+  columns: { name: string; dtype: string }[],
+  sampleRows: Record<string, unknown>[],
+  language?: string
+): Promise<AnalysisPlan> {
+  const body: Record<string, unknown> = { question, table, columns, sample_rows: sampleRows };
+  if (language) body.language = language;
+  return apiFetch<AnalysisPlan>("/ai/plan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+// ── Multi-step Analysis ────────────────────────────────────────
+
+export interface MultiStepExecuted {
+  step: number;
+  purpose: string;
+  sql: string;
+  columns: string[];
+  data: Record<string, unknown>[];
+  row_count?: number;
+  error?: string;
+  status: "success" | "error";
+}
+
+export interface MultiStepResult {
+  question: string;
+  plan: PlanStep[];
+  steps: MultiStepExecuted[];
+  summary: string;
+  status: string;
+  elapsed_ms?: number;
+  error?: string;
+}
+
+export async function aiAnalyzeMulti(
+  question: string,
+  table: string,
+  columns: { name: string; dtype: string }[],
+  sampleRows: Record<string, unknown>[],
+  language?: string,
+  maxRows: number = 500
+): Promise<MultiStepResult> {
+  const body: Record<string, unknown> = { question, table, columns, sample_rows: sampleRows, max_rows: maxRows };
+  if (language) body.language = language;
+  return apiFetch<MultiStepResult>("/ai/analyze-multi", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+// ── Multi-step Streaming ───────────────────────────────────────
+
+export type MultiStreamEventType = "plan" | "step_start" | "step_result" | "summary" | "error" | "done";
+
+export interface MultiStreamEvent {
+  type: MultiStreamEventType;
+  plan?: PlanStep[];
+  step?: number;
+  purpose?: string;
+  sql?: string;
+  columns?: string[];
+  data?: Record<string, unknown>[];
+  row_count?: number;
+  error?: string;
+  status?: "success" | "error";
+  summary?: string;
+  elapsed_ms?: number;
+}
+
+export interface MultiStreamCallbacks {
+  onPlan: (plan: PlanStep[]) => void;
+  onStepStart: (step: number, purpose: string) => void;
+  onStepResult: (event: MultiStreamEvent) => void;
+  onSummary: (summary: string) => void;
+  onError: (err: Error) => void;
+  onDone: (elapsedMs?: number) => void;
+}
+
+export function streamAiAnalyzeMulti(
+  question: string,
+  table: string,
+  columns: { name: string; dtype: string }[],
+  sampleRows: Record<string, unknown>[],
+  callbacks: MultiStreamCallbacks,
+  language?: string,
+  maxRows: number = 500
+): AbortController {
+  const body: Record<string, unknown> = { question, table, columns, sample_rows: sampleRows, max_rows: maxRows };
+  if (language) body.language = language;
+  const controller = new AbortController();
+
+  fetch(`${API_BASE}/ai/analyze-multi/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: controller.signal,
+  }).then(async (res) => {
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => "");
+      callbacks.onError(new Error(`API ${res.status}: ${bodyText || res.statusText}`));
+      return;
+    }
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data: MultiStreamEvent = JSON.parse(line.slice(6));
+            if (data.type === "plan" && data.plan) callbacks.onPlan(data.plan);
+            else if (data.type === "step_start" && data.step != null) callbacks.onStepStart(data.step, data.purpose || "");
+            else if (data.type === "step_result") callbacks.onStepResult(data);
+            else if (data.type === "summary" && data.summary != null) callbacks.onSummary(data.summary);
+            else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
+            else if (data.type === "done") callbacks.onDone(data.elapsed_ms);
+          }
+        }
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        callbacks.onError(err instanceof Error ? err : new Error("Stream failed"));
+      }
+    }
+  }).catch((err) => {
+    if (err.name !== "AbortError") callbacks.onError(err);
+  });
+
+  return controller;
 }
 
 // ── Automated Analysis ──────────────────────────────────────────

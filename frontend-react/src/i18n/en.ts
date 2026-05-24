@@ -223,11 +223,26 @@ const en = {
     "ai.sql-generated": "SQL generated — review and run when ready",
     "ai.semantic-understanding": "Semantic Understanding",
     "ai.metrics": "Metrics",
+    "ai.kpis": "KPIs",
+    "ai.measures": "Measures",
+    "ai.time-columns": "Time Columns",
+    "ai.entities": "Entities",
     "ai.dimensions": "Dimensions",
     "ai.suggested-focus": "Suggested Focus",
     "ai.semantic-role": "Role",
     "ai.business-meaning": "Business Meaning",
     "ai.suggested-questions": "Suggested Questions",
+
+    // Multi-step Analysis
+    "ai.analysis-plan": "Analysis Plan",
+    "ai.executive-summary": "Executive Summary",
+    "ai.step": "Step",
+    "ai.step-result": "Step Result",
+    "ai.step-failed": "Step failed",
+    "ai.running-steps": "Running analysis steps...",
+    "ai.autonomous-btn": "Autonomous Analysis",
+    "ai.generating-plan": "Generating analysis plan...",
+    "ai.executing-step": "Executing step",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI Analyze",
