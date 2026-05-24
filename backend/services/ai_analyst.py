@@ -121,19 +121,29 @@ Keep the explanation under 200 words."""
 
 INSIGHTS_SYSTEM = """You are an AI data analyst generating insights from query results.
 
-Given the query results and the original question, provide:
-1. Top 3 key insights from the data
-2. Any trends or patterns noticed
-3. Potential data quality issues
-4. Recommended next analysis steps
+Given the query results and the original question, provide ranked insights.
 
 Output as JSON:
 {
-  "insights": ["insight 1", "insight 2", "insight 3"],
-  "trends": ["trend 1"],
+  "insights": [
+    {
+      "text": "insight description",
+      "confidence": 0.0-1.0,
+      "severity": "high|medium|low",
+      "impact": "high|medium|low",
+      "category": "trend|anomaly|distribution|correlation|quality"
+    }
+  ],
+  "trends": [{"text": "trend description", "confidence": 0.0-1.0}],
   "data_quality_notes": ["note 1"],
   "suggested_next_steps": ["step 1", "step 2"]
-}"""
+}
+
+Rules:
+- confidence: how certain you are based on the data (0.0 = guess, 1.0 = definitive)
+- severity: how critical this finding is for the business
+- impact: how much this finding could affect decisions
+- category: type of finding"""
 
 CHART_SUGGESTION_SYSTEM = """You are a data visualization expert. Given query results, suggest the best chart types.
 
@@ -383,18 +393,26 @@ SEMANTICS_SYSTEM = """You are a data analyst interpreting dataset structure.
 Given column names, types, and sample data, identify for each column:
 1. Semantic role: identifier, metric, dimension, datetime, or text
 2. Business-friendly description
-3. Whether it is a business metric (quantities to measure)
-4. Whether it is an analysis dimension (categories to group by)
+3. Whether it is a core KPI (key performance indicator)
+4. Whether it is a business metric (quantities to measure/aggregate)
+5. Whether it is an analysis dimension (categories to group by)
+6. Whether it is a time column (dates, timestamps)
+7. Whether it is a business entity ID (customer_id, product_id, etc.)
+8. Suggested aggregation method for metrics (sum, avg, count, min, max)
 
 Also provide:
 - A one-sentence summary of what this dataset represents
+- Detected KPIs, measures, time columns, and entity IDs
 - Suggested analytical focus areas
 
 Output as JSON:
 {
   "summary": "...",
-  "columns": [{"name": "...", "dtype": "...", "semantic_role": "identifier|metric|dimension|datetime|text", "business_meaning": "...", "is_metric": true/false, "is_dimension": true/false}],
-  "detected_metrics": ["..."],
+  "columns": [{"name": "...", "dtype": "...", "semantic_role": "identifier|metric|dimension|datetime|text", "business_meaning": "...", "is_kpi": true/false, "is_measure": true/false, "is_time_column": true/false, "is_entity_id": true/false, "aggregation_hint": "sum|avg|count|min|max|null", "is_metric": true/false, "is_dimension": true/false}],
+  "detected_kpis": ["..."],
+  "detected_measures": ["..."],
+  "detected_time_columns": ["..."],
+  "detected_entities": ["..."],
   "detected_dimensions": ["..."],
   "suggested_focus": "..."
 }"""
@@ -516,6 +534,67 @@ def suggest_questions(
     except Exception as e:
         return {
             "questions": [],
+            "error": str(e),
+            "status": "error",
+            "elapsed_ms": round((time.time() - start) * 1000, 2),
+        }
+
+
+# ── Analysis Planning Engine ──────────────────────────────────
+
+ANALYSIS_PLAN_SYSTEM = """You are a senior data analyst creating an investigation plan.
+
+Given a question and dataset schema, break the question into 3-6 analytical steps.
+
+Rules:
+1. Each step must have: purpose (why), sql_goal (what SQL should achieve)
+2. Steps can depend on previous steps' results (use depends_on)
+3. First step should establish baseline/overview
+4. Later steps should investigate specific hypotheses
+5. Steps must be answerable with SQL against available columns
+6. Maximum 6 steps
+
+Output as JSON:
+{
+  "plan": [
+    {"step": 1, "purpose": "...", "sql_goal": "...", "depends_on": null},
+    {"step": 2, "purpose": "...", "sql_goal": "...", "depends_on": 1}
+  ]
+}"""
+
+
+def generate_analysis_plan(
+    question: str,
+    table: str,
+    columns: list[dict],
+    sample_rows: list[dict],
+    language: str = "en",
+) -> dict:
+    """Generate a multi-step analysis plan for a complex question."""
+    start = time.time()
+    cols = columns[:20]
+    col_desc = [f"  - {c['name']} ({c.get('dtype', 'VARCHAR')})" for c in cols]
+    user_msg = (
+        f"Question: {question}\n\n"
+        f"Table: {table}\n"
+        f"Columns:\n" + "\n".join(col_desc) + "\n\n"
+        f"Sample data (first {len(sample_rows[:5])} rows):\n"
+        f"{json.dumps(sample_rows[:5], default=str, ensure_ascii=False)}"
+    )
+    try:
+        raw = _call_llm(ANALYSIS_PLAN_SYSTEM, user_msg, max_tokens=1024, language=language)
+        result = json.loads(raw)
+        # Enforce max 6 steps
+        if "plan" in result:
+            result["plan"] = result["plan"][:6]
+        return {
+            **result,
+            "status": "success",
+            "elapsed_ms": round((time.time() - start) * 1000, 2),
+        }
+    except Exception as e:
+        return {
+            "plan": [],
             "error": str(e),
             "status": "error",
             "elapsed_ms": round((time.time() - start) * 1000, 2),

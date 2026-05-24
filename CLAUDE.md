@@ -10,9 +10,9 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.5.2 (AI Locale, Semantic Understanding & Smart Questions)
+- **Current**: v0.5.3 (Insight Ranking, Semantic Metric Layer, Analysis Planning & Multi-step Executor)
 - **Phase**: v0.5.x AI Data Analyst MVP — ACTIVE
-- **Next**: v0.5.3+ (anomaly detection, multi-turn UX polish, E2E tests)
+- **Next**: v0.5.4+ (anomaly detection, multi-turn UX polish, E2E tests)
 
 ## Version Freeze Rules
 

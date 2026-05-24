@@ -15,11 +15,15 @@ import {
   aiQuery,
   aiSemantics,
   aiSuggestQuestions,
+  streamAiAnalyzeMulti,
   type AnalysisResult,
   type AIQueryResult,
   type FollowUpContext,
   type DatasetSemantics,
   type SuggestedQuestion,
+  type MultiStepResult,
+  type PlanStep,
+  type MultiStepExecuted,
 } from "@/services/api";
 import { downloadBlob } from "@/utils/download";
 import { useAiSessionStore } from "@/stores/ai-session-store";
@@ -81,7 +85,7 @@ function AnalysisSkeleton() {
 }
 
 // ── Types ─────────────────────────────────────────────────────
-export type AnalysisMode = "explain" | "insights" | "charts" | "full-analysis";
+export type AnalysisMode = "explain" | "insights" | "charts" | "full-analysis" | "autonomous";
 
 interface AnalysisSection {
   title: string;
@@ -123,6 +127,7 @@ export function AIAnalysisPanel({
   const [followUpLoading, setFollowUpLoading] = useState(false);
   const [chartSpecs, setChartSpecs] = useState<ChartSpec[]>([]);
   const [suggestedQuestions, setSuggestedQuestions] = useState<SuggestedQuestion[]>([]);
+  const [multiResult, setMultiResult] = useState<MultiStepResult | null>(null);
 
   // ── Run analysis ──────────────────────────────────────────
   const runAnalysis = useCallback(async () => {
@@ -133,6 +138,7 @@ export function AIAnalysisPanel({
     setStreamingContent(null);
     setChartSpecs([]);
     setSuggestedQuestions([]);
+    setMultiResult(null);
 
     try {
       const builtSections: AnalysisSection[] = [];
@@ -199,11 +205,26 @@ export function AIAnalysisPanel({
         let md = "";
         if (res.insights?.length) {
           md += "### " + t("ai.key-insights") + "\n\n";
-          res.insights.forEach((i) => { md += `- ${i}\n`; });
+          res.insights.forEach((i) => {
+            if (typeof i === "string") {
+              md += `- ${i}\n`;
+            } else {
+              const conf = i.confidence != null ? ` (${Math.round(i.confidence * 100)}%)` : "";
+              const badge = i.severity === "high" ? " **[HIGH]**" : i.severity === "medium" ? " [MED]" : "";
+              md += `- ${i.text}${conf}${badge}\n`;
+            }
+          });
         }
         if (res.trends?.length) {
           md += "\n### " + t("ai.trends") + "\n\n";
-          res.trends.forEach((t) => { md += `- ${t}\n`; });
+          res.trends.forEach((t) => {
+            if (typeof t === "string") {
+              md += `- ${t}\n`;
+            } else {
+              const conf = t.confidence != null ? ` (${Math.round(t.confidence * 100)}%)` : "";
+              md += `- ${t.text}${conf}\n`;
+            }
+          });
         }
         if (res.suggested_next_steps?.length) {
           md += "\n### " + t("ai.next-steps") + "\n\n";
@@ -281,8 +302,17 @@ export function AIAnalysisPanel({
           const semRes = await aiSemantics(tableName, semCols, sampleRows, i18n.language);
           if (semRes.status === "success" && semRes.summary) {
             let semMd = `**${semRes.summary}**\n\n`;
-            if (semRes.detected_metrics?.length) {
-              semMd += `**${t("ai.metrics")}:** ${semRes.detected_metrics.join(", ")}\n\n`;
+            if (semRes.detected_kpis?.length) {
+              semMd += `**${t("ai.kpis")}:** ${semRes.detected_kpis.join(", ")}\n\n`;
+            }
+            if (semRes.detected_measures?.length) {
+              semMd += `**${t("ai.measures")}:** ${semRes.detected_measures.join(", ")}\n\n`;
+            }
+            if (semRes.detected_time_columns?.length) {
+              semMd += `**${t("ai.time-columns")}:** ${semRes.detected_time_columns.join(", ")}\n\n`;
+            }
+            if (semRes.detected_entities?.length) {
+              semMd += `**${t("ai.entities")}:** ${semRes.detected_entities.join(", ")}\n\n`;
             }
             if (semRes.detected_dimensions?.length) {
               semMd += `**${t("ai.dimensions")}:** ${semRes.detected_dimensions.join(", ")}\n\n`;
@@ -293,7 +323,13 @@ export function AIAnalysisPanel({
             if (semRes.columns?.length) {
               semMd += `| ${t("ai.column")} | ${t("ai.semantic-role")} | ${t("ai.business-meaning")} |\n|---|---|---|\n`;
               semRes.columns.forEach((c) => {
-                semMd += `| ${c.name} | ${c.semantic_role} | ${c.business_meaning} |\n`;
+                const badges = [
+                  c.is_kpi ? "KPI" : "",
+                  c.is_time_column ? "TIME" : "",
+                  c.is_entity_id ? "ID" : "",
+                  c.aggregation_hint ? c.aggregation_hint.toUpperCase() : "",
+                ].filter(Boolean).map((b) => `\`${b}\``).join(" ");
+                semMd += `| ${c.name} | ${c.semantic_role} ${badges} | ${c.business_meaning} |\n`;
               });
             }
             builtSections.push({
@@ -328,6 +364,79 @@ export function AIAnalysisPanel({
         } catch {
           // suggest-questions failure is non-fatal
         }
+      } else if (mode === "autonomous" && tableName) {
+        // Multi-step autonomous analysis with progressive streaming
+        const profileRes = await import("@/services/api").then((m) => m.getTableProfile(tableName));
+        const cols = profileRes.profile.columns.map((c) => ({ name: c.name, dtype: c.dtype }));
+        const q = question || t("ai.full-analysis");
+
+        // Streaming state
+        let planSteps: PlanStep[] = [];
+        const executedSteps: MultiStepExecuted[] = [];
+        let execSummary = "";
+
+        await new Promise<void>((resolve, reject) => {
+          streamAiAnalyzeMulti(q, tableName, cols, [], {
+            onPlan: (plan) => {
+              planSteps = plan;
+              let planMd = "";
+              plan.forEach((p) => {
+                planMd += `**${t("ai.step")} ${p.step}:** ${p.purpose}\n`;
+                planMd += `_${p.sql_goal}_\n\n`;
+              });
+              setSections([{ title: t("ai.analysis-plan"), content: planMd, type: "markdown" }]);
+            },
+            onStepStart: (stepNum, purpose) => {
+              setSections((prev) => [
+                ...prev.filter((s) => s.title !== t("ai.running-steps")),
+                {
+                  title: t("ai.running-steps"),
+                  content: `**${t("ai.step")} ${stepNum}:** ${purpose}...`,
+                  type: "markdown",
+                },
+              ]);
+            },
+            onStepResult: (event) => {
+              executedSteps.push({
+                step: event.step!,
+                purpose: event.purpose || "",
+                sql: event.sql || "",
+                columns: event.columns || [],
+                data: event.data || [],
+                row_count: event.row_count,
+                error: event.error,
+                status: event.status || "error",
+              });
+              setMultiResult({
+                question: q,
+                plan: planSteps,
+                steps: [...executedSteps],
+                summary: execSummary,
+                status: "success",
+              });
+              // Remove "running" indicator
+              setSections((prev) => prev.filter((s) => s.title !== t("ai.running-steps")));
+            },
+            onSummary: (summary) => {
+              execSummary = summary;
+              setSections((prev) => [
+                ...prev,
+                { title: t("ai.executive-summary"), content: summary, type: "markdown" },
+              ]);
+            },
+            onError: (err) => reject(err),
+            onDone: () => resolve(),
+          }, i18n.language);
+        });
+
+        setMultiResult({
+          question: q,
+          plan: planSteps,
+          steps: executedSteps,
+          summary: execSummary,
+          status: "success",
+        });
+        raw = { question: q, plan: planSteps, steps: executedSteps, summary: execSummary, status: "success" };
       }
 
       setSections(builtSections);
@@ -482,6 +591,7 @@ export function AIAnalysisPanel({
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
             {mode === "full-analysis" ? t("ai.full-analysis") :
+             mode === "autonomous" ? t("ai.autonomous-btn") :
              mode === "explain" ? t("ai.explain-title") :
              mode === "insights" ? t("ai.insights-title") :
              t("ai.charts-title")}
@@ -628,6 +738,62 @@ export function AIAnalysisPanel({
           </div>
         )}
 
+        {/* Multi-step analysis results */}
+        {multiResult && multiResult.steps?.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-[var(--border-default)]">
+            <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-3">
+              {t("ai.step-result")}
+            </h3>
+            <div className="space-y-3">
+              {multiResult.steps.map((step, i) => (
+                <div key={i} className="border border-[var(--border-default)] rounded-md overflow-hidden">
+                  <div className={`flex items-center gap-2 px-3 py-1.5 ${step.status === "success" ? "bg-green-500/5" : "bg-red-500/5"}`}>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${step.status === "success" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                      {t("ai.step")} {step.step}
+                    </span>
+                    <span className="text-xs text-[var(--text-secondary)]">{step.purpose}</span>
+                    {step.row_count != null && step.status === "success" && (
+                      <span className="text-[10px] text-[var(--text-muted)] ml-auto">{step.row_count} {t("sql.rows")}</span>
+                    )}
+                  </div>
+                  {step.status === "error" && step.error && (
+                    <div className="px-3 py-1.5 text-xs text-red-300 bg-red-500/5">
+                      {step.error}
+                    </div>
+                  )}
+                  {step.status === "success" && step.data && step.data.length > 0 && step.columns && (
+                    <div className="overflow-x-auto max-h-40">
+                      <table className="min-w-full text-[10px]">
+                        <thead>
+                          <tr>
+                            {step.columns.map((c) => (
+                              <th key={c} className="px-2 py-1 text-left font-semibold bg-[var(--bg-tertiary)] text-[var(--text-muted)] border-b border-[var(--border-default)]">{c}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {step.data.slice(0, 5).map((row, ri) => (
+                            <tr key={ri}>
+                              {step.columns!.map((c) => (
+                                <td key={c} className="px-2 py-0.5 text-[var(--text-secondary)] border-b border-[var(--border-default)]/50 truncate max-w-[120px]">
+                                  {String(row[c] ?? "")}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {step.data.length > 5 && (
+                        <p className="text-[10px] text-[var(--text-muted)] px-2 py-1">+{step.data.length - 5} more rows</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Suggested questions — AI-recommended next analyses */}
         {suggestedQuestions.length > 0 && (
           <div className="mt-4 pt-3 border-t border-[var(--border-default)]">
@@ -654,7 +820,7 @@ export function AIAnalysisPanel({
         )}
 
         {/* Follow-up input — shown after results when onSqlGenerated is available */}
-        {hasRun && !isLoading && onSqlGenerated && (mode === "explain" || mode === "full-analysis") && (
+        {hasRun && !isLoading && onSqlGenerated && (mode === "explain" || mode === "full-analysis" || mode === "autonomous") && (
           <div className="mt-4 pt-3 border-t border-[var(--border-default)]">
             <p className="text-xs text-[var(--text-muted)] mb-2">{t("ai.follow-up-hint")}</p>
             <div className="flex gap-2">

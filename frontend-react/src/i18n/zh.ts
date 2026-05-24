@@ -223,11 +223,26 @@ const zh = {
     "ai.sql-generated": "SQL 已生成 — 确认后执行",
     "ai.semantic-understanding": "语义理解",
     "ai.metrics": "指标",
+    "ai.kpis": "核心 KPI",
+    "ai.measures": "度量",
+    "ai.time-columns": "时间列",
+    "ai.entities": "业务实体",
     "ai.dimensions": "维度",
     "ai.suggested-focus": "建议分析方向",
     "ai.semantic-role": "角色",
     "ai.business-meaning": "业务含义",
     "ai.suggested-questions": "推荐问题",
+
+    // Multi-step Analysis
+    "ai.analysis-plan": "分析计划",
+    "ai.executive-summary": "执行摘要",
+    "ai.step": "步骤",
+    "ai.step-result": "步骤结果",
+    "ai.step-failed": "步骤执行失败",
+    "ai.running-steps": "正在执行分析步骤...",
+    "ai.autonomous-btn": "自主分析",
+    "ai.generating-plan": "正在生成分析计划...",
+    "ai.executing-step": "正在执行步骤",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI 分析",

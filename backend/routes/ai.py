@@ -21,10 +21,11 @@ from backend.services.ai_analyst import (
     suggest_charts,
     generate_semantics,
     suggest_questions,
+    generate_analysis_plan,
     MODEL,
     TEMPERATURE,
 )
-from backend.services.ai_pipeline import run_ai_query
+from backend.services.ai_pipeline import run_ai_query, run_autonomous_analysis, run_autonomous_analysis_stream
 
 router = APIRouter()
 
@@ -182,3 +183,57 @@ class SuggestQuestionsRequest(BaseModel):
 async def ai_suggest_questions(req: SuggestQuestionsRequest):
     """Suggest analytical questions for a dataset."""
     return suggest_questions(req.table, req.profile, req.semantics, req.language)
+
+
+# ── Analysis Planning ───────────────────────────────────────────
+
+class AnalysisPlanRequest(BaseModel):
+    question: str
+    table: str
+    columns: list[dict]
+    sample_rows: list[dict]
+    language: str = "en"
+
+
+@router.post("/ai/plan")
+async def ai_analysis_plan(req: AnalysisPlanRequest):
+    """Generate a multi-step analysis plan for a complex question."""
+    if not req.question.strip():
+        raise HTTPException(status_code=400, detail="Empty question")
+    return generate_analysis_plan(req.question, req.table, req.columns, req.sample_rows, req.language)
+
+
+# ── Autonomous Multi-step Analysis ─────────────────────────────
+
+class MultiAnalyzeRequest(BaseModel):
+    question: str
+    table: str
+    columns: list[dict]
+    sample_rows: list[dict]
+    language: str = "en"
+    max_rows: int = 500
+
+
+@router.post("/ai/analyze-multi")
+async def ai_analyze_multi(req: MultiAnalyzeRequest):
+    """Autonomous multi-step analysis: plan → execute → summarize."""
+    if not req.question.strip():
+        raise HTTPException(status_code=400, detail="Empty question")
+    return run_autonomous_analysis(
+        req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows
+    )
+
+
+@router.post("/ai/analyze-multi/stream")
+async def ai_analyze_multi_stream(req: MultiAnalyzeRequest):
+    """Stream autonomous analysis as SSE: plan → step_start → step_result → summary → done."""
+    def event_generator():
+        try:
+            for event in run_autonomous_analysis_stream(
+                req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows
+            ):
+                yield _sse_event(event)
+        except Exception as e:
+            yield _sse_event({"type": "error", "error": str(e)})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
