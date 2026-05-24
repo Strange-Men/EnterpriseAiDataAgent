@@ -54,6 +54,14 @@ from backend.prompts.analysis_plan import (
     build_user_message as build_plan_user_message,
 )
 
+# Token Budget 导入
+from backend.runtime.token_budget import (
+    get_budget,
+    estimate_tokens,
+    truncate_text,
+    WorkflowTokenTracker,
+)
+
 
 # ── Configuration ────────────────────────────────────────────────
 
@@ -127,8 +135,27 @@ def build_follow_up_context(ctx: dict) -> str:
 
 # ── LLM Call ────────────────────────────────────────────────────
 
-def _call_llm(system: str, user_message: str, max_tokens: int = 1024, language: str = "en") -> str:
-    """调用 LLM（同步）。"""
+def _call_llm(
+    system: str,
+    user_message: str,
+    max_tokens: int = 1024,
+    language: str = "en",
+    tracker: WorkflowTokenTracker | None = None,
+    operation: str = "unknown",
+) -> str:
+    """调用 LLM（同步）。支持 budget enforcement 和 token tracking。"""
+    input_tokens = estimate_tokens(user_message)
+
+    # Budget enforcement: 如果 tracker 存在且预算不足，拒绝调用
+    if tracker and not tracker.can_proceed(input_tokens, max_tokens):
+        tracker.record_budget_exceeded(operation)
+        raise RuntimeError(f"Token budget exceeded for {operation} (need ~{input_tokens + max_tokens}, have {tracker.remaining})")
+
+    # 输入 token 上限检查
+    budget = get_budget(operation)
+    if input_tokens > budget.max_input_tokens:
+        user_message = truncate_text(user_message, budget.max_input_tokens)
+
     client = _get_client()
     response = client.messages.create(
         model=MODEL,
@@ -137,15 +164,46 @@ def _call_llm(system: str, user_message: str, max_tokens: int = 1024, language: 
         system=apply_language(system, language),
         messages=[{"role": "user", "content": user_message}],
     )
+
+    # 提取输出文本
+    text = ""
     for block in response.content:
         if hasattr(block, "text"):
-            return block.text
-    return str(response.content[0])
+            text = block.text
+            break
+    if not text:
+        text = str(response.content[0])
+
+    # 记录到 tracker
+    if tracker:
+        output_tokens = estimate_tokens(text)
+        tracker.record(operation, input_tokens, output_tokens)
+
+    return text
 
 
-def _call_llm_stream(system: str, user_message: str, max_tokens: int = 1024, language: str = "en"):
-    """流式调用 LLM，yield 文本块。"""
+def _call_llm_stream(
+    system: str,
+    user_message: str,
+    max_tokens: int = 1024,
+    language: str = "en",
+    tracker: WorkflowTokenTracker | None = None,
+    operation: str = "unknown",
+):
+    """流式调用 LLM，yield 文本块。支持 budget enforcement 和 token tracking。"""
+    input_tokens = estimate_tokens(user_message)
+
+    # Budget enforcement
+    if tracker and not tracker.can_proceed(input_tokens, max_tokens):
+        tracker.record_budget_exceeded(operation)
+        raise RuntimeError(f"Token budget exceeded for {operation}")
+
+    budget = get_budget(operation)
+    if input_tokens > budget.max_input_tokens:
+        user_message = truncate_text(user_message, budget.max_input_tokens)
+
     client = _get_client()
+    output_text = ""
     with client.messages.stream(
         model=MODEL,
         max_tokens=max_tokens,
@@ -153,18 +211,37 @@ def _call_llm_stream(system: str, user_message: str, max_tokens: int = 1024, lan
         system=apply_language(system, language),
         messages=[{"role": "user", "content": user_message}],
     ) as stream:
-        for text in stream.text_stream:
-            yield text
+        for chunk in stream.text_stream:
+            output_text += chunk
+            yield chunk
+
+    # 流式完成后记录
+    if tracker:
+        output_tokens = estimate_tokens(output_text)
+        tracker.record(operation, input_tokens, output_tokens)
 
 
 # ── Public API ──────────────────────────────────────────────────
 
-def generate_sql(question: str, schema_context: str, follow_up_context: str | None = None, language: str = "en") -> dict:
+def generate_sql(
+    question: str,
+    schema_context: str,
+    follow_up_context: str | None = None,
+    language: str = "en",
+    tracker: WorkflowTokenTracker | None = None,
+) -> dict:
     """从自然语言问题生成 SQL。"""
     start = time.time()
     user_msg = build_sql_user_message(schema_context, question, follow_up_context)
+    budget = get_budget("sql_generation")
     try:
-        sql = _call_llm(SQL_GEN_SYSTEM, user_msg, max_tokens=SQL_GEN_CONTRACT.max_output_tokens, language=language)
+        sql = _call_llm(
+            SQL_GEN_SYSTEM, user_msg,
+            max_tokens=budget.max_output_tokens,
+            language=language,
+            tracker=tracker,
+            operation="sql_generation",
+        )
         sql = sql.strip()
         if sql.startswith("```"):
             lines = sql.split("\n")
@@ -189,12 +266,21 @@ def explain_results(
     question: str, sql: str, results: list[dict],
     conversation_history: list[dict] | None = None,
     language: str = "en",
+    tracker: WorkflowTokenTracker | None = None,
 ) -> dict:
     """用业务语言解释查询结果。"""
     start = time.time()
-    user_msg = build_explain_user_message(question, sql, results, conversation_history)
+    budget = get_budget("explanation")
+    truncated_rows = results[:budget.max_sample_rows]
+    user_msg = build_explain_user_message(question, sql, truncated_rows, conversation_history)
     try:
-        explanation = _call_llm(EXPLAIN_SYSTEM, user_msg, max_tokens=EXPLAIN_CONTRACT.max_output_tokens, language=language)
+        explanation = _call_llm(
+            EXPLAIN_SYSTEM, user_msg,
+            max_tokens=budget.max_output_tokens,
+            language=language,
+            tracker=tracker,
+            operation="explanation",
+        )
         return {
             "explanation": explanation,
             "status": "success",
@@ -213,18 +299,39 @@ def explain_results_stream(
     question: str, sql: str, results: list[dict],
     conversation_history: list[dict] | None = None,
     language: str = "en",
+    tracker: WorkflowTokenTracker | None = None,
 ):
     """流式生成解释。"""
-    user_msg = build_explain_user_message(question, sql, results, conversation_history)
-    yield from _call_llm_stream(EXPLAIN_SYSTEM, user_msg, max_tokens=EXPLAIN_CONTRACT.max_output_tokens, language=language)
+    budget = get_budget("explanation")
+    truncated_rows = results[:budget.max_sample_rows]
+    user_msg = build_explain_user_message(question, sql, truncated_rows, conversation_history)
+    yield from _call_llm_stream(
+        EXPLAIN_SYSTEM, user_msg,
+        max_tokens=budget.max_output_tokens,
+        language=language,
+        tracker=tracker,
+        operation="explanation",
+    )
 
 
-def generate_insights(question: str, results: list[dict], language: str = "en") -> dict:
+def generate_insights(
+    question: str, results: list[dict],
+    language: str = "en",
+    tracker: WorkflowTokenTracker | None = None,
+) -> dict:
     """生成结构化洞察。"""
     start = time.time()
-    user_msg = build_insights_user_message(question, results)
+    budget = get_budget("insights")
+    truncated_rows = results[:budget.max_sample_rows]
+    user_msg = build_insights_user_message(question, truncated_rows)
     try:
-        raw = _call_llm(INSIGHTS_SYSTEM, user_msg, max_tokens=INSIGHTS_CONTRACT.max_output_tokens, language=language)
+        raw = _call_llm(
+            INSIGHTS_SYSTEM, user_msg,
+            max_tokens=budget.max_output_tokens,
+            language=language,
+            tracker=tracker,
+            operation="insights",
+        )
         insights = json.loads(raw)
         return {
             **insights,
@@ -248,23 +355,47 @@ def generate_insights(question: str, results: list[dict], language: str = "en") 
         }
 
 
-def generate_insights_stream(question: str, results: list[dict], language: str = "en"):
+def generate_insights_stream(
+    question: str, results: list[dict],
+    language: str = "en",
+    tracker: WorkflowTokenTracker | None = None,
+):
     """流式生成洞察。"""
-    user_msg = build_insights_user_message(question, results)
-    yield from _call_llm_stream(INSIGHTS_SYSTEM, user_msg, max_tokens=INSIGHTS_CONTRACT.max_output_tokens, language=language)
+    budget = get_budget("insights")
+    truncated_rows = results[:budget.max_sample_rows]
+    user_msg = build_insights_user_message(question, truncated_rows)
+    yield from _call_llm_stream(
+        INSIGHTS_SYSTEM, user_msg,
+        max_tokens=budget.max_output_tokens,
+        language=language,
+        tracker=tracker,
+        operation="insights",
+    )
 
 
-def suggest_charts(results: list[dict], question: str = "", language: str = "en") -> dict:
+def suggest_charts(
+    results: list[dict],
+    question: str = "",
+    language: str = "en",
+    tracker: WorkflowTokenTracker | None = None,
+) -> dict:
     """推荐图表类型。"""
     start = time.time()
     if not results:
         return {"recommended_charts": [], "status": "empty"}
 
+    budget = get_budget("chart_suggest")
     columns = list(results[0].keys()) if results else []
-    sample = results[:10]
+    sample = results[:budget.max_sample_rows]
     user_msg = build_chart_user_message(columns, sample, question)
     try:
-        raw = _call_llm(CHART_SYSTEM, user_msg, max_tokens=CHART_CONTRACT.max_output_tokens, language=language)
+        raw = _call_llm(
+            CHART_SYSTEM, user_msg,
+            max_tokens=budget.max_output_tokens,
+            language=language,
+            tracker=tracker,
+            operation="chart_suggest",
+        )
         charts = json.loads(raw)
         return {
             **charts,
@@ -287,13 +418,21 @@ def generate_semantics(
     columns: list[dict],
     sample_rows: list[dict],
     language: str = "en",
+    tracker: WorkflowTokenTracker | None = None,
 ) -> dict:
     """生成数据集的语义理解。"""
     start = time.time()
+    budget = get_budget("semantics")
     cols = columns[:20]
-    user_msg = build_semantics_user_message(table, cols, sample_rows[:5])
+    user_msg = build_semantics_user_message(table, cols, sample_rows[:budget.max_sample_rows])
     try:
-        raw = _call_llm(SEMANTICS_SYSTEM, user_msg, max_tokens=SEMANTICS_CONTRACT.max_output_tokens, language=language)
+        raw = _call_llm(
+            SEMANTICS_SYSTEM, user_msg,
+            max_tokens=budget.max_output_tokens,
+            language=language,
+            tracker=tracker,
+            operation="semantics",
+        )
         result = json.loads(raw)
         return {
             **result,
@@ -325,16 +464,24 @@ def suggest_questions(
     profile: dict,
     semantics: dict | None = None,
     language: str = "en",
+    tracker: WorkflowTokenTracker | None = None,
 ) -> dict:
     """基于数据集概览推荐分析问题。"""
     start = time.time()
+    budget = get_budget("suggest_questions")
 
     profile_summary = build_profile_summary(table, profile)
     semantics_summary = build_semantics_summary(semantics) if semantics else None
     user_msg = build_questions_user_message(profile_summary, semantics_summary)
 
     try:
-        raw = _call_llm(QUESTIONS_SYSTEM, user_msg, max_tokens=QUESTIONS_CONTRACT.max_output_tokens, language=language)
+        raw = _call_llm(
+            QUESTIONS_SYSTEM, user_msg,
+            max_tokens=budget.max_output_tokens,
+            language=language,
+            tracker=tracker,
+            operation="suggest_questions",
+        )
         result = json.loads(raw)
         return {
             **result,
@@ -358,13 +505,21 @@ def generate_analysis_plan(
     columns: list[dict],
     sample_rows: list[dict],
     language: str = "en",
+    tracker: WorkflowTokenTracker | None = None,
 ) -> dict:
     """为复杂问题生成多步骤分析计划。"""
     start = time.time()
+    budget = get_budget("analysis_plan")
     cols = columns[:20]
-    user_msg = build_plan_user_message(question, table, cols, sample_rows[:5])
+    user_msg = build_plan_user_message(question, table, cols, sample_rows[:budget.max_sample_rows])
     try:
-        raw = _call_llm(PLAN_SYSTEM, user_msg, max_tokens=PLAN_CONTRACT.max_output_tokens, language=language)
+        raw = _call_llm(
+            PLAN_SYSTEM, user_msg,
+            max_tokens=budget.max_output_tokens,
+            language=language,
+            tracker=tracker,
+            operation="analysis_plan",
+        )
         result = json.loads(raw)
         if "plan" in result:
             result["plan"] = result["plan"][:6]
