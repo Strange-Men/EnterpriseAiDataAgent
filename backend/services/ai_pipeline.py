@@ -14,6 +14,7 @@ from backend.prompts.summarizer import (
     SYSTEM_PROMPT as SUMMARIZER_SYSTEM,
     build_user_message as build_summarizer_user_message,
 )
+from backend.runtime.token_budget import WorkflowTokenTracker, get_budget
 import json
 import time
 
@@ -121,12 +122,14 @@ def run_autonomous_analysis(
 ) -> dict:
     """Plan → Execute each step → Executive summary.
 
-    Returns dict with: question, plan, steps (each with sql/data), summary, status, elapsed_ms.
+    集成 Token Budget: WorkflowTokenTracker 控制总 token 消耗。
+    Returns dict with: question, plan, steps, summary, status, elapsed_ms, token_budget.
     """
     start = time.time()
+    tracker = WorkflowTokenTracker(total_budget=25000)
 
     # 1. Generate plan
-    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language)
+    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker)
     if plan_result["status"] == "error":
         return {
             "question": question,
@@ -136,6 +139,7 @@ def run_autonomous_analysis(
             "error": plan_result.get("error", "Planning failed"),
             "status": "error",
             "elapsed_ms": round((time.time() - start) * 1000, 2),
+            "token_budget": tracker.to_dict(),
         }
 
     plan = plan_result.get("plan", [])
@@ -147,6 +151,7 @@ def run_autonomous_analysis(
             "summary": "No analysis plan could be generated.",
             "status": "error",
             "elapsed_ms": round((time.time() - start) * 1000, 2),
+            "token_budget": tracker.to_dict(),
         }
 
     # 2. Build schema context for SQL generation
@@ -160,6 +165,21 @@ def run_autonomous_analysis(
         purpose = step_def.get("purpose", "")
         sql_goal = step_def.get("sql_goal", "")
         depends_on = step_def.get("depends_on")
+
+        # Budget check: 如果 token 已耗尽，跳过剩余步骤
+        budget = get_budget("sql_generation")
+        if not tracker.can_proceed(budget.max_input_tokens, budget.max_output_tokens):
+            tracker.record_budget_exceeded("sql_generation")
+            executed_steps.append({
+                "step": step_num,
+                "purpose": purpose,
+                "sql": "",
+                "columns": [],
+                "data": [],
+                "error": "Token budget exceeded",
+                "status": "skipped_budget",
+            })
+            continue
 
         # Build follow-up context from dependency
         fu_ctx = None
@@ -178,7 +198,7 @@ def run_autonomous_analysis(
 
         # Generate SQL for this step
         step_question = f"{purpose}: {sql_goal}"
-        sql_result = generate_sql(step_question, schema_context, fu_ctx, language)
+        sql_result = generate_sql(step_question, schema_context, fu_ctx, language, tracker=tracker)
 
         if sql_result["status"] == "error":
             executed_steps.append({
@@ -223,13 +243,13 @@ def run_autonomous_analysis(
     summary = ""
     if successful_steps:
         step_summaries = []
+        summarizer_budget = get_budget("summarizer")
         for s in executed_steps:
             status_label = "✓" if s["status"] == "success" else "✗"
             data_note = ""
             if s["status"] == "success" and s["data"]:
                 data_note = f" ({s.get('row_count', len(s['data']))} rows)"
-                # Include first few rows as JSON for context
-                sample = s["data"][:3]
+                sample = s["data"][:summarizer_budget.max_sample_rows]
                 if sample:
                     data_note += f"\nSample: {json.dumps(sample, default=str, ensure_ascii=False)[:500]}"
             elif s.get("error"):
@@ -238,7 +258,13 @@ def run_autonomous_analysis(
 
         summary_input = build_summarizer_user_message(question, step_summaries)
         try:
-            summary = _call_llm(SUMMARIZER_SYSTEM, summary_input, max_tokens=SUMMARIZER_CONTRACT.max_output_tokens, language=language)
+            summary = _call_llm(
+                SUMMARIZER_SYSTEM, summary_input,
+                max_tokens=summarizer_budget.max_output_tokens,
+                language=language,
+                tracker=tracker,
+                operation="summarizer",
+            )
         except Exception:
             summary = "Summary generation failed."
 
@@ -249,6 +275,7 @@ def run_autonomous_analysis(
         "summary": summary,
         "status": "success",
         "elapsed_ms": round((time.time() - start) * 1000, 2),
+        "token_budget": tracker.to_dict(),
     }
 
 
@@ -262,17 +289,19 @@ def run_autonomous_analysis_stream(
 ):
     """Streaming variant: yields dict events at each stage.
 
+    集成 Token Budget: 超预算时跳过剩余步骤。
     Events:
     - {"type": "plan", "plan": [...]}
     - {"type": "step_start", "step": N, "purpose": "..."}
     - {"type": "step_result", "step": N, ...full step dict...}
     - {"type": "summary", "summary": "..."}
-    - {"type": "done", "elapsed_ms": ...}
+    - {"type": "done", "elapsed_ms": ..., "token_budget": {...}}
     """
     start = time.time()
+    tracker = WorkflowTokenTracker(total_budget=25000)
 
     # 1. Generate plan
-    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language)
+    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker)
     if plan_result["status"] == "error":
         yield {"type": "error", "error": plan_result.get("error", "Planning failed")}
         return
@@ -298,6 +327,20 @@ def run_autonomous_analysis_stream(
 
         yield {"type": "step_start", "step": step_num, "purpose": purpose}
 
+        # Budget check
+        budget = get_budget("sql_generation")
+        if not tracker.can_proceed(budget.max_input_tokens, budget.max_output_tokens):
+            tracker.record_budget_exceeded("sql_generation")
+            step_out = {
+                "step": step_num, "purpose": purpose, "sql": "",
+                "columns": [], "data": [],
+                "error": "Token budget exceeded",
+                "status": "skipped_budget",
+            }
+            executed_steps.append(step_out)
+            yield {"type": "step_result", **step_out}
+            continue
+
         # Build follow-up context from dependency
         fu_ctx = None
         if depends_on is not None:
@@ -315,7 +358,7 @@ def run_autonomous_analysis_stream(
 
         # Generate SQL
         step_question = f"{purpose}: {sql_goal}"
-        sql_result = generate_sql(step_question, schema_context, fu_ctx, language)
+        sql_result = generate_sql(step_question, schema_context, fu_ctx, language, tracker=tracker)
 
         if sql_result["status"] == "error":
             step_out = {
@@ -358,12 +401,13 @@ def run_autonomous_analysis_stream(
     successful_steps = [s for s in executed_steps if s["status"] == "success" and s["data"]]
     if successful_steps:
         step_summaries = []
+        summarizer_budget = get_budget("summarizer")
         for s in executed_steps:
             status_label = "✓" if s["status"] == "success" else "✗"
             data_note = ""
             if s["status"] == "success" and s["data"]:
                 data_note = f" ({s.get('row_count', len(s['data']))} rows)"
-                sample = s["data"][:3]
+                sample = s["data"][:summarizer_budget.max_sample_rows]
                 if sample:
                     data_note += f"\nSample: {json.dumps(sample, default=str, ensure_ascii=False)[:500]}"
             elif s.get("error"):
@@ -372,9 +416,15 @@ def run_autonomous_analysis_stream(
 
         summary_input = build_summarizer_user_message(question, step_summaries)
         try:
-            summary = _call_llm(SUMMARIZER_SYSTEM, summary_input, max_tokens=SUMMARIZER_CONTRACT.max_output_tokens, language=language)
+            summary = _call_llm(
+                SUMMARIZER_SYSTEM, summary_input,
+                max_tokens=summarizer_budget.max_output_tokens,
+                language=language,
+                tracker=tracker,
+                operation="summarizer",
+            )
         except Exception:
             summary = "Summary generation failed."
 
     yield {"type": "summary", "summary": summary}
-    yield {"type": "done", "elapsed_ms": round((time.time() - start) * 1000, 2)}
+    yield {"type": "done", "elapsed_ms": round((time.time() - start) * 1000, 2), "token_budget": tracker.to_dict()}
