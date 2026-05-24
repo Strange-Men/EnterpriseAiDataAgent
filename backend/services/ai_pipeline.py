@@ -15,6 +15,7 @@ from backend.prompts.summarizer import (
     build_user_message as build_summarizer_user_message,
 )
 from backend.runtime.token_budget import WorkflowTokenTracker, get_budget
+from backend.services.guardrails import AnalysisGuard, AnalysisGuardrails, GuardrailViolation, DEFAULT_GUARDRAILS
 import json
 import time
 
@@ -119,14 +120,18 @@ def run_autonomous_analysis(
     sample_rows: list[dict],
     language: str = "en",
     max_rows: int = 500,
+    guardrails: AnalysisGuardrails | None = None,
 ) -> dict:
     """Plan → Execute each step → Executive summary.
 
     集成 Token Budget: WorkflowTokenTracker 控制总 token 消耗。
-    Returns dict with: question, plan, steps, summary, status, elapsed_ms, token_budget.
+    集成 Guardrails: AnalysisGuard 控制步数、超时、连续失败等。
+    Returns dict with: question, plan, steps, summary, status, elapsed_ms, token_budget, guardrails.
     """
     start = time.time()
     tracker = WorkflowTokenTracker(total_budget=25000)
+    guard = AnalysisGuard(guardrails or DEFAULT_GUARDRAILS)
+    guardrail_violations: list[str] = []
 
     # 1. Generate plan
     plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker)
@@ -166,6 +171,24 @@ def run_autonomous_analysis(
         sql_goal = step_def.get("sql_goal", "")
         depends_on = step_def.get("depends_on")
 
+        # Guardrail check: 在每步之前检查限制
+        try:
+            guard.check_before_step(step_def, executed_steps)
+        except GuardrailViolation as v:
+            guardrail_violations.append(f"{v.rule}: {v.message}")
+            executed_steps.append({
+                "step": step_num,
+                "purpose": purpose,
+                "sql": "",
+                "columns": [],
+                "data": [],
+                "error": v.message,
+                "status": f"skipped_{v.rule}",
+            })
+            if v.rule in ("max_sql_queries", "consecutive_failures", "total_timeout"):
+                break  # 严重违规，停止执行
+            continue
+
         # Budget check: 如果 token 已耗尽，跳过剩余步骤
         budget = get_budget("sql_generation")
         if not tracker.can_proceed(budget.max_input_tokens, budget.max_output_tokens):
@@ -201,6 +224,7 @@ def run_autonomous_analysis(
         sql_result = generate_sql(step_question, schema_context, fu_ctx, language, tracker=tracker)
 
         if sql_result["status"] == "error":
+            guard.record_step_result(success=False)
             executed_steps.append({
                 "step": step_num,
                 "purpose": purpose,
@@ -214,6 +238,7 @@ def run_autonomous_analysis(
 
         sql = sql_result["sql"]
         if sql.startswith("-- CANNOT_ANSWER"):
+            guard.record_step_result(success=False)
             executed_steps.append({
                 "step": step_num,
                 "purpose": purpose,
@@ -227,6 +252,8 @@ def run_autonomous_analysis(
 
         # Execute SQL
         exec_result = _execute_step_sql(sql, max_rows)
+        is_success = exec_result["status"] == "success"
+        guard.record_step_result(success=is_success)
         executed_steps.append({
             "step": step_num,
             "purpose": purpose,
@@ -238,7 +265,13 @@ def run_autonomous_analysis(
             "status": exec_result["status"],
         })
 
-    # 4. Generate executive summary
+    # 4. Check minimum success guardrail
+    try:
+        guard.check_after_all(executed_steps)
+    except GuardrailViolation as v:
+        guardrail_violations.append(f"{v.rule}: {v.message}")
+
+    # 5. Generate executive summary
     successful_steps = [s for s in executed_steps if s["status"] == "success" and s["data"]]
     summary = ""
     if successful_steps:
@@ -276,6 +309,8 @@ def run_autonomous_analysis(
         "status": "success",
         "elapsed_ms": round((time.time() - start) * 1000, 2),
         "token_budget": tracker.to_dict(),
+        "guardrails": guard.to_dict(),
+        "guardrail_violations": guardrail_violations,
     }
 
 
@@ -286,19 +321,23 @@ def run_autonomous_analysis_stream(
     sample_rows: list[dict],
     language: str = "en",
     max_rows: int = 500,
+    guardrails: AnalysisGuardrails | None = None,
 ):
     """Streaming variant: yields dict events at each stage.
 
     集成 Token Budget: 超预算时跳过剩余步骤。
+    集成 Guardrails: 超限时跳过或停止。
     Events:
     - {"type": "plan", "plan": [...]}
     - {"type": "step_start", "step": N, "purpose": "..."}
     - {"type": "step_result", "step": N, ...full step dict...}
     - {"type": "summary", "summary": "..."}
-    - {"type": "done", "elapsed_ms": ..., "token_budget": {...}}
+    - {"type": "done", "elapsed_ms": ..., "token_budget": {...}, "guardrails": {...}}
     """
     start = time.time()
     tracker = WorkflowTokenTracker(total_budget=25000)
+    guard = AnalysisGuard(guardrails or DEFAULT_GUARDRAILS)
+    guardrail_violations: list[str] = []
 
     # 1. Generate plan
     plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker)
@@ -326,6 +365,23 @@ def run_autonomous_analysis_stream(
         depends_on = step_def.get("depends_on")
 
         yield {"type": "step_start", "step": step_num, "purpose": purpose}
+
+        # Guardrail check
+        try:
+            guard.check_before_step(step_def, executed_steps)
+        except GuardrailViolation as v:
+            guardrail_violations.append(f"{v.rule}: {v.message}")
+            step_out = {
+                "step": step_num, "purpose": purpose, "sql": "",
+                "columns": [], "data": [],
+                "error": v.message,
+                "status": f"skipped_{v.rule}",
+            }
+            executed_steps.append(step_out)
+            yield {"type": "step_result", **step_out}
+            if v.rule in ("max_sql_queries", "consecutive_failures", "total_timeout"):
+                break
+            continue
 
         # Budget check
         budget = get_budget("sql_generation")
@@ -361,6 +417,7 @@ def run_autonomous_analysis_stream(
         sql_result = generate_sql(step_question, schema_context, fu_ctx, language, tracker=tracker)
 
         if sql_result["status"] == "error":
+            guard.record_step_result(success=False)
             step_out = {
                 "step": step_num, "purpose": purpose, "sql": "",
                 "columns": [], "data": [],
@@ -373,6 +430,7 @@ def run_autonomous_analysis_stream(
 
         sql = sql_result["sql"]
         if sql.startswith("-- CANNOT_ANSWER"):
+            guard.record_step_result(success=False)
             step_out = {
                 "step": step_num, "purpose": purpose, "sql": sql,
                 "columns": [], "data": [],
@@ -385,6 +443,8 @@ def run_autonomous_analysis_stream(
 
         # Execute SQL
         exec_result = _execute_step_sql(sql, max_rows)
+        is_success = exec_result["status"] == "success"
+        guard.record_step_result(success=is_success)
         step_out = {
             "step": step_num, "purpose": purpose, "sql": sql,
             "columns": exec_result.get("columns", []),
@@ -396,7 +456,13 @@ def run_autonomous_analysis_stream(
         executed_steps.append(step_out)
         yield {"type": "step_result", **step_out}
 
-    # 4. Generate executive summary
+    # 4. Check minimum success guardrail
+    try:
+        guard.check_after_all(executed_steps)
+    except GuardrailViolation as v:
+        guardrail_violations.append(f"{v.rule}: {v.message}")
+
+    # 5. Generate executive summary
     summary = ""
     successful_steps = [s for s in executed_steps if s["status"] == "success" and s["data"]]
     if successful_steps:
@@ -427,4 +493,4 @@ def run_autonomous_analysis_stream(
             summary = "Summary generation failed."
 
     yield {"type": "summary", "summary": summary}
-    yield {"type": "done", "elapsed_ms": round((time.time() - start) * 1000, 2), "token_budget": tracker.to_dict()}
+    yield {"type": "done", "elapsed_ms": round((time.time() - start) * 1000, 2), "token_budget": tracker.to_dict(), "guardrails": guard.to_dict(), "guardrail_violations": guardrail_violations}
