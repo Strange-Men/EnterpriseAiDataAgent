@@ -10,9 +10,9 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.4.1 (AI Workspace Integration & User Workflow Completion)
-- **Phase**: v0.4.x Enterprise Reliability & Intelligence — ACTIVE
-- **Next**: v0.4.2+ (E2E tests, chart rendering, prompt optimization)
+- **Current**: v0.5.1 (AI Streaming, Session Memory, Follow-up Analysis & Chart Rendering)
+- **Phase**: v0.5.x AI Data Analyst MVP — ACTIVE
+- **Next**: v0.5.2+ (prompt optimization, multi-turn UX, E2E tests)
 
 ## Version Freeze Rules
 

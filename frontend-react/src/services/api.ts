@@ -223,6 +223,13 @@ export async function fetchAIStatus(): Promise<AIStatus> {
 
 // ── AI Analysis ─────────────────────────────────────────────────
 
+export interface FollowUpContext {
+  previous_sql?: string;
+  previous_result_schema?: { name: string; dtype: string }[];
+  previous_sample_rows?: Record<string, unknown>[];
+  previous_insight_summary?: string;
+}
+
 export interface AIQueryResult {
   question: string;
   sql: string;
@@ -241,24 +248,28 @@ export interface AIQueryResult {
 export async function aiQuery(
   question: string,
   execute: boolean = true,
-  explain: boolean = true
+  explain: boolean = true,
+  followUpContext?: FollowUpContext
 ): Promise<AIQueryResult> {
+  const body: Record<string, unknown> = { question, execute, explain };
+  if (followUpContext) body.follow_up_context = followUpContext;
   return apiFetch<AIQueryResult>("/ai/query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, execute, explain }),
+    body: JSON.stringify(body),
   });
 }
 
 export async function aiExplain(
   question: string,
   sql: string,
-  results: Record<string, unknown>[]
+  results: Record<string, unknown>[],
+  conversationHistory?: { role: string; content: string }[]
 ): Promise<{ explanation: string; status: string }> {
   return apiFetch("/ai/explain", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, sql, results }),
+    body: JSON.stringify({ question, sql, results, conversation_history: conversationHistory }),
   });
 }
 
@@ -271,6 +282,82 @@ export async function aiInsights(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question, results }),
   });
+}
+
+// ── Streaming API ─────────────────────────────────────────────
+
+export interface StreamCallbacks {
+  onChunk: (text: string) => void;
+  onDone: () => void;
+  onError: (err: Error) => void;
+}
+
+function consumeSseStream(response: Promise<Response>, callbacks: StreamCallbacks): AbortController {
+  const controller = new AbortController();
+  response.then(async (res) => {
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      callbacks.onError(new Error(`API ${res.status}: ${body || res.statusText}`));
+      return;
+    }
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === "text") callbacks.onChunk(data.content);
+            else if (data.type === "done") callbacks.onDone();
+            else if (data.type === "error") callbacks.onError(new Error(data.error));
+          }
+        }
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        callbacks.onError(err instanceof Error ? err : new Error("Stream failed"));
+      }
+    }
+  }).catch((err) => callbacks.onError(err));
+  return controller;
+}
+
+export function streamAiExplain(
+  question: string,
+  sql: string,
+  results: Record<string, unknown>[],
+  callbacks: StreamCallbacks,
+  conversationHistory?: { role: string; content: string }[]
+): AbortController {
+  return consumeSseStream(
+    fetch(`${API_BASE}/ai/explain/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, sql, results, conversation_history: conversationHistory }),
+    }),
+    callbacks,
+  );
+}
+
+export function streamAiInsights(
+  question: string,
+  results: Record<string, unknown>[],
+  callbacks: StreamCallbacks,
+): AbortController {
+  return consumeSseStream(
+    fetch(`${API_BASE}/ai/insights/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, results }),
+    }),
+    callbacks,
+  );
 }
 
 export async function aiChartSuggest(

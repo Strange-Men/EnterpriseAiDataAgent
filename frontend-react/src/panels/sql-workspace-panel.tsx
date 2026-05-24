@@ -663,6 +663,12 @@ export function SqlWorkspacePanel() {
             question={queryResult.sql}
             results={queryResult.data}
             onClose={() => { setShowAiPanel(false); setAiMode(null); }}
+            onSqlGenerated={(newSql) => {
+              if (activeTab) {
+                updateTabSql(activeTab.id, newSql);
+                wfAdvance("sql-ready", { table: wfTable || "", sql: newSql });
+              }
+            }}
           />
         </div>
       )}

@@ -9,11 +9,15 @@ Endpoints:
 """
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+import json
 from backend.config import ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL
 from backend.services.ai_analyst import (
     explain_results,
+    explain_results_stream,
     generate_insights,
+    generate_insights_stream,
     suggest_charts,
     MODEL,
     TEMPERATURE,
@@ -46,17 +50,26 @@ async def ai_status():
     }
 
 
+class FollowUpContext(BaseModel):
+    previous_sql: str | None = None
+    previous_result_schema: list[dict] | None = None
+    previous_sample_rows: list[dict] | None = None
+    previous_insight_summary: str | None = None
+
+
 class AIQueryRequest(BaseModel):
     question: str
     execute: bool = True
     explain: bool = True
     max_rows: int = 1000
+    follow_up_context: FollowUpContext | None = None
 
 
 class ExplainRequest(BaseModel):
     question: str
     sql: str
     results: list[dict]
+    conversation_history: list[dict] | None = None
 
 
 class InsightsRequest(BaseModel):
@@ -74,13 +87,14 @@ async def ai_query(req: AIQueryRequest):
     """Natural language → SQL → Execute → Explain pipeline."""
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Empty question")
-    return run_ai_query(req.question, req.execute, req.explain, req.max_rows)
+    ctx = req.follow_up_context.model_dump() if req.follow_up_context else None
+    return run_ai_query(req.question, req.execute, req.explain, req.max_rows, ctx)
 
 
 @router.post("/ai/explain")
 async def ai_explain(req: ExplainRequest):
     """Explain existing query results."""
-    result = explain_results(req.question, req.sql, req.results)
+    result = explain_results(req.question, req.sql, req.results, req.conversation_history)
     if result["status"] == "error":
         raise HTTPException(status_code=500, detail=result.get("error", "Explanation failed"))
     return result
@@ -99,3 +113,38 @@ async def ai_insights(req: InsightsRequest):
 async def ai_chart_suggest(req: ChartSuggestRequest):
     """Suggest chart types for data."""
     return suggest_charts(req.results, req.question)
+
+
+# ── Streaming Endpoints ─────────────────────────────────────────
+
+def _sse_event(data: dict) -> str:
+    """Format a dict as an SSE event string."""
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.post("/ai/explain/stream")
+async def ai_explain_stream(req: ExplainRequest):
+    """Stream AI explanation as SSE."""
+    def event_generator():
+        try:
+            for chunk in explain_results_stream(req.question, req.sql, req.results, req.conversation_history):
+                yield _sse_event({"type": "text", "content": chunk})
+            yield _sse_event({"type": "done"})
+        except Exception as e:
+            yield _sse_event({"type": "error", "error": str(e)})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@router.post("/ai/insights/stream")
+async def ai_insights_stream(req: InsightsRequest):
+    """Stream AI insights as SSE (raw JSON text chunks)."""
+    def event_generator():
+        try:
+            for chunk in generate_insights_stream(req.question, req.results):
+                yield _sse_event({"type": "text", "content": chunk})
+            yield _sse_event({"type": "done"})
+        except Exception as e:
+            yield _sse_event({"type": "error", "error": str(e)})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

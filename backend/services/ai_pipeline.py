@@ -4,11 +4,18 @@ from backend.services.ai_analyst import (
     generate_sql,
     explain_results,
     build_schema_context,
+    build_follow_up_context,
 )
 from backend.services.data_service import _executor, _sanitize_for_json, list_tables
 
 
-def run_ai_query(question: str, execute: bool = True, explain: bool = True, max_rows: int = 1000) -> dict:
+def run_ai_query(
+    question: str,
+    execute: bool = True,
+    explain: bool = True,
+    max_rows: int = 1000,
+    follow_up_context: dict | None = None,
+) -> dict:
     """Natural language → SQL → Execute → Explain pipeline.
 
     Returns a dict with keys: question, sql, status, columns, data, explanation, etc.
@@ -21,8 +28,11 @@ def run_ai_query(question: str, execute: bool = True, explain: bool = True, max_
     tables = list_tables()
     schema_context = build_schema_context(tables)
 
-    # 2. Generate SQL
-    sql_result = generate_sql(question, schema_context)
+    # 2. Build follow-up context (if provided)
+    fu_ctx = build_follow_up_context(follow_up_context) if follow_up_context else None
+
+    # 3. Generate SQL
+    sql_result = generate_sql(question, schema_context, fu_ctx)
     if sql_result["status"] == "error":
         return {
             "question": question,

@@ -53,6 +53,43 @@ def build_schema_context(tables: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def build_follow_up_context(ctx: dict) -> str:
+    """Build structured previous-analysis context for follow-up queries.
+
+    Token budget: ~220-500 tokens.
+    - previous_sql: full text (~50-100 tokens)
+    - previous_result_schema: col name + dtype (~20-50 tokens)
+    - previous_sample_rows: max 5 rows JSON (~50-150 tokens)
+    - previous_insight_summary: truncated to 500 chars (~100-200 tokens)
+    """
+    parts = ["=== PREVIOUS ANALYSIS CONTEXT ===\n"]
+
+    if ctx.get("previous_sql"):
+        parts.append(f"Previous SQL:\n{ctx['previous_sql']}\n")
+
+    schema = ctx.get("previous_result_schema", [])
+    if schema:
+        parts.append("Previous Result Schema:")
+        for col in schema:
+            parts.append(f"  - {col['name']} ({col['dtype']})")
+        parts.append("")
+
+    samples = ctx.get("previous_sample_rows", [])[:5]
+    if samples:
+        parts.append(
+            f"Previous Result Sample (first {len(samples)} rows):\n"
+            f"{json.dumps(samples, default=str, ensure_ascii=False)}\n"
+        )
+
+    summary = ctx.get("previous_insight_summary", "")
+    if summary:
+        if len(summary) > 500:
+            summary = summary[:500] + "..."
+        parts.append(f"Previous Insight Summary:\n{summary}\n")
+
+    return "\n".join(parts)
+
+
 # ── Prompts ─────────────────────────────────────────────────────
 
 SQL_GENERATION_SYSTEM = """You are an expert SQL analyst. Given a database schema and a user question, generate a SQL query.
@@ -141,12 +178,34 @@ def _call_llm(system: str, user_message: str, max_tokens: int = 1024) -> str:
     return str(response.content[0])
 
 
+def _call_llm_stream(system: str, user_message: str, max_tokens: int = 1024):
+    """Yield text chunks from Anthropic streaming API.
+
+    This is a sync generator suitable for use with FastAPI StreamingResponse.
+    """
+    client = _get_client()
+    with client.messages.stream(
+        model=MODEL,
+        max_tokens=max_tokens,
+        temperature=TEMPERATURE,
+        system=system,
+        messages=[{"role": "user", "content": user_message}],
+    ) as stream:
+        for text in stream.text_stream:
+            yield text
+
+
 # ── Public API ──────────────────────────────────────────────────
 
-def generate_sql(question: str, schema_context: str) -> dict:
+def generate_sql(question: str, schema_context: str, follow_up_context: str | None = None) -> dict:
     """Generate SQL from a natural language question."""
     start = time.time()
-    user_msg = f"Database schema:\n{schema_context}\n\nUser question: {question}"
+    parts = []
+    if follow_up_context:
+        parts.append(follow_up_context)
+    parts.append(f"Database schema:\n{schema_context}")
+    parts.append(f"User question: {question}")
+    user_msg = "\n\n".join(parts)
     try:
         sql = _call_llm(SQL_GENERATION_SYSTEM, user_msg, max_tokens=512)
         sql = sql.strip()
@@ -170,17 +229,34 @@ def generate_sql(question: str, schema_context: str) -> dict:
         }
 
 
-def explain_results(question: str, sql: str, results: list[dict]) -> dict:
-    """Explain query results in natural language."""
-    start = time.time()
-    # Truncate results for LLM (send max 50 rows)
+def _build_explain_user_msg(
+    question: str, sql: str, results: list[dict],
+    conversation_history: list[dict] | None = None,
+) -> str:
+    """Build the user message for explain, optionally including conversation history."""
     truncated = results[:50]
-    user_msg = (
-        f"Original question: {question}\n\n"
-        f"SQL query: {sql}\n\n"
+    parts = []
+    if conversation_history:
+        parts.append("Previous conversation:")
+        for turn in conversation_history[-6:]:
+            parts.append(f"[{turn['role']}]: {turn['content']}")
+        parts.append("")
+    parts.append(f"Original question: {question}")
+    parts.append(f"SQL query: {sql}")
+    parts.append(
         f"Results ({len(results)} rows total, showing first {len(truncated)}):\n"
         f"{json.dumps(truncated, default=str, ensure_ascii=False)}"
     )
+    return "\n\n".join(parts)
+
+
+def explain_results(
+    question: str, sql: str, results: list[dict],
+    conversation_history: list[dict] | None = None,
+) -> dict:
+    """Explain query results in natural language."""
+    start = time.time()
+    user_msg = _build_explain_user_msg(question, sql, results, conversation_history)
     try:
         explanation = _call_llm(EXPLANATION_SYSTEM, user_msg, max_tokens=1024)
         return {
@@ -195,6 +271,15 @@ def explain_results(question: str, sql: str, results: list[dict]) -> dict:
             "status": "error",
             "elapsed_ms": round((time.time() - start) * 1000, 2),
         }
+
+
+def explain_results_stream(
+    question: str, sql: str, results: list[dict],
+    conversation_history: list[dict] | None = None,
+):
+    """Yield text chunks for streaming explanation."""
+    user_msg = _build_explain_user_msg(question, sql, results, conversation_history)
+    yield from _call_llm_stream(EXPLANATION_SYSTEM, user_msg, max_tokens=1024)
 
 
 def generate_insights(question: str, results: list[dict]) -> dict:
@@ -230,6 +315,17 @@ def generate_insights(question: str, results: list[dict]) -> dict:
             "status": "error",
             "elapsed_ms": round((time.time() - start) * 1000, 2),
         }
+
+
+def generate_insights_stream(question: str, results: list[dict]):
+    """Yield text chunks for streaming insights (raw JSON text)."""
+    truncated = results[:50]
+    user_msg = (
+        f"Question: {question}\n\n"
+        f"Results ({len(results)} rows, showing first {len(truncated)}):\n"
+        f"{json.dumps(truncated, default=str, ensure_ascii=False)}"
+    )
+    yield from _call_llm_stream(INSIGHTS_SYSTEM, user_msg, max_tokens=1024)
 
 
 def suggest_charts(results: list[dict], question: str = "") -> dict:
