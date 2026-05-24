@@ -173,6 +173,21 @@ export const useXxxStore = create<XxxState>()(
 **Key files**: `backend/services/guardrails.py`, `backend/services/ai_pipeline.py`
 **Location**: `skills/active/runtime-guardrails.md`
 
+### analysis-trace
+
+**When to use**: Debugging AI analysis, measuring LLM performance, auditing autonomous analysis.
+
+**Steps**:
+1. Create recorder: `trace = TraceRecorder(question, table, mode, language)`
+2. Pass to LLM functions: `generate_sql(..., trace=trace, phase="step_1", step=1)`
+3. Record guardrail violations: `trace.record_guardrail_violation(rule, message)`
+4. Set plan: `trace.set_plan(plan)`
+5. Finish: `trace.finish("success")`
+6. Export: `trace.to_dict()` for API, `trace.save_to_file()` for persistence
+
+**Key files**: `backend/services/trace.py`, `backend/services/ai_analyst.py`, `backend/services/ai_pipeline.py`
+**Location**: `skills/active/analysis-trace.md`
+
 ## Skill Lifecycle
 
 Skills are stored in `skills/` with lifecycle states:

@@ -16,6 +16,7 @@ from backend.prompts.summarizer import (
 )
 from backend.runtime.token_budget import WorkflowTokenTracker, get_budget
 from backend.services.guardrails import AnalysisGuard, AnalysisGuardrails, GuardrailViolation, DEFAULT_GUARDRAILS
+from backend.services.trace import TraceRecorder
 import json
 import time
 
@@ -126,16 +127,19 @@ def run_autonomous_analysis(
 
     集成 Token Budget: WorkflowTokenTracker 控制总 token 消耗。
     集成 Guardrails: AnalysisGuard 控制步数、超时、连续失败等。
-    Returns dict with: question, plan, steps, summary, status, elapsed_ms, token_budget, guardrails.
+    集成 Trace: TraceRecorder 记录每次 LLM 调用。
+    Returns dict with: question, plan, steps, summary, status, elapsed_ms, token_budget, guardrails, trace.
     """
     start = time.time()
     tracker = WorkflowTokenTracker(total_budget=25000)
     guard = AnalysisGuard(guardrails or DEFAULT_GUARDRAILS)
     guardrail_violations: list[str] = []
+    trace = TraceRecorder(question, table=table, mode="autonomous", language=language)
 
     # 1. Generate plan
-    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker)
+    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker, trace=trace, phase="planning")
     if plan_result["status"] == "error":
+        trace.finish("error")
         return {
             "question": question,
             "plan": [],
@@ -145,10 +149,12 @@ def run_autonomous_analysis(
             "status": "error",
             "elapsed_ms": round((time.time() - start) * 1000, 2),
             "token_budget": tracker.to_dict(),
+            "trace": trace.to_dict(),
         }
 
     plan = plan_result.get("plan", [])
     if not plan:
+        trace.finish("error")
         return {
             "question": question,
             "plan": [],
@@ -157,7 +163,10 @@ def run_autonomous_analysis(
             "status": "error",
             "elapsed_ms": round((time.time() - start) * 1000, 2),
             "token_budget": tracker.to_dict(),
+            "trace": trace.to_dict(),
         }
+
+    trace.set_plan(plan)
 
     # 2. Build schema context for SQL generation
     tables = list_tables()
@@ -176,6 +185,7 @@ def run_autonomous_analysis(
             guard.check_before_step(step_def, executed_steps)
         except GuardrailViolation as v:
             guardrail_violations.append(f"{v.rule}: {v.message}")
+            trace.record_guardrail_violation(v.rule, v.message)
             executed_steps.append({
                 "step": step_num,
                 "purpose": purpose,
@@ -221,7 +231,7 @@ def run_autonomous_analysis(
 
         # Generate SQL for this step
         step_question = f"{purpose}: {sql_goal}"
-        sql_result = generate_sql(step_question, schema_context, fu_ctx, language, tracker=tracker)
+        sql_result = generate_sql(step_question, schema_context, fu_ctx, language, tracker=tracker, trace=trace, phase=f"step_{step_num}", step=step_num)
 
         if sql_result["status"] == "error":
             guard.record_step_result(success=False)
@@ -270,6 +280,7 @@ def run_autonomous_analysis(
         guard.check_after_all(executed_steps)
     except GuardrailViolation as v:
         guardrail_violations.append(f"{v.rule}: {v.message}")
+        trace.record_guardrail_violation(v.rule, v.message)
 
     # 5. Generate executive summary
     successful_steps = [s for s in executed_steps if s["status"] == "success" and s["data"]]
@@ -297,10 +308,12 @@ def run_autonomous_analysis(
                 language=language,
                 tracker=tracker,
                 operation="summarizer",
+                trace=trace, phase="summary", prompt_name="summarizer",
             )
         except Exception:
             summary = "Summary generation failed."
 
+    trace.finish("success")
     return {
         "question": question,
         "plan": plan,
@@ -311,6 +324,7 @@ def run_autonomous_analysis(
         "token_budget": tracker.to_dict(),
         "guardrails": guard.to_dict(),
         "guardrail_violations": guardrail_violations,
+        "trace": trace.to_dict(),
     }
 
 
@@ -327,29 +341,34 @@ def run_autonomous_analysis_stream(
 
     集成 Token Budget: 超预算时跳过剩余步骤。
     集成 Guardrails: 超限时跳过或停止。
+    集成 Trace: 记录每次 LLM 调用。
     Events:
     - {"type": "plan", "plan": [...]}
     - {"type": "step_start", "step": N, "purpose": "..."}
     - {"type": "step_result", "step": N, ...full step dict...}
     - {"type": "summary", "summary": "..."}
-    - {"type": "done", "elapsed_ms": ..., "token_budget": {...}, "guardrails": {...}}
+    - {"type": "done", "elapsed_ms": ..., "token_budget": {...}, "guardrails": {...}, "trace": {...}}
     """
     start = time.time()
     tracker = WorkflowTokenTracker(total_budget=25000)
     guard = AnalysisGuard(guardrails or DEFAULT_GUARDRAILS)
     guardrail_violations: list[str] = []
+    trace = TraceRecorder(question, table=table, mode="autonomous", language=language)
 
     # 1. Generate plan
-    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker)
+    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker, trace=trace, phase="planning")
     if plan_result["status"] == "error":
+        trace.finish("error")
         yield {"type": "error", "error": plan_result.get("error", "Planning failed")}
         return
 
     plan = plan_result.get("plan", [])
     if not plan:
+        trace.finish("error")
         yield {"type": "error", "error": "No analysis plan could be generated."}
         return
 
+    trace.set_plan(plan)
     yield {"type": "plan", "plan": plan}
 
     # 2. Build schema context
@@ -371,6 +390,7 @@ def run_autonomous_analysis_stream(
             guard.check_before_step(step_def, executed_steps)
         except GuardrailViolation as v:
             guardrail_violations.append(f"{v.rule}: {v.message}")
+            trace.record_guardrail_violation(v.rule, v.message)
             step_out = {
                 "step": step_num, "purpose": purpose, "sql": "",
                 "columns": [], "data": [],
@@ -414,7 +434,7 @@ def run_autonomous_analysis_stream(
 
         # Generate SQL
         step_question = f"{purpose}: {sql_goal}"
-        sql_result = generate_sql(step_question, schema_context, fu_ctx, language, tracker=tracker)
+        sql_result = generate_sql(step_question, schema_context, fu_ctx, language, tracker=tracker, trace=trace, phase=f"step_{step_num}", step=step_num)
 
         if sql_result["status"] == "error":
             guard.record_step_result(success=False)
@@ -461,6 +481,7 @@ def run_autonomous_analysis_stream(
         guard.check_after_all(executed_steps)
     except GuardrailViolation as v:
         guardrail_violations.append(f"{v.rule}: {v.message}")
+        trace.record_guardrail_violation(v.rule, v.message)
 
     # 5. Generate executive summary
     summary = ""
@@ -488,9 +509,11 @@ def run_autonomous_analysis_stream(
                 language=language,
                 tracker=tracker,
                 operation="summarizer",
+                trace=trace, phase="summary", prompt_name="summarizer",
             )
         except Exception:
             summary = "Summary generation failed."
 
+    trace.finish("success")
     yield {"type": "summary", "summary": summary}
-    yield {"type": "done", "elapsed_ms": round((time.time() - start) * 1000, 2), "token_budget": tracker.to_dict(), "guardrails": guard.to_dict(), "guardrail_violations": guardrail_violations}
+    yield {"type": "done", "elapsed_ms": round((time.time() - start) * 1000, 2), "token_budget": tracker.to_dict(), "guardrails": guard.to_dict(), "guardrail_violations": guardrail_violations, "trace": trace.to_dict()}

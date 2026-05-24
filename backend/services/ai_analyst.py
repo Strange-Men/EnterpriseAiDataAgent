@@ -62,6 +62,9 @@ from backend.runtime.token_budget import (
     WorkflowTokenTracker,
 )
 
+# Trace 导入
+from backend.services.trace import TraceRecorder
+
 
 # ── Configuration ────────────────────────────────────────────────
 
@@ -142,8 +145,12 @@ def _call_llm(
     language: str = "en",
     tracker: WorkflowTokenTracker | None = None,
     operation: str = "unknown",
+    trace: TraceRecorder | None = None,
+    phase: str = "unknown",
+    prompt_name: str = "unknown",
+    step: int | None = None,
 ) -> str:
-    """调用 LLM（同步）。支持 budget enforcement 和 token tracking。"""
+    """调用 LLM（同步）。支持 budget enforcement、token tracking 和 trace。"""
     input_tokens = estimate_tokens(user_message)
 
     # Budget enforcement: 如果 tracker 存在且预算不足，拒绝调用
@@ -156,30 +163,63 @@ def _call_llm(
     if input_tokens > budget.max_input_tokens:
         user_message = truncate_text(user_message, budget.max_input_tokens)
 
+    start = time.time()
     client = _get_client()
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=max_tokens,
-        temperature=TEMPERATURE,
-        system=apply_language(system, language),
-        messages=[{"role": "user", "content": user_message}],
-    )
+    try:
+        response = client.messages.create(
+            model=MODEL,
+            max_tokens=max_tokens,
+            temperature=TEMPERATURE,
+            system=apply_language(system, language),
+            messages=[{"role": "user", "content": user_message}],
+        )
 
-    # 提取输出文本
-    text = ""
-    for block in response.content:
-        if hasattr(block, "text"):
-            text = block.text
-            break
-    if not text:
-        text = str(response.content[0])
+        # 提取输出文本
+        text = ""
+        for block in response.content:
+            if hasattr(block, "text"):
+                text = block.text
+                break
+        if not text:
+            text = str(response.content[0])
 
-    # 记录到 tracker
-    if tracker:
-        output_tokens = estimate_tokens(text)
-        tracker.record(operation, input_tokens, output_tokens)
+        elapsed = (time.time() - start) * 1000
 
-    return text
+        # 记录到 tracker
+        if tracker:
+            output_tokens = estimate_tokens(text)
+            tracker.record(operation, input_tokens, output_tokens)
+
+        # 记录到 trace
+        if trace:
+            trace.record_llm_call(
+                operation=operation,
+                phase=phase,
+                prompt_name=prompt_name,
+                input_text=user_message,
+                output_text=text,
+                latency_ms=elapsed,
+                status="success",
+                sql=text if operation == "sql_generation" else None,
+                step=step,
+            )
+
+        return text
+    except Exception as e:
+        elapsed = (time.time() - start) * 1000
+        if trace:
+            trace.record_llm_call(
+                operation=operation,
+                phase=phase,
+                prompt_name=prompt_name,
+                input_text=user_message,
+                output_text="",
+                latency_ms=elapsed,
+                status="error",
+                error=str(e),
+                step=step,
+            )
+        raise
 
 
 def _call_llm_stream(
@@ -189,8 +229,12 @@ def _call_llm_stream(
     language: str = "en",
     tracker: WorkflowTokenTracker | None = None,
     operation: str = "unknown",
+    trace: TraceRecorder | None = None,
+    phase: str = "unknown",
+    prompt_name: str = "unknown",
+    step: int | None = None,
 ):
-    """流式调用 LLM，yield 文本块。支持 budget enforcement 和 token tracking。"""
+    """流式调用 LLM，yield 文本块。支持 budget enforcement、token tracking 和 trace。"""
     input_tokens = estimate_tokens(user_message)
 
     # Budget enforcement
@@ -202,23 +246,55 @@ def _call_llm_stream(
     if input_tokens > budget.max_input_tokens:
         user_message = truncate_text(user_message, budget.max_input_tokens)
 
+    start = time.time()
     client = _get_client()
     output_text = ""
-    with client.messages.stream(
-        model=MODEL,
-        max_tokens=max_tokens,
-        temperature=TEMPERATURE,
-        system=apply_language(system, language),
-        messages=[{"role": "user", "content": user_message}],
-    ) as stream:
-        for chunk in stream.text_stream:
-            output_text += chunk
-            yield chunk
+    try:
+        with client.messages.stream(
+            model=MODEL,
+            max_tokens=max_tokens,
+            temperature=TEMPERATURE,
+            system=apply_language(system, language),
+            messages=[{"role": "user", "content": user_message}],
+        ) as stream:
+            for chunk in stream.text_stream:
+                output_text += chunk
+                yield chunk
 
-    # 流式完成后记录
-    if tracker:
-        output_tokens = estimate_tokens(output_text)
-        tracker.record(operation, input_tokens, output_tokens)
+        elapsed = (time.time() - start) * 1000
+
+        # 流式完成后记录
+        if tracker:
+            output_tokens = estimate_tokens(output_text)
+            tracker.record(operation, input_tokens, output_tokens)
+
+        # 记录到 trace
+        if trace:
+            trace.record_llm_call(
+                operation=operation,
+                phase=phase,
+                prompt_name=prompt_name,
+                input_text=user_message,
+                output_text=output_text,
+                latency_ms=elapsed,
+                status="success",
+                step=step,
+            )
+    except Exception as e:
+        elapsed = (time.time() - start) * 1000
+        if trace:
+            trace.record_llm_call(
+                operation=operation,
+                phase=phase,
+                prompt_name=prompt_name,
+                input_text=user_message,
+                output_text=output_text,
+                latency_ms=elapsed,
+                status="error",
+                error=str(e),
+                step=step,
+            )
+        raise
 
 
 # ── Public API ──────────────────────────────────────────────────
@@ -229,6 +305,9 @@ def generate_sql(
     follow_up_context: str | None = None,
     language: str = "en",
     tracker: WorkflowTokenTracker | None = None,
+    trace: TraceRecorder | None = None,
+    phase: str = "unknown",
+    step: int | None = None,
 ) -> dict:
     """从自然语言问题生成 SQL。"""
     start = time.time()
@@ -241,6 +320,7 @@ def generate_sql(
             language=language,
             tracker=tracker,
             operation="sql_generation",
+            trace=trace, phase=phase, prompt_name="sql_generation", step=step,
         )
         sql = sql.strip()
         if sql.startswith("```"):
@@ -267,6 +347,7 @@ def explain_results(
     conversation_history: list[dict] | None = None,
     language: str = "en",
     tracker: WorkflowTokenTracker | None = None,
+    trace: TraceRecorder | None = None,
 ) -> dict:
     """用业务语言解释查询结果。"""
     start = time.time()
@@ -280,6 +361,7 @@ def explain_results(
             language=language,
             tracker=tracker,
             operation="explanation",
+            trace=trace, phase="explain", prompt_name="explanation",
         )
         return {
             "explanation": explanation,
@@ -300,6 +382,7 @@ def explain_results_stream(
     conversation_history: list[dict] | None = None,
     language: str = "en",
     tracker: WorkflowTokenTracker | None = None,
+    trace: TraceRecorder | None = None,
 ):
     """流式生成解释。"""
     budget = get_budget("explanation")
@@ -311,6 +394,7 @@ def explain_results_stream(
         language=language,
         tracker=tracker,
         operation="explanation",
+        trace=trace, phase="explain", prompt_name="explanation",
     )
 
 
@@ -318,6 +402,7 @@ def generate_insights(
     question: str, results: list[dict],
     language: str = "en",
     tracker: WorkflowTokenTracker | None = None,
+    trace: TraceRecorder | None = None,
 ) -> dict:
     """生成结构化洞察。"""
     start = time.time()
@@ -331,6 +416,7 @@ def generate_insights(
             language=language,
             tracker=tracker,
             operation="insights",
+            trace=trace, phase="insights", prompt_name="insights",
         )
         insights = json.loads(raw)
         return {
@@ -359,6 +445,7 @@ def generate_insights_stream(
     question: str, results: list[dict],
     language: str = "en",
     tracker: WorkflowTokenTracker | None = None,
+    trace: TraceRecorder | None = None,
 ):
     """流式生成洞察。"""
     budget = get_budget("insights")
@@ -370,6 +457,7 @@ def generate_insights_stream(
         language=language,
         tracker=tracker,
         operation="insights",
+        trace=trace, phase="insights", prompt_name="insights",
     )
 
 
@@ -378,6 +466,7 @@ def suggest_charts(
     question: str = "",
     language: str = "en",
     tracker: WorkflowTokenTracker | None = None,
+    trace: TraceRecorder | None = None,
 ) -> dict:
     """推荐图表类型。"""
     start = time.time()
@@ -395,6 +484,7 @@ def suggest_charts(
             language=language,
             tracker=tracker,
             operation="chart_suggest",
+            trace=trace, phase="chart_suggest", prompt_name="chart_suggest",
         )
         charts = json.loads(raw)
         return {
@@ -419,6 +509,7 @@ def generate_semantics(
     sample_rows: list[dict],
     language: str = "en",
     tracker: WorkflowTokenTracker | None = None,
+    trace: TraceRecorder | None = None,
 ) -> dict:
     """生成数据集的语义理解。"""
     start = time.time()
@@ -432,6 +523,7 @@ def generate_semantics(
             language=language,
             tracker=tracker,
             operation="semantics",
+            trace=trace, phase="semantics", prompt_name="semantics",
         )
         result = json.loads(raw)
         return {
@@ -465,6 +557,7 @@ def suggest_questions(
     semantics: dict | None = None,
     language: str = "en",
     tracker: WorkflowTokenTracker | None = None,
+    trace: TraceRecorder | None = None,
 ) -> dict:
     """基于数据集概览推荐分析问题。"""
     start = time.time()
@@ -481,6 +574,7 @@ def suggest_questions(
             language=language,
             tracker=tracker,
             operation="suggest_questions",
+            trace=trace, phase="suggest_questions", prompt_name="suggest_questions",
         )
         result = json.loads(raw)
         return {
@@ -506,6 +600,8 @@ def generate_analysis_plan(
     sample_rows: list[dict],
     language: str = "en",
     tracker: WorkflowTokenTracker | None = None,
+    trace: TraceRecorder | None = None,
+    phase: str = "planning",
 ) -> dict:
     """为复杂问题生成多步骤分析计划。"""
     start = time.time()
@@ -519,6 +615,7 @@ def generate_analysis_plan(
             language=language,
             tracker=tracker,
             operation="analysis_plan",
+            trace=trace, phase=phase, prompt_name="analysis_plan",
         )
         result = json.loads(raw)
         if "plan" in result:
