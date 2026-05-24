@@ -9,6 +9,11 @@ from backend.services.ai_analyst import (
     _call_llm,
 )
 from backend.services.data_service import _executor, _sanitize_for_json, list_tables
+from backend.prompts.summarizer import (
+    CONTRACT as SUMMARIZER_CONTRACT,
+    SYSTEM_PROMPT as SUMMARIZER_SYSTEM,
+    build_user_message as build_summarizer_user_message,
+)
 import json
 import time
 
@@ -90,15 +95,6 @@ def run_ai_query(
 
 
 # ── Autonomous Multi-step Analysis ─────────────────────────────────
-
-_SUMMARY_SYSTEM = """You are a senior data analyst writing an executive summary.
-Given the original question and the results of each analytical step, write a concise executive summary.
-Rules:
-1. Lead with the answer to the original question
-2. Highlight 2-3 key findings from the steps
-3. Note any surprising or actionable insights
-4. Keep it under 200 words
-5. Write in the requested language"""
 
 
 def _execute_step_sql(sql: str, max_rows: int = 500) -> dict:
@@ -240,12 +236,9 @@ def run_autonomous_analysis(
                 data_note = f" Error: {s['error'][:200]}"
             step_summaries.append(f"[{status_label} Step {s['step']}: {s['purpose']}{data_note}]")
 
-        summary_input = (
-            f"Original question: {question}\n\n"
-            f"Analysis steps:\n" + "\n".join(step_summaries)
-        )
+        summary_input = build_summarizer_user_message(question, step_summaries)
         try:
-            summary = _call_llm(_SUMMARY_SYSTEM, summary_input, max_tokens=512, language=language)
+            summary = _call_llm(SUMMARIZER_SYSTEM, summary_input, max_tokens=SUMMARIZER_CONTRACT.max_output_tokens, language=language)
         except Exception:
             summary = "Summary generation failed."
 
@@ -377,12 +370,9 @@ def run_autonomous_analysis_stream(
                 data_note = f" Error: {s['error'][:200]}"
             step_summaries.append(f"[{status_label} Step {s['step']}: {s['purpose']}{data_note}]")
 
-        summary_input = (
-            f"Original question: {question}\n\n"
-            f"Analysis steps:\n" + "\n".join(step_summaries)
-        )
+        summary_input = build_summarizer_user_message(question, step_summaries)
         try:
-            summary = _call_llm(_SUMMARY_SYSTEM, summary_input, max_tokens=512, language=language)
+            summary = _call_llm(SUMMARIZER_SYSTEM, summary_input, max_tokens=SUMMARIZER_CONTRACT.max_output_tokens, language=language)
         except Exception:
             summary = "Summary generation failed."
 
