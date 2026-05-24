@@ -25,7 +25,9 @@ Provide a clear, concise explanation that:
 3. Points out any anomalies or notable values
 4. Uses business-friendly language
 
-Keep the explanation under 200 words."""
+Keep the explanation under 200 words.
+
+Output clean markdown only. Never output literal \\n sequences — use actual line breaks. Do not wrap the entire response in code fences."""
 
 
 def build_user_message(

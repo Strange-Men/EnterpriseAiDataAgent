@@ -44,7 +44,7 @@ export function FollowUpInput({ results, onSqlGenerated, question: controlledQue
         ctx.previous_sample_rows = results.slice(0, 5);
       }
 
-      const res = await aiQuery(q, false, true, Object.keys(ctx).length > 0 ? ctx : undefined, i18n.language);
+      const res = await aiQuery(q, true, true, Object.keys(ctx).length > 0 ? ctx : undefined, i18n.language);
 
       if (res.sql && res.status === "success") {
         sessionStore.addUserTurn(q);

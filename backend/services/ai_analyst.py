@@ -174,12 +174,11 @@ def _call_llm(
             messages=[{"role": "user", "content": user_message}],
         )
 
-        # 提取输出文本
+        # 提取输出文本 — concatenate ALL text blocks
         text = ""
         for block in response.content:
             if hasattr(block, "text"):
-                text = block.text
-                break
+                text += block.text
         if not text:
             text = str(response.content[0])
 

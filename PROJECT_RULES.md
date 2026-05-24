@@ -101,7 +101,7 @@
 ## 三、当前项目阶段
 
 - **已完成**: v0.3.x Enterprise Data Platform + v0.5.x AI Data Analyst MVP
-- **当前版本**: v0.5.8
+- **当前版本**: v0.5.9
 - **当前重点**: Anomaly detection, multi-turn UX polish, E2E tests
 
 ---

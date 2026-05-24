@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import toast from "react-hot-toast";
+import { useThemeStore } from "@/hooks/use-theme";
 
 // ── Theme-aware syntax highlighter style ──────────────────────
 const lightTheme: Record<string, React.CSSProperties> = {
@@ -24,9 +25,8 @@ const darkTheme: Record<string, React.CSSProperties> = {
 };
 
 function useCodeTheme() {
-  const isDark = typeof document !== "undefined" &&
-    getComputedStyle(document.documentElement).getPropertyValue("--bg-primary").trim().startsWith("#");
-  return isDark ? darkTheme : lightTheme;
+  const theme = useThemeStore((s) => s.theme);
+  return theme === "dark" ? darkTheme : lightTheme;
 }
 
 // ── Icons ─────────────────────────────────────────────────────
