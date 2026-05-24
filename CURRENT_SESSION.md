@@ -4,17 +4,17 @@
 
 ## Current Version
 
-- **Version**: v0.5.5
-- **Phase**: v0.5.x AI Data Analyst MVP — Documentation Governance
-- **Status**: Documentation lifecycle cleanup, version alignment
+- **Version**: v0.5.6
+- **Phase**: v0.5.x AI Data Analyst MVP — Analysis Workspace
+- **Status**: Analysis workspace panel, AIAnalysisPanel refactor, trace visualization
 
 ## Session Goals
 
-1. Archive stale docs (v0.3/v0.4 reports, duplicate SKILL_REGISTRY)
-2. Update architecture docs to reflect v0.5.x reality
-3. Update governance docs (skills path, doc state table)
-4. Update root docs (CLAUDE.md, README.md, PROJECT_RULES.md)
-5. Establish documentation lifecycle rules
+1. Create analysis-store.ts (persisted run history + trace data)
+2. Refactor AIAnalysisPanel into 5 sub-components
+3. Create analysis-workspace-panel.tsx (right panel tab)
+4. Wire trace data from streaming API to frontend store
+5. Update docs, skills, version references
 
 ## System Health
 

@@ -270,6 +270,17 @@ const zh = {
     "perf.run-benchmarks": "运行基准测试",
     "perf.running": "运行中...",
     "perf.last-run": "上次运行",
+
+    // Analysis Workspace
+    "analysis.workspace": "分析",
+    "analysis.history": "历史",
+    "analysis.trace": "追踪",
+    "analysis.recent-runs": "最近运行",
+    "analysis.no-history": "暂无分析记录。",
+    "analysis.no-selection": "选择一条记录查看详情。",
+    "analysis.run-hint": "从 SQL 工作区或数据面板发起分析。",
+    "analysis.start-hint": "使用 AI 解释、洞察或全面分析开始。",
+    "analysis.tab-analysis": "分析",
   },
 };
 

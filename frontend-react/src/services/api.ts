@@ -548,6 +548,9 @@ export interface MultiStreamEvent {
   status?: "success" | "error";
   summary?: string;
   elapsed_ms?: number;
+  trace?: Record<string, unknown>;
+  token_budget?: Record<string, unknown>;
+  guardrail_violations?: string[];
 }
 
 export interface MultiStreamCallbacks {
@@ -556,7 +559,7 @@ export interface MultiStreamCallbacks {
   onStepResult: (event: MultiStreamEvent) => void;
   onSummary: (summary: string) => void;
   onError: (err: Error) => void;
-  onDone: (elapsedMs?: number) => void;
+  onDone: (data?: MultiStreamEvent) => void;
 }
 
 export function streamAiAnalyzeMulti(
@@ -601,7 +604,7 @@ export function streamAiAnalyzeMulti(
             else if (data.type === "step_result") callbacks.onStepResult(data);
             else if (data.type === "summary" && data.summary != null) callbacks.onSummary(data.summary);
             else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
-            else if (data.type === "done") callbacks.onDone(data.elapsed_ms);
+            else if (data.type === "done") callbacks.onDone(data);
           }
         }
       }

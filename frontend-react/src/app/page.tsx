@@ -9,6 +9,7 @@ import { TableManagementPanel } from "@/panels/table-management-panel";
 import { SqlWorkspacePanel } from "@/panels/sql-workspace-panel";
 import { DataPreviewPanel } from "@/panels/data-preview-panel";
 import { SqlHistoryPanel } from "@/panels/sql-history-panel";
+import { AnalysisWorkspacePanel } from "@/panels/analysis-workspace-panel";
 import { StatusPanel } from "@/panels/status-panel";
 import { TabGroup } from "@/components/ui/tab-group";
 import { useTranslation } from "react-i18next";
@@ -61,6 +62,11 @@ function WorkspaceContent() {
                   id: "history",
                   label: t("history.title"),
                   content: <SqlHistoryPanel />,
+                },
+                {
+                  id: "analysis",
+                  label: t("analysis.tab-analysis"),
+                  content: <AnalysisWorkspacePanel />,
                 },
               ]}
             />
