@@ -6,7 +6,7 @@
  */
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { generateId } from "@/utils/id";
 import type { ChartSpec } from "@/components/ui/ai-chart";
 import type { MultiStepResult } from "@/services/api";
@@ -118,6 +118,20 @@ export const useAnalysisStore = create<AnalysisState>()(
 
       clearHistory: () => set({ runs: [], activeRunId: null }),
     }),
-    { name: "analysis-history" }
+    {
+      name: "analysis-history",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        ...state,
+        runs: state.runs.map((r) => ({
+          ...r,
+          // Exclude large fields from persistence to prevent localStorage overflow
+          sections: [],
+          multiResult: null,
+          chartSpecs: [],
+          trace: null,
+        })),
+      }),
+    }
   )
 );

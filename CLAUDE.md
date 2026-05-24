@@ -10,7 +10,7 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.5.6 (Analysis Workspace — panel refactor, trace visualization, session history)
+- **Current**: v0.5.8 (Product Reliability — 10 bug fixes, chart rendering, theme SSR, streaming hardening)
 - **Phase**: v0.5.x AI Data Analyst MVP — DONE
 - **Next**: v0.6.x (anomaly detection, multi-turn UX polish, E2E tests)
 

@@ -94,6 +94,6 @@ useEffect(() => {
 
 ## Related
 
-- `docs/skills/react-virtualization-performance` — performance optimization skill
+- `skills/active/performance-audit.md` — broader performance testing workflow
 - `src/components/ui/data-table.tsx` — main virtual table implementation
 - ISSUE-008: DataTable `contain: strict` fix (v0.3.9)

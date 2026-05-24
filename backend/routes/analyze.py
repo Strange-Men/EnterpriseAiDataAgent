@@ -9,7 +9,7 @@ import time
 from fastapi import APIRouter, HTTPException
 from backend.services import data_service
 from backend.services.profiler import build_profile
-from backend.services.ai_analyst import explain_results, suggest_charts
+from backend.services.ai_analyst import generate_insights, suggest_charts
 
 router = APIRouter()
 
@@ -29,17 +29,29 @@ async def analyze_table(table_name: str, language: str = "en"):
 
         sample_data = data_service._sanitize_for_json(df.head(20).to_dict(orient="records"))
 
-        ai_summary = ""
+        ai_insights = {}
         try:
-            summary_result = explain_results(
-                question=f"Summarize the key characteristics of the '{table_name}' dataset",
-                sql=f"SELECT * FROM {table_name} LIMIT 20",
+            ai_insights = generate_insights(
+                question=f"What are the key insights, trends, and anomalies in the '{table_name}' dataset?",
                 results=sample_data,
                 language=language,
             )
-            ai_summary = summary_result.get("explanation", "")
         except Exception:
             pass
+
+        # Build backward-compatible ai_summary from structured insights
+        summary_parts = []
+        for i in ai_insights.get("insights", []):
+            if isinstance(i, dict):
+                summary_parts.append(i.get("text", ""))
+            elif isinstance(i, str):
+                summary_parts.append(i)
+        for t in ai_insights.get("trends", []):
+            if isinstance(t, dict):
+                summary_parts.append(t.get("text", ""))
+            elif isinstance(t, str):
+                summary_parts.append(t)
+        ai_summary = "\n".join(summary_parts) if summary_parts else ""
 
         charts = []
         try:
@@ -55,7 +67,12 @@ async def analyze_table(table_name: str, language: str = "en"):
             "profile": profile,
             "quality": quality,
             "ai_summary": ai_summary,
+            "insights": ai_insights.get("insights", []),
+            "trends": ai_insights.get("trends", []),
+            "data_quality_notes": ai_insights.get("data_quality_notes", []),
+            "suggested_next_steps": ai_insights.get("suggested_next_steps", []),
             "chart_suggestions": charts,
+            "data": sample_data,
             "elapsed_ms": round(elapsed, 2),
             "status": "success",
         }

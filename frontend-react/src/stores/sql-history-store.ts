@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface SqlHistoryEntry {
   id: number;
@@ -69,6 +69,6 @@ export const useSqlHistoryStore = create<SqlHistoryState>()(
         return JSON.stringify(history, null, 2);
       },
     }),
-    { name: "sql-history" }
+    { name: "sql-history", storage: createJSONStorage(() => localStorage) }
   )
 );

@@ -176,5 +176,4 @@ Check `.next/static/` for:
 
 ## Related
 
-- `docs/skills/virtual-scroll-debugging` — specific to virtual table performance
-- `docs/skills/react-virtualization-performance` — virtualization optimization patterns
+- `skills/active/virtual-scroll-debugging.md` — specific to virtual table performance

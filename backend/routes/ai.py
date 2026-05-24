@@ -156,7 +156,11 @@ async def ai_explain_stream(req: ExplainRequest):
         except Exception as e:
             yield _sse_event({"type": "error", "error": str(e)})
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+    })
 
 
 @router.post("/ai/insights/stream")
@@ -170,7 +174,11 @@ async def ai_insights_stream(req: InsightsRequest):
         except Exception as e:
             yield _sse_event({"type": "error", "error": str(e)})
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+    })
 
 
 # ── Semantic Dataset Understanding ────────────────────────────
@@ -255,4 +263,8 @@ async def ai_analyze_multi_stream(req: MultiAnalyzeRequest):
         except Exception as e:
             yield _sse_event({"type": "error", "error": str(e)})
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+    })

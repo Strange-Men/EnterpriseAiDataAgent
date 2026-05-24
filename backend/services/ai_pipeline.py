@@ -18,6 +18,47 @@ from backend.runtime.token_budget import WorkflowTokenTracker, get_budget
 from backend.services.guardrails import AnalysisGuard, AnalysisGuardrails, GuardrailViolation, DEFAULT_GUARDRAILS
 from backend.services.trace import TraceRecorder
 import json
+
+
+def _infer_column_types(data: list[dict], columns: list[str]) -> list[dict]:
+    """Infer column dtypes from sample data instead of hardcoding VARCHAR.
+
+    Scans up to first 10 non-null values per column for robust type detection.
+    """
+    if not data or not columns:
+        return [{"name": c, "dtype": "VARCHAR"} for c in columns]
+    result = []
+    for col in columns:
+        dtype = "VARCHAR"
+        for row in data[:10]:
+            val = row.get(col)
+            if val is None:
+                continue
+            if isinstance(val, bool):
+                dtype = "BOOLEAN"
+            elif isinstance(val, int):
+                dtype = "INTEGER"
+            elif isinstance(val, float):
+                dtype = "DOUBLE"
+            break
+        result.append({"name": col, "dtype": dtype})
+    return result
+
+
+def _derive_step_summary(step_result: dict) -> str:
+    """Derive a brief insight summary from step execution result data."""
+    row_count = step_result.get("row_count", 0)
+    columns = step_result.get("columns", [])
+    data = step_result.get("data", [])
+    purpose = step_result.get("purpose", "")
+    parts = [f"Step result: {row_count} rows with columns [{', '.join(columns[:10])}]"]
+    if purpose:
+        parts.append(f"Purpose: {purpose}")
+    if data:
+        sample = data[0]
+        sample_str = ", ".join(f"{k}={v}" for k, v in list(sample.items())[:5])
+        parts.append(f"First row: {sample_str}")
+    return "; ".join(parts)
 import time
 
 
@@ -221,11 +262,9 @@ def run_autonomous_analysis(
                 if prev["step"] == depends_on and prev["status"] == "success" and prev["data"]:
                     fu_ctx = build_follow_up_context({
                         "previous_sql": prev["sql"],
-                        "previous_result_schema": [
-                            {"name": c, "dtype": "VARCHAR"} for c in prev["columns"]
-                        ],
+                        "previous_result_schema": _infer_column_types(prev["data"], prev["columns"]),
                         "previous_sample_rows": prev["data"][:5],
-                        "previous_insight_summary": prev.get("purpose", ""),
+                        "previous_insight_summary": _derive_step_summary(prev),
                     })
                     break
 
@@ -424,11 +463,9 @@ def run_autonomous_analysis_stream(
                 if prev["step"] == depends_on and prev["status"] == "success" and prev["data"]:
                     fu_ctx = build_follow_up_context({
                         "previous_sql": prev["sql"],
-                        "previous_result_schema": [
-                            {"name": c, "dtype": "VARCHAR"} for c in prev["columns"]
-                        ],
+                        "previous_result_schema": _infer_column_types(prev["data"], prev["columns"]),
                         "previous_sample_rows": prev["data"][:5],
-                        "previous_insight_summary": prev.get("purpose", ""),
+                        "previous_insight_summary": _derive_step_summary(prev),
                     })
                     break
 

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import type { Language, LayoutPreset, PanelId } from "@/types";
 
 interface WorkspaceState {
@@ -36,6 +36,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           collapsedPanels: { ...state.collapsedPanels, [panel]: collapsed },
         })),
     }),
-    { name: "workspace-settings" }
+    { name: "workspace-settings", storage: createJSONStorage(() => localStorage) }
   )
 );

@@ -10,11 +10,17 @@ import { useAiSessionStore } from "@/stores/ai-session-store";
 interface FollowUpInputProps {
   results?: Record<string, unknown>[];
   onSqlGenerated?: (sql: string) => void;
+  question?: string;
+  onQuestionChange?: (q: string) => void;
 }
 
-export function FollowUpInput({ results, onSqlGenerated }: FollowUpInputProps) {
+export function FollowUpInput({ results, onSqlGenerated, question: controlledQuestion, onQuestionChange }: FollowUpInputProps) {
   const { t, i18n } = useTranslation();
-  const [question, setQuestion] = useState("");
+  const [internalQuestion, setInternalQuestion] = useState("");
+  const question = controlledQuestion !== undefined ? controlledQuestion : internalQuestion;
+  const setQuestion = controlledQuestion !== undefined
+    ? (val: string) => onQuestionChange?.(val)
+    : setInternalQuestion;
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = useCallback(async () => {
@@ -42,7 +48,9 @@ export function FollowUpInput({ results, onSqlGenerated }: FollowUpInputProps) {
 
       if (res.sql && res.status === "success") {
         sessionStore.addUserTurn(q);
-        sessionStore.addAssistantTurn(res.sql, res.sql);
+        // Store a description as insight summary, not raw SQL
+        const description = res.explanation || `Generated SQL for: ${q}`;
+        sessionStore.addAssistantTurn(description, res.sql);
         onSqlGenerated?.(res.sql);
         toast.success(t("ai.sql-generated"));
         setQuestion("");

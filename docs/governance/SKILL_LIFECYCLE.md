@@ -101,6 +101,8 @@ All skills must be registered in `skills/SKILL_REGISTRY.md` with:
 
 ## Current Skills
 
+See `skills/SKILL_REGISTRY.md` for the authoritative skill list.
+
 | Name | Category | State | Location |
 |------|----------|-------|----------|
 | Virtual Scroll Debugging | debugging | active | `skills/active/virtual-scroll-debugging.md` |
@@ -112,6 +114,7 @@ All skills must be registered in `skills/SKILL_REGISTRY.md` with:
 | Runtime Guardrails | governance | active | `skills/active/runtime-guardrails.md` |
 | Analysis Trace | debugging | active | `skills/active/analysis-trace.md` |
 | AI Evaluation Harness | testing | active | `skills/active/ai-evaluation-harness.md` |
+| Analysis Workspace | frontend | active | `skills/active/analysis-workspace.md` |
 
 ## Enforcement
 

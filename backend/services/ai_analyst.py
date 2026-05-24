@@ -426,7 +426,7 @@ def generate_insights(
         }
     except json.JSONDecodeError:
         return {
-            "insights": [raw] if 'raw' in dir() else [],
+            "insights": [raw] if 'raw' in locals() else [],
             "trends": [],
             "data_quality_notes": [],
             "suggested_next_steps": [],
