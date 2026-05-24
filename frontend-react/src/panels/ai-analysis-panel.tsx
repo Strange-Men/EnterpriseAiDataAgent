@@ -13,9 +13,13 @@ import {
   analyzeTable,
   streamAiExplain,
   aiQuery,
+  aiSemantics,
+  aiSuggestQuestions,
   type AnalysisResult,
   type AIQueryResult,
   type FollowUpContext,
+  type DatasetSemantics,
+  type SuggestedQuestion,
 } from "@/services/api";
 import { downloadBlob } from "@/utils/download";
 import { useAiSessionStore } from "@/stores/ai-session-store";
@@ -106,7 +110,7 @@ interface AIAnalysisPanelProps {
 export function AIAnalysisPanel({
   tableName, sql, question, results, mode, onClose, onComplete, onSqlGenerated,
 }: AIAnalysisPanelProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const codeTheme = useCodeTheme();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -118,6 +122,7 @@ export function AIAnalysisPanel({
   const [followUpQuestion, setFollowUpQuestion] = useState("");
   const [followUpLoading, setFollowUpLoading] = useState(false);
   const [chartSpecs, setChartSpecs] = useState<ChartSpec[]>([]);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<SuggestedQuestion[]>([]);
 
   // ── Run analysis ──────────────────────────────────────────
   const runAnalysis = useCallback(async () => {
@@ -127,6 +132,7 @@ export function AIAnalysisPanel({
     setRawData(null);
     setStreamingContent(null);
     setChartSpecs([]);
+    setSuggestedQuestions([]);
 
     try {
       const builtSections: AnalysisSection[] = [];
@@ -150,7 +156,7 @@ export function AIAnalysisPanel({
             },
             onDone: () => resolve(),
             onError: (err) => reject(err),
-          }, history.length > 0 ? history : undefined);
+          }, history.length > 0 ? history : undefined, i18n.language);
         });
         setSections([{
           title: t("ai.explanation"),
@@ -165,7 +171,7 @@ export function AIAnalysisPanel({
         // Auto chart suggestion — non-blocking, silent on failure
         if (results && results.length > 0) {
           try {
-            const chartRes = await aiChartSuggest(results, question);
+            const chartRes = await aiChartSuggest(results, question, i18n.language);
             if (chartRes.recommended_charts?.length) {
               const specs: ChartSpec[] = chartRes.recommended_charts
                 .filter((c) => ["bar", "line", "pie", "scatter"].includes(c.type))
@@ -188,7 +194,7 @@ export function AIAnalysisPanel({
         setIsLoading(false);
         return;
       } else if (mode === "insights" && question && results) {
-        const res = await aiInsights(question, results);
+        const res = await aiInsights(question, results, i18n.language);
         raw = res;
         let md = "";
         if (res.insights?.length) {
@@ -209,7 +215,7 @@ export function AIAnalysisPanel({
           type: "markdown",
         });
       } else if (mode === "charts" && results) {
-        const res = await aiChartSuggest(results, question || "");
+        const res = await aiChartSuggest(results, question || "", i18n.language);
         raw = res;
         let md = "";
         if (res.recommended_charts?.length) {
@@ -227,7 +233,7 @@ export function AIAnalysisPanel({
           type: "markdown",
         });
       } else if (mode === "full-analysis" && tableName) {
-        const res = await analyzeTable(tableName);
+        const res = await analyzeTable(tableName, i18n.language);
         raw = res;
 
         // Profile section
@@ -266,6 +272,40 @@ export function AIAnalysisPanel({
           });
         }
 
+        // Semantic dataset understanding — non-blocking
+        try {
+          const semCols = profile.columns.map((c) => ({ name: c.name, dtype: c.dtype }));
+          const sampleRows = res.profile.columns.length > 0
+            ? (res as unknown as { data?: Record<string, unknown>[] }).data?.slice(0, 5) ?? []
+            : [];
+          const semRes = await aiSemantics(tableName, semCols, sampleRows, i18n.language);
+          if (semRes.status === "success" && semRes.summary) {
+            let semMd = `**${semRes.summary}**\n\n`;
+            if (semRes.detected_metrics?.length) {
+              semMd += `**${t("ai.metrics")}:** ${semRes.detected_metrics.join(", ")}\n\n`;
+            }
+            if (semRes.detected_dimensions?.length) {
+              semMd += `**${t("ai.dimensions")}:** ${semRes.detected_dimensions.join(", ")}\n\n`;
+            }
+            if (semRes.suggested_focus) {
+              semMd += `**${t("ai.suggested-focus")}:** ${semRes.suggested_focus}\n\n`;
+            }
+            if (semRes.columns?.length) {
+              semMd += `| ${t("ai.column")} | ${t("ai.semantic-role")} | ${t("ai.business-meaning")} |\n|---|---|---|\n`;
+              semRes.columns.forEach((c) => {
+                semMd += `| ${c.name} | ${c.semantic_role} | ${c.business_meaning} |\n`;
+              });
+            }
+            builtSections.push({
+              title: t("ai.semantic-understanding"),
+              content: semMd,
+              type: "markdown",
+            });
+          }
+        } catch {
+          // semantics failure is non-fatal
+        }
+
         // Chart suggestions
         if (res.chart_suggestions?.length) {
           let chartMd = "";
@@ -277,6 +317,16 @@ export function AIAnalysisPanel({
             content: chartMd,
             type: "markdown",
           });
+        }
+
+        // Suggested questions — non-blocking
+        try {
+          const sqRes = await aiSuggestQuestions(tableName, res.profile as unknown as Record<string, unknown>, undefined, i18n.language);
+          if (sqRes.questions?.length) {
+            setSuggestedQuestions(sqRes.questions);
+          }
+        } catch {
+          // suggest-questions failure is non-fatal
         }
       }
 
@@ -318,7 +368,7 @@ export function AIAnalysisPanel({
       }
 
       // Generate SQL without executing — user confirms before execution
-      const res = await aiQuery(q, false, true, Object.keys(ctx).length > 0 ? ctx : undefined);
+      const res = await aiQuery(q, false, true, Object.keys(ctx).length > 0 ? ctx : undefined, i18n.language);
 
       if (res.sql && res.status === "success") {
         sessionStore.addUserTurn(q);
@@ -578,8 +628,33 @@ export function AIAnalysisPanel({
           </div>
         )}
 
-        {/* Follow-up input — shown after results in explain mode */}
-        {hasRun && !isLoading && mode === "explain" && onSqlGenerated && (
+        {/* Suggested questions — AI-recommended next analyses */}
+        {suggestedQuestions.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-[var(--border-default)]">
+            <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-2">
+              {t("ai.suggested-questions")}
+            </p>
+            <div className="space-y-1.5">
+              {suggestedQuestions.map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    if (onSqlGenerated) {
+                      setFollowUpQuestion(q.question);
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] transition-colors group"
+                >
+                  <p className="text-xs text-[var(--text-primary)] group-hover:text-[var(--accent)]">{q.question}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{q.reason}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Follow-up input — shown after results when onSqlGenerated is available */}
+        {hasRun && !isLoading && onSqlGenerated && (mode === "explain" || mode === "full-analysis") && (
           <div className="mt-4 pt-3 border-t border-[var(--border-default)]">
             <p className="text-xs text-[var(--text-muted)] mb-2">{t("ai.follow-up-hint")}</p>
             <div className="flex gap-2">

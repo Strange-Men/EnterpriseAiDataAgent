@@ -160,14 +160,28 @@ Consider:
 
 # ── LLM Call ────────────────────────────────────────────────────
 
-def _call_llm(system: str, user_message: str, max_tokens: int = 1024) -> str:
+_LOCALE_SUFFIX = {
+    "zh": "\n\nIMPORTANT: 请用中文回答。所有解释、洞察和建议必须使用中文。",
+    "en": "",
+}
+
+
+def _apply_language(system: str, language: str) -> str:
+    """Append language instruction to system prompt."""
+    suffix = _LOCALE_SUFFIX.get(language)
+    if suffix is None:
+        suffix = f'\n\nIMPORTANT: Respond in {language}. All explanations, insights, and suggestions must be written in {language}.'
+    return system + suffix
+
+
+def _call_llm(system: str, user_message: str, max_tokens: int = 1024, language: str = "en") -> str:
     """Make a call to the LLM."""
     client = _get_client()
     response = client.messages.create(
         model=MODEL,
         max_tokens=max_tokens,
         temperature=TEMPERATURE,
-        system=system,
+        system=_apply_language(system, language),
         messages=[{"role": "user", "content": user_message}],
     )
     # Extract text from response, handling different block types
@@ -178,7 +192,7 @@ def _call_llm(system: str, user_message: str, max_tokens: int = 1024) -> str:
     return str(response.content[0])
 
 
-def _call_llm_stream(system: str, user_message: str, max_tokens: int = 1024):
+def _call_llm_stream(system: str, user_message: str, max_tokens: int = 1024, language: str = "en"):
     """Yield text chunks from Anthropic streaming API.
 
     This is a sync generator suitable for use with FastAPI StreamingResponse.
@@ -188,7 +202,7 @@ def _call_llm_stream(system: str, user_message: str, max_tokens: int = 1024):
         model=MODEL,
         max_tokens=max_tokens,
         temperature=TEMPERATURE,
-        system=system,
+        system=_apply_language(system, language),
         messages=[{"role": "user", "content": user_message}],
     ) as stream:
         for text in stream.text_stream:
@@ -197,7 +211,7 @@ def _call_llm_stream(system: str, user_message: str, max_tokens: int = 1024):
 
 # ── Public API ──────────────────────────────────────────────────
 
-def generate_sql(question: str, schema_context: str, follow_up_context: str | None = None) -> dict:
+def generate_sql(question: str, schema_context: str, follow_up_context: str | None = None, language: str = "en") -> dict:
     """Generate SQL from a natural language question."""
     start = time.time()
     parts = []
@@ -207,7 +221,7 @@ def generate_sql(question: str, schema_context: str, follow_up_context: str | No
     parts.append(f"User question: {question}")
     user_msg = "\n\n".join(parts)
     try:
-        sql = _call_llm(SQL_GENERATION_SYSTEM, user_msg, max_tokens=512)
+        sql = _call_llm(SQL_GENERATION_SYSTEM, user_msg, max_tokens=512, language=language)
         sql = sql.strip()
         # Strip markdown code blocks if present
         if sql.startswith("```"):
@@ -253,12 +267,13 @@ def _build_explain_user_msg(
 def explain_results(
     question: str, sql: str, results: list[dict],
     conversation_history: list[dict] | None = None,
+    language: str = "en",
 ) -> dict:
     """Explain query results in natural language."""
     start = time.time()
     user_msg = _build_explain_user_msg(question, sql, results, conversation_history)
     try:
-        explanation = _call_llm(EXPLANATION_SYSTEM, user_msg, max_tokens=1024)
+        explanation = _call_llm(EXPLANATION_SYSTEM, user_msg, max_tokens=1024, language=language)
         return {
             "explanation": explanation,
             "status": "success",
@@ -276,13 +291,14 @@ def explain_results(
 def explain_results_stream(
     question: str, sql: str, results: list[dict],
     conversation_history: list[dict] | None = None,
+    language: str = "en",
 ):
     """Yield text chunks for streaming explanation."""
     user_msg = _build_explain_user_msg(question, sql, results, conversation_history)
-    yield from _call_llm_stream(EXPLANATION_SYSTEM, user_msg, max_tokens=1024)
+    yield from _call_llm_stream(EXPLANATION_SYSTEM, user_msg, max_tokens=1024, language=language)
 
 
-def generate_insights(question: str, results: list[dict]) -> dict:
+def generate_insights(question: str, results: list[dict], language: str = "en") -> dict:
     """Generate structured insights from query results."""
     start = time.time()
     truncated = results[:50]
@@ -292,7 +308,7 @@ def generate_insights(question: str, results: list[dict]) -> dict:
         f"{json.dumps(truncated, default=str, ensure_ascii=False)}"
     )
     try:
-        raw = _call_llm(INSIGHTS_SYSTEM, user_msg, max_tokens=1024)
+        raw = _call_llm(INSIGHTS_SYSTEM, user_msg, max_tokens=1024, language=language)
         # Parse JSON from response
         insights = json.loads(raw)
         return {
@@ -317,7 +333,7 @@ def generate_insights(question: str, results: list[dict]) -> dict:
         }
 
 
-def generate_insights_stream(question: str, results: list[dict]):
+def generate_insights_stream(question: str, results: list[dict], language: str = "en"):
     """Yield text chunks for streaming insights (raw JSON text)."""
     truncated = results[:50]
     user_msg = (
@@ -325,10 +341,10 @@ def generate_insights_stream(question: str, results: list[dict]):
         f"Results ({len(results)} rows, showing first {len(truncated)}):\n"
         f"{json.dumps(truncated, default=str, ensure_ascii=False)}"
     )
-    yield from _call_llm_stream(INSIGHTS_SYSTEM, user_msg, max_tokens=1024)
+    yield from _call_llm_stream(INSIGHTS_SYSTEM, user_msg, max_tokens=1024, language=language)
 
 
-def suggest_charts(results: list[dict], question: str = "") -> dict:
+def suggest_charts(results: list[dict], question: str = "", language: str = "en") -> dict:
     """Suggest appropriate chart types for the data."""
     start = time.time()
     if not results:
@@ -345,7 +361,7 @@ def suggest_charts(results: list[dict], question: str = "") -> dict:
         f"Question: {question}"
     )
     try:
-        raw = _call_llm(CHART_SUGGESTION_SYSTEM, user_msg, max_tokens=512)
+        raw = _call_llm(CHART_SUGGESTION_SYSTEM, user_msg, max_tokens=512, language=language)
         charts = json.loads(raw)
         return {
             **charts,
@@ -355,6 +371,151 @@ def suggest_charts(results: list[dict], question: str = "") -> dict:
     except Exception as e:
         return {
             "recommended_charts": [],
+            "error": str(e),
+            "status": "error",
+            "elapsed_ms": round((time.time() - start) * 1000, 2),
+        }
+
+
+# ── Semantic Dataset Understanding ────────────────────────────
+
+SEMANTICS_SYSTEM = """You are a data analyst interpreting dataset structure.
+Given column names, types, and sample data, identify for each column:
+1. Semantic role: identifier, metric, dimension, datetime, or text
+2. Business-friendly description
+3. Whether it is a business metric (quantities to measure)
+4. Whether it is an analysis dimension (categories to group by)
+
+Also provide:
+- A one-sentence summary of what this dataset represents
+- Suggested analytical focus areas
+
+Output as JSON:
+{
+  "summary": "...",
+  "columns": [{"name": "...", "dtype": "...", "semantic_role": "identifier|metric|dimension|datetime|text", "business_meaning": "...", "is_metric": true/false, "is_dimension": true/false}],
+  "detected_metrics": ["..."],
+  "detected_dimensions": ["..."],
+  "suggested_focus": "..."
+}"""
+
+
+def generate_semantics(
+    table: str,
+    columns: list[dict],
+    sample_rows: list[dict],
+    language: str = "en",
+) -> dict:
+    """Generate semantic understanding of a dataset."""
+    start = time.time()
+    # Truncate to 20 columns to control token cost
+    cols = columns[:20]
+    col_desc = [f"  - {c['name']} ({c.get('dtype', 'VARCHAR')})" for c in cols]
+    user_msg = (
+        f"Table: {table}\n\n"
+        f"Columns:\n" + "\n".join(col_desc) + "\n\n"
+        f"Sample data (first {len(sample_rows)} rows):\n"
+        f"{json.dumps(sample_rows[:5], default=str, ensure_ascii=False)}"
+    )
+    try:
+        raw = _call_llm(SEMANTICS_SYSTEM, user_msg, max_tokens=1024, language=language)
+        result = json.loads(raw)
+        return {
+            **result,
+            "status": "success",
+            "elapsed_ms": round((time.time() - start) * 1000, 2),
+        }
+    except json.JSONDecodeError:
+        return {
+            "summary": "",
+            "columns": [],
+            "detected_metrics": [],
+            "detected_dimensions": [],
+            "suggested_focus": "",
+            "status": "partial",
+            "elapsed_ms": round((time.time() - start) * 1000, 2),
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "status": "error",
+            "elapsed_ms": round((time.time() - start) * 1000, 2),
+        }
+
+
+# ── Smart Suggested Questions ─────────────────────────────────
+
+SUGGESTED_QUESTIONS_SYSTEM = """You are a data analyst suggesting questions to explore a dataset.
+Given the dataset profile and optional semantic understanding, suggest 5 analytical questions.
+
+Rules:
+1. Questions must be answerable with SQL against the available columns
+2. Mix of: overview, comparison, trend, breakdown, anomaly questions
+3. Use business-friendly language
+4. Each question should explore a different aspect of the data
+5. Questions should be specific and actionable
+
+Output as JSON:
+{
+  "questions": [
+    {"question": "...", "category": "overview|comparison|trend|breakdown|anomaly", "reason": "..."}
+  ]
+}"""
+
+
+def suggest_questions(
+    table: str,
+    profile: dict,
+    semantics: dict | None = None,
+    language: str = "en",
+) -> dict:
+    """Suggest analytical questions based on dataset profile."""
+    start = time.time()
+
+    # Build concise profile summary
+    col_lines = []
+    for col in profile.get("columns", [])[:20]:
+        stats = ""
+        if col.get("stats"):
+            s = col["stats"]
+            stats = f" (mean={s.get('mean', '?')}, min={s.get('min', '?')}, max={s.get('max', '?')})"
+        elif col.get("top_values"):
+            tops = ", ".join(f"{v['value']}" for v in col["top_values"][:3])
+            stats = f" (top: {tops})"
+        col_lines.append(f"  - {col['name']} ({col.get('dtype', '?')}){stats}")
+
+    profile_summary = (
+        f"Table: {table}\n"
+        f"Rows: {profile.get('row_count', '?')}, Columns: {profile.get('column_count', '?')}\n"
+        f"Columns:\n" + "\n".join(col_lines)
+    )
+
+    semantics_summary = ""
+    if semantics and semantics.get("summary"):
+        sem_parts = [f"Dataset summary: {semantics['summary']}"]
+        if semantics.get("detected_metrics"):
+            sem_parts.append(f"Metrics: {', '.join(semantics['detected_metrics'])}")
+        if semantics.get("detected_dimensions"):
+            sem_parts.append(f"Dimensions: {', '.join(semantics['detected_dimensions'])}")
+        if semantics.get("suggested_focus"):
+            sem_parts.append(f"Suggested focus: {semantics['suggested_focus']}")
+        semantics_summary = "\n".join(sem_parts)
+
+    user_msg = profile_summary
+    if semantics_summary:
+        user_msg += f"\n\nSemantic understanding:\n{semantics_summary}"
+
+    try:
+        raw = _call_llm(SUGGESTED_QUESTIONS_SYSTEM, user_msg, max_tokens=512, language=language)
+        result = json.loads(raw)
+        return {
+            **result,
+            "status": "success",
+            "elapsed_ms": round((time.time() - start) * 1000, 2),
+        }
+    except Exception as e:
+        return {
+            "questions": [],
             "error": str(e),
             "status": "error",
             "elapsed_ms": round((time.time() - start) * 1000, 2),

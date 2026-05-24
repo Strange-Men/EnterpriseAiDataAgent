@@ -4,44 +4,40 @@
 
 ## Current Version
 
-- **Version**: v0.5.1
+- **Version**: v0.5.2
 - **Phase**: v0.5.x AI Data Analyst MVP — ACTIVE
-- **Status**: AI Streaming, Session Memory, Follow-up Analysis & Chart Rendering
+- **Status**: AI Locale, Semantic Understanding & Smart Questions
 
 ## Session Goals
 
-1. Module 1: AI Streaming Response (SSE) — DONE
-2. Module 2: AI Session Memory — DONE
-3. Module 3: Result-aware Follow-up Analysis — DONE
-4. Module 4: Chart Rendering (Recharts) — DONE
-5. Module 5: Integration verification + version commit — IN PROGRESS
+1. Module 1: AI Locale — language consistency — DONE
+2. Module 2: Semantic Dataset Understanding — DONE
+3. Module 3: Smart Suggested Questions — DONE
+4. Integration verification + version commit — IN PROGRESS
 
 ## Completed (this session)
 
-### Module 1: AI Streaming Response
-- [x] Backend `_call_llm_stream` — Anthropic SDK streaming
-- [x] Backend SSE endpoints: `/ai/explain/stream`, `/ai/insights/stream`
-- [x] Frontend `consumeSseStream`, `streamAiExplain`, `streamAiInsights`
-- [x] AI Analysis Panel: live streaming render
+### Module 1: AI Locale
+- [x] `_apply_language()` helper appends language instruction to system prompts
+- [x] All AI request models (AIQueryRequest, ExplainRequest, InsightsRequest, ChartSuggestRequest) + `language` field
+- [x] All service functions accept `language` parameter
+- [x] Frontend passes `i18n.language` to all AI API calls
+- [x] Supports `en`, `zh`, arbitrary language codes
 
-### Module 2: AI Session Memory
-- [x] New `ai-session-store.ts` — turns + context metadata
-- [x] `lastSql`, `lastInsightSummary` fields
-- [x] 11 store tests
-- [x] Backend `conversation_history` support
+### Module 2: Semantic Dataset Understanding
+- [x] `SEMANTICS_SYSTEM` prompt — column roles, business meanings, metrics/dimensions detection
+- [x] `generate_semantics()` — AI semantic analysis of dataset structure
+- [x] `POST /ai/semantics` endpoint
+- [x] `aiSemantics()` frontend API + `DatasetSemantics` type
+- [x] Integrated in full-analysis mode: summary, metrics, dimensions, column roles table
 
-### Module 3: Result-aware Follow-up Analysis
-- [x] Backend `build_follow_up_context()` — structured context injection
-- [x] `FollowUpContext` Pydantic model
-- [x] Frontend follow-up input in AI Analysis Panel
-- [x] `aiQuery(execute: false)` → user confirms → execute flow
-- [x] i18n: 5 new keys (en + zh)
-
-### Module 4: Chart Rendering
-- [x] Installed `recharts`
-- [x] New `ai-chart.tsx` component (bar/line/pie/scatter)
-- [x] Auto chart suggestion after explain
-- [x] Charts embedded in AI Analysis Panel
+### Module 3: Smart Suggested Questions
+- [x] `SUGGESTED_QUESTIONS_SYSTEM` prompt — 5 questions per dataset
+- [x] `suggest_questions()` — AI suggests overview/comparison/trend/breakdown/anomaly questions
+- [x] `POST /ai/suggest-questions` endpoint
+- [x] `aiSuggestQuestions()` frontend API + `SuggestedQuestion` type
+- [x] Clickable question list in analysis panel
+- [x] Follow-up input now available in full-analysis mode
 
 ## System Health
 
@@ -50,33 +46,22 @@
 - Frontend tests: 117/117 pass
 - Backend tests: 161/161 pass
 - TypeScript: Pass
-- AI Streaming: Functional
-- Session Memory: Functional
-- Follow-up Analysis: Functional
-- Chart Rendering: Functional
 
-## Files Changed (v0.5.1)
-
-### New Files
-- `frontend-react/src/stores/ai-session-store.ts` — AI conversation session store
-- `frontend-react/src/stores/__tests__/ai-session-store.test.ts` — 11 tests
-- `frontend-react/src/components/ui/ai-chart.tsx` — AI chart rendering component
+## Files Changed (v0.5.2)
 
 ### Modified Files
-- `backend/services/ai_analyst.py` — streaming, conversation history, follow-up context
-- `backend/routes/ai.py` — SSE endpoints, FollowUpContext, conversation_history
-- `backend/services/ai_pipeline.py` — follow_up_context support
-- `frontend-react/src/services/api.ts` — streaming API, FollowUpContext, aiQuery update
-- `frontend-react/src/panels/ai-analysis-panel.tsx` — streaming, session memory, follow-up, charts
-- `frontend-react/src/panels/sql-workspace-panel.tsx` — onSqlGenerated callback
-- `frontend-react/src/i18n/en.ts` — follow-up translation keys
-- `frontend-react/src/i18n/zh.ts` — follow-up translation keys
-
-### Dependencies Added
-- `recharts` — chart rendering
+- `backend/services/ai_analyst.py` — `_apply_language`, `generate_semantics`, `suggest_questions`, all functions +language
+- `backend/routes/ai.py` — all models +language, new SemanticsRequest/SuggestQuestionsRequest, 2 new endpoints
+- `backend/services/ai_pipeline.py` — `run_ai_query` +language
+- `backend/routes/analyze.py` — `analyze_table` +language
+- `frontend-react/src/services/api.ts` — all AI functions +language, `aiSemantics`, `aiSuggestQuestions`, types
+- `frontend-react/src/panels/ai-analysis-panel.tsx` — semantics section, suggested questions, follow-up in full-analysis
+- `frontend-react/src/panels/sql-workspace-panel.tsx` — `aiQuery` +language
+- `frontend-react/src/i18n/en.ts` — 8 new keys
+- `frontend-react/src/i18n/zh.ts` — 8 new keys
 
 ## Next Steps
 
-- v0.5.2+: AI prompt optimization, multi-turn analysis UX polish
+- Anomaly detection with semantic context
+- Multi-turn analysis UX polish
 - E2E tests with Playwright
-- Chart lazy loading (recharts +127 kB bundle)

@@ -15,6 +15,7 @@ def run_ai_query(
     explain: bool = True,
     max_rows: int = 1000,
     follow_up_context: dict | None = None,
+    language: str = "en",
 ) -> dict:
     """Natural language → SQL → Execute → Explain pipeline.
 
@@ -32,7 +33,7 @@ def run_ai_query(
     fu_ctx = build_follow_up_context(follow_up_context) if follow_up_context else None
 
     # 3. Generate SQL
-    sql_result = generate_sql(question, schema_context, fu_ctx)
+    sql_result = generate_sql(question, schema_context, fu_ctx, language)
     if sql_result["status"] == "error":
         return {
             "question": question,
@@ -77,7 +78,7 @@ def run_ai_query(
 
         # 4. Explain results (if requested and we have data)
         if explain and data:
-            explanation = explain_results(question, sql, data)
+            explanation = explain_results(question, sql, data, language=language)
             response["explanation"] = explanation.get("explanation", "")
             response["explanation_ms"] = explanation.get("elapsed_ms", 0)
 

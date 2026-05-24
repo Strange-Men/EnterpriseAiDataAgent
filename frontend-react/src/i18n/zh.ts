@@ -221,6 +221,13 @@ const zh = {
     "ai.generating": "生成中...",
     "ai.generate-sql": "生成 SQL",
     "ai.sql-generated": "SQL 已生成 — 确认后执行",
+    "ai.semantic-understanding": "语义理解",
+    "ai.metrics": "指标",
+    "ai.dimensions": "维度",
+    "ai.suggested-focus": "建议分析方向",
+    "ai.semantic-role": "角色",
+    "ai.business-meaning": "业务含义",
+    "ai.suggested-questions": "推荐问题",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI 分析",

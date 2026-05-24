@@ -221,6 +221,13 @@ const en = {
     "ai.generating": "Generating...",
     "ai.generate-sql": "Generate SQL",
     "ai.sql-generated": "SQL generated — review and run when ready",
+    "ai.semantic-understanding": "Semantic Understanding",
+    "ai.metrics": "Metrics",
+    "ai.dimensions": "Dimensions",
+    "ai.suggested-focus": "Suggested Focus",
+    "ai.semantic-role": "Role",
+    "ai.business-meaning": "Business Meaning",
+    "ai.suggested-questions": "Suggested Questions",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI Analyze",
