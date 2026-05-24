@@ -86,7 +86,7 @@ Every E2E test must:
 
 When you discover a reusable pattern, workflow, or fix:
 
-1. **Is it a skill?** → Add to `docs/skills/skill-registry.md`
+1. **Is it a skill?** → Add to `skills/SKILL_REGISTRY.md`
 2. **Is it a rule?** → Add to governance docs
 3. **Is it a debug recipe?** → Add to `docs/governance/error-analysis.md`
 

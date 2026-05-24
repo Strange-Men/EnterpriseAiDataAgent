@@ -4,16 +4,16 @@
 
 ## What Is a Skill
 
-A skill is a reusable workflow, pattern, or process that can be applied across sessions. Skills are documented in `docs/skills/` and registered in `docs/skills/skill-registry.md`.
+A skill is a reusable workflow, pattern, or process that can be applied across sessions. Skills are documented in `skills/active/` and registered in `skills/SKILL_REGISTRY.md`.
 
 ## Lifecycle States
 
 | State | Description | Location | Action Required |
 |-------|-------------|----------|-----------------|
-| **active** | Currently used in development workflows | `docs/skills/` | Review every version |
-| **stable** | Mature, unlikely to change | `docs/skills/` | Review every 2 versions |
-| **archived** | Historical reference, no longer used | `docs/archive/skills/` | Keep for reference |
-| **deprecated** | Superseded by better approach | `docs/archive/skills/` | Mark `> DEPRECATED` |
+| **active** | Currently used in development workflows | `skills/active/` | Review every version |
+| **stable** | Mature, unlikely to change | `skills/stable/` | Review every 2 versions |
+| **archived** | Historical reference, no longer used | `skills/archived/` | Keep for reference |
+| **deprecated** | Superseded by better approach | `skills/deprecated/` | Mark `> DEPRECATED` |
 
 ## State Transitions
 
@@ -32,16 +32,16 @@ active → deprecated → archived
 ### stable → archived
 - Skill has not been referenced in 3+ consecutive versions
 - A newer skill or approach has fully superseded it
-- Move to `docs/archive/skills/` with original filename
+- Move to `skills/archived/` with original filename
 
 ### active → deprecated
 - A clearly better approach has been identified
 - Document the reason for deprecation
-- Move to `docs/archive/skills/` within 1 version
+- Move to `skills/deprecated/` within 1 version
 
 ## Skill Registry
 
-All skills must be registered in `docs/skills/skill-registry.md` with:
+All skills must be registered in `skills/SKILL_REGISTRY.md` with:
 
 | Field | Description |
 |-------|-------------|
@@ -65,12 +65,12 @@ All skills must be registered in `docs/skills/skill-registry.md` with:
 ## Creating a New Skill
 
 1. Identify a reusable pattern (used 2+ times or likely to repeat)
-2. Create `docs/skills/{skill-name}.md` with:
+2. Create `skills/active/{skill-name}.md` with:
    - **Purpose**: What this skill solves
    - **When to use**: Trigger conditions
    - **Steps**: Detailed workflow
    - **Verification**: How to confirm success
-3. Register in `docs/skills/skill-registry.md`
+3. Register in `skills/SKILL_REGISTRY.md`
 4. Link from related governance docs
 
 ## Skill Documentation Template
@@ -101,12 +101,17 @@ All skills must be registered in `docs/skills/skill-registry.md` with:
 
 ## Current Skills
 
-| Name | Category | State | Description |
-|------|----------|-------|-------------|
-| Session Restore | workflow | active | Restore development session from CURRENT_SESSION.md |
-| SQL Debug | debugging | active | Debug SQL execution failures (DuckDB lock, proxy, query flow) |
-| E2E Testing | testing | active | Run and maintain Playwright E2E test suite |
-| Repository Audit | governance | active | Scan and validate repository structure against FILE_SYSTEM_RULES.md |
+| Name | Category | State | Location |
+|------|----------|-------|----------|
+| Virtual Scroll Debugging | debugging | active | `skills/active/virtual-scroll-debugging.md` |
+| Performance Audit | optimization | active | `skills/active/performance-audit.md` |
+| AI SQL Analysis | workflow | active | `skills/active/ai-sql-analysis.md` |
+| Auto Analysis Pipeline | workflow | active | `skills/active/auto-analysis-pipeline.md` |
+| Prompt Architecture | governance | active | `skills/active/prompt-architecture.md` |
+| Token Budget Control | optimization | active | `skills/active/token-budget-control.md` |
+| Runtime Guardrails | governance | active | `skills/active/runtime-guardrails.md` |
+| Analysis Trace | debugging | active | `skills/active/analysis-trace.md` |
+| AI Evaluation Harness | testing | active | `skills/active/ai-evaluation-harness.md` |
 
 ## Enforcement
 

@@ -88,11 +88,11 @@
 
 当前版本路线：
 
-| 版本 | 内容 |
-|------|------|
-| v0.3.x | Enterprise Data Platform |
-| v0.4.x | AI Analysis Layer |
-| v0.5.x | Multi-Agent + LangGraph |
+| 版本 | 内容 | 状态 |
+|------|------|------|
+| v0.3.x | Enterprise Data Platform | Done |
+| v0.5.x | AI Data Analyst MVP — AI System Engineering | Done |
+| v0.6.x | Anomaly Detection, Multi-turn UX, E2E Tests | Next |
 
 禁止跳版本乱开发。
 
@@ -100,17 +100,15 @@
 
 ## 三、当前项目阶段
 
-- **已完成**: React Workspace, FastAPI, DuckDB, SQL Workspace, Data Quality, Virtual Table, Query Runtime, Query Cache, Workspace Polish
-- **当前版本**: v0.3.x
-- **当前重点**: Enterprise Data Platform Stability
+- **已完成**: v0.3.x Enterprise Data Platform + v0.5.x AI Data Analyst MVP
+- **当前版本**: v0.5.5
+- **当前重点**: Documentation Governance, anomaly detection, multi-turn UX polish
 
 ---
 
 ## 四、后续开发原则
 
-当前禁止过早开发：LangGraph、Multi-Agent、RAG。
-
-必须优先：Workspace Stability、Query Stability、API Stability、Performance、Product Engineering。
+必须优先：Anomaly Detection、Multi-turn UX、E2E Tests、Performance、Product Engineering。
 
 ---
 

@@ -1,6 +1,6 @@
 # Performance Baseline — Enterprise AI Data Agent
 
-> Generated: 2026-05-23 | Version: v0.4.0
+> Generated: 2026-05-23 | Version: v0.5.4
 
 ## Overview
 
@@ -80,4 +80,4 @@ The test suite will fail with a detailed report showing which metrics regressed.
 
 | Date | Version | Page Load | DOM Nodes | Heap (MB) | Query (ms) |
 |------|---------|-----------|-----------|-----------|------------|
-| 2026-05-23 | v0.4.0 | TBD | TBD | TBD | TBD |
+| 2026-05-23 | v0.5.4 | TBD | TBD | TBD | TBD |

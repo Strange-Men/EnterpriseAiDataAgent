@@ -45,7 +45,7 @@ Pattern: `{type}-{version}.md`
 - `performance-report-v0.3.10.md`
 - `health-check-v0.3.10.md`
 
-### Skills (`docs/skills/`)
+### Skills (`skills/`)
 Pattern: `{skill-name}.md`
 - `skill-registry.md`
 - `debug-sql-execution.md`
