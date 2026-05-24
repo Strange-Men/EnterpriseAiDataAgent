@@ -11,10 +11,15 @@ import {
   aiInsights,
   aiChartSuggest,
   analyzeTable,
+  streamAiExplain,
+  aiQuery,
   type AnalysisResult,
   type AIQueryResult,
+  type FollowUpContext,
 } from "@/services/api";
 import { downloadBlob } from "@/utils/download";
+import { useAiSessionStore } from "@/stores/ai-session-store";
+import { AiChart, type ChartSpec } from "@/components/ui/ai-chart";
 
 // ── Theme-aware syntax highlighter style ──────────────────────
 const lightTheme: Record<string, React.CSSProperties> = {
@@ -93,11 +98,13 @@ interface AIAnalysisPanelProps {
   onClose?: () => void;
   /** Optional callback when full-analysis completes successfully */
   onComplete?: (table: string) => void;
+  /** Optional callback when follow-up generates new SQL */
+  onSqlGenerated?: (sql: string) => void;
 }
 
 // ── Main component ────────────────────────────────────────────
 export function AIAnalysisPanel({
-  tableName, sql, question, results, mode, onClose, onComplete,
+  tableName, sql, question, results, mode, onClose, onComplete, onSqlGenerated,
 }: AIAnalysisPanelProps) {
   const { t } = useTranslation();
   const codeTheme = useCodeTheme();
@@ -107,6 +114,10 @@ export function AIAnalysisPanel({
   const [sections, setSections] = useState<AnalysisSection[]>([]);
   const [rawData, setRawData] = useState<unknown>(null);
   const [hasRun, setHasRun] = useState(false);
+  const [streamingContent, setStreamingContent] = useState<string | null>(null);
+  const [followUpQuestion, setFollowUpQuestion] = useState("");
+  const [followUpLoading, setFollowUpLoading] = useState(false);
+  const [chartSpecs, setChartSpecs] = useState<ChartSpec[]>([]);
 
   // ── Run analysis ──────────────────────────────────────────
   const runAnalysis = useCallback(async () => {
@@ -114,19 +125,68 @@ export function AIAnalysisPanel({
     setError(null);
     setSections([]);
     setRawData(null);
+    setStreamingContent(null);
+    setChartSpecs([]);
 
     try {
       const builtSections: AnalysisSection[] = [];
       let raw: unknown = null;
 
       if (mode === "explain" && sql && question && results) {
-        const res = await aiExplain(question, sql, results);
-        raw = res;
-        builtSections.push({
-          title: t("ai.explanation"),
-          content: res.explanation || t("ai.no-explanation"),
-          type: "markdown",
+        // Streaming explain — accumulate in local var + state for live render
+        const sessionStore = useAiSessionStore.getState();
+        const history = sessionStore.getRecentTurns(6).map((t) => ({
+          role: t.role,
+          content: t.content,
+        }));
+
+        let accumulated = "";
+        setStreamingContent("");
+        await new Promise<void>((resolve, reject) => {
+          streamAiExplain(question, sql, results, {
+            onChunk: (text) => {
+              accumulated += text;
+              setStreamingContent(accumulated);
+            },
+            onDone: () => resolve(),
+            onError: (err) => reject(err),
+          }, history.length > 0 ? history : undefined);
         });
+        setSections([{
+          title: t("ai.explanation"),
+          content: accumulated || t("ai.no-explanation"),
+          type: "markdown",
+        }]);
+        // Record turns in session store
+        sessionStore.addUserTurn(question);
+        sessionStore.addAssistantTurn(accumulated, sql);
+        setStreamingContent(null);
+
+        // Auto chart suggestion — non-blocking, silent on failure
+        if (results && results.length > 0) {
+          try {
+            const chartRes = await aiChartSuggest(results, question);
+            if (chartRes.recommended_charts?.length) {
+              const specs: ChartSpec[] = chartRes.recommended_charts
+                .filter((c) => ["bar", "line", "pie", "scatter"].includes(c.type))
+                .slice(0, 2)
+                .map((c) => ({
+                  type: c.type as ChartSpec["type"],
+                  title: c.title,
+                  xKey: c.x_axis,
+                  yKey: c.y_axis,
+                  data: results,
+                }));
+              setChartSpecs(specs);
+            }
+          } catch {
+            // chart-suggest failure is non-fatal
+          }
+        }
+
+        setHasRun(true);
+        setIsLoading(false);
+        return;
       } else if (mode === "insights" && question && results) {
         const res = await aiInsights(question, results);
         raw = res;
@@ -232,6 +292,49 @@ export function AIAnalysisPanel({
       setIsLoading(false);
     }
   }, [mode, sql, question, results, tableName, t]);
+
+  // ── Follow-up analysis ────────────────────────────────────
+  const handleFollowUp = useCallback(async () => {
+    const q = followUpQuestion.trim();
+    if (!q || followUpLoading) return;
+
+    setFollowUpLoading(true);
+    setError(null);
+    try {
+      const sessionStore = useAiSessionStore.getState();
+
+      // Build follow-up context from session store + current results
+      const ctx: FollowUpContext = {};
+      if (sessionStore.lastSql) ctx.previous_sql = sessionStore.lastSql;
+      if (sessionStore.lastInsightSummary) ctx.previous_insight_summary = sessionStore.lastInsightSummary;
+      if (results && results.length > 0) {
+        ctx.previous_result_schema = Object.keys(results[0]).map((key) => {
+          const val = results[0][key];
+          const dtype = typeof val === "number" ? (Number.isInteger(val) ? "INTEGER" : "DOUBLE")
+            : typeof val === "boolean" ? "BOOLEAN" : "VARCHAR";
+          return { name: key, dtype };
+        });
+        ctx.previous_sample_rows = results.slice(0, 5);
+      }
+
+      // Generate SQL without executing — user confirms before execution
+      const res = await aiQuery(q, false, true, Object.keys(ctx).length > 0 ? ctx : undefined);
+
+      if (res.sql && res.status === "success") {
+        sessionStore.addUserTurn(q);
+        sessionStore.addAssistantTurn(res.sql, res.sql);
+        onSqlGenerated?.(res.sql);
+        toast.success(t("ai.sql-generated"));
+        setFollowUpQuestion("");
+      } else {
+        setError(res.error || "AI could not generate SQL for this follow-up");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("ai.analysis-failed"));
+    } finally {
+      setFollowUpLoading(false);
+    }
+  }, [followUpQuestion, followUpLoading, results, onSqlGenerated, t]);
 
   // ── Copy to clipboard ─────────────────────────────────────
   const handleCopy = useCallback((content: string) => {
@@ -426,7 +529,24 @@ export function AIAnalysisPanel({
           </div>
         )}
 
-        {/* Results */}
+        {/* Streaming content (live render during explain/insights) */}
+        {streamingContent !== null && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
+                {t("ai.explanation")}
+              </h3>
+              <span className="inline-block w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+            </div>
+            <div className="ai-markdown-content">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {streamingContent}
+              </ReactMarkdown>
+            </div>
+          </div>
+        )}
+
+        {/* Results (final, after streaming completes) */}
         {sections.map((section, i) => (
           <div key={i} className="mb-4 last:mb-0">
             <div className="flex items-center justify-between mb-2">
@@ -448,6 +568,41 @@ export function AIAnalysisPanel({
             </div>
           </div>
         ))}
+
+        {/* Charts — auto-generated by AI after explain */}
+        {chartSpecs.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-[var(--border-default)] space-y-4">
+            {chartSpecs.map((spec, i) => (
+              <AiChart key={i} spec={spec} />
+            ))}
+          </div>
+        )}
+
+        {/* Follow-up input — shown after results in explain mode */}
+        {hasRun && !isLoading && mode === "explain" && onSqlGenerated && (
+          <div className="mt-4 pt-3 border-t border-[var(--border-default)]">
+            <p className="text-xs text-[var(--text-muted)] mb-2">{t("ai.follow-up-hint")}</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={followUpQuestion}
+                onChange={(e) => setFollowUpQuestion(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleFollowUp(); }}
+                placeholder={t("ai.follow-up-placeholder")}
+                className="flex-1 px-3 py-1.5 text-xs bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-md text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+                disabled={followUpLoading}
+              />
+              <button
+                onClick={handleFollowUp}
+                disabled={followUpLoading || !followUpQuestion.trim()}
+                className="px-3 py-1.5 text-xs bg-[var(--accent)] text-[var(--bg-primary)] rounded-md hover:opacity-90 transition-opacity font-medium disabled:opacity-50"
+              >
+                {followUpLoading ? t("ai.generating") : t("ai.generate-sql")}
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

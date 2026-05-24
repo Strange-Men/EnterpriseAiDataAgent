@@ -216,6 +216,11 @@ const zh = {
     "ai.insights-btn": "AI 洞察",
     "ai.analyzing": "分析中...",
     "ai.profile-btn": "数据概览",
+    "ai.follow-up-hint": "基于当前结果追问，AI 将生成新的 SQL。",
+    "ai.follow-up-placeholder": "例如：按月份拆分...",
+    "ai.generating": "生成中...",
+    "ai.generate-sql": "生成 SQL",
+    "ai.sql-generated": "SQL 已生成 — 确认后执行",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI 分析",

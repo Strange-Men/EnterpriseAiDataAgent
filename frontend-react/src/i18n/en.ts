@@ -216,6 +216,11 @@ const en = {
     "ai.insights-btn": "AI Insights",
     "ai.analyzing": "Analyzing...",
     "ai.profile-btn": "Profile Dataset",
+    "ai.follow-up-hint": "Ask a follow-up question to generate new SQL based on these results.",
+    "ai.follow-up-placeholder": "e.g. Break this down by month...",
+    "ai.generating": "Generating...",
+    "ai.generate-sql": "Generate SQL",
+    "ai.sql-generated": "SQL generated — review and run when ready",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI Analyze",
