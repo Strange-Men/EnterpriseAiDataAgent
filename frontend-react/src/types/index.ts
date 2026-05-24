@@ -55,24 +55,9 @@ export interface UploadedFile {
   columns?: string[];
 }
 
-export interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-  timestamp: string;
-}
-
-export interface AgentLog {
-  agent: string;
-  action: string;
-  status: "running" | "done" | "error" | "pending";
-  detail: string;
-  time: string;
-}
-
 export interface SystemStatus {
   api: "unknown" | "ok" | "error";
   db: "unknown" | "ok" | "error";
-  rag: "unknown" | "ok" | "error";
   version: string;
   uptime: string;
 }

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { generateId } from "@/utils/id";
 
 export interface SavedQuery {
   id: string;
@@ -19,10 +20,6 @@ interface SavedQueriesState {
   toggleFavorite: (id: string) => void;
   updateQuery: (id: string, sql: string) => void;
   getFavorites: () => SavedQuery[];
-}
-
-function generateId(): string {
-  return `sq-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 export const useSavedQueriesStore = create<SavedQueriesState>()(

@@ -11,12 +11,9 @@ describe("data-store", () => {
       currentColumns: [],
       qualityReport: null,
       uploadedFiles: [],
-      chatHistory: [],
-      agentLogs: [],
       systemStatus: {
         api: "unknown",
         db: "unknown",
-        rag: "unknown",
         version: "0.3.3",
         uptime: "0:00:00",
       },
@@ -32,8 +29,6 @@ describe("data-store", () => {
     expect(state.currentColumns).toEqual([]);
     expect(state.qualityReport).toBeNull();
     expect(state.uploadedFiles).toEqual([]);
-    expect(state.chatHistory).toEqual([]);
-    expect(state.agentLogs).toEqual([]);
   });
 
   it("should set dbStatus", () => {
@@ -97,33 +92,12 @@ describe("data-store", () => {
     expect(useDataStore.getState().uploadedFiles).toEqual(files);
   });
 
-  it("should add chat messages", () => {
-    const { addChatMessage } = useDataStore.getState();
-    const msg1 = { role: "user" as const, content: "Hello", timestamp: "t1" };
-    const msg2 = { role: "assistant" as const, content: "Hi!", timestamp: "t2" };
-    addChatMessage(msg1);
-    addChatMessage(msg2);
-    const history = useDataStore.getState().chatHistory;
-    expect(history).toHaveLength(2);
-    expect(history[0].content).toBe("Hello");
-    expect(history[1].content).toBe("Hi!");
-  });
-
-  it("should add agent logs", () => {
-    const { addAgentLog } = useDataStore.getState();
-    const log = { agent: "sql", action: "execute", status: "running" as const, detail: "querying", time: "now" };
-    addAgentLog(log);
-    expect(useDataStore.getState().agentLogs).toHaveLength(1);
-    expect(useDataStore.getState().agentLogs[0].agent).toBe("sql");
-  });
-
   it("should set system status with partial update", () => {
     const { setSystemStatus } = useDataStore.getState();
     setSystemStatus({ api: "ok", db: "ok" });
     const status = useDataStore.getState().systemStatus;
     expect(status.api).toBe("ok");
     expect(status.db).toBe("ok");
-    expect(status.rag).toBe("unknown"); // unchanged
     expect(status.version).toBe("0.3.3"); // unchanged
   });
 

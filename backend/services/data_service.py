@@ -1,15 +1,10 @@
 """Data service wrapping existing database modules for the API layer."""
 
 import io
-import sys
-import os
 import time
 import math
 import numpy as np
 import pandas as pd
-
-# Ensure project root is on sys.path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.db_manager import DatabaseManager
 from database.file_loader import load_file, FileLoadError

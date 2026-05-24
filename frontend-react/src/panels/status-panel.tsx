@@ -121,10 +121,6 @@ export function StatusPanel() {
               <span className="text-[var(--text-muted)]">Temperature</span>
               <span className="font-mono text-[var(--text-primary)]">{aiStatus.temperature}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--text-muted)]">API Key</span>
-              <span className="font-mono text-[var(--text-primary)]">{aiStatus.api_key_preview}</span>
-            </div>
             {aiStatus.base_url !== "default" && (
               <div className="flex justify-between">
                 <span className="text-[var(--text-muted)]">Base URL</span>

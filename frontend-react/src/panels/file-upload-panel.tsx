@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
+import { useWorkflowStore } from "@/stores/workflow-store";
+import { useTables } from "@/hooks/use-tables";
 import { Tooltip } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
-import { fetchTables, uploadFile, fetchTableData, fetchQualityReport, analyzeTable, getTableProfile } from "@/services/api";
+import { uploadFile, fetchTableData, fetchQualityReport, analyzeTable, getTableProfile } from "@/services/api";
 import { logger } from "@/services/logger";
 import toast from "react-hot-toast";
 import type { UploadedFile, TableInfo } from "@/types";
@@ -16,27 +18,13 @@ export function FileUploadPanel() {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
-    tables, setTables, setDbStatus,
     uploadedFiles, setUploadedFiles,
     setCurrentTable, setCurrentData, setQualityReport,
   } = useDataStore();
+  const { tables, reload: loadTables } = useTables();
   const [uploading, setUploading] = useState(false);
   const [analyzingTable, setAnalyzingTable] = useState<string | null>(null);
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode | null>(null);
-
-  const loadTables = useCallback(async () => {
-    try {
-      const tbls = await fetchTables();
-      setTables(tbls);
-      setDbStatus("connected");
-    } catch {
-      setDbStatus("error");
-    }
-  }, [setTables, setDbStatus]);
-
-  useEffect(() => {
-    loadTables();
-  }, [loadTables]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -80,6 +68,12 @@ export function FileUploadPanel() {
     setUploading(false);
     await loadTables();
 
+    // Advance workflow: last successfully uploaded table
+    const lastOk = [...newFiles].reverse().find((f) => f.status === "success" && f.tableName);
+    if (lastOk?.tableName) {
+      useWorkflowStore.getState().advance("profiling", { table: lastOk.tableName });
+    }
+
     toast.dismiss(id);
     if (failCount === 0) {
       toast.success(`Uploaded ${successCount} file(s) successfully`);
@@ -116,6 +110,9 @@ export function FileUploadPanel() {
     } else {
       setAnalyzingTable(tableName);
       setAnalysisMode(mode);
+      if (mode === "full-analysis") {
+        useWorkflowStore.getState().advance("analyzing", { table: tableName });
+      }
     }
   };
 
@@ -179,6 +176,7 @@ export function FileUploadPanel() {
                       mode={analysisMode}
                       tableName={tbl.name}
                       onClose={() => { setAnalyzingTable(null); setAnalysisMode(null); }}
+                      onComplete={(table) => useWorkflowStore.getState().advance("sql-ready", { table })}
                     />
                   </div>
                 )}
@@ -242,6 +240,7 @@ export function FileUploadPanel() {
                     mode={analysisMode}
                     tableName={f.tableName}
                     onClose={() => { setAnalyzingTable(null); setAnalysisMode(null); }}
+                    onComplete={(table) => useWorkflowStore.getState().advance("sql-ready", { table })}
                   />
                 </div>
               )}

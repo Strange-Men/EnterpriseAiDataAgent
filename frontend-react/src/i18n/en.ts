@@ -6,10 +6,8 @@ const en = {
 
     "nav.file-upload": "File Upload",
     "nav.data-preview": "Data Preview",
-    "nav.chat": "AI Assistant",
     "nav.quality": "Data Quality",
     "nav.charts": "Visualizations",
-    "nav.logs": "Agent Logs",
     "nav.status": "System Status",
     "nav.sql": "SQL Workspace",
     "nav.tables": "Tables",
@@ -25,10 +23,6 @@ const en = {
     "upload.columns": "Columns",
     "upload.fields": "Fields",
     "upload.drop-table": "Drop table",
-
-    "chat.placeholder": "Ask about your data...",
-    "chat.empty": "Start a conversation by typing below.",
-    "chat.mock-reply": "AI integration will be added in a later phase.",
 
     "preview.title": "Data Preview",
     "preview.no-data": "No data loaded. Upload a CSV or Excel file to begin.",
@@ -66,12 +60,8 @@ const en = {
     "status.unknown": "Unknown",
     "status.api": "LLM API",
     "status.db": "Database",
-    "status.rag": "RAG Engine",
     "status.version": "Version",
     "status.uptime": "Uptime",
-
-    "logs.title": "Agent Logs",
-    "logs.empty": "No agent activity yet.",
 
     "charts.title": "Visualizations",
     "charts.empty": "No charts generated yet.",

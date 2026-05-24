@@ -10,25 +10,7 @@ const API_BASE = "/api";
 
 // ── Generic fetch wrapper ──────────────────────────────────
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`API ${res.status}: ${body || res.statusText}`);
-  }
-  try {
-    return await res.json();
-  } catch {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Invalid JSON response: ${text.slice(0, 200)}`);
-  }
-}
-
-// ── Generic fetch with abort support ──────────────────────
-
-async function apiFetchAbortable<T>(
+async function apiFetch<T>(
   path: string,
   options?: RequestInit & { signal?: AbortSignal }
 ): Promise<T> {
@@ -121,7 +103,7 @@ export async function executeQuery(
   limit: number = 10000,
   signal?: AbortSignal
 ): Promise<QueryResult> {
-  return apiFetchAbortable<QueryResult>("/query", {
+  return apiFetch<QueryResult>("/query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sql, limit }),
@@ -219,7 +201,6 @@ export async function fetchQualityReport(
 export async function fetchStatus(): Promise<{
   api: string;
   db: string;
-  rag: string;
   version: string;
   uptime: string;
 }> {
@@ -234,7 +215,6 @@ export interface AIStatus {
   model: string;
   temperature: number;
   base_url: string;
-  api_key_preview: string;
 }
 
 export async function fetchAIStatus(): Promise<AIStatus> {

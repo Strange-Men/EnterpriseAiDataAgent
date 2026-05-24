@@ -6,10 +6,8 @@ const zh = {
 
     "nav.file-upload": "文件上传",
     "nav.data-preview": "数据预览",
-    "nav.chat": "AI 助手",
     "nav.quality": "数据质量",
     "nav.charts": "可视化",
-    "nav.logs": "智能体日志",
     "nav.status": "系统状态",
     "nav.sql": "SQL 工作区",
     "nav.tables": "表管理",
@@ -25,10 +23,6 @@ const zh = {
     "upload.columns": "列数",
     "upload.fields": "字段",
     "upload.drop-table": "删除表",
-
-    "chat.placeholder": "输入你的问题...",
-    "chat.empty": "在下方输入开始对话。",
-    "chat.mock-reply": "AI 集成将在后续版本中添加。",
 
     "preview.title": "数据预览",
     "preview.no-data": "暂无数据。请上传 CSV 或 Excel 文件。",
@@ -66,12 +60,8 @@ const zh = {
     "status.unknown": "未知",
     "status.api": "LLM API",
     "status.db": "数据库",
-    "status.rag": "RAG 引擎",
     "status.version": "版本",
     "status.uptime": "运行时间",
-
-    "logs.title": "智能体日志",
-    "logs.empty": "暂无智能体活动。",
 
     "charts.title": "可视化",
     "charts.empty": "暂无图表。",

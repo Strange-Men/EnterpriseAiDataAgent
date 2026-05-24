@@ -14,17 +14,22 @@ from database.query_executor import QueryExecutor
 
 @pytest.fixture
 def client():
-    # Reconnect the shared database singleton (previous tests may have reset it)
+    # Ensure the shared database singleton is fresh and connected.
+    # Previous test files (e.g. test_query_executor.py) may have reset it.
     from database.db_manager import DatabaseManager
     from backend.services import data_service
-    # If singleton was reset, recreate the module-level references
-    if DatabaseManager._instance is None:
-        data_service._db = DatabaseManager()
-        data_service._executor = QueryExecutor(data_service._db)
-    else:
-        data_service._db.connect()
+
+    # Force a fresh singleton and reconnect
+    DatabaseManager.reset_instance()
+    data_service._db = DatabaseManager()
+    data_service._executor = QueryExecutor(data_service._db)
+    conn = data_service._db.connect()
+    # Verify connection is alive
+    conn.execute("SELECT 1").fetchone()
+
     from backend.main import app
-    return TestClient(app)
+    with TestClient(app) as c:
+        yield c
 
 
 def _unique_name(prefix: str) -> str:
@@ -126,7 +131,6 @@ class TestAIStatusRoute:
         assert "connection" in data
         assert "model" in data
         assert "temperature" in data
-        assert "api_key_preview" in data
         assert data["connection"] in ["ok", "error", "not_configured"]
 
     def test_ai_status_model_is_string(self, client):

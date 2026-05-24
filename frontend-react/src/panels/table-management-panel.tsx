@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
+import { useTables } from "@/hooks/use-tables";
 import { useSqlWorkspaceStore } from "@/stores/sql-workspace-store";
 import { Tooltip } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
-  fetchTables,
   deleteTable as apiDeleteTable,
   renameTable as apiRenameTable,
   fetchTableData,
@@ -19,25 +19,12 @@ import type { TableInfo } from "@/types";
 
 export function TableManagementPanel() {
   const { t } = useTranslation();
-  const { tables, setTables, setDbStatus, setCurrentTable, setCurrentData, setQualityReport } = useDataStore();
+  const { setCurrentTable, setCurrentData, setQualityReport } = useDataStore();
+  const { tables, reload: loadTables } = useTables();
   const { setCurrentSql, setSelectedTable } = useSqlWorkspaceStore();
   const [renaming, setRenaming] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const loadTables = useCallback(async () => {
-    try {
-      const tbls = await fetchTables();
-      setTables(tbls);
-      setDbStatus("connected");
-    } catch {
-      setDbStatus("error");
-    }
-  }, [setTables, setDbStatus]);
-
-  useEffect(() => {
-    loadTables();
-  }, [loadTables]);
 
   const handleSelect = async (table: TableInfo) => {
     setSelectedTable(table.name);

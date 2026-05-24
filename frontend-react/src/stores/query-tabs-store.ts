@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { generateId } from "@/utils/id";
 
 export interface QueryTab {
   id: string;
@@ -18,10 +19,6 @@ interface QueryTabsState {
   setActiveTab: (id: string) => void;
   updateTabSql: (id: string, sql: string) => void;
   getActiveTab: () => QueryTab | undefined;
-}
-
-function generateId(): string {
-  return `tab-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 const DEFAULT_TAB: QueryTab = {
