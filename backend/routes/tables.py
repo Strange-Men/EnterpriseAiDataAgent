@@ -1,10 +1,16 @@
-"""Table endpoints — GET /api/tables, GET/DELETE /api/tables/{name}."""
+"""Table endpoints — CRUD, rename, export, paginated data."""
 
+import io
+import csv
 from fastapi import APIRouter, HTTPException
-from backend.services.data_service import list_tables, get_table_preview, get_table_schema, delete_table
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from backend.services.data_service import _db, list_tables, get_table_preview, get_table_schema, delete_table, _sanitize_for_json
 
 router = APIRouter()
 
+
+# ── List / Preview / Schema / Delete ─────────────────────────────
 
 @router.get("/tables")
 async def get_tables():
@@ -38,8 +44,7 @@ async def get_table_data(table_name: str, limit: int = 100):
 @router.get("/tables/{table_name}/schema")
 async def get_schema(table_name: str):
     try:
-        columns = get_table_schema(table_name)
-        return columns
+        return get_table_schema(table_name)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -61,26 +66,13 @@ async def get_table_data_paginated(
 ):
     """Paginated data fetch with server-side OFFSET for virtual scrolling."""
     try:
-        import time
-        from database.db_manager import DatabaseManager
-        from backend.services.data_service import _sanitize_for_json
-
-        db = DatabaseManager()
-        conn = db.connect()
-
+        conn = _db.connect()
         offset = page * page_size
-        count_row = conn.execute(
-            f'SELECT COUNT(*) FROM "{table_name}"'
-        ).fetchone()
+        count_row = conn.execute(f'SELECT COUNT(*) FROM "{table_name}"').fetchone()
         total_rows = count_row[0] if count_row else 0
-
-        rows = conn.execute(
-            f'SELECT * FROM "{table_name}" LIMIT {page_size} OFFSET {offset}'
-        ).fetchdf()
-
+        rows = conn.execute(f'SELECT * FROM "{table_name}" LIMIT {page_size} OFFSET {offset}').fetchdf()
         columns = list(rows.columns)
         data = _sanitize_for_json(rows.to_dict(orient="records"))
-
         return {
             "columns": columns,
             "data": data,
@@ -89,5 +81,44 @@ async def get_table_data_paginated(
             "totalRows": total_rows,
             "hasMore": offset + page_size < total_rows,
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Rename ───────────────────────────────────────────────────────
+
+class RenameRequest(BaseModel):
+    new_name: str
+
+
+@router.put("/table/{table_name}/rename")
+async def rename_table(table_name: str, req: RenameRequest):
+    new_name = req.new_name.strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="New name cannot be empty")
+    try:
+        _db.rename_table(table_name, new_name)
+        return {"status": "renamed", "old_name": table_name, "new_name": new_name}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Export ────────────────────────────────────────────────────────
+
+@router.get("/table/{table_name}/export")
+async def export_table(table_name: str):
+    try:
+        df = _db.get_sample_data(table_name, limit=500000)
+        stream = io.StringIO()
+        writer = csv.writer(stream)
+        writer.writerow(df.columns)
+        for _, row in df.iterrows():
+            writer.writerow(row.tolist())
+        stream.seek(0)
+        return StreamingResponse(
+            iter([stream.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{table_name}.csv"'},
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

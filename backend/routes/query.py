@@ -1,19 +1,14 @@
-"""Query endpoints — POST /api/query, GET /api/query/history, POST /api/query/explain, POST /api/query/cancel, POST /api/query/export."""
+"""Query endpoints — thin shell delegating to services."""
 
 import time
-import io
-import json
-import csv
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from backend.services.data_service import _executor, _sanitize_for_json
 from backend.services.query_history import query_history
+from backend.services.export_service import export_as_csv, export_as_json, export_as_excel
 
 router = APIRouter()
-
-# Track running queries for cancellation
-_active_queries: dict[int, bool] = {}
 
 
 class QueryRequest(BaseModel):
@@ -33,6 +28,10 @@ class ExportRequest(BaseModel):
     sql: str
     format: str = "csv"  # csv | json | excel
     limit: int = 50000
+
+
+# Track running queries for cancellation
+_active_queries: dict[int, bool] = {}
 
 
 @router.post("/query")
@@ -101,18 +100,8 @@ async def explain_query(req: ExplainRequest):
 
     result = _executor.explain(sql)
     if result["status"] == "error":
-        return {
-            "sql": sql,
-            "plan": [],
-            "status": "error",
-            "error": result["error"],
-        }
-    return {
-        "sql": sql,
-        "plan": result["plan"],
-        "status": "success",
-        "error": None,
-    }
+        return {"sql": sql, "plan": [], "status": "error", "error": result["error"]}
+    return {"sql": sql, "plan": result["plan"], "status": "success", "error": None}
 
 
 @router.post("/query/cancel")
@@ -137,36 +126,17 @@ async def export_query(req: ExportRequest):
     data = _sanitize_for_json(result["data"][:req.limit])
     columns = result["columns"]
 
-    if req.format == "json":
-        content = json.dumps(data, ensure_ascii=False, default=str)
-        return StreamingResponse(
-            io.BytesIO(content.encode("utf-8")),
-            media_type="application/json",
-            headers={"Content-Disposition": "attachment; filename=query_result.json"},
-        )
+    exporters = {
+        "json": lambda: export_as_json(data),
+        "excel": lambda: export_as_excel(data),
+    }
+    content, media_type, filename = exporters.get(req.format, lambda: export_as_csv(data, columns))()
 
-    elif req.format == "excel":
-        import pandas as pd
-        df = pd.DataFrame(data)
-        buf = io.BytesIO()
-        df.to_excel(buf, index=False, engine="openpyxl")
-        buf.seek(0)
-        return StreamingResponse(
-            buf,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": "attachment; filename=query_result.xlsx"},
-        )
-
-    else:  # csv (default)
-        output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=columns)
-        writer.writeheader()
-        writer.writerows(data)
-        return StreamingResponse(
-            io.BytesIO(output.getvalue().encode("utf-8")),
-            media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=query_result.csv"},
-        )
+    return StreamingResponse(
+        iter([content]),
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.get("/query/schema")

@@ -3,8 +3,6 @@ import type {
   TableInfo,
   QualityReport,
   UploadedFile,
-  ChatMessage,
-  AgentLog,
   SystemStatus,
 } from "@/types";
 
@@ -30,14 +28,6 @@ interface DataState {
   uploadedFiles: UploadedFile[];
   setUploadedFiles: (files: UploadedFile[]) => void;
 
-  // Chat
-  chatHistory: ChatMessage[];
-  addChatMessage: (msg: ChatMessage) => void;
-
-  // Agent logs
-  agentLogs: AgentLog[];
-  addAgentLog: (log: AgentLog) => void;
-
   // System status
   systemStatus: SystemStatus;
   setSystemStatus: (status: Partial<SystemStatus>) => void;
@@ -62,18 +52,9 @@ export const useDataStore = create<DataState>((set) => ({
   uploadedFiles: [],
   setUploadedFiles: (uploadedFiles) => set({ uploadedFiles }),
 
-  chatHistory: [],
-  addChatMessage: (msg) =>
-    set((state) => ({ chatHistory: [...state.chatHistory, msg] })),
-
-  agentLogs: [],
-  addAgentLog: (log) =>
-    set((state) => ({ agentLogs: [...state.agentLogs, log] })),
-
   systemStatus: {
     api: "unknown",
     db: "unknown",
-    rag: "unknown",
     version: "0.3.3",
     uptime: "0:00:00",
   },

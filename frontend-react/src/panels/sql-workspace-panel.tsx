@@ -6,13 +6,15 @@ import { useSqlWorkspaceStore } from "@/stores/sql-workspace-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { useQueryTabsStore } from "@/stores/query-tabs-store";
 import { useSavedQueriesStore, type SavedQuery } from "@/stores/saved-queries-store";
+import { useWorkflowStore } from "@/stores/workflow-store";
 import { MonacoSqlEditor } from "@/components/monaco-sql-editor";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryExplain } from "@/components/query-explain";
 import { ExportDropdown } from "@/components/export-dropdown";
-import { executeQuery, explainQuery, cancelQuery } from "@/services/api";
+import { executeQuery, explainQuery, cancelQuery, aiQuery } from "@/services/api";
 import type { ExplainResult } from "@/services/api";
+import { downloadBlob } from "@/utils/download";
 import { AIAnalysisPanel } from "@/panels/ai-analysis-panel";
 import type { AnalysisMode } from "@/panels/ai-analysis-panel";
 import { logger } from "@/services/logger";
@@ -31,6 +33,7 @@ export function SqlWorkspacePanel() {
     setActiveTab, updateTabSql, getActiveTab,
   } = useQueryTabsStore();
   const { queries: savedQueries, saveQuery, deleteQuery, toggleFavorite } = useSavedQueriesStore();
+  const { stage: wfStage, activeTable: wfTable, advance: wfAdvance, reset: wfReset } = useWorkflowStore();
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -71,10 +74,32 @@ export function SqlWorkspacePanel() {
   const [aiMode, setAiMode] = useState<AnalysisMode | null>(null);
   const [showAiPanel, setShowAiPanel] = useState(false);
 
+  // Workflow: AI SQL generation state
+  const [generatingSql, setGeneratingSql] = useState(false);
+
   const handleAiAction = useCallback((mode: AnalysisMode) => {
     setAiMode(mode);
     setShowAiPanel(true);
   }, []);
+
+  const handleGenerateAiSql = useCallback(async () => {
+    if (!wfTable || generatingSql) return;
+    setGeneratingSql(true);
+    try {
+      const res = await aiQuery(`Show all data from ${wfTable}`, false, false);
+      if (res.sql && activeTab) {
+        updateTabSql(activeTab.id, res.sql);
+        wfAdvance("sql-ready", { table: wfTable, sql: res.sql });
+        toast.success(t("ai.ready"));
+      } else {
+        toast.error(res.error || "AI could not generate SQL");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "AI SQL generation failed");
+    } finally {
+      setGeneratingSql(false);
+    }
+  }, [wfTable, generatingSql, activeTab, updateTabSql, wfAdvance, t]);
 
   const handleExecute = useCallback(async () => {
     const sql = currentSql.trim();
@@ -88,6 +113,10 @@ export function SqlWorkspacePanel() {
     setAiMode(null);
     queryIdRef.current = null;
     startTimeRef.current = Date.now();
+
+    if (wfStage === "sql-ready") {
+      wfAdvance("executing");
+    }
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -110,6 +139,9 @@ export function SqlWorkspacePanel() {
         toast.error(`Query failed: ${result.error}`);
       } else {
         toast.success(`OK (${result.rowCount} rows, ${result.runtimeMs}ms)`);
+        if (wfStage === "executing" || wfStage === "sql-ready") {
+          wfAdvance("done");
+        }
       }
     } catch (err: unknown) {
       if ((err as Error).name === "AbortError") {
@@ -142,7 +174,7 @@ export function SqlWorkspacePanel() {
       setExecuting(false);
       abortControllerRef.current = null;
     }
-  }, [currentSql, setExecuting, setQueryResult, addEntry]);
+  }, [currentSql, setExecuting, setQueryResult, addEntry, wfStage, wfAdvance]);
 
   // EXPLAIN handler
   const handleExplain = useCallback(async () => {
@@ -216,13 +248,7 @@ export function SqlWorkspacePanel() {
   const handleExportHistory = useCallback(() => {
     const { exportHistory } = useSqlHistoryStore.getState();
     const json = exportHistory();
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "query_history.json";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob("query_history.json", json, "application/json");
     toast.success(t("history.exported"));
   }, [t]);
 
@@ -426,6 +452,47 @@ export function SqlWorkspacePanel() {
 
         <ExportDropdown sql={currentSql} disabled={isExecuting} />
       </div>
+
+      {/* ── Workflow Banner ─────────────────────────────────── */}
+      {wfStage !== "idle" && wfStage !== "done" && (
+        <div className="flex items-center gap-2 px-3 py-1.5 mb-2 bg-purple-500/5 border border-purple-500/20 rounded-md text-xs">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+          <span className="text-purple-400 font-medium">
+            {wfStage === "uploading" ? "Uploading..." :
+             wfStage === "profiling" ? `Table ready: ${wfTable}` :
+             wfStage === "analyzing" ? `Analyzing ${wfTable}...` :
+             wfStage === "sql-ready" ? `Analysis complete: ${wfTable}` :
+             wfStage === "executing" ? "Executing..." : ""}
+          </span>
+          {wfStage === "sql-ready" && wfTable && (
+            <button
+              onClick={handleGenerateAiSql}
+              disabled={generatingSql}
+              className="ml-auto px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded hover:bg-purple-500/20 transition-colors disabled:opacity-50"
+            >
+              {generatingSql ? "Generating..." : "Generate SQL"}
+            </button>
+          )}
+          <button
+            onClick={wfReset}
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] ml-1"
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {wfStage === "done" && (
+        <div className="flex items-center gap-2 px-3 py-1.5 mb-2 bg-green-500/5 border border-green-500/20 rounded-md text-xs">
+          <span className="text-green-400">Done: {wfTable}</span>
+          <button
+            onClick={wfReset}
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] ml-auto"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* ── Save Query Dialog ────────────────────────────── */}
       {showSaveDialog && (

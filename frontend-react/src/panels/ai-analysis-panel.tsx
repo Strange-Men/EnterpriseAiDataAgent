@@ -14,6 +14,7 @@ import {
   type AnalysisResult,
   type AIQueryResult,
 } from "@/services/api";
+import { downloadBlob } from "@/utils/download";
 
 // ── Theme-aware syntax highlighter style ──────────────────────
 const lightTheme: Record<string, React.CSSProperties> = {
@@ -90,11 +91,13 @@ interface AIAnalysisPanelProps {
   mode: AnalysisMode;
   /** Optional callback when panel is closed */
   onClose?: () => void;
+  /** Optional callback when full-analysis completes successfully */
+  onComplete?: (table: string) => void;
 }
 
 // ── Main component ────────────────────────────────────────────
 export function AIAnalysisPanel({
-  tableName, sql, question, results, mode, onClose,
+  tableName, sql, question, results, mode, onClose, onComplete,
 }: AIAnalysisPanelProps) {
   const { t } = useTranslation();
   const codeTheme = useCodeTheme();
@@ -220,6 +223,9 @@ export function AIAnalysisPanel({
       setSections(builtSections);
       setRawData(raw);
       setHasRun(true);
+      if (mode === "full-analysis" && tableName && onComplete) {
+        onComplete(tableName);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t("ai.analysis-failed"));
     } finally {
@@ -238,13 +244,7 @@ export function AIAnalysisPanel({
   // ── Export as markdown ─────────────────────────────────────
   const handleExportMd = useCallback(() => {
     const md = sections.map((s) => `## ${s.title}\n\n${s.content}`).join("\n\n---\n\n");
-    const blob = new Blob([md], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ai-analysis-${tableName || "query"}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(`ai-analysis-${tableName || "query"}.md`, md, "text/markdown");
     toast.success(t("ai.exported-md"));
   }, [sections, tableName, t]);
 
@@ -252,13 +252,7 @@ export function AIAnalysisPanel({
   const handleExportJson = useCallback(() => {
     if (!rawData) return;
     const json = JSON.stringify(rawData, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ai-analysis-${tableName || "query"}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(`ai-analysis-${tableName || "query"}.json`, json, "application/json");
     toast.success(t("ai.exported-json"));
   }, [rawData, tableName, t]);
 

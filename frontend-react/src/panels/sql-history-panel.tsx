@@ -7,6 +7,7 @@ import { useSqlWorkspaceStore } from "@/stores/sql-workspace-store";
 import { useQueryTabsStore } from "@/stores/query-tabs-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { fetchQueryHistory } from "@/services/api";
+import { downloadBlob } from "@/utils/download";
 import toast from "react-hot-toast";
 
 export function SqlHistoryPanel() {
@@ -48,13 +49,7 @@ export function SqlHistoryPanel() {
   const handleExport = () => {
     const { exportHistory } = useSqlHistoryStore.getState();
     const json = exportHistory();
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "query_history.json";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob("query_history.json", json, "application/json");
     toast.success(t("history.exported"));
   };
 

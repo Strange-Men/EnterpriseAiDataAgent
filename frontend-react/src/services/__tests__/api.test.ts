@@ -208,7 +208,7 @@ describe("api service", () => {
 
   describe("fetchStatus", () => {
     it("should fetch system status", async () => {
-      const status = { api: "ok", db: "ok", rag: "ok", version: "0.4.0", uptime: "1:00:00" };
+      const status = { api: "ok", db: "ok", version: "0.4.0", uptime: "1:00:00" };
       mockFetch.mockResolvedValueOnce(mockJsonResponse(status));
       const res = await fetchStatus();
       expect(res.api).toBe("ok");

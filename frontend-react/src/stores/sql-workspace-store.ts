@@ -1,18 +1,5 @@
 import { create } from "zustand";
-
-interface QueryResult {
-  queryId: number;
-  sql: string;
-  columns: string[];
-  data: Record<string, unknown>[];
-  rowCount: number;
-  totalRows?: number;
-  hasMore?: boolean;
-  truncated?: boolean;
-  runtimeMs: number;
-  status: "success" | "error";
-  error: string | null;
-}
+import type { QueryResult } from "@/services/api";
 
 interface SqlWorkspaceState {
   // SQL editor

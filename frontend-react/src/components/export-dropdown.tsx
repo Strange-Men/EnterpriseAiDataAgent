@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { exportQueryResult } from "@/services/api";
+import { downloadBlob } from "@/utils/download";
 import toast from "react-hot-toast";
 
 interface ExportDropdownProps {
@@ -34,12 +35,7 @@ export function ExportDropdown({ sql, disabled }: ExportDropdownProps) {
     try {
       const blob = await exportQueryResult(sql, format);
       const ext = format === "excel" ? "xlsx" : format;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `query_result.${ext}`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(`query_result.${ext}`, blob, blob.type);
       toast.success(t("export.success", { format: format.toUpperCase() }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Export failed";

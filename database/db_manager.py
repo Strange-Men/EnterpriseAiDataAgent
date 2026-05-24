@@ -35,7 +35,16 @@ class DatabaseManager:
         cls._instance = None
 
     def connect(self):
-        """Open (or return existing) DuckDB connection."""
+        """Open (or return existing) DuckDB connection.
+
+        Automatically re-opens if the connection was closed externally.
+        """
+        if self._conn is not None:
+            try:
+                self._conn.execute("SELECT 1").fetchone()
+            except Exception:
+                self._conn = None  # Force re-connect below
+
         if self._conn is None:
             try:
                 os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
@@ -52,7 +61,13 @@ class DatabaseManager:
 
     @property
     def is_connected(self) -> bool:
-        return self._conn is not None
+        if self._conn is None:
+            return False
+        try:
+            self._conn.execute("SELECT 1").fetchone()
+            return True
+        except Exception:
+            return False
 
     @property
     def db_path(self) -> str:

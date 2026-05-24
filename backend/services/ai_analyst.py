@@ -5,12 +5,15 @@ Natural language → SQL → Execute → Explain → Insights → Chart suggesti
 Uses Claude API for LLM capabilities. No LangGraph, no Multi-Agent.
 """
 
-import os
 import json
 import time
-from dotenv import load_dotenv
 
-load_dotenv()
+from backend.config import (
+    ANTHROPIC_API_KEY,
+    ANTHROPIC_BASE_URL,
+    DEFAULT_LLM_MODEL,
+    DEFAULT_TEMPERATURE,
+)
 
 
 # ── Configuration ────────────────────────────────────────────────
@@ -19,13 +22,13 @@ def _get_client():
     """Lazy-init Anthropic client."""
     import anthropic
     return anthropic.Anthropic(
-        api_key=os.getenv("ANTHROPIC_API_KEY", ""),
-        base_url=os.getenv("ANTHROPIC_BASE_URL", None),
+        api_key=ANTHROPIC_API_KEY,
+        base_url=ANTHROPIC_BASE_URL,
     )
 
 
-MODEL = os.getenv("DEFAULT_LLM_MODEL", "claude-sonnet-4-5-20250929")
-TEMPERATURE = float(os.getenv("DEFAULT_TEMPERATURE", "0.3"))
+MODEL = DEFAULT_LLM_MODEL
+TEMPERATURE = DEFAULT_TEMPERATURE
 
 
 # ── Schema Context Builder ──────────────────────────────────────
