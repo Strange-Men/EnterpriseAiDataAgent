@@ -270,6 +270,17 @@ const en = {
     "perf.run-benchmarks": "Run Benchmarks",
     "perf.running": "Running...",
     "perf.last-run": "Last Run",
+
+    // Analysis Workspace
+    "analysis.workspace": "Analysis",
+    "analysis.history": "History",
+    "analysis.trace": "Trace",
+    "analysis.recent-runs": "Recent Runs",
+    "analysis.no-history": "No analysis runs yet.",
+    "analysis.no-selection": "Select a run to view details.",
+    "analysis.run-hint": "Run an analysis from the SQL workspace or data panel.",
+    "analysis.start-hint": "Use AI Explain, Insights, or Full Analysis to get started.",
+    "analysis.tab-analysis": "Analysis",
   },
 };
 
