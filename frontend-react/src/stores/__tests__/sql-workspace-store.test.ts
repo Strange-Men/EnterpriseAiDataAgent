@@ -1,42 +1,42 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useSqlWorkspaceStore } from "../sql-workspace-store";
+import { useSqlEditorStore } from "../sql-editor-store";
 
-describe("sql-workspace-store", () => {
+describe("sql-workspace (via sql-editor-store)", () => {
   beforeEach(() => {
-    useSqlWorkspaceStore.setState({
+    useSqlEditorStore.setState({
       currentSql: "",
       isExecuting: false,
       queryResult: null,
       selectedTable: null,
-      activeTab: "editor",
+      activePanelTab: "editor",
     });
   });
 
   it("should have correct initial state", () => {
-    const state = useSqlWorkspaceStore.getState();
+    const state = useSqlEditorStore.getState();
     expect(state.currentSql).toBe("");
     expect(state.isExecuting).toBe(false);
     expect(state.queryResult).toBeNull();
     expect(state.selectedTable).toBeNull();
-    expect(state.activeTab).toBe("editor");
+    expect(state.activePanelTab).toBe("editor");
   });
 
   it("should set current SQL", () => {
-    const { setCurrentSql } = useSqlWorkspaceStore.getState();
+    const { setCurrentSql } = useSqlEditorStore.getState();
     setCurrentSql("SELECT * FROM users");
-    expect(useSqlWorkspaceStore.getState().currentSql).toBe("SELECT * FROM users");
+    expect(useSqlEditorStore.getState().currentSql).toBe("SELECT * FROM users");
   });
 
   it("should set executing state", () => {
-    const { setExecuting } = useSqlWorkspaceStore.getState();
+    const { setExecuting } = useSqlEditorStore.getState();
     setExecuting(true);
-    expect(useSqlWorkspaceStore.getState().isExecuting).toBe(true);
+    expect(useSqlEditorStore.getState().isExecuting).toBe(true);
     setExecuting(false);
-    expect(useSqlWorkspaceStore.getState().isExecuting).toBe(false);
+    expect(useSqlEditorStore.getState().isExecuting).toBe(false);
   });
 
   it("should set query result", () => {
-    const { setQueryResult } = useSqlWorkspaceStore.getState();
+    const { setQueryResult } = useSqlEditorStore.getState();
     const result = {
       queryId: 1,
       sql: "SELECT 1",
@@ -48,11 +48,11 @@ describe("sql-workspace-store", () => {
       error: null,
     };
     setQueryResult(result);
-    expect(useSqlWorkspaceStore.getState().queryResult).toEqual(result);
+    expect(useSqlEditorStore.getState().queryResult).toEqual(result);
   });
 
   it("should set query result to null", () => {
-    const { setQueryResult } = useSqlWorkspaceStore.getState();
+    const { setQueryResult } = useSqlEditorStore.getState();
     setQueryResult({
       queryId: 1,
       sql: "SELECT 1",
@@ -64,11 +64,11 @@ describe("sql-workspace-store", () => {
       error: null,
     });
     setQueryResult(null);
-    expect(useSqlWorkspaceStore.getState().queryResult).toBeNull();
+    expect(useSqlEditorStore.getState().queryResult).toBeNull();
   });
 
   it("should handle query result with hasMore and truncated", () => {
-    const { setQueryResult } = useSqlWorkspaceStore.getState();
+    const { setQueryResult } = useSqlEditorStore.getState();
     const result = {
       queryId: 2,
       sql: "SELECT * FROM big_table",
@@ -83,14 +83,14 @@ describe("sql-workspace-store", () => {
       error: null,
     };
     setQueryResult(result);
-    const stored = useSqlWorkspaceStore.getState().queryResult;
+    const stored = useSqlEditorStore.getState().queryResult;
     expect(stored?.hasMore).toBe(true);
     expect(stored?.truncated).toBe(true);
     expect(stored?.totalRows).toBe(50000);
   });
 
   it("should handle error query result", () => {
-    const { setQueryResult } = useSqlWorkspaceStore.getState();
+    const { setQueryResult } = useSqlEditorStore.getState();
     const result = {
       queryId: 3,
       sql: "SELECT * FROM nonexistent",
@@ -102,23 +102,23 @@ describe("sql-workspace-store", () => {
       error: "Table not found",
     };
     setQueryResult(result);
-    expect(useSqlWorkspaceStore.getState().queryResult?.status).toBe("error");
-    expect(useSqlWorkspaceStore.getState().queryResult?.error).toBe("Table not found");
+    expect(useSqlEditorStore.getState().queryResult?.status).toBe("error");
+    expect(useSqlEditorStore.getState().queryResult?.error).toBe("Table not found");
   });
 
   it("should set selected table", () => {
-    const { setSelectedTable } = useSqlWorkspaceStore.getState();
+    const { setSelectedTable } = useSqlEditorStore.getState();
     setSelectedTable("users");
-    expect(useSqlWorkspaceStore.getState().selectedTable).toBe("users");
+    expect(useSqlEditorStore.getState().selectedTable).toBe("users");
     setSelectedTable(null);
-    expect(useSqlWorkspaceStore.getState().selectedTable).toBeNull();
+    expect(useSqlEditorStore.getState().selectedTable).toBeNull();
   });
 
-  it("should set active tab", () => {
-    const { setActiveTab } = useSqlWorkspaceStore.getState();
-    setActiveTab("history");
-    expect(useSqlWorkspaceStore.getState().activeTab).toBe("history");
-    setActiveTab("editor");
-    expect(useSqlWorkspaceStore.getState().activeTab).toBe("editor");
+  it("should set active panel tab", () => {
+    const { setActivePanelTab } = useSqlEditorStore.getState();
+    setActivePanelTab("history");
+    expect(useSqlEditorStore.getState().activePanelTab).toBe("history");
+    setActivePanelTab("editor");
+    expect(useSqlEditorStore.getState().activePanelTab).toBe("editor");
   });
 });

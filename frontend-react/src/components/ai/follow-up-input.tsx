@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { aiQuery } from "@/services/api";
 import type { FollowUpContext } from "@/services/api";
-import { useAiSessionStore } from "@/stores/ai-session-store";
+import { useInvestigationStore } from "@/stores/investigation-store";
 
 interface FollowUpInputProps {
   results?: Record<string, unknown>[];
@@ -29,7 +29,7 @@ export function FollowUpInput({ results, onSqlGenerated, question: controlledQue
 
     setLoading(true);
     try {
-      const sessionStore = useAiSessionStore.getState();
+      const sessionStore = useInvestigationStore.getState();
 
       const ctx: FollowUpContext = {};
       if (sessionStore.lastSql) ctx.previous_sql = sessionStore.lastSql;

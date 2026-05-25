@@ -2,11 +2,10 @@
 
 import { useCallback, useRef, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSqlWorkspaceStore } from "@/stores/sql-workspace-store";
+import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
-import { useQueryTabsStore } from "@/stores/query-tabs-store";
 import { useSavedQueriesStore, type SavedQuery } from "@/stores/saved-queries-store";
-import { useWorkflowStore } from "@/stores/workflow-store";
+import { useInvestigationStore } from "@/stores/investigation-store";
 import { MonacoSqlEditor } from "@/components/monaco-sql-editor";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -26,20 +25,18 @@ export function SqlWorkspacePanel() {
   const {
     isExecuting, setExecuting,
     queryResult, setQueryResult,
+    currentSql,
     hasMore, isLoadingMore, loadMore,
-  } = useSqlWorkspaceStore();
-  const { addEntry, fetchHistory } = useSqlHistoryStore();
-  const {
     tabs, activeTabId, addTab, removeTab, renameTab,
     setActiveTab, updateTabSql, getActiveTab,
-  } = useQueryTabsStore();
+  } = useSqlEditorStore();
+  const { addEntry, fetchHistory } = useSqlHistoryStore();
   const { queries: savedQueries, saveQuery, deleteQuery, toggleFavorite } = useSavedQueriesStore();
-  const { stage: wfStage, activeTable: wfTable, advance: wfAdvance, reset: wfReset } = useWorkflowStore();
+  const { stage: wfStage, activeTable: wfTable, advance: wfAdvance, reset: wfReset } = useInvestigationStore();
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const startTimeRef = useRef<number>(0);
   const activeTab = getActiveTab();
-  const currentSql = activeTab?.sql || "";
 
   // Cleanup: abort any in-flight query on unmount
   useEffect(() => {
@@ -109,7 +106,7 @@ export function SqlWorkspacePanel() {
 
   const handleExecute = useCallback(async () => {
     const sql = currentSql.trim();
-    if (!sql || useSqlWorkspaceStore.getState().isExecuting) return;
+    if (!sql || useSqlEditorStore.getState().isExecuting) return;
 
     setExecuting(true);
     setQueryResult(null);
@@ -243,7 +240,7 @@ export function SqlWorkspacePanel() {
 
   // Load saved query into tab
   const handleLoadSaved = useCallback((q: SavedQuery) => {
-    const tab = useQueryTabsStore.getState().getActiveTab();
+    const tab = useSqlEditorStore.getState().getActiveTab();
     if (tab) {
       updateTabSql(tab.id, q.sql);
     }

@@ -20,7 +20,7 @@ import {
   type MultiStepExecuted,
   type EvaluationResult,
 } from "@/services/api";
-import { useAiSessionStore } from "@/stores/ai-session-store";
+import { useInvestigationStore } from "@/stores/investigation-store";
 import { useAnalysisStore, type AnalysisSection, type TraceSnapshot } from "@/stores/analysis-store";
 import { AiChart, type ChartSpec } from "@/components/ui/ai-chart";
 import { AnalysisHeader } from "@/components/ai/analysis-header";
@@ -143,7 +143,7 @@ export function AIAnalysisPanel({
       let storeMultiResult: MultiStepResult | null = null;
 
       if (mode === "explain" && sql && question && results) {
-        const sessionStore = useAiSessionStore.getState();
+        const sessionStore = useInvestigationStore.getState();
         const history = sessionStore.getRecentTurns(6).map((t) => ({
           role: t.role,
           content: t.content,
@@ -207,7 +207,7 @@ export function AIAnalysisPanel({
         return;
       } else if (mode === "insights" && question && results) {
         // Pass prior context from session store
-        const priorContext = useAiSessionStore.getState().getContextForInsights();
+        const priorContext = useInvestigationStore.getState().getContextForInsights();
         const res = await aiInsights(question, results, i18n.language, priorContext ?? undefined);
         raw = res;
         let md = "";
@@ -234,7 +234,7 @@ export function AIAnalysisPanel({
         // Auto-populate key findings from high-severity insights
         if (highSeverityInsights.length > 0) {
           setDrillDownFindings(highSeverityInsights);
-          const sessionStore = useAiSessionStore.getState();
+          const sessionStore = useInvestigationStore.getState();
           if (!priorContext) {
             sessionStore.addKeyFinding(highSeverityInsights[0].text);
           }
@@ -355,7 +355,7 @@ export function AIAnalysisPanel({
 
         // Auto-populate key findings from anomalies
         if (res.anomalies.length > 0) {
-          useAiSessionStore.getState().addKeyFinding(
+          useInvestigationStore.getState().addKeyFinding(
             `${res.summary.total_anomalies} anomalies detected in ${res.summary.columns_affected.join(", ")}`
           );
         }
@@ -405,7 +405,7 @@ export function AIAnalysisPanel({
           if (insMd) builtSections.push({ title: t("ai.key-insights"), content: insMd, type: "markdown" });
           if (highSeverity.length > 0) {
             setDrillDownFindings(highSeverity);
-            useAiSessionStore.getState().addKeyFinding(highSeverity[0].text);
+            useInvestigationStore.getState().addKeyFinding(highSeverity[0].text);
           }
         } else if (res.ai_summary) {
           builtSections.push({ title: t("ai.summary"), content: res.ai_summary, type: "markdown" });
@@ -496,7 +496,7 @@ export function AIAnalysisPanel({
         const profileRes = await getTableProfile(tableName);
         const cols = profileRes.profile.columns.map((c) => ({ name: c.name, dtype: c.dtype }));
         const q = question || t("ai.full-analysis");
-        const priorFindings = useAiSessionStore.getState().getContextForPlan();
+        const priorFindings = useInvestigationStore.getState().getContextForPlan();
 
         let planSteps: PlanStep[] = [];
         const executedSteps: MultiStepExecuted[] = [];
@@ -747,7 +747,7 @@ export function AIAnalysisPanel({
                     if (!runId) return;
                     const newId = useAnalysisStore.getState().drillDownRun(runId, finding.index, finding.text);
                     if (newId) {
-                      useAiSessionStore.getState().addKeyFinding(finding.text);
+                      useInvestigationStore.getState().addKeyFinding(finding.text);
                       setFollowUpQuestion(finding.text);
                     }
                   }}

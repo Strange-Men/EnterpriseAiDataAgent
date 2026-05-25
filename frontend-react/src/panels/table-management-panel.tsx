@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { useTables } from "@/hooks/use-tables";
-import { useSqlWorkspaceStore } from "@/stores/sql-workspace-store";
+import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { Tooltip } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -22,7 +22,7 @@ export function TableManagementPanel() {
   const { t } = useTranslation();
   const { setCurrentTable, setCurrentData, setQualityReport } = useDataStore();
   const { tables, reload: loadTables } = useTables();
-  const { setCurrentSql, setSelectedTable } = useSqlWorkspaceStore();
+  const { setCurrentSql, setSelectedTable } = useSqlEditorStore();
   const analysisRuns = useAnalysisStore((s) => s.runs);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [newName, setNewName] = useState("");

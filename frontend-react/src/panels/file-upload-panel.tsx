@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
-import { useWorkflowStore } from "@/stores/workflow-store";
+import { useInvestigationStore } from "@/stores/investigation-store";
 import { useTables } from "@/hooks/use-tables";
 import { Tooltip } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -71,7 +71,7 @@ export function FileUploadPanel() {
     // Advance workflow: last successfully uploaded table
     const lastOk = [...newFiles].reverse().find((f) => f.status === "success" && f.tableName);
     if (lastOk?.tableName) {
-      useWorkflowStore.getState().advance("profiling", { table: lastOk.tableName });
+      useInvestigationStore.getState().advance("profiling", { table: lastOk.tableName });
     }
 
     toast.dismiss(id);
@@ -111,7 +111,7 @@ export function FileUploadPanel() {
       setAnalyzingTable(tableName);
       setAnalysisMode(mode);
       if (mode === "full-analysis") {
-        useWorkflowStore.getState().advance("analyzing", { table: tableName });
+        useInvestigationStore.getState().advance("analyzing", { table: tableName });
       }
     }
   };
@@ -176,7 +176,7 @@ export function FileUploadPanel() {
                       mode={analysisMode}
                       tableName={tbl.name}
                       onClose={() => { setAnalyzingTable(null); setAnalysisMode(null); }}
-                      onComplete={(table) => useWorkflowStore.getState().advance("sql-ready", { table })}
+                      onComplete={(table) => useInvestigationStore.getState().advance("sql-ready", { table })}
                     />
                   </div>
                 )}
@@ -240,7 +240,7 @@ export function FileUploadPanel() {
                     mode={analysisMode}
                     tableName={f.tableName}
                     onClose={() => { setAnalyzingTable(null); setAnalysisMode(null); }}
-                    onComplete={(table) => useWorkflowStore.getState().advance("sql-ready", { table })}
+                    onComplete={(table) => useInvestigationStore.getState().advance("sql-ready", { table })}
                   />
                 </div>
               )}

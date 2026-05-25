@@ -1,13 +1,14 @@
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import { generateId } from "@/utils/id";
+/**
+ * @deprecated — Use sql-editor-store instead.
+ *
+ * Compatibility wrapper: auto-syncs from sql-editor-store.
+ * All existing consumers continue to work unchanged.
+ */
 
-export interface QueryTab {
-  id: string;
-  name: string;
-  sql: string;
-  createdAt: string;
-}
+import { create } from "zustand";
+import { useSqlEditorStore, type QueryTab } from "./sql-editor-store";
+
+export type { QueryTab };
 
 interface QueryTabsState {
   tabs: QueryTab[];
@@ -21,80 +22,22 @@ interface QueryTabsState {
   getActiveTab: () => QueryTab | undefined;
 }
 
-const DEFAULT_TAB: QueryTab = {
-  id: "tab-default",
-  name: "Query 1",
-  sql: "",
-  createdAt: "2026-01-01T00:00:00.000Z",
-};
+function snapshot(): QueryTabsState {
+  const s = useSqlEditorStore.getState();
+  return {
+    tabs: s.tabs,
+    activeTabId: s.activeTabId,
+    addTab: (name, sql) => s.addTab(name, sql),
+    removeTab: (id) => s.removeTab(id),
+    renameTab: (id, name) => s.renameTab(id, name),
+    setActiveTab: (id) => s.setActiveTab(id),
+    updateTabSql: (id, sql) => s.updateTabSql(id, sql),
+    getActiveTab: () => s.getActiveTab(),
+  };
+}
 
-export const useQueryTabsStore = create<QueryTabsState>()(
-  persist(
-    (set, get) => ({
-      tabs: [DEFAULT_TAB],
-      activeTabId: DEFAULT_TAB.id,
+export const useQueryTabsStore = create<QueryTabsState>(() => snapshot());
 
-      addTab: (name?: string, sql?: string) => {
-        const id = generateId();
-        const tab: QueryTab = {
-          id,
-          name: name || `Query ${get().tabs.length + 1}`,
-          sql: sql || "",
-          createdAt: new Date().toISOString(),
-        };
-        set((state) => ({
-          tabs: [...state.tabs, tab],
-          activeTabId: id,
-        }));
-        return id;
-      },
-
-      removeTab: (id: string) => {
-        const { tabs, activeTabId } = get();
-        if (tabs.length <= 1) return; // keep at least one tab
-
-        const newTabs = tabs.filter((t) => t.id !== id);
-        let newActiveId = activeTabId;
-        if (activeTabId === id) {
-          newActiveId = newTabs[newTabs.length - 1].id;
-        }
-        set({ tabs: newTabs, activeTabId: newActiveId });
-      },
-
-      renameTab: (id: string, name: string) => {
-        set((state) => ({
-          tabs: state.tabs.map((t) => (t.id === id ? { ...t, name } : t)),
-        }));
-      },
-
-      setActiveTab: (id: string) => {
-        set({ activeTabId: id });
-      },
-
-      updateTabSql: (id: string, sql: string) => {
-        set((state) => ({
-          tabs: state.tabs.map((t) => (t.id === id ? { ...t, sql } : t)),
-        }));
-      },
-
-      getActiveTab: () => {
-        const { tabs, activeTabId } = get();
-        return tabs.find((t) => t.id === activeTabId);
-      },
-    }),
-    {
-      name: "query-tabs",
-      storage: createJSONStorage(() => localStorage),
-      merge: (persisted, current) => {
-        if (!persisted || typeof persisted !== "object") return current;
-        const p = persisted as Record<string, unknown>;
-        if (!Array.isArray(p.tabs)) return current;
-        const tabs = p.tabs.filter(
-          (t: unknown) => t && typeof t === "object" && typeof (t as Record<string, unknown>).id === "string"
-        );
-        if (tabs.length === 0) return current;
-        return { ...current, tabs, activeTabId: typeof p.activeTabId === "string" ? p.activeTabId : tabs[0].id };
-      },
-    }
-  )
-);
+useSqlEditorStore.subscribe(() => {
+  useQueryTabsStore.setState(snapshot(), true);
+});

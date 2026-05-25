@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
-import { useSqlWorkspaceStore } from "@/stores/sql-workspace-store";
-import { useQueryTabsStore } from "@/stores/query-tabs-store";
+import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { fetchQueryHistory } from "@/services/api";
 import { downloadBlob } from "@/utils/download";
@@ -18,8 +17,7 @@ export function SqlHistoryPanel() {
     filterStatus, setFilterStatus,
     getFiltered,
   } = useSqlHistoryStore();
-  const { setExecuting, setQueryResult } = useSqlWorkspaceStore();
-  const { addTab, updateTabSql, getActiveTab, setActiveTab } = useQueryTabsStore();
+  const { setExecuting, setQueryResult, addTab, updateTabSql, getActiveTab, setActiveTab } = useSqlEditorStore();
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
 

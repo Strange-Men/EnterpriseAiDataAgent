@@ -1,21 +1,14 @@
 /**
- * Workflow Store — tracks the MVP pipeline stage.
+ * @deprecated — Use investigation-store instead.
  *
- * ONLY stores: current stage, activeTable, aiSql, workflow metadata.
- * FORBIDDEN: query results, UI state, charts, exports, AI explanations, file blobs.
- * Those all live in their respective domain stores (data-store, sql-workspace-store, etc.).
+ * Compatibility wrapper: auto-syncs from investigation-store.
+ * All existing consumers continue to work unchanged.
  */
 
 import { create } from "zustand";
+import { useInvestigationStore, type InvestigationStage } from "./investigation-store";
 
-export type WorkflowStage =
-  | "idle"
-  | "uploading"
-  | "profiling"
-  | "analyzing"
-  | "sql-ready"
-  | "executing"
-  | "done";
+export type WorkflowStage = InvestigationStage;
 
 interface WorkflowState {
   stage: WorkflowStage;
@@ -23,37 +16,26 @@ interface WorkflowState {
   aiSql: string | null;
   startedAt: string | null;
   source: "upload" | "manual" | null;
-
-  /** Advance to a new stage. Pass table/sql to set them alongside. */
   advance: (stage: WorkflowStage, opts?: { table?: string; sql?: string }) => void;
-
-  /** Reset to idle (start a new workflow). */
   reset: () => void;
 }
 
-export const useWorkflowStore = create<WorkflowState>((set) => ({
-  stage: "idle",
-  activeTable: null,
-  aiSql: null,
-  startedAt: null,
-  source: null,
+function snapshot(): WorkflowState {
+  const s = useInvestigationStore.getState();
+  return {
+    stage: s.stage,
+    activeTable: s.activeTable,
+    aiSql: s.lastSql,
+    startedAt: s.startedAt,
+    source: s.source,
+    advance: (stage, opts) => s.advance(stage, opts),
+    reset: () => s.reset(),
+  };
+}
 
-  advance: (stage, opts) =>
-    set((state) => ({
-      stage,
-      activeTable: opts?.table ?? state.activeTable,
-      aiSql: opts?.sql ?? state.aiSql,
-      startedAt: state.startedAt ?? new Date().toISOString(),
-      source:
-        state.source ?? (stage === "uploading" ? "upload" : "manual"),
-    })),
+export const useWorkflowStore = create<WorkflowState>(() => snapshot());
 
-  reset: () =>
-    set({
-      stage: "idle",
-      activeTable: null,
-      aiSql: null,
-      startedAt: null,
-      source: null,
-    }),
-}));
+// Auto-sync: whenever investigation-store changes, push to this wrapper
+useInvestigationStore.subscribe(() => {
+  useWorkflowStore.setState(snapshot(), true);
+});
