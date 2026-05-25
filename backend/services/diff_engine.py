@@ -3,6 +3,8 @@
 纯 Python 函数，不调用 LLM。比较 sections、SQL、metrics。
 """
 
+from backend.services.shared_utils import truncate as _truncate
+
 
 def diff_runs(run_a: dict, run_b: dict) -> dict:
     """比较两个分析运行，返回结构化 diff。
@@ -141,7 +143,3 @@ def _estimate_row_count(run: dict) -> int:
     return 0
 
 
-def _truncate(text: str, max_len: int) -> str:
-    if len(text) <= max_len:
-        return text
-    return text[: max_len - 3] + "..."

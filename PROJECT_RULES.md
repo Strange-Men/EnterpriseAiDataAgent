@@ -92,8 +92,8 @@
 |------|------|------|
 | v0.3.x | Enterprise Data Platform | Done |
 | v0.5.x | AI Data Analyst MVP — AI System Engineering | Done |
-| v0.6.x | Meta Governance & Autonomous QA | In Progress |
-| v0.7.x | Anomaly Detection, Multi-turn UX | Next |
+| v0.6.x | Meta Governance & Autonomous QA | Done |
+| v0.7.x | AI Analyst Intelligence Layer | Current |
 
 禁止跳版本乱开发。
 

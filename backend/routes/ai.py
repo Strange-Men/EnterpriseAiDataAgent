@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import json
+import re
 from backend.config import ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL
 from backend.services.ai_analyst import (
     explain_results,
@@ -355,14 +356,12 @@ async def ai_adapt_template(req: AdaptTemplateRequest):
             prompt_name="template_adaptation",
         )
 
-        import json as _json
         try:
-            parsed = _json.loads(raw)
-        except _json.JSONDecodeError:
-            import re
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
             match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
             if match:
-                parsed = _json.loads(match.group(1))
+                parsed = json.loads(match.group(1))
             else:
                 raise ValueError(f"Failed to parse LLM response as JSON: {raw[:200]}")
 

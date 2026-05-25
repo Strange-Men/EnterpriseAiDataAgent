@@ -91,7 +91,6 @@
 | Testing | `docs/testing/` | `kebab-case.md` | `testing-strategy.md` |
 | Reports | `docs/reports/` | `v{ver}-{type}.md` | `v0.3.10-bug-fixes.md` |
 | Skills | `skills/active/`, `skills/stable/`, `skills/archived/` | `kebab-case.md` | `ai-sql-analysis.md` |
-| Frontend Rules | `docs/frontend_rules/` | `kebab-case.md` | `agents-capability-guide.md` |
 | Archive | `docs/archive/` | Original names preserved | — |
 
 ### Error Logs (`error_logs/`)

@@ -118,23 +118,3 @@ class TestTraceRecorder:
         assert d["status"] == "success"
         assert d["elapsed_ms"] is not None
         assert d["elapsed_ms"] >= 0
-
-    def test_save_to_file(self):
-        recorder = TraceRecorder(question="test")
-        recorder.record_llm_call(
-            operation="explanation",
-            phase="planning",
-            prompt_name="explanation",
-            input_text="input",
-            output_text="output",
-            latency_ms=100.0,
-            status="success",
-        )
-        with tempfile.TemporaryDirectory() as tmpdir:
-            filepath = recorder.save_to_file(tmpdir)
-            assert os.path.exists(filepath)
-            with open(filepath, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            assert data["question"] == "test"
-            assert data["total_llm_calls"] == 1
-            assert len(data["events"]) == 1

@@ -10,9 +10,9 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.7.0 (Anomaly Detection Engine — statistical detection + LLM interpretation)
+- **Current**: v0.7.3 (System Cleanup & Pipeline Refactor — shared helpers, dead code removal, docs cleanup)
 - **Phase**: v0.7.x AI Analyst Intelligence Layer
-- **Next**: v0.7.1 (multi-turn analysis continuity)
+- **Next**: v0.7.4 (待定)
 
 ## Scope Rules
 

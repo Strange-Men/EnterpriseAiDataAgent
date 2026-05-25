@@ -4,7 +4,6 @@
 """
 
 import json
-import os
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -140,12 +139,3 @@ class TraceRecorder:
             "plan": t.plan,
             "guardrail_violations": t.guardrail_violations,
         }
-
-    def save_to_file(self, directory: str = "logs/traces"):
-        """持久化 trace 到 JSON 文件。"""
-        os.makedirs(directory, exist_ok=True)
-        filename = f"{self.trace.trace_id}_{int(time.time())}.json"
-        filepath = os.path.join(directory, filename)
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
-        return filepath
