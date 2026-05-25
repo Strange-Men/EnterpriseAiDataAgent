@@ -11,6 +11,7 @@ from backend.prompts import (
     analysis_plan,
     summarizer,
     template_adaptation,
+    self_evaluation,
 )
 
 # 所有 prompt 合约的注册表
@@ -26,6 +27,7 @@ REGISTRY: dict[str, PromptContract] = {
         analysis_plan.CONTRACT,
         summarizer.CONTRACT,
         template_adaptation.CONTRACT,
+        self_evaluation.CONTRACT,
     ]
 }
 
@@ -52,6 +54,7 @@ def get_system_prompt(name: str) -> str | None:
         "analysis_plan": analysis_plan,
         "summarizer": summarizer,
         "template_adaptation": template_adaptation,
+        "self_evaluation": self_evaluation,
     }
     module = module_map.get(name)
     return module.SYSTEM_PROMPT if module else None

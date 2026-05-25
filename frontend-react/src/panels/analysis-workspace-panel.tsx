@@ -11,6 +11,9 @@ import { AiChart } from "@/components/ui/ai-chart";
 import { SaveTemplateDialog } from "@/components/ai/save-template-dialog";
 import { ApplyTemplateDialog } from "@/components/ai/apply-template-dialog";
 import { ReportDialog } from "@/components/ai/report-dialog";
+import { DiffPanel } from "@/panels/diff-panel";
+import { TimelineEvolution } from "@/components/timeline-evolution";
+import { SchedulePanel } from "@/components/schedule-dialog";
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -91,7 +94,7 @@ function HistoryItem({
 
 // ── Run Detail ────────────────────────────────────────────────
 
-function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNotes, onSaveAsTemplate }: {
+function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNotes, onSaveAsTemplate, onShowTimeline }: {
   run: AnalysisRun;
   onDelete: () => void;
   onExport: () => void;
@@ -99,6 +102,7 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
   onDuplicate: () => void;
   onUpdateNotes: (notes: string) => void;
   onSaveAsTemplate: () => void;
+  onShowTimeline: () => void;
 }) {
   const { t } = useTranslation();
   const [showNotes, setShowNotes] = useState(!!run.notes);
@@ -161,6 +165,13 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
           </button>
         )}
         <button
+          onClick={onShowTimeline}
+          className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
+          title={t("timeline.evolution")}
+        >
+          {t("timeline.evolution")}
+        </button>
+        <button
           onClick={onDelete}
           className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded transition-colors ml-auto"
           title={t("analysis.delete")}
@@ -212,6 +223,40 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
       {/* Trace */}
       {run.trace && <TraceTimeline trace={run.trace} />}
 
+      {/* Evaluation */}
+      {run.evaluation && (
+        <div className="pt-2 border-t border-[var(--border-default)] space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+              {t("eval.confidence")}
+            </span>
+            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+              run.evaluation.confidence >= 0.7 ? "bg-green-500/20 text-green-400" :
+              run.evaluation.confidence >= 0.4 ? "bg-yellow-500/20 text-yellow-400" :
+              "bg-red-500/20 text-red-400"
+            }`}>
+              {(run.evaluation.confidence * 100).toFixed(0)}%
+            </span>
+          </div>
+          {run.evaluation.diagnostics.length > 0 && (
+            <div>
+              <p className="text-[10px] text-[var(--text-muted)] mb-1">{t("eval.diagnostics")}</p>
+              {run.evaluation.diagnostics.map((d, i) => (
+                <p key={i} className="text-[10px] text-yellow-300 ml-2">• {d}</p>
+              ))}
+            </div>
+          )}
+          {run.evaluation.suggested_improvements.length > 0 && (
+            <div>
+              <p className="text-[10px] text-[var(--text-muted)] mb-1">{t("eval.improvements")}</p>
+              {run.evaluation.suggested_improvements.map((s, i) => (
+                <p key={i} className="text-[10px] text-[var(--accent)] ml-2">• {s}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Error */}
       {run.error && (
         <div className="px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-md">
@@ -230,6 +275,9 @@ export function AnalysisWorkspacePanel() {
   const templates = useTemplateStore((s) => s.templates);
   const [showHistory, setShowHistory] = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [showTimelineRunId, setShowTimelineRunId] = useState<string | null>(null);
   const [saveTemplateRunId, setSaveTemplateRunId] = useState<string | null>(null);
   const [showApplyTemplate, setShowApplyTemplate] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
@@ -243,6 +291,7 @@ export function AnalysisWorkspacePanel() {
   const recentRuns = [...runs].reverse();
   const savedRuns = recentRuns.filter((r) => r.saved);
   const unsavedRuns = recentRuns.filter((r) => !r.saved);
+  const successRuns = recentRuns.filter((r) => r.status === "success");
 
   const handleExport = (id: string) => {
     const json = exportRun(id);
@@ -288,6 +337,28 @@ export function AnalysisWorkspacePanel() {
             }`}
           >
             {t("template.apply")} {templates.length > 0 && `(${templates.length})`}
+          </button>
+          {successRuns.length >= 2 && (
+            <button
+              onClick={() => setShowCompare(!showCompare)}
+              className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${
+                showCompare
+                  ? "bg-[var(--accent)]/10 text-[var(--accent)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {t("diff.compare")}
+            </button>
+          )}
+          <button
+            onClick={() => setShowSchedule(!showSchedule)}
+            className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${
+              showSchedule
+                ? "bg-[var(--accent)]/10 text-[var(--accent)]"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            {t("schedule.title")}
           </button>
           {runs.length > 0 && (
             <button
@@ -343,6 +414,20 @@ export function AnalysisWorkspacePanel() {
           </div>
         )}
 
+        {/* Compare section */}
+        {showCompare && (
+          <div className="pb-2 border-b border-[var(--border-default)]">
+            <DiffPanel />
+          </div>
+        )}
+
+        {/* Schedule section */}
+        {showSchedule && (
+          <div className="pb-2 border-b border-[var(--border-default)]">
+            <SchedulePanel />
+          </div>
+        )}
+
         {/* Session history */}
         {showHistory && recentRuns.length > 0 && (
           <div className="space-y-1.5">
@@ -384,7 +469,7 @@ export function AnalysisWorkspacePanel() {
         )}
 
         {/* Active run detail */}
-        {activeRun ? (
+        {activeRun && !showTimelineRunId ? (
           <RunDetail
             run={activeRun}
             onDelete={() => deleteRun(activeRun.id)}
@@ -396,7 +481,10 @@ export function AnalysisWorkspacePanel() {
             }}
             onUpdateNotes={(notes) => updateRunNotes(activeRun.id, notes)}
             onSaveAsTemplate={() => setSaveTemplateRunId(activeRun.id)}
+            onShowTimeline={() => setShowTimelineRunId(activeRun.id)}
           />
+        ) : showTimelineRunId ? (
+          <TimelineEvolution runId={showTimelineRunId} onClose={() => setShowTimelineRunId(null)} />
         ) : (
           <div className="flex flex-col items-center justify-center h-32 text-center">
             <p className="text-sm text-[var(--text-muted)]">{t("analysis.no-selection")}</p>

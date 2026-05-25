@@ -50,6 +50,15 @@ export interface AnalysisSection {
 
 export type RunStatus = "running" | "success" | "error";
 
+export interface EvaluationResult {
+  confidence: number;
+  completeness: string;
+  accuracy: string;
+  actionability: string;
+  diagnostics: string[];
+  suggested_improvements: string[];
+}
+
 export interface AnalysisRun {
   id: string;
   mode: AnalysisMode;
@@ -66,6 +75,7 @@ export interface AnalysisRun {
   version: number;
   parentRunId?: string;
   notes?: string;
+  evaluation?: EvaluationResult;
 }
 
 // ── Store ─────────────────────────────────────────────────────────
@@ -87,6 +97,42 @@ interface AnalysisState {
   duplicateRun: (id: string) => string | null;
   updateRunNotes: (id: string, notes: string) => void;
   recoverInterruptedRuns: () => void;
+  compareRuns: (idA: string, idB: string) => ComparisonResult | null;
+  getEvolutionChain: (runId: string) => AnalysisRun[];
+  importRuns: (runs: AnalysisRun[]) => void;
+}
+
+// ── Comparison types ────────────────────────────────────────────
+
+export interface SectionDiff {
+  title: string;
+  change: "added" | "removed" | "changed" | "unchanged";
+  old_content: string | null;
+  new_content: string | null;
+}
+
+export interface MetricDelta {
+  old: number;
+  new: number;
+  delta: number;
+}
+
+export interface ComparisonResult {
+  run_a_id: string;
+  run_b_id: string;
+  summary: {
+    sections_added: number;
+    sections_removed: number;
+    sections_changed: number;
+    sections_unchanged: number;
+    sql_changed: boolean;
+  };
+  sections_diff: SectionDiff[];
+  metrics_diff: {
+    tokens: MetricDelta;
+    llm_calls: MetricDelta;
+    row_count: MetricDelta;
+  };
 }
 
 export const useAnalysisStore = create<AnalysisState>()(
@@ -214,6 +260,100 @@ export const useAnalysisStore = create<AnalysisState>()(
               : r
           ),
         })),
+
+      compareRuns: (idA, idB) => {
+        const { runs } = get();
+        const runA = runs.find((r) => r.id === idA);
+        const runB = runs.find((r) => r.id === idB);
+        if (!runA || !runB) return null;
+
+        // Section diff
+        const titlesA = new Map(runA.sections.map((s) => [s.title, s]));
+        const titlesB = new Map(runB.sections.map((s) => [s.title, s]));
+        const allTitles = [...new Set([...titlesA.keys(), ...titlesB.keys()])];
+        const sections_diff: ComparisonResult["sections_diff"] = allTitles.map((title) => {
+          const inA = titlesA.has(title);
+          const inB = titlesB.has(title);
+          if (inA && !inB) return { title, change: "removed" as const, old_content: titlesA.get(title)!.content.slice(0, 500), new_content: null };
+          if (!inA && inB) return { title, change: "added" as const, old_content: null, new_content: titlesB.get(title)!.content.slice(0, 500) };
+          const oldC = titlesA.get(title)!.content.slice(0, 500);
+          const newC = titlesB.get(title)!.content.slice(0, 500);
+          return { title, change: oldC === newC ? "unchanged" as const : "changed" as const, old_content: oldC, new_content: newC };
+        });
+
+        // Metrics
+        const traceA = runA.trace;
+        const traceB = runB.trace;
+        const tokensA = traceA?.total_output_tokens ?? 0;
+        const tokensB = traceB?.total_output_tokens ?? 0;
+        const callsA = traceA?.total_llm_calls ?? 0;
+        const callsB = traceB?.total_llm_calls ?? 0;
+        const rowsA = runA.multiResult?.steps?.reduce((s, st) => s + (st.row_count ?? 0), 0) ?? 0;
+        const rowsB = runB.multiResult?.steps?.reduce((s, st) => s + (st.row_count ?? 0), 0) ?? 0;
+
+        return {
+          run_a_id: idA,
+          run_b_id: idB,
+          summary: {
+            sections_added: sections_diff.filter((s) => s.change === "added").length,
+            sections_removed: sections_diff.filter((s) => s.change === "removed").length,
+            sections_changed: sections_diff.filter((s) => s.change === "changed").length,
+            sections_unchanged: sections_diff.filter((s) => s.change === "unchanged").length,
+            sql_changed: JSON.stringify(runA.multiResult?.steps?.map((s) => s.sql)) !== JSON.stringify(runB.multiResult?.steps?.map((s) => s.sql)),
+          },
+          sections_diff,
+          metrics_diff: {
+            tokens: { old: tokensA, new: tokensB, delta: tokensB - tokensA },
+            llm_calls: { old: callsA, new: callsB, delta: callsB - callsA },
+            row_count: { old: rowsA, new: rowsB, delta: rowsB - rowsA },
+          },
+        };
+      },
+
+      getEvolutionChain: (runId) => {
+        const { runs } = get();
+        // Walk up to root
+        const chain: AnalysisRun[] = [];
+        const visited = new Set<string>();
+        let current: string | undefined = runId;
+        while (current && !visited.has(current)) {
+          visited.add(current);
+          const run = runs.find((r) => r.id === current);
+          if (!run) break;
+          chain.unshift(run);
+          current = run.parentRunId;
+        }
+        // Walk down to children
+        const queue = [runId];
+        while (queue.length > 0) {
+          const parentId = queue.shift()!;
+          const children = runs.filter((r) => r.parentRunId === parentId && !visited.has(r.id));
+          for (const child of children) {
+            visited.add(child.id);
+            chain.push(child);
+            queue.push(child.id);
+          }
+        }
+        return chain.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      },
+
+      importRuns: (importedRuns) => {
+        const idMap = new Map<string, string>();
+        set((state) => {
+          const newRuns = importedRuns.map((r) => {
+            const newId = generateId();
+            idMap.set(r.id, newId);
+            return {
+              ...r,
+              id: newId,
+              parentRunId: r.parentRunId ? (idMap.get(r.parentRunId) ?? r.parentRunId) : undefined,
+              saved: false,
+              timestamp: new Date().toISOString(),
+            };
+          });
+          return { runs: [...state.runs, ...newRuns] };
+        });
+      },
     }),
     {
       name: "analysis-history",

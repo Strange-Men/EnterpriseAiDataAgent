@@ -4,27 +4,27 @@
 
 ## Current Version
 
-- **Version**: v0.6.2
+- **Version**: v0.6.3
 - **Phase**: v0.6.x Meta Governance & Autonomous QA
-- **Status**: Analyst workflow layer — templates, reports, dataset lifecycle, crash recovery
+- **Status**: Analysis Operations Layer — comparison, schedule, timeline, bundle, self-evaluation
 
 ## Session Goals
 
-1. Analysis workflow persistence: notes, duplicate, crash recovery (interrupted runs)
-2. Dataset lifecycle: per-dataset metadata (upload time, analysis count, quality score)
-3. Analysis templates: save run as template, adapt questions to new dataset schema
-4. Report generation: multi-run markdown export with preview and download
+1. Analysis comparison/diff: structured diff of two analysis runs (sections, SQL, metrics)
+2. Scheduled analysis workflow: backend JSON persistence, background worker
+3. Timeline/history evolution: parentRunId chain visualization
+4. Shareable analysis bundle: export/import full runs as JSON
+5. AI self-evaluation + confidence diagnostics
 
 ## System Health
 
 - Frontend build: PASS
 - Backend import: PASS
 - Frontend tests: 142/142 PASS
-- Backend tests: 264 PASS (report_builder + existing, DuckDB lock failures pre-existing)
+- Backend tests: 302 PASS (16 FAILED — pre-existing AI evaluation tests need API key)
 - TypeScript: PASS
 
 ## Next Steps
 
 - v0.7.x: anomaly detection, multi-turn UX polish
 - E2E test execution with live backend (requires Anthropic API key)
-- Notebook mode / analysis timeline (deferred to v0.7.x)
