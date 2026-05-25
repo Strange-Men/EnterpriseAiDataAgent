@@ -17,6 +17,9 @@ def detect_anomalies(
     method: str = "auto",
     z_threshold: float = 3.0,
     iqr_multiplier: float = 1.5,
+    min_deviation_score: float = 1.5,
+    adaptive: bool = True,
+    max_anomalies: int = 50,
 ) -> dict:
     """检测数据中的统计异常。
 
@@ -26,10 +29,13 @@ def detect_anomalies(
         method: "zscore" | "iqr" | "auto"
         z_threshold: z-score 阈值（默认 3.0）
         iqr_multiplier: IQR 倍数（默认 1.5）
+        min_deviation_score: 最低偏离分数阈值（默认 1.5）
+        adaptive: 是否启用自适应阈值（默认 True）
+        max_anomalies: 最大异常数量（默认 50）
 
     Returns:
         {
-            "anomalies": [{"column", "row_index", "value", "expected_range", "deviation_score", "method"}],
+            "anomalies": [{"column", "row_index", "value", "expected_range", "deviation_score", "method", "precision_score"}],
             "summary": {"total_anomalies", "columns_affected", "anomaly_rate_pct"},
             "column_stats": {"col": {"mean", "std", "q25", "q75", "min", "max", "count", "null_count"}}
         }
@@ -67,7 +73,23 @@ def detect_anomalies(
         else:
             col_anomalies = _detect_iqr(values, indices, col, stats, iqr_multiplier)
 
+        # 添加 precision_score
+        max_threshold = 6.0 if effective_method == "zscore" else 4.0
+        for a in col_anomalies:
+            a["precision_score"] = round(min(1.0, a["deviation_score"] / max_threshold), 3)
+
         anomalies.extend(col_anomalies)
+
+    # 最低偏离分数过滤
+    anomalies = [a for a in anomalies if a["deviation_score"] >= min_deviation_score]
+
+    # 自适应阈值过滤
+    if adaptive and anomalies:
+        anomalies = _apply_adaptive_threshold(anomalies)
+
+    # 按 deviation_score 降序排列，取前 max_anomalies
+    anomalies.sort(key=lambda a: a["deviation_score"], reverse=True)
+    anomalies = anomalies[:max_anomalies]
 
     total_rows = len(data)
     anomaly_rate = round(len(anomalies) / total_rows * 100, 2) if total_rows > 0 else 0.0
@@ -84,6 +106,30 @@ def detect_anomalies(
     }
 
 
+def _apply_adaptive_threshold(anomalies: list[dict]) -> list[dict]:
+    """自适应阈值: 按列计算偏离分数的 P25，过滤低于 P25 的异常。
+
+    仅当列内异常数 ≥ 4 时才应用自适应过滤（否则保留所有异常）。
+    使用 P25 而非中位数，确保只有最底部的 25% 被过滤。
+    """
+    from collections import defaultdict
+    by_col: dict[str, list[dict]] = defaultdict(list)
+    for a in anomalies:
+        by_col[a["column"]].append(a)
+
+    filtered = []
+    for col_anomalies in by_col.values():
+        if len(col_anomalies) < 4:
+            filtered.extend(col_anomalies)
+            continue
+        scores = sorted(a["deviation_score"] for a in col_anomalies)
+        q25_idx = max(0, len(scores) // 4)
+        threshold = scores[q25_idx]
+        filtered.extend([a for a in col_anomalies if a["deviation_score"] >= threshold])
+
+    return filtered
+
+
 def _empty_result() -> dict:
     return {
         "anomalies": [],
@@ -93,13 +139,21 @@ def _empty_result() -> dict:
 
 
 def _detect_numeric_columns(data: list[dict]) -> list[str]:
-    """从数据中自动检测数值列。"""
+    """从数据中自动检测数值列 — 扫描前 20 行，要求 ≥80% 为数值。"""
     if not data:
         return []
-    sample = data[0]
+    sample_size = min(20, len(data))
     numeric_cols = []
-    for key, val in sample.items():
-        if isinstance(val, (int, float)) and not isinstance(val, bool):
+    for key in data[0].keys():
+        numeric_count = 0
+        non_null_count = 0
+        for row in data[:sample_size]:
+            val = row.get(key)
+            if val is not None:
+                non_null_count += 1
+                if isinstance(val, (int, float)) and not isinstance(val, bool):
+                    numeric_count += 1
+        if non_null_count > 0 and numeric_count / non_null_count >= 0.8:
             numeric_cols.append(key)
     return numeric_cols
 

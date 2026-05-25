@@ -41,11 +41,6 @@ def build_user_message(
     trace: dict | None = None,
 ) -> str:
     """构建自评的用户消息。"""
-    sections_text = "\n".join(
-        f"  [{s.get('type', 'markdown')}] {s.get('title', 'Untitled')}: {_truncate(s.get('content', ''), 300)}"
-        for s in sections
-    )
-
     trace_text = ""
     if trace:
         trace_text = (
@@ -54,6 +49,14 @@ def build_user_message(
             f"  Output tokens: {trace.get('total_output_tokens', 0)}\n"
             f"  Violations: {len(trace.get('guardrail_violations', []))}"
         )
+
+    if not sections:
+        return f"Analysis question: {question}\n\nNo analysis sections provided. Evaluate based on lack of evidence.{trace_text}"
+
+    sections_text = "\n".join(
+        f"  [{s.get('type', 'markdown')}] {s.get('title', 'Untitled')}: {_truncate(s.get('content', ''), 300)}"
+        for s in sections
+    )
 
     return f"Analysis question: {question}\n\nSections:\n{sections_text}{trace_text}"
 

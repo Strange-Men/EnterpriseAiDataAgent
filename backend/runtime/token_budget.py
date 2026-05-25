@@ -144,6 +144,14 @@ OPERATION_BUDGETS: dict[str, TokenBudget] = {
         max_history_turns=0,
         max_workflow_total=4000,
     ),
+    "self_evaluation": TokenBudget(
+        max_input_tokens=3000,
+        max_output_tokens=1024,
+        max_schema_tokens=0,
+        max_sample_rows=0,
+        max_history_turns=0,
+        max_workflow_total=3000,
+    ),
 }
 
 

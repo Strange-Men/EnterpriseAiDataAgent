@@ -262,6 +262,17 @@ const en = {
     "ai.drill-down-hint": "Investigate this finding further",
     "ai.prior-context": "Based on prior analysis",
     "ai.key-findings": "Key Findings",
+    "ai.low-confidence": "Low confidence",
+    "ai.evidence-score": "Evidence Score",
+    "ai.insights-filtered": "low-confidence insights filtered out",
+    "ai.quality-assessment": "Quality Assessment",
+    "ai.confidence-score": "Confidence",
+    "ai.completeness": "Completeness",
+    "ai.accuracy": "Accuracy",
+    "ai.actionability": "Actionability",
+    "ai.diagnostics": "Diagnostics",
+    "ai.improvements": "Suggested Improvements",
+    "ai.quality-warnings": "Quality Warnings",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI Analyze",

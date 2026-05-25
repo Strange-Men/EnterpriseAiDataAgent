@@ -262,6 +262,17 @@ const zh = {
     "ai.drill-down-hint": "深入调查此发现",
     "ai.prior-context": "基于先前分析",
     "ai.key-findings": "关键发现",
+    "ai.low-confidence": "低置信度",
+    "ai.evidence-score": "证据评分",
+    "ai.insights-filtered": "条低置信度洞察已过滤",
+    "ai.quality-assessment": "质量评估",
+    "ai.confidence-score": "置信度",
+    "ai.completeness": "完整性",
+    "ai.accuracy": "准确性",
+    "ai.actionability": "可操作性",
+    "ai.diagnostics": "诊断",
+    "ai.improvements": "建议改进",
+    "ai.quality-warnings": "质量警告",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI 分析",

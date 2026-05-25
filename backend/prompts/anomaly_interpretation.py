@@ -36,6 +36,7 @@ Rules:
 - Consider the original question context when interpreting anomalies
 - severity: high = potentially critical business issue, medium = worth investigating, low = likely noise
 - confidence: how certain you are about the interpretation (not the anomaly itself)
+- Each anomaly includes a precision_score (0-1) indicating statistical confidence of the detection — factor this into your severity and confidence assessments
 - anomaly_type classification:
   - outlier_spike: value significantly above expected range
   - outlier_drop: value significantly below expected range

@@ -24,6 +24,7 @@ from backend.services.ai_analyst import (
     generate_analysis_plan,
     detect_and_interpret_anomalies,
     detect_and_interpret_anomalies_stream,
+    evaluate_analysis,
     MODEL,
     TEMPERATURE,
 )
@@ -151,13 +152,16 @@ class AnomalyDetectRequest(BaseModel):
     columns: list[str] | None = None
     method: str = "auto"
     language: str = "zh"
+    min_deviation_score: float = 1.5
+    adaptive: bool = True
 
 
 @router.post("/ai/anomalies")
 async def ai_anomalies(req: AnomalyDetectRequest):
     """Detect and interpret anomalies in query results."""
     result = detect_and_interpret_anomalies(
-        req.question, req.results, req.columns, req.method, req.language
+        req.question, req.results, req.columns, req.method, req.language,
+        min_deviation_score=req.min_deviation_score, adaptive=req.adaptive,
     )
     if result["status"] == "error":
         raise HTTPException(status_code=500, detail=result.get("error", "Anomaly detection failed"))
@@ -170,7 +174,8 @@ async def ai_anomalies_stream(req: AnomalyDetectRequest):
     def event_generator():
         try:
             for event in detect_and_interpret_anomalies_stream(
-                req.question, req.results, req.columns, req.method, req.language
+                req.question, req.results, req.columns, req.method, req.language,
+                min_deviation_score=req.min_deviation_score, adaptive=req.adaptive,
             ):
                 yield _sse_event(json.loads(event))
         except Exception as e:
@@ -474,43 +479,10 @@ class EvaluateRequest(BaseModel):
 @router.post("/ai/evaluate")
 async def ai_evaluate(req: EvaluateRequest):
     """AI 对分析结果做自我评估。"""
-    from backend.prompts.self_evaluation import CONTRACT, build_user_message
-    from backend.prompts.locale import apply_language
-    from backend.services.ai_analyst import _call_llm
-    import json as _json
-    import re
-
-    system = apply_language(CONTRACT.SYSTEM_PROMPT, req.language)
-    user_msg = build_user_message(req.question, req.sections, req.trace)
-
-    raw = _call_llm(
-        system=system,
-        user_message=user_msg,
-        max_tokens=CONTRACT.max_output_tokens,
-        language=req.language,
-        operation="self_evaluation",
-        phase="evaluate",
-        prompt_name="self_evaluation",
-    )
-
-    try:
-        parsed = _json.loads(raw)
-    except _json.JSONDecodeError:
-        match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
-        if match:
-            parsed = _json.loads(match.group(1))
-        else:
-            raise HTTPException(status_code=500, detail=f"Failed to parse evaluation response")
-
-    return {
-        "confidence": parsed.get("confidence", 0.5),
-        "completeness": parsed.get("completeness", "unknown"),
-        "accuracy": parsed.get("accuracy", "unknown"),
-        "actionability": parsed.get("actionability", "unknown"),
-        "diagnostics": parsed.get("diagnostics", []),
-        "suggested_improvements": parsed.get("suggested_improvements", []),
-        "status": "success",
-    }
+    result = evaluate_analysis(req.question, req.sections, req.trace, req.language)
+    if result["status"] == "error":
+        raise HTTPException(status_code=500, detail=result.get("diagnostics", ["Evaluation failed"])[0])
+    return result
 
 
 # ── Scheduled Analysis ──────────────────────────────────────────
