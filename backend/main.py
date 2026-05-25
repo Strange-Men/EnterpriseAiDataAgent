@@ -5,6 +5,8 @@ Run with:  uvicorn backend.main:app --reload --port 8000
 
 import os
 import sys
+import logging
+from contextlib import asynccontextmanager
 
 # Ensure project root is on sys.path so `database/` package is importable.
 # This is the single canonical place for this path fix.
@@ -17,10 +19,39 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import API_VERSION
 from backend.routes import upload, tables, quality, query, ai, analyze
-from backend.services.data_service import check_db_connection, get_uptime
+from backend.services.data_service import check_db_connection, get_uptime, get_db
 from backend.middleware.observability import ObservabilityMiddleware
 
-app = FastAPI(title="Enterprise AI Data Agent API", version=API_VERSION)
+logger = logging.getLogger("enterprise_ai.main")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Centralized startup/shutdown lifecycle.
+
+    Startup: warm up DB connection so first request isn't slow.
+    Shutdown: close DuckDB connection cleanly.
+    """
+    # ── Startup ────────────────────────────────────────────────
+    logger.info("Application starting — warming up DB connection")
+    try:
+        get_db().connect()
+        logger.info("DB connection warm-up OK")
+    except Exception as e:
+        logger.warning(f"DB warm-up failed (will retry on first request): {e}")
+
+    yield
+
+    # ── Shutdown ───────────────────────────────────────────────
+    logger.info("Application shutting down — closing DB connection")
+    try:
+        get_db().close()
+        logger.info("DB connection closed")
+    except Exception as e:
+        logger.warning(f"DB close error (non-fatal): {e}")
+
+
+app = FastAPI(title="Enterprise AI Data Agent API", version=API_VERSION, lifespan=lifespan)
 
 # Observability middleware (must be added before CORS for proper timing)
 app.add_middleware(ObservabilityMiddleware)

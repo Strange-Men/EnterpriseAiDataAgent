@@ -20,7 +20,7 @@ async def analyze_table(table_name: str, language: str = "zh"):
     start = time.time()
 
     try:
-        df = data_service._db.get_sample_data(table_name, limit=10000)
+        df = data_service.get_db().get_sample_data(table_name, limit=10000)
         if df.empty:
             raise HTTPException(status_code=404, detail=f"Table '{table_name}' is empty")
 
@@ -87,7 +87,7 @@ async def analyze_table(table_name: str, language: str = "zh"):
 async def get_profile(table_name: str):
     """Get data profile for a table (no AI, fast)."""
     try:
-        df = data_service._db.get_sample_data(table_name, limit=10000)
+        df = data_service.get_db().get_sample_data(table_name, limit=10000)
         if df.empty:
             raise HTTPException(status_code=404, detail=f"Table '{table_name}' is empty")
         profile = build_profile(df, table_name)

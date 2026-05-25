@@ -2,25 +2,46 @@
 
 Stores recent SQL query executions with metadata for the UI.
 Persists across server restarts via DuckDB backend.
+
+Lazy-initialised: DuckDB table is only created on first use,
+not at import time — safe under uvicorn --reload.
 """
 
 import time
 from collections import deque
-from database.db_manager import DatabaseManager
 
 
 class QueryHistory:
-    """Thread-safe ring buffer of recent query executions with DuckDB persistence."""
+    """Thread-safe ring buffer of recent query executions with DuckDB persistence.
+
+    Lazy initialisation: the DuckDB connection and table are created
+    on the first call to add() or get_all(), not in __init__.
+    """
 
     def __init__(self, max_size: int = 200):
         self._history: deque[dict] = deque(maxlen=max_size)
-        self._db = DatabaseManager()
+        self._db = None
         self._table_name = "query_history"
-        self._init_table()
-        self._load_from_db()
+        self._initialised = False
+
+    def _ensure_init(self):
+        """Lazily create the DuckDB table and load existing history."""
+        if self._initialised:
+            return
+        self._initialised = True
+        try:
+            from database.db_manager import DatabaseManager
+            self._db = DatabaseManager()
+            self._init_table()
+            self._load_from_db()
+        except Exception:
+            # DB not available yet — in-memory-only mode
+            pass
 
     def _init_table(self):
         """Create query_history table if not exists."""
+        if not self._db:
+            return
         conn = self._db.connect()
         conn.execute(f"""
             CREATE TABLE IF NOT EXISTS "{self._table_name}" (
@@ -36,6 +57,8 @@ class QueryHistory:
 
     def _load_from_db(self):
         """Load existing history from DuckDB into memory."""
+        if not self._db:
+            return
         try:
             conn = self._db.connect()
             rows = conn.execute(
@@ -59,6 +82,8 @@ class QueryHistory:
 
     def add(self, sql: str, status: str, runtime_ms: int, row_count: int = 0, error: str = None):
         """Add a query execution entry to history."""
+        self._ensure_init()
+
         entry = {
             "id": int(time.time() * 1000),
             "sql": sql.strip(),
@@ -73,36 +98,38 @@ class QueryHistory:
         self._history.appendleft(entry)
 
         # Persist to DuckDB
-        try:
-            conn = self._db.connect()
-            conn.execute(
-                f'INSERT INTO "{self._table_name}" (id, sql, status, runtime_ms, row_count, error, timestamp) '
-                f'VALUES (?, ?, ?, ?, ?, ?, ?);',
-                [entry["id"], entry["sql"], entry["status"], entry["runtimeMs"],
-                 entry["rowCount"], entry["error"], entry["timestamp"]]
-            )
-        except Exception:
-            # Silently fail persistence - in-memory still works
-            pass
+        if self._db:
+            try:
+                conn = self._db.connect()
+                conn.execute(
+                    f'INSERT INTO "{self._table_name}" (id, sql, status, runtime_ms, row_count, error, timestamp) '
+                    f'VALUES (?, ?, ?, ?, ?, ?, ?);',
+                    [entry["id"], entry["sql"], entry["status"], entry["runtimeMs"],
+                     entry["rowCount"], entry["error"], entry["timestamp"]]
+                )
+            except Exception:
+                # Silently fail persistence - in-memory still works
+                pass
 
-        # Cleanup old entries from DB (keep 200)
-        try:
-            conn = self._db.connect()
-            conn.execute(f"""
-                DELETE FROM "{self._table_name}"
-                WHERE id NOT IN (
-                    SELECT id FROM "{self._table_name}" ORDER BY id DESC LIMIT 200
-                );
-            """)
-        except Exception:
-            pass
+            # Cleanup old entries from DB (keep 200)
+            try:
+                conn = self._db.connect()
+                conn.execute(f"""
+                    DELETE FROM "{self._table_name}"
+                    WHERE id NOT IN (
+                        SELECT id FROM "{self._table_name}" ORDER BY id DESC LIMIT 200
+                    );
+                """)
+            except Exception:
+                pass
 
         return entry
 
     def get_all(self, limit: int = 50) -> list[dict]:
         """Return up to limit entries from history."""
+        self._ensure_init()
         return list(self._history)[:limit]
 
 
-# Singleton instance
+# Lazy singleton — created at import time but does NOT touch DuckDB.
 query_history = QueryHistory()

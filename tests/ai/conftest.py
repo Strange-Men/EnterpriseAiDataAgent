@@ -2,7 +2,7 @@
 
 import pytest
 from backend.services.ai_analyst import generate_sql, build_schema_context
-from backend.services.data_service import _executor, list_tables
+from backend.services.data_service import get_executor, list_tables
 
 
 @pytest.fixture(scope="session")
@@ -35,7 +35,7 @@ def _generate_sql(question: str, table: str) -> dict:
 
 def _execute_sql(sql: str) -> dict:
     """封装 SQL 执行用于评估。"""
-    result = _executor.execute(sql)
+    result = get_executor().execute(sql)
     return {
         "columns": result.get("columns", []),
         "data": result.get("data", [])[:100],  # 限制返回行数

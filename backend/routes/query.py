@@ -4,7 +4,7 @@ import time
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from backend.services.data_service import _executor, _sanitize_for_json
+from backend.services.data_service import get_executor, _sanitize_for_json
 from backend.services.query_history import query_history
 from backend.services.export_service import export_as_csv, export_as_json, export_as_excel
 
@@ -47,7 +47,7 @@ async def execute_query(req: QueryRequest):
 
     start = time.time()
     try:
-        result = _executor.execute_paginated(sql, offset=req.offset, limit=req.limit, timeout_ms=req.timeout_ms)
+        result = get_executor().execute_paginated(sql, offset=req.offset, limit=req.limit, timeout_ms=req.timeout_ms)
         runtime_ms = int((time.time() - start) * 1000)
 
         if result["status"] == "error":
@@ -101,7 +101,7 @@ async def explain_query(req: ExplainRequest):
     if not sql:
         raise HTTPException(status_code=400, detail="Empty SQL query")
 
-    result = _executor.explain(sql)
+    result = get_executor().explain(sql)
     if result["status"] == "error":
         return {"sql": sql, "plan": [], "status": "error", "error": result["error"]}
     return {"sql": sql, "plan": result["plan"], "status": "success", "error": None}
@@ -120,7 +120,7 @@ async def export_query(req: ExportRequest):
         raise HTTPException(status_code=400, detail="Empty SQL query")
 
     start = time.time()
-    result = _executor.execute(sql)
+    result = get_executor().execute(sql)
     runtime_ms = int((time.time() - start) * 1000)
 
     if result["status"] == "error":

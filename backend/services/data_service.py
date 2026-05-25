@@ -31,10 +31,27 @@ class UploadFileAdapter:
         return len(self._stream.getvalue())
 
 
-_db = DatabaseManager()
-_executor = QueryExecutor(_db)
+# Lazy singletons — no import-time DuckDB connection.
+_db: DatabaseManager | None = None
+_executor: QueryExecutor | None = None
 _start_time = time.time()
 _UPLOAD_TIMESTAMPS: dict[str, str] = {}  # table_name → ISO 8601 upload timestamp
+
+
+def get_db() -> DatabaseManager:
+    """Lazy-init DatabaseManager singleton."""
+    global _db
+    if _db is None:
+        _db = DatabaseManager()
+    return _db
+
+
+def get_executor() -> QueryExecutor:
+    """Lazy-init QueryExecutor singleton."""
+    global _executor
+    if _executor is None:
+        _executor = QueryExecutor(get_db())
+    return _executor
 
 
 def get_uptime() -> str:
@@ -46,14 +63,14 @@ def get_uptime() -> str:
 
 def check_db_connection() -> bool:
     try:
-        _db.connect()
+        get_db().connect()
         return True
     except Exception:
         return False
 
 
 def list_tables() -> list[dict]:
-    tables = _db.list_tables()
+    tables = get_db().list_tables()
     for tbl in tables:
         tbl["uploadTime"] = _UPLOAD_TIMESTAMPS.get(tbl["name"])
     return tables
@@ -62,7 +79,7 @@ def list_tables() -> list[dict]:
 def upload_file(filename: str, content: bytes) -> dict:
     adapter = UploadFileAdapter(filename, content)
     df = load_file(adapter)
-    table_name = _db.import_dataframe(df, filename=filename)
+    table_name = get_db().import_dataframe(df, filename=filename)
     schema = detect_schema(df)
     name = table_name["table_name"]
     from datetime import datetime, timezone
@@ -103,7 +120,7 @@ def _sanitize_for_json(data: list[dict]) -> list[dict]:
 
 
 def get_table_preview(table_name: str, limit: int = 100) -> dict:
-    result = _executor.preview_table(table_name, limit)
+    result = get_executor().preview_table(table_name, limit)
     return {
         "columns": result["columns"],
         "data": _sanitize_for_json(result["data"]),
@@ -112,7 +129,7 @@ def get_table_preview(table_name: str, limit: int = 100) -> dict:
 
 
 def get_table_schema(table_name: str) -> list[dict]:
-    info = _db.get_table_info(table_name)
+    info = get_db().get_table_info(table_name)
     columns = []
     for col in info["columns"]:
         columns.append({
@@ -123,7 +140,7 @@ def get_table_schema(table_name: str) -> list[dict]:
         })
     # Enrich with unique counts from pandas
     try:
-        df = _db.get_sample_data(table_name, limit=100000)
+        df = get_db().get_sample_data(table_name, limit=100000)
         for col_info in columns:
             if col_info["name"] in df.columns:
                 col_info["uniqueCount"] = int(df[col_info["name"]].nunique())
@@ -133,7 +150,7 @@ def get_table_schema(table_name: str) -> list[dict]:
 
 
 def get_quality_report(table_name: str) -> dict:
-    df = _db.get_sample_data(table_name, limit=100000)
+    df = get_db().get_sample_data(table_name, limit=100000)
     report = analyze_dataframe(df)
 
     field_health = []
@@ -168,4 +185,4 @@ def get_quality_report(table_name: str) -> dict:
 
 
 def delete_table(table_name: str) -> bool:
-    return _db.drop_table(table_name)
+    return get_db().drop_table(table_name)
