@@ -288,7 +288,7 @@ export async function aiInsights(
   results: Record<string, unknown>[],
   language?: string,
   priorContext?: string
-): Promise<{ insights: (string | { text: string; confidence?: number; severity?: string; impact?: string; category?: string })[]; trends: (string | { text: string; confidence?: number })[]; suggested_next_steps: string[] }> {
+): Promise<{ insights: (string | { text: string; confidence?: number; severity?: string; impact?: string; category?: string; evidence_score?: number })[]; trends: (string | { text: string; confidence?: number })[]; suggested_next_steps: string[]; filtered_insights_count?: number }> {
   const body: Record<string, unknown> = { question, results };
   if (language) body.language = language;
   if (priorContext) body.prior_context = priorContext;
@@ -933,6 +933,11 @@ export interface EvaluationResult {
   diagnostics: string[];
   suggested_improvements: string[];
   status: string;
+  quality_gates?: {
+    passed: boolean;
+    warnings: string[];
+    checks_run: string[];
+  };
 }
 
 export async function aiEvaluate(

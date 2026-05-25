@@ -13,10 +13,12 @@ import {
   streamAiAnalyzeMulti,
   getTableProfile,
   aiDetectAnomalies,
+  aiEvaluate,
   type FollowUpContext,
   type MultiStepResult,
   type PlanStep,
   type MultiStepExecuted,
+  type EvaluationResult,
 } from "@/services/api";
 import { useAiSessionStore } from "@/stores/ai-session-store";
 import { useAnalysisStore, type AnalysisSection, type TraceSnapshot } from "@/stores/analysis-store";
@@ -106,6 +108,7 @@ export function AIAnalysisPanel({
   const [trace, setTrace] = useState<TraceSnapshot | null>(null);
   const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
   const [drillDownFindings, setDrillDownFindings] = useState<{ text: string; severity: string; index: number }[]>([]);
+  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
 
   const streamAbortRef = useRef<AbortController | null>(null);
 
@@ -217,12 +220,16 @@ export function AIAnalysisPanel({
             } else {
               const conf = i.confidence != null ? ` (${Math.round(i.confidence * 100)}%)` : "";
               const badge = i.severity === "high" ? " **[HIGH]**" : i.severity === "medium" ? " [MED]" : "";
-              md += `- ${i.text}${conf}${badge}\n`;
+              const lowConfBadge = i.confidence != null && i.confidence < 0.4 ? ` *[${t("ai.low-confidence")}]*` : "";
+              md += `- ${i.text}${conf}${badge}${lowConfBadge}\n`;
               if (i.severity === "high" && i.text) {
                 highSeverityInsights.push({ text: i.text, severity: i.severity, index: idx });
               }
             }
           });
+          if ((res.filtered_insights_count ?? 0) > 0) {
+            md += `\n*${res.filtered_insights_count} ${t("ai.insights-filtered")}*\n`;
+          }
         }
         // Auto-populate key findings from high-severity insights
         if (highSeverityInsights.length > 0) {
@@ -600,6 +607,29 @@ export function AIAnalysisPanel({
         trace: runTrace,
       });
 
+      // Auto-evaluate after analysis completes (non-fatal)
+      if (builtSections.length > 0) {
+        const evalSections = builtSections
+          .filter((s) => s.content && s.content.trim().length > 0)
+          .map((s) => ({ title: s.title, content: s.content, type: s.type }));
+        if (evalSections.length > 0) {
+          const traceData = runTrace as TraceSnapshot | null;
+          aiEvaluate(
+            question || tableName || "",
+            evalSections,
+            traceData ? {
+              total_llm_calls: traceData.total_llm_calls,
+              total_output_tokens: traceData.total_output_tokens,
+              guardrail_violations: traceData.guardrail_violations,
+            } : undefined,
+            i18n.language,
+          ).then((res) => {
+            setEvaluation(res);
+            useAnalysisStore.getState().updateRun(runId, { evaluation: res });
+          }).catch(() => { /* non-fatal */ });
+        }
+      }
+
       if (mode === "full-analysis" && tableName && onComplete) {
         onComplete(tableName);
       }
@@ -730,6 +760,68 @@ export function AIAnalysisPanel({
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Quality Assessment */}
+        {evaluation && hasRun && !isLoading && (
+          <div className="mt-4 pt-3 border-t border-[var(--border-default)]">
+            <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-2">
+              {t("ai.quality-assessment")}
+            </p>
+            {/* Confidence bar */}
+            <div className="mb-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-[var(--text-secondary)]">{t("ai.confidence-score")}</span>
+                <span className={`text-xs font-medium ${evaluation.confidence >= 0.7 ? "text-emerald-400" : evaluation.confidence >= 0.4 ? "text-amber-400" : "text-red-400"}`}>
+                  {Math.round(evaluation.confidence * 100)}%
+                </span>
+              </div>
+              <div className="h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${evaluation.confidence >= 0.7 ? "bg-emerald-500" : evaluation.confidence >= 0.4 ? "bg-amber-500" : "bg-red-500"}`}
+                  style={{ width: `${Math.round(evaluation.confidence * 100)}%` }}
+                />
+              </div>
+            </div>
+            {/* Dimension badges */}
+            <div className="flex gap-2 mb-2">
+              {(["completeness", "accuracy", "actionability"] as const).map((dim) => {
+                const val = evaluation[dim];
+                const color = val === "high" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" : val === "medium" ? "bg-amber-500/15 text-amber-400 border-amber-500/30" : val === "low" ? "bg-red-500/15 text-red-400 border-red-500/30" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)] border-[var(--border-default)]";
+                return (
+                  <span key={dim} className={`text-[10px] px-2 py-0.5 rounded-full border ${color}`}>
+                    {t(`ai.${dim}`)}: {val}
+                  </span>
+                );
+              })}
+            </div>
+            {/* Quality gate warnings */}
+            {evaluation.quality_gates && !evaluation.quality_gates.passed && (
+              <div className="mb-2 px-2 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-md">
+                {evaluation.quality_gates.warnings.map((w, i) => (
+                  <p key={i} className="text-[10px] text-amber-300">⚠ {w}</p>
+                ))}
+              </div>
+            )}
+            {/* Diagnostics */}
+            {evaluation.diagnostics.length > 0 && (
+              <div className="mb-1">
+                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-0.5">{t("ai.diagnostics")}</p>
+                {evaluation.diagnostics.map((d, i) => (
+                  <p key={i} className="text-[10px] text-[var(--text-secondary)]">- {d}</p>
+                ))}
+              </div>
+            )}
+            {/* Suggested improvements */}
+            {evaluation.suggested_improvements.length > 0 && (
+              <div>
+                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-0.5">{t("ai.improvements")}</p>
+                {evaluation.suggested_improvements.map((imp, i) => (
+                  <p key={i} className="text-[10px] text-[var(--text-secondary)]">- {imp}</p>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

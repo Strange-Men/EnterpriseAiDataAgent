@@ -88,7 +88,7 @@ interface AnalysisState {
   activeRunId: string | null;
 
   addRun: (mode: AnalysisMode, question: string, table?: string) => string;
-  updateRun: (id: string, update: Partial<Pick<AnalysisRun, "status" | "sections" | "chartSpecs" | "multiResult" | "trace" | "error" | "anomalies">>) => void;
+  updateRun: (id: string, update: Partial<Pick<AnalysisRun, "status" | "sections" | "chartSpecs" | "multiResult" | "trace" | "error" | "anomalies" | "evaluation">>) => void;
   setActiveRun: (id: string | null) => void;
   getActiveRun: () => AnalysisRun | null;
   clearHistory: () => void;

@@ -229,3 +229,72 @@ class TestHelperFunctions:
         result = _empty_result()
         assert result["summary"]["total_anomalies"] == 0
         assert result["anomalies"] == []
+
+    def test_detect_numeric_columns_multi_row(self):
+        """多行扫描: 第一行数值但后续为字符串，不应被检测为数值列。"""
+        data = [{"val": 1, "name": "x"}]
+        for i in range(1, 20):
+            data.append({"val": "text", "name": f"item_{i}"})
+        cols = _detect_numeric_columns(data)
+        assert "val" not in cols  # 只有 1/20 = 5% 数值，不满足 80%
+        assert "name" not in cols
+
+    def test_detect_numeric_columns_majority_numeric(self):
+        """多行扫描: 大部分为数值，应被检测。"""
+        data = []
+        for i in range(20):
+            data.append({"val": float(i) if i < 18 else None, "name": f"item_{i}"})
+        cols = _detect_numeric_columns(data)
+        assert "val" in cols  # 18/18 non-null 都是数值
+
+    def test_min_deviation_score_filter(self):
+        """低于 min_deviation_score 的异常应被过滤。"""
+        data = _make_data_with_outliers()
+        result_default = detect_anomalies(data, columns=["revenue"], method="zscore", min_deviation_score=0.0)
+        result_filtered = detect_anomalies(data, columns=["revenue"], method="zscore", min_deviation_score=5.0)
+        assert result_filtered["summary"]["total_anomalies"] <= result_default["summary"]["total_anomalies"]
+
+    def test_adaptive_threshold(self):
+        """自适应阈值应过滤掉底部 25% 的边际异常（列内 ≥4 个异常时生效）。"""
+        # 构造数据: 使用 IQR 方法检测大量异常
+        data = []
+        for i in range(100):
+            data.append({"val": float(i)})
+        # 添加多个极端异常，偏离分数递减
+        for i, v in enumerate([10000, 9000, 8000, 7000, 6000, 5000, 4000, 3500]):
+            data.append({"val": float(v)})
+
+        result_adaptive = detect_anomalies(data, columns=["val"], method="iqr", min_deviation_score=0.0, adaptive=True)
+        result_no_adaptive = detect_anomalies(data, columns=["val"], method="iqr", min_deviation_score=0.0, adaptive=False)
+        # 自适应模式应保留大部分异常，只过滤底部的
+        assert result_adaptive["summary"]["total_anomalies"] >= 4
+        assert result_adaptive["summary"]["total_anomalies"] <= result_no_adaptive["summary"]["total_anomalies"]
+        # 最极端的异常应保留
+        adaptive_values = [a["value"] for a in result_adaptive["anomalies"]]
+        assert 10000.0 in adaptive_values
+
+    def test_precision_score_present(self):
+        """每个异常都应有 precision_score 且在 [0, 1]。"""
+        data = _make_data_with_outliers()
+        result = detect_anomalies(data, columns=["revenue"], method="zscore", min_deviation_score=0.0, adaptive=False)
+        for a in result["anomalies"]:
+            assert "precision_score" in a
+            assert 0 <= a["precision_score"] <= 1.0
+
+    def test_max_anomalies_cap(self):
+        """异常数量应受 max_anomalies 限制。"""
+        data = []
+        for i in range(200):
+            data.append({"val": 100.0})
+        # 注入大量异常
+        for i in range(100):
+            data[i]["val"] = 99999.0
+        result = detect_anomalies(data, columns=["val"], method="zscore", min_deviation_score=0.0, adaptive=False, max_anomalies=50)
+        assert result["summary"]["total_anomalies"] <= 50
+
+    def test_anomalies_sorted_by_deviation(self):
+        """异常应按 deviation_score 降序排列。"""
+        data = _make_data_with_outliers()
+        result = detect_anomalies(data, columns=["revenue"], method="zscore", min_deviation_score=0.0, adaptive=False)
+        scores = [a["deviation_score"] for a in result["anomalies"]]
+        assert scores == sorted(scores, reverse=True)

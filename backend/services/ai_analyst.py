@@ -83,6 +83,8 @@ def detect_and_interpret_anomalies(
     language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
+    min_deviation_score: float = 1.5,
+    adaptive: bool = True,
 ) -> dict:
     """检测数据异常并用 LLM 解读业务意义。
 
@@ -93,7 +95,10 @@ def detect_and_interpret_anomalies(
     start = time.time()
 
     # Step 1: 纯统计检测（无 LLM 依赖）
-    detection = detect_anomalies(results, columns=columns, method=method)
+    detection = detect_anomalies(
+        results, columns=columns, method=method,
+        min_deviation_score=min_deviation_score, adaptive=adaptive,
+    )
 
     if not detection["anomalies"]:
         return {
@@ -159,12 +164,17 @@ def detect_and_interpret_anomalies_stream(
     language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
+    min_deviation_score: float = 1.5,
+    adaptive: bool = True,
 ):
     """流式异常检测: 先返回统计结果，再流式输出 LLM 解读。"""
     from backend.services.anomaly_detector import detect_anomalies
 
     # Step 1: 统计检测
-    detection = detect_anomalies(results, columns=columns, method=method)
+    detection = detect_anomalies(
+        results, columns=columns, method=method,
+        min_deviation_score=min_deviation_score, adaptive=adaptive,
+    )
 
     # 先 yield 统计结果
     yield json.dumps({"type": "detection", "data": detection}, ensure_ascii=False)
@@ -629,6 +639,49 @@ def explain_results_stream(
     )
 
 
+# ── Insight Quality Scoring ────────────────────────────────────
+
+_SEVERITY_WEIGHTS = {"high": 1.0, "medium": 0.6, "low": 0.3}
+_MIN_INSIGHT_CONFIDENCE = 0.3
+_MIN_TREND_CONFIDENCE = 0.2
+
+
+def _score_and_filter_insights(insights: list[dict]) -> tuple[list[dict], int]:
+    """对洞察进行证据评分、过滤和排序。
+
+    Returns:
+        (scored_sorted_insights, filtered_count)
+    """
+    if not insights:
+        return [], 0
+
+    scored = []
+    filtered_count = 0
+    for item in insights:
+        if isinstance(item, str):
+            scored.append({"text": item, "confidence": 0.5, "evidence_score": 0.5})
+            continue
+        conf = item.get("confidence", 0.5)
+        if conf < _MIN_INSIGHT_CONFIDENCE:
+            filtered_count += 1
+            continue
+        sev_w = _SEVERITY_WEIGHTS.get(item.get("severity", "low"), 0.3)
+        imp_w = _SEVERITY_WEIGHTS.get(item.get("impact", "low"), 0.3)
+        evidence_score = round(conf * 0.5 + sev_w * 0.3 + imp_w * 0.2, 3)
+        scored.append({**item, "evidence_score": evidence_score})
+
+    scored.sort(key=lambda x: x.get("evidence_score", 0), reverse=True)
+    return scored, filtered_count
+
+
+def _filter_trends(trends: list[dict]) -> list[dict]:
+    """过滤低置信度趋势。"""
+    return [
+        t for t in trends
+        if isinstance(t, str) or t.get("confidence", 0.5) >= _MIN_TREND_CONFIDENCE
+    ]
+
+
 def generate_insights(
     question: str, results: list[dict],
     language: str = "zh",
@@ -651,8 +704,15 @@ def generate_insights(
             trace=trace, phase="insights", prompt_name="insights",
         )
         insights = json.loads(raw)
+        # Score and filter insights
+        raw_insights = insights.get("insights", [])
+        scored_insights, filtered_count = _score_and_filter_insights(raw_insights)
+        trends = _filter_trends(insights.get("trends", []))
         return {
             **insights,
+            "insights": scored_insights,
+            "trends": trends,
+            "filtered_insights_count": filtered_count,
             "status": "success",
             "elapsed_ms": round((time.time() - start) * 1000, 2),
         }
@@ -868,3 +928,93 @@ def generate_analysis_plan(
             "status": "error",
             "elapsed_ms": round((time.time() - start) * 1000, 2),
         }
+
+
+# ── Self-Evaluation ────────────────────────────────────────────
+
+def evaluate_analysis(
+    question: str,
+    sections: list[dict],
+    trace: dict | None = None,
+    language: str = "zh",
+) -> dict:
+    """AI 对分析结果做自我评估。"""
+    from backend.prompts.self_evaluation import CONTRACT, build_user_message
+    import re
+
+    system = apply_language(CONTRACT.SYSTEM_PROMPT, language)
+    user_msg = build_user_message(question, sections, trace)
+
+    try:
+        raw = _call_llm(
+            system=system,
+            user_message=user_msg,
+            max_tokens=CONTRACT.max_output_tokens,
+            language=language,
+            operation="self_evaluation",
+            phase="evaluate",
+            prompt_name="self_evaluation",
+        )
+    except Exception as e:
+        return {
+            "confidence": 0.5,
+            "completeness": "unknown",
+            "accuracy": "unknown",
+            "actionability": "unknown",
+            "diagnostics": [f"Evaluation failed: {e}"],
+            "suggested_improvements": [],
+            "status": "error",
+        }
+
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
+        if match:
+            try:
+                parsed = json.loads(match.group(1))
+            except json.JSONDecodeError:
+                parsed = {}
+        else:
+            parsed = {}
+
+    result = {
+        "confidence": parsed.get("confidence", 0.5),
+        "completeness": parsed.get("completeness", "unknown"),
+        "accuracy": parsed.get("accuracy", "unknown"),
+        "actionability": parsed.get("actionability", "unknown"),
+        "diagnostics": parsed.get("diagnostics", []),
+        "suggested_improvements": parsed.get("suggested_improvements", []),
+        "status": "success",
+    }
+
+    # Apply quality gates
+    result["quality_gates"] = _apply_quality_gates(result)
+
+    return result
+
+
+# ── Quality Gates ───────────────────────────────────────────────
+
+def _apply_quality_gates(evaluation: dict) -> dict:
+    """确定性质量门控: 基于评估结果和分析数据生成警告。"""
+    warnings = []
+    checks_run = []
+
+    conf = evaluation.get("confidence", 0.5)
+    checks_run.append("confidence")
+    if conf < 0.4:
+        warnings.append("Low overall confidence — results may be unreliable")
+
+    for dim in ("completeness", "accuracy", "actionability"):
+        checks_run.append(dim)
+        val = evaluation.get(dim, "unknown")
+        if val == "low":
+            label = dim.capitalize()
+            warnings.append(f"Low {dim} — analysis quality may be insufficient")
+
+    return {
+        "passed": len(warnings) == 0,
+        "warnings": warnings[:3],  # Cap at 3
+        "checks_run": checks_run,
+    }
