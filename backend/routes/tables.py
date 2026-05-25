@@ -5,7 +5,7 @@ import csv
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from backend.services.data_service import _db, list_tables, get_table_preview, get_table_schema, delete_table, _sanitize_for_json
+from backend.services.data_service import get_db, list_tables, get_table_preview, get_table_schema, delete_table, _sanitize_for_json
 
 router = APIRouter()
 
@@ -67,7 +67,7 @@ async def get_table_data_paginated(
 ):
     """Paginated data fetch with server-side OFFSET for virtual scrolling."""
     try:
-        conn = _db.connect()
+        conn = get_db().connect()
         offset = page * page_size
         count_row = conn.execute(f'SELECT COUNT(*) FROM "{table_name}"').fetchone()
         total_rows = count_row[0] if count_row else 0
@@ -98,7 +98,7 @@ async def rename_table(table_name: str, req: RenameRequest):
     if not new_name:
         raise HTTPException(status_code=400, detail="New name cannot be empty")
     try:
-        _db.rename_table(table_name, new_name)
+        get_db().rename_table(table_name, new_name)
         return {"status": "renamed", "old_name": table_name, "new_name": new_name}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -109,7 +109,7 @@ async def rename_table(table_name: str, req: RenameRequest):
 @router.get("/table/{table_name}/export")
 async def export_table(table_name: str):
     try:
-        df = _db.get_sample_data(table_name, limit=500000)
+        df = get_db().get_sample_data(table_name, limit=500000)
         stream = io.StringIO()
         writer = csv.writer(stream)
         writer.writerow(df.columns)

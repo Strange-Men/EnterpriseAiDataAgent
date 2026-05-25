@@ -56,7 +56,10 @@ class DatabaseManager:
     def close(self):
         """Close the DuckDB connection."""
         if self._conn:
-            self._conn.close()
+            try:
+                self._conn.close()
+            except Exception:
+                pass
             self._conn = None
 
     @property

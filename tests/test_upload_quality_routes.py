@@ -21,9 +21,9 @@ def client():
 
     # Force a fresh singleton and reconnect
     DatabaseManager.reset_instance()
-    data_service._db = DatabaseManager()
-    data_service._executor = QueryExecutor(data_service._db)
-    conn = data_service._db.connect()
+    data_service._db = None
+    data_service._executor = None
+    conn = data_service.get_db().connect()
     # Verify connection is alive
     conn.execute("SELECT 1").fetchone()
 
