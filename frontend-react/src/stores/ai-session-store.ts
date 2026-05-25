@@ -208,6 +208,12 @@ export const useAiSessionStore = create<AiSessionState>()(
     {
       name: "ai-session",
       storage: createJSONStorage(() => localStorage),
+      merge: (persisted, current) => {
+        if (!persisted || typeof persisted !== "object") return current;
+        const p = persisted as Record<string, unknown>;
+        if (!Array.isArray(p.turns)) return current;
+        return { ...current, ...p };
+      },
       partialize: (state) => ({
         turns: state.turns.slice(-KEEP_TURNS),
         compressedSummary: state.compressedSummary,

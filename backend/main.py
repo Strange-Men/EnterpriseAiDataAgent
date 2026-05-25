@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import API_VERSION
 from backend.routes import upload, tables, quality, query, ai, analyze
-from backend.services.data_service import check_db_connection, get_uptime, get_db
+from backend.services.data_service import check_db_connection, get_uptime, get_db, get_system_health
 from backend.middleware.observability import ObservabilityMiddleware
 
 logger = logging.getLogger("enterprise_ai.main")
@@ -40,9 +40,25 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"DB warm-up failed (will retry on first request): {e}")
 
+    # Start scheduler background worker
+    try:
+        from backend.runtime.scheduler_worker import start_worker
+        start_worker()
+        logger.info("Scheduler worker started")
+    except Exception as e:
+        logger.warning(f"Scheduler worker start failed (non-fatal): {e}")
+
     yield
 
     # ── Shutdown ───────────────────────────────────────────────
+    # Stop scheduler worker
+    try:
+        from backend.runtime.scheduler_worker import stop_worker
+        stop_worker()
+        logger.info("Scheduler worker stopped")
+    except Exception as e:
+        logger.warning(f"Scheduler worker stop error (non-fatal): {e}")
+
     logger.info("Application shutting down — closing DB connection")
     try:
         get_db().close()
@@ -91,3 +107,11 @@ async def status():
         "version": API_VERSION,
         "uptime": get_uptime(),
     }
+
+
+@app.get("/api/health/system")
+async def health_system():
+    """Comprehensive system health diagnostics."""
+    data = get_system_health()
+    data["version"] = API_VERSION
+    return data

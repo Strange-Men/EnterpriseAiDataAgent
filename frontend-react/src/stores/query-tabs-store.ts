@@ -82,6 +82,19 @@ export const useQueryTabsStore = create<QueryTabsState>()(
         return tabs.find((t) => t.id === activeTabId);
       },
     }),
-    { name: "query-tabs", storage: createJSONStorage(() => localStorage) }
+    {
+      name: "query-tabs",
+      storage: createJSONStorage(() => localStorage),
+      merge: (persisted, current) => {
+        if (!persisted || typeof persisted !== "object") return current;
+        const p = persisted as Record<string, unknown>;
+        if (!Array.isArray(p.tabs)) return current;
+        const tabs = p.tabs.filter(
+          (t: unknown) => t && typeof t === "object" && typeof (t as Record<string, unknown>).id === "string"
+        );
+        if (tabs.length === 0) return current;
+        return { ...current, tabs, activeTabId: typeof p.activeTabId === "string" ? p.activeTabId : tabs[0].id };
+      },
+    }
   )
 );

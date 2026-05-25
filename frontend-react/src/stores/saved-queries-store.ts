@@ -69,6 +69,15 @@ export const useSavedQueriesStore = create<SavedQueriesState>()(
         return get().queries.filter((q) => q.favorite);
       },
     }),
-    { name: "saved-queries", storage: createJSONStorage(() => localStorage) }
+    {
+      name: "saved-queries",
+      storage: createJSONStorage(() => localStorage),
+      merge: (persisted, current) => {
+        if (!persisted || typeof persisted !== "object") return current;
+        const p = persisted as Record<string, unknown>;
+        if (!Array.isArray(p.queries)) return current;
+        return { ...current, queries: p.queries };
+      },
+    }
   )
 );

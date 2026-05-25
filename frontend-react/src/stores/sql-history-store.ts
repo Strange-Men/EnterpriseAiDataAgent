@@ -92,6 +92,12 @@ export const useSqlHistoryStore = create<SqlHistoryState>()(
     {
       name: "sql-history",
       storage: createJSONStorage(() => localStorage),
+      merge: (persisted, current) => {
+        if (!persisted || typeof persisted !== "object") return current;
+        const p = persisted as Record<string, unknown>;
+        if (!Array.isArray(p.history)) return current;
+        return { ...current, history: p.history };
+      },
       partialize: (state) => {
         const MAX_STORAGE_BYTES = 2 * 1024 * 1024; // 2MB limit for query history
         let history = state.history;

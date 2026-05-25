@@ -29,11 +29,21 @@ EnterpriseAiDataAgent is an enterprise-grade AI data analysis platform with inte
 - **Smart Questions**: AI-suggested analytical questions per dataset
 - **Multi-step Analysis**: Autonomous analysis with planning engine
 - **Progressive Streaming**: Real-time SSE (plan → steps → summary)
-- **Prompt Architecture**: 8 prompt modules with contracts and registry
+- **Prompt Architecture**: 11 prompt modules with contracts and registry
 - **Token Budget**: Per-operation token budgets with workflow tracking
 - **Runtime Guardrails**: Step limits, timeouts, loop detection
 - **Analysis Trace**: LLM call recording for debugging and audit
 - **AI Evaluation**: Golden question harness with hallucination detection
+
+### AI Intelligence Layer (v0.7.x)
+- **Anomaly Detection**: Statistical detection (Z-score, IQR) + LLM interpretation
+- **Self-Evaluation**: AI quality assessment (completeness, accuracy, actionability)
+- **Quality Gates**: Deterministic quality checks with warnings
+- **Multi-Turn Context**: Key findings accumulation, drill-down analysis
+- **Analysis Templates**: Save and re-apply analysis patterns
+- **Report Generation**: Markdown report builder
+- **Scheduled Analysis**: Background scheduled autonomous analysis
+- **System Health**: `/api/health/system` diagnostics endpoint
 
 ### Workspace
 - 3-panel resizable layout, dark/light theme, i18n (en/zh)
@@ -102,7 +112,9 @@ Frontend runs at `http://localhost:3000`, proxies `/api/*` to backend `http://lo
 
 | Method | Path | Description |
 |--------|------|-------------|
+| GET | `/api/health` | Basic health check |
 | GET | `/api/status` | System status |
+| GET | `/api/health/system` | Comprehensive system diagnostics |
 | POST | `/api/upload` | Upload CSV/Excel |
 | POST | `/api/query` | Execute SQL |
 | POST | `/api/query/explain` | EXPLAIN query plan |
@@ -131,6 +143,9 @@ Frontend runs at `http://localhost:3000`, proxies `/api/*` to backend `http://lo
 | POST | `/api/ai/plan` | Generate analysis plan |
 | POST | `/api/ai/analyze-multi` | Multi-step autonomous analysis |
 | POST | `/api/ai/analyze-multi/stream` | Streaming multi-step analysis (SSE) |
+| POST | `/api/ai/anomalies` | Detect and interpret anomalies |
+| POST | `/api/ai/anomalies/stream` | Streaming anomaly detection (SSE) |
+| POST | `/api/ai/evaluate` | Self-evaluate analysis quality |
 
 ## Architecture
 
@@ -188,7 +203,9 @@ EnterpriseAiDataAgent/
 |---------|---------|--------|
 | v0.3.x | Enterprise Data Platform (SQL Workspace, DuckDB, Quality) | Done |
 | v0.5.x | AI Data Analyst MVP (Streaming, Semantics, Planning, Guardrails) | Done |
-| v0.6.x | Anomaly Detection, Multi-turn UX, E2E Tests | Next |
+| v0.6.x | Meta Governance & Autonomous QA | Done |
+| v0.7.x | AI Analyst Intelligence Layer (Anomaly Detection, Quality Gates, Stability) | Current |
+| v0.7.5 | Stability & System Validation | Current |
 
 ## License
 
