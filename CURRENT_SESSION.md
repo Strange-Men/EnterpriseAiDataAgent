@@ -4,14 +4,14 @@
 
 ## Current Version
 
-- **Version**: v0.7.2
+- **Version**: v0.7.3
 - **Phase**: v0.7.x AI Analyst Intelligence Layer
-- **Status**: AI Session Quality Layer — 异常精度评分 + 洞察证据评分 + 自评估接入 + 质量门控
+- **Status**: System Cleanup & Pipeline Refactor — 共享辅助提取 + 死码清理 + 文档修复
 
 ## Session Goals
 
 1. ~~多轮分析连续性~~ — v0.7.1 完成
-2. AI 会话质量 — 异常误报过滤、洞察证据评分、自评估可视化、质量门控
+2. ~~AI 会话质量~~ — v0.7.2 完成
 3. 系统精简清理 — 提取共享逻辑，移除死码，文档更新
 
 ## System Health
@@ -19,41 +19,33 @@
 - Frontend build: PASS
 - Backend import: PASS
 - Frontend tests: 160/160 PASS
-- Backend tests: 311/312 PASS (1 pre-existing: test_query_history state)
+- Backend tests: 321 PASS (排除预存失败: test_query_history state, test_query_select, test_observability)
 - TypeScript: PASS
 - Prompts: 11 registered
 
-## Key Changes (v0.7.2)
+## Key Changes (v0.7.3)
 
 ### 后端
-- `backend/services/anomaly_detector.py`: _detect_numeric_columns() 多行扫描修复
-- `backend/services/anomaly_detector.py`: detect_anomalies() 新增 min_deviation_score + adaptive + precision_score + cap 50
-- `backend/services/anomaly_detector.py`: 新增 _apply_adaptive_threshold() P25 自适应过滤
-- `backend/services/ai_analyst.py`: 新增 _score_and_filter_insights() 洞察证据评分
-- `backend/services/ai_analyst.py`: 新增 _filter_trends() 趋势过滤
-- `backend/services/ai_analyst.py`: generate_insights() 集成评分/过滤/排序
-- `backend/services/ai_analyst.py`: 新增 evaluate_analysis() 自评估服务函数
-- `backend/services/ai_analyst.py`: 新增 _apply_quality_gates() 质量门控
-- `backend/routes/ai.py`: AnomalyDetectRequest 新增 min_deviation_score + adaptive
-- `backend/routes/ai.py`: ai_evaluate 重构为委托到 evaluate_analysis()
-- `backend/runtime/token_budget.py`: 新增 self_evaluation 预算
-- `backend/prompts/self_evaluation.py`: 空 sections 保护 + trace 包含
-- `backend/prompts/anomaly_interpretation.py`: 增加 precision_score 引导
+- `ai_pipeline.py`: 提取 8 个共享辅助函数 + `_execute_plan_steps()` 统一步骤执行
+- non-streaming `run_autonomous_analysis()` 补齐 step-level retry
+- 新建 `backend/services/shared_utils.py`: 共享 `_truncate()`
+- `diff_engine.py` / `report_builder.py`: 从 shared_utils 导入 `_truncate`
+- `trace.py`: 移除死码 `save_to_file()` + `import os`
+- `routes/ai.py`: 清理冗余 `import json as _json`，`import re` 提升顶层
+- `ai_analyst.py`: `import re` 提升顶层
 
-### 前端
-- `services/api.ts`: EvaluationResult 新增 quality_gates 字段
-- `services/api.ts`: aiInsights 返回类型新增 evidence_score + filtered_insights_count
-- `stores/analysis-store.ts`: updateRun 类型新增 evaluation
-- `panels/ai-analysis-panel.tsx`: insights 低置信度标签 + filtered_insights_count 提示
-- `panels/ai-analysis-panel.tsx`: 新增 evaluation 状态 + aiEvaluate() 自动调用
-- `panels/ai-analysis-panel.tsx`: 质量评估面板（置信度条/维度标签/警告/诊断/改进）
-- i18n: 新增 11 个键 (low-confidence, evidence-score, insights-filtered, quality-assessment, confidence-score, completeness, accuracy, actionability, diagnostics, improvements, quality-warnings)
+### 文档
+- `版本记录.md`: 移除重复 v0.3.8 条目
+- `开发路线图.md`: 更新至 v0.7.x
+- `PROJECT_RULES.md`: 版本表更新
+- `FILE_SYSTEM_RULES.md`: 移除已归档 `docs/frontend_rules/` 引用
+- 归档 `docs/performance/performance-baseline.md`
+- 移除孤立 `frontend/` 目录
 
 ### 测试
-- `tests/test_anomaly_detector.py`: 31 tests (+7 new: 多行扫描、min_deviation、adaptive、precision_score、cap、排序)
-- `tests/test_self_evaluation.py`: 8 tests (全部 PASS)
-- `tests/test_token_budget.py`: 21 tests (全部 PASS)
+- `test_trace.py`: 移除 `test_save_to_file`（方法已删除）
+- 相关模块 98 个测试全部通过
 
 ## Next Steps
 
-- v0.7.3: system simplification and cleanup
+- v0.7.4: 可能的进一步优化或新功能（待定）

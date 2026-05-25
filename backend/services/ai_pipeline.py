@@ -21,6 +21,9 @@ import json
 import time
 
 
+# ── Shared Helpers ────────────────────────────────────────────────
+
+
 def _infer_column_types(data: list[dict], columns: list[str]) -> list[dict]:
     """Infer column dtypes from sample data instead of hardcoding VARCHAR.
 
@@ -37,7 +40,7 @@ def _infer_column_types(data: list[dict], columns: list[str]) -> list[dict]:
                 continue
             if isinstance(val, float):
                 dtype = "DOUBLE"
-                break  # maximally widened, no further scanning needed
+                break
             elif isinstance(val, bool):
                 if dtype == "VARCHAR":
                     dtype = "BOOLEAN"
@@ -62,6 +65,147 @@ def _derive_step_summary(step_result: dict) -> str:
         sample_str = ", ".join(f"{k}={v}" for k, v in list(sample.items())[:5])
         parts.append(f"First row: {sample_str}")
     return "; ".join(parts)
+
+
+def _make_step_result(step_num: int, purpose: str, sql: str = "",
+                      columns: list | None = None, data: list | None = None,
+                      row_count: int | None = None, error: str | None = None,
+                      status: str = "success") -> dict:
+    """Build a normalized step result dict."""
+    out = {
+        "step": step_num,
+        "purpose": purpose,
+        "sql": sql,
+        "columns": columns or [],
+        "data": data or [],
+        "status": status,
+    }
+    if row_count is not None:
+        out["row_count"] = row_count
+    if error is not None:
+        out["error"] = error
+    return out
+
+
+def _check_step_guardrails(guard: AnalysisGuard, step_def: dict,
+                           executed_steps: list, trace: TraceRecorder,
+                           guardrail_violations: list) -> GuardrailViolation | None:
+    """Check guardrails before a step. Returns violation or None."""
+    try:
+        guard.check_before_step(step_def, executed_steps)
+        return None
+    except GuardrailViolation as v:
+        guardrail_violations.append(f"{v.rule}: {v.message}")
+        trace.record_guardrail_violation(v.rule, v.message)
+        return v
+
+
+def _check_step_budget(tracker: WorkflowTokenTracker) -> bool:
+    """Returns True if budget allows proceeding."""
+    budget = get_budget("sql_generation")
+    return tracker.can_proceed(budget.max_input_tokens, budget.max_output_tokens)
+
+
+def _build_dependency_context(depends_on: int | None, executed_steps: list):
+    """Build follow-up context from a dependency step, or None."""
+    if depends_on is None:
+        return None
+    for prev in executed_steps:
+        if prev["step"] == depends_on and prev["status"] == "success" and prev["data"]:
+            return build_follow_up_context({
+                "previous_sql": prev["sql"],
+                "previous_result_schema": _infer_column_types(prev["data"], prev["columns"]),
+                "previous_sample_rows": prev["data"][:5],
+                "previous_insight_summary": _derive_step_summary(prev),
+            })
+    return None
+
+
+def _generate_step_sql_with_retry(step_question: str, schema_context: str,
+                                   fu_ctx, language: str, step_num: int,
+                                   tracker: WorkflowTokenTracker,
+                                   trace: TraceRecorder) -> dict:
+    """Generate SQL for a step, with one retry on failure."""
+    sql_result = generate_sql(step_question, schema_context, fu_ctx, language,
+                              tracker=tracker, trace=trace,
+                              phase=f"step_{step_num}", step=step_num)
+    if sql_result["status"] == "error":
+        retry_question = (
+            f"{step_question}\n\nPrevious attempt failed with: "
+            f"{sql_result.get('error', 'unknown error')[:200]}. Try a different approach."
+        )
+        sql_result = generate_sql(retry_question, schema_context, fu_ctx, language,
+                                  tracker=tracker, trace=trace,
+                                  phase=f"step_{step_num}_retry", step=step_num)
+    return sql_result
+
+
+def _build_diagnostics(executed_steps: list) -> dict | None:
+    """Build diagnostic if all steps failed."""
+    if not executed_steps:
+        return None
+    has_success = any(s["status"] == "success" and s["data"] for s in executed_steps)
+    if has_success:
+        return None
+    failures = []
+    for s in executed_steps:
+        if s.get("error"):
+            failures.append(f"Step {s['step']}: {s['error'][:100]}")
+        elif s["status"].startswith("skipped"):
+            failures.append(f"Step {s['step']}: {s['status']}")
+    return {
+        "message": f"All {len(executed_steps)} steps failed or were skipped.",
+        "failures": failures,
+    }
+
+
+def _build_executive_summary(question: str, executed_steps: list, language: str,
+                              tracker: WorkflowTokenTracker,
+                              trace: TraceRecorder) -> str:
+    """Generate executive summary from executed steps."""
+    successful = [s for s in executed_steps if s["status"] == "success" and s["data"]]
+    if not successful:
+        return ""
+    step_summaries = []
+    summarizer_budget = get_budget("summarizer")
+    for s in executed_steps:
+        status_label = "✓" if s["status"] == "success" else "✗"
+        data_note = ""
+        if s["status"] == "success" and s["data"]:
+            data_note = f" ({s.get('row_count', len(s['data']))} rows)"
+            sample = s["data"][:summarizer_budget.max_sample_rows]
+            if sample:
+                data_note += f"\nSample: {json.dumps(sample, default=str, ensure_ascii=False)[:500]}"
+        elif s.get("error"):
+            data_note = f" Error: {s['error'][:200]}"
+        step_summaries.append(f"[{status_label} Step {s['step']}: {s['purpose']}{data_note}]")
+
+    summary_input = build_summarizer_user_message(question, step_summaries)
+    try:
+        return _call_llm(
+            SUMMARIZER_SYSTEM, summary_input,
+            max_tokens=summarizer_budget.max_output_tokens,
+            language=language,
+            tracker=tracker,
+            operation="summarizer",
+            trace=trace, phase="summary", prompt_name="summarizer",
+        )
+    except Exception:
+        return "Summary generation failed."
+
+
+def _determine_overall_status(executed_steps: list, guardrail_violations: list) -> str:
+    """Determine overall analysis status based on outcomes."""
+    successful = [s for s in executed_steps if s["status"] == "success" and s.get("data")]
+    has_errors = any(s["status"] == "error" for s in executed_steps)
+    if not successful:
+        return "error"
+    if has_errors or guardrail_violations:
+        return "partial"
+    return "success"
+
+
+# ── Simple NL → SQL → Execute → Explain ──────────────────────────
 
 
 def run_ai_query(
@@ -140,7 +284,7 @@ def run_ai_query(
     return response
 
 
-# ── Autonomous Multi-step Analysis ─────────────────────────────────
+# ── Autonomous Multi-step Analysis ────────────────────────────────
 
 
 def _execute_step_sql(sql: str, max_rows: int = 500) -> dict:
@@ -155,6 +299,87 @@ def _execute_step_sql(sql: str, max_rows: int = 500) -> dict:
         "row_count": exec_result["row_count"],
         "status": "success",
     }
+
+
+def _execute_plan_steps(plan: list, schema_context: str, language: str,
+                         max_rows: int, guard: AnalysisGuard,
+                         tracker: WorkflowTokenTracker,
+                         trace: TraceRecorder,
+                         guardrail_violations: list) -> list[dict]:
+    """Execute all plan steps, returning the list of step results.
+
+    Shared by both streaming and non-streaming variants.
+    Uses step-level retry on SQL generation failure.
+    """
+    executed_steps: list[dict] = []
+    for step_def in plan:
+        step_num = step_def.get("step", 0)
+        purpose = step_def.get("purpose", "")
+        sql_goal = step_def.get("sql_goal", "")
+        depends_on = step_def.get("depends_on")
+
+        # Guardrail check
+        violation = _check_step_guardrails(guard, step_def, executed_steps,
+                                           trace, guardrail_violations)
+        if violation:
+            executed_steps.append(_make_step_result(
+                step_num, purpose, error=v.message,
+                status=f"skipped_{violation.rule}",
+            ))
+            if violation.rule in ("max_sql_queries", "consecutive_failures", "total_timeout"):
+                break
+            continue
+
+        # Budget check
+        if not _check_step_budget(tracker):
+            tracker.record_budget_exceeded("sql_generation")
+            executed_steps.append(_make_step_result(
+                step_num, purpose, error="Token budget exceeded",
+                status="skipped_budget",
+            ))
+            continue
+
+        # Build follow-up context from dependency
+        fu_ctx = _build_dependency_context(depends_on, executed_steps)
+
+        # Generate SQL (with retry on failure)
+        step_question = f"{purpose}: {sql_goal}"
+        sql_result = _generate_step_sql_with_retry(
+            step_question, schema_context, fu_ctx, language, step_num, tracker, trace)
+
+        if sql_result["status"] == "error":
+            guard.record_step_result(success=False)
+            executed_steps.append(_make_step_result(
+                step_num, purpose,
+                error=sql_result.get("error", "SQL generation failed"),
+                status="error",
+            ))
+            continue
+
+        sql = sql_result["sql"]
+        if sql.startswith("-- CANNOT_ANSWER"):
+            guard.record_step_result(success=False)
+            executed_steps.append(_make_step_result(
+                step_num, purpose, sql=sql,
+                error="Cannot answer this step with available data",
+                status="error",
+            ))
+            continue
+
+        # Execute SQL
+        exec_result = _execute_step_sql(sql, max_rows)
+        is_success = exec_result["status"] == "success"
+        guard.record_step_result(success=is_success)
+        executed_steps.append(_make_step_result(
+            step_num, purpose, sql=sql,
+            columns=exec_result.get("columns", []),
+            data=exec_result.get("data", []),
+            row_count=exec_result.get("row_count", 0),
+            error=exec_result.get("error"),
+            status=exec_result["status"],
+        ))
+
+    return executed_steps
 
 
 def run_autonomous_analysis(
@@ -181,33 +406,26 @@ def run_autonomous_analysis(
     trace = TraceRecorder(question, table=table, mode="autonomous", language=language)
 
     # 1. Generate plan
-    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker, trace=trace, phase="planning", prior_findings=prior_findings)
+    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language,
+                                         tracker=tracker, trace=trace, phase="planning",
+                                         prior_findings=prior_findings)
     if plan_result["status"] == "error":
         trace.finish("error")
         return {
-            "question": question,
-            "plan": [],
-            "steps": [],
-            "summary": "",
-            "error": plan_result.get("error", "Planning failed"),
-            "status": "error",
+            "question": question, "plan": [], "steps": [], "summary": "",
+            "error": plan_result.get("error", "Planning failed"), "status": "error",
             "elapsed_ms": round((time.time() - start) * 1000, 2),
-            "token_budget": tracker.to_dict(),
-            "trace": trace.to_dict(),
+            "token_budget": tracker.to_dict(), "trace": trace.to_dict(),
         }
 
     plan = plan_result.get("plan", [])
     if not plan:
         trace.finish("error")
         return {
-            "question": question,
-            "plan": [],
-            "steps": [],
-            "summary": "No analysis plan could be generated.",
-            "status": "error",
+            "question": question, "plan": [], "steps": [],
+            "summary": "No analysis plan could be generated.", "status": "error",
             "elapsed_ms": round((time.time() - start) * 1000, 2),
-            "token_budget": tracker.to_dict(),
-            "trace": trace.to_dict(),
+            "token_budget": tracker.to_dict(), "trace": trace.to_dict(),
         }
 
     trace.set_plan(plan)
@@ -217,105 +435,8 @@ def run_autonomous_analysis(
     schema_context = build_schema_context(tables)
 
     # 3. Execute each step
-    executed_steps: list[dict] = []
-    for step_def in plan:
-        step_num = step_def.get("step", 0)
-        purpose = step_def.get("purpose", "")
-        sql_goal = step_def.get("sql_goal", "")
-        depends_on = step_def.get("depends_on")
-
-        # Guardrail check: 在每步之前检查限制
-        try:
-            guard.check_before_step(step_def, executed_steps)
-        except GuardrailViolation as v:
-            guardrail_violations.append(f"{v.rule}: {v.message}")
-            trace.record_guardrail_violation(v.rule, v.message)
-            executed_steps.append({
-                "step": step_num,
-                "purpose": purpose,
-                "sql": "",
-                "columns": [],
-                "data": [],
-                "error": v.message,
-                "status": f"skipped_{v.rule}",
-            })
-            if v.rule in ("max_sql_queries", "consecutive_failures", "total_timeout"):
-                break  # 严重违规，停止执行
-            continue
-
-        # Budget check: 如果 token 已耗尽，跳过剩余步骤
-        budget = get_budget("sql_generation")
-        if not tracker.can_proceed(budget.max_input_tokens, budget.max_output_tokens):
-            tracker.record_budget_exceeded("sql_generation")
-            executed_steps.append({
-                "step": step_num,
-                "purpose": purpose,
-                "sql": "",
-                "columns": [],
-                "data": [],
-                "error": "Token budget exceeded",
-                "status": "skipped_budget",
-            })
-            continue
-
-        # Build follow-up context from dependency
-        fu_ctx = None
-        if depends_on is not None:
-            for prev in executed_steps:
-                if prev["step"] == depends_on and prev["status"] == "success" and prev["data"]:
-                    fu_ctx = build_follow_up_context({
-                        "previous_sql": prev["sql"],
-                        "previous_result_schema": _infer_column_types(prev["data"], prev["columns"]),
-                        "previous_sample_rows": prev["data"][:5],
-                        "previous_insight_summary": _derive_step_summary(prev),
-                    })
-                    break
-
-        # Generate SQL for this step
-        step_question = f"{purpose}: {sql_goal}"
-        sql_result = generate_sql(step_question, schema_context, fu_ctx, language, tracker=tracker, trace=trace, phase=f"step_{step_num}", step=step_num)
-
-        if sql_result["status"] == "error":
-            guard.record_step_result(success=False)
-            executed_steps.append({
-                "step": step_num,
-                "purpose": purpose,
-                "sql": "",
-                "columns": [],
-                "data": [],
-                "error": sql_result.get("error", "SQL generation failed"),
-                "status": "error",
-            })
-            continue
-
-        sql = sql_result["sql"]
-        if sql.startswith("-- CANNOT_ANSWER"):
-            guard.record_step_result(success=False)
-            executed_steps.append({
-                "step": step_num,
-                "purpose": purpose,
-                "sql": sql,
-                "columns": [],
-                "data": [],
-                "error": "Cannot answer this step with available data",
-                "status": "error",
-            })
-            continue
-
-        # Execute SQL
-        exec_result = _execute_step_sql(sql, max_rows)
-        is_success = exec_result["status"] == "success"
-        guard.record_step_result(success=is_success)
-        executed_steps.append({
-            "step": step_num,
-            "purpose": purpose,
-            "sql": sql,
-            "columns": exec_result.get("columns", []),
-            "data": exec_result.get("data", []),
-            "row_count": exec_result.get("row_count", 0),
-            "error": exec_result.get("error"),
-            "status": exec_result["status"],
-        })
+    executed_steps = _execute_plan_steps(plan, schema_context, language, max_rows,
+                                          guard, tracker, trace, guardrail_violations)
 
     # 4. Check minimum success guardrail
     try:
@@ -324,64 +445,16 @@ def run_autonomous_analysis(
         guardrail_violations.append(f"{v.rule}: {v.message}")
         trace.record_guardrail_violation(v.rule, v.message)
 
-    # 4b. Dead-end recovery: if ALL steps failed, record diagnostic
-    successful_steps_check = [s for s in executed_steps if s["status"] == "success" and s["data"]]
-    diagnostic = None
-    if not successful_steps_check and executed_steps:
-        failures = []
-        for s in executed_steps:
-            if s.get("error"):
-                failures.append(f"Step {s['step']}: {s['error'][:100]}")
-            elif s["status"].startswith("skipped"):
-                failures.append(f"Step {s['step']}: {s['status']}")
-        diagnostic = {
-            "message": f"All {len(executed_steps)} steps failed or were skipped.",
-            "failures": failures,
-        }
+    # 4b. Dead-end recovery
+    diagnostic = _build_diagnostics(executed_steps)
 
     # 5. Generate executive summary
-    successful_steps = [s for s in executed_steps if s["status"] == "success" and s["data"]]
-    summary = ""
-    if successful_steps:
-        step_summaries = []
-        summarizer_budget = get_budget("summarizer")
-        for s in executed_steps:
-            status_label = "✓" if s["status"] == "success" else "✗"
-            data_note = ""
-            if s["status"] == "success" and s["data"]:
-                data_note = f" ({s.get('row_count', len(s['data']))} rows)"
-                sample = s["data"][:summarizer_budget.max_sample_rows]
-                if sample:
-                    data_note += f"\nSample: {json.dumps(sample, default=str, ensure_ascii=False)[:500]}"
-            elif s.get("error"):
-                data_note = f" Error: {s['error'][:200]}"
-            step_summaries.append(f"[{status_label} Step {s['step']}: {s['purpose']}{data_note}]")
+    summary = _build_executive_summary(question, executed_steps, language, tracker, trace)
 
-        summary_input = build_summarizer_user_message(question, step_summaries)
-        try:
-            summary = _call_llm(
-                SUMMARIZER_SYSTEM, summary_input,
-                max_tokens=summarizer_budget.max_output_tokens,
-                language=language,
-                tracker=tracker,
-                operation="summarizer",
-                trace=trace, phase="summary", prompt_name="summarizer",
-            )
-        except Exception:
-            summary = "Summary generation failed."
-
-    # Determine actual status based on step outcomes
-    successful_steps = [s for s in executed_steps if s["status"] == "success" and s.get("data")]
-    has_errors = any(s["status"] == "error" for s in executed_steps)
-    guardrail_failed = bool(guardrail_violations)
-    if not successful_steps:
-        overall_status = "error"
-    elif has_errors or guardrail_failed:
-        overall_status = "partial"
-    else:
-        overall_status = "success"
-
+    # Determine actual status
+    overall_status = _determine_overall_status(executed_steps, guardrail_violations)
     trace.finish(overall_status)
+
     return {
         "question": question,
         "plan": plan,
@@ -409,13 +482,11 @@ def run_autonomous_analysis_stream(
 ):
     """Streaming variant: yields dict events at each stage.
 
-    集成 Token Budget: 超预算时跳过剩余步骤。
-    集成 Guardrails: 超限时跳过或停止。
-    集成 Trace: 记录每次 LLM 调用。
     Events:
     - {"type": "plan", "plan": [...]}
     - {"type": "step_start", "step": N, "purpose": "..."}
     - {"type": "step_result", "step": N, ...full step dict...}
+    - {"type": "step_retry", "step": N, "attempt": 2, "error": "..."}
     - {"type": "summary", "summary": "..."}
     - {"type": "done", "elapsed_ms": ..., "token_budget": {...}, "guardrails": {...}, "trace": {...}}
     """
@@ -426,7 +497,9 @@ def run_autonomous_analysis_stream(
     trace = TraceRecorder(question, table=table, mode="autonomous", language=language)
 
     # 1. Generate plan
-    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker, trace=trace, phase="planning", prior_findings=prior_findings)
+    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language,
+                                         tracker=tracker, trace=trace, phase="planning",
+                                         prior_findings=prior_findings)
     if plan_result["status"] == "error":
         trace.finish("error")
         yield {"type": "error", "error": plan_result.get("error", "Planning failed")}
@@ -456,68 +529,51 @@ def run_autonomous_analysis_stream(
         yield {"type": "step_start", "step": step_num, "purpose": purpose}
 
         # Guardrail check
-        try:
-            guard.check_before_step(step_def, executed_steps)
-        except GuardrailViolation as v:
-            guardrail_violations.append(f"{v.rule}: {v.message}")
-            trace.record_guardrail_violation(v.rule, v.message)
-            step_out = {
-                "step": step_num, "purpose": purpose, "sql": "",
-                "columns": [], "data": [],
-                "error": v.message,
-                "status": f"skipped_{v.rule}",
-            }
+        violation = _check_step_guardrails(guard, step_def, executed_steps,
+                                           trace, guardrail_violations)
+        if violation:
+            step_out = _make_step_result(step_num, purpose, error=violation.message,
+                                          status=f"skipped_{violation.rule}")
             executed_steps.append(step_out)
             yield {"type": "step_result", **step_out}
-            if v.rule in ("max_sql_queries", "consecutive_failures", "total_timeout"):
+            if violation.rule in ("max_sql_queries", "consecutive_failures", "total_timeout"):
                 break
             continue
 
         # Budget check
-        budget = get_budget("sql_generation")
-        if not tracker.can_proceed(budget.max_input_tokens, budget.max_output_tokens):
+        if not _check_step_budget(tracker):
             tracker.record_budget_exceeded("sql_generation")
-            step_out = {
-                "step": step_num, "purpose": purpose, "sql": "",
-                "columns": [], "data": [],
-                "error": "Token budget exceeded",
-                "status": "skipped_budget",
-            }
+            step_out = _make_step_result(step_num, purpose, error="Token budget exceeded",
+                                          status="skipped_budget")
             executed_steps.append(step_out)
             yield {"type": "step_result", **step_out}
             continue
 
         # Build follow-up context from dependency
-        fu_ctx = None
-        if depends_on is not None:
-            for prev in executed_steps:
-                if prev["step"] == depends_on and prev["status"] == "success" and prev["data"]:
-                    fu_ctx = build_follow_up_context({
-                        "previous_sql": prev["sql"],
-                        "previous_result_schema": _infer_column_types(prev["data"], prev["columns"]),
-                        "previous_sample_rows": prev["data"][:5],
-                        "previous_insight_summary": _derive_step_summary(prev),
-                    })
-                    break
+        fu_ctx = _build_dependency_context(depends_on, executed_steps)
 
         # Generate SQL (with retry on failure)
         step_question = f"{purpose}: {sql_goal}"
-        sql_result = generate_sql(step_question, schema_context, fu_ctx, language, tracker=tracker, trace=trace, phase=f"step_{step_num}", step=step_num)
+        sql_result = generate_sql(step_question, schema_context, fu_ctx, language,
+                                  tracker=tracker, trace=trace,
+                                  phase=f"step_{step_num}", step=step_num)
 
         if sql_result["status"] == "error":
-            # Step-level retry: inject error context and try again
-            yield {"type": "step_retry", "step": step_num, "attempt": 2, "error": sql_result.get("error", "")[:200]}
-            retry_question = f"{step_question}\n\nPrevious attempt failed with: {sql_result.get('error', 'unknown error')[:200]}. Try a different approach."
-            sql_result = generate_sql(retry_question, schema_context, fu_ctx, language, tracker=tracker, trace=trace, phase=f"step_{step_num}_retry", step=step_num)
+            yield {"type": "step_retry", "step": step_num, "attempt": 2,
+                   "error": sql_result.get("error", "")[:200]}
+            retry_question = (
+                f"{step_question}\n\nPrevious attempt failed with: "
+                f"{sql_result.get('error', 'unknown error')[:200]}. Try a different approach."
+            )
+            sql_result = generate_sql(retry_question, schema_context, fu_ctx, language,
+                                      tracker=tracker, trace=trace,
+                                      phase=f"step_{step_num}_retry", step=step_num)
 
         if sql_result["status"] == "error":
             guard.record_step_result(success=False)
-            step_out = {
-                "step": step_num, "purpose": purpose, "sql": "",
-                "columns": [], "data": [],
-                "error": sql_result.get("error", "SQL generation failed"),
-                "status": "error",
-            }
+            step_out = _make_step_result(step_num, purpose,
+                                          error=sql_result.get("error", "SQL generation failed"),
+                                          status="error")
             executed_steps.append(step_out)
             yield {"type": "step_result", **step_out}
             continue
@@ -525,12 +581,9 @@ def run_autonomous_analysis_stream(
         sql = sql_result["sql"]
         if sql.startswith("-- CANNOT_ANSWER"):
             guard.record_step_result(success=False)
-            step_out = {
-                "step": step_num, "purpose": purpose, "sql": sql,
-                "columns": [], "data": [],
-                "error": "Cannot answer this step with available data",
-                "status": "error",
-            }
+            step_out = _make_step_result(step_num, purpose, sql=sql,
+                                          error="Cannot answer this step with available data",
+                                          status="error")
             executed_steps.append(step_out)
             yield {"type": "step_result", **step_out}
             continue
@@ -539,14 +592,12 @@ def run_autonomous_analysis_stream(
         exec_result = _execute_step_sql(sql, max_rows)
         is_success = exec_result["status"] == "success"
         guard.record_step_result(success=is_success)
-        step_out = {
-            "step": step_num, "purpose": purpose, "sql": sql,
-            "columns": exec_result.get("columns", []),
-            "data": exec_result.get("data", []),
-            "row_count": exec_result.get("row_count", 0),
-            "error": exec_result.get("error"),
-            "status": exec_result["status"],
-        }
+        step_out = _make_step_result(step_num, purpose, sql=sql,
+                                      columns=exec_result.get("columns", []),
+                                      data=exec_result.get("data", []),
+                                      row_count=exec_result.get("row_count", 0),
+                                      error=exec_result.get("error"),
+                                      status=exec_result["status"])
         executed_steps.append(step_out)
         yield {"type": "step_result", **step_out}
 
@@ -557,62 +608,19 @@ def run_autonomous_analysis_stream(
         guardrail_violations.append(f"{v.rule}: {v.message}")
         trace.record_guardrail_violation(v.rule, v.message)
 
-    # 4b. Dead-end recovery: if ALL steps failed, yield diagnostic event
-    successful_steps_check = [s for s in executed_steps if s["status"] == "success" and s["data"]]
-    if not successful_steps_check and executed_steps:
-        failures = []
-        for s in executed_steps:
-            if s.get("error"):
-                failures.append(f"Step {s['step']}: {s['error'][:100]}")
-            elif s["status"].startswith("skipped"):
-                failures.append(f"Step {s['step']}: {s['status']}")
-        yield {
-            "type": "diagnostic",
-            "message": f"All {len(executed_steps)} steps failed or were skipped. Common causes: insufficient data, invalid SQL generation, or guardrail limits.",
-            "failures": failures,
-        }
+    # 4b. Dead-end recovery
+    diagnostic = _build_diagnostics(executed_steps)
+    if diagnostic:
+        yield {"type": "diagnostic", **diagnostic}
 
     # 5. Generate executive summary
-    summary = ""
-    successful_steps = [s for s in executed_steps if s["status"] == "success" and s["data"]]
-    if successful_steps:
-        step_summaries = []
-        summarizer_budget = get_budget("summarizer")
-        for s in executed_steps:
-            status_label = "✓" if s["status"] == "success" else "✗"
-            data_note = ""
-            if s["status"] == "success" and s["data"]:
-                data_note = f" ({s.get('row_count', len(s['data']))} rows)"
-                sample = s["data"][:summarizer_budget.max_sample_rows]
-                if sample:
-                    data_note += f"\nSample: {json.dumps(sample, default=str, ensure_ascii=False)[:500]}"
-            elif s.get("error"):
-                data_note = f" Error: {s['error'][:200]}"
-            step_summaries.append(f"[{status_label} Step {s['step']}: {s['purpose']}{data_note}]")
+    summary = _build_executive_summary(question, executed_steps, language, tracker, trace)
 
-        summary_input = build_summarizer_user_message(question, step_summaries)
-        try:
-            summary = _call_llm(
-                SUMMARIZER_SYSTEM, summary_input,
-                max_tokens=summarizer_budget.max_output_tokens,
-                language=language,
-                tracker=tracker,
-                operation="summarizer",
-                trace=trace, phase="summary", prompt_name="summarizer",
-            )
-        except Exception:
-            summary = "Summary generation failed."
-
-    # Determine actual status based on step outcomes
-    has_errors = any(s["status"] == "error" for s in executed_steps)
-    guardrail_failed = bool(guardrail_violations)
-    if not successful_steps:
-        overall_status = "error"
-    elif has_errors or guardrail_failed:
-        overall_status = "partial"
-    else:
-        overall_status = "success"
-
+    # Determine actual status
+    overall_status = _determine_overall_status(executed_steps, guardrail_violations)
     trace.finish(overall_status)
+
     yield {"type": "summary", "summary": summary}
-    yield {"type": "done", "elapsed_ms": round((time.time() - start) * 1000, 2), "token_budget": tracker.to_dict(), "guardrails": guard.to_dict(), "guardrail_violations": guardrail_violations, "trace": trace.to_dict()}
+    yield {"type": "done", "elapsed_ms": round((time.time() - start) * 1000, 2),
+           "token_budget": tracker.to_dict(), "guardrails": guard.to_dict(),
+           "guardrail_violations": guardrail_violations, "trace": trace.to_dict()}

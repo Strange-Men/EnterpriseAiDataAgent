@@ -4,6 +4,7 @@
 """
 
 from datetime import datetime
+from backend.services.shared_utils import truncate as _truncate
 
 
 def build_report(runs: list[dict], options: dict | None = None) -> str:
@@ -159,11 +160,6 @@ def build_report(runs: list[dict], options: dict | None = None) -> str:
 
     return "\n".join(lines)
 
-
-def _truncate(text: str, max_len: int) -> str:
-    if len(text) <= max_len:
-        return text
-    return text[: max_len - 3] + "..."
 
 
 def _escape_md(text: str) -> str:

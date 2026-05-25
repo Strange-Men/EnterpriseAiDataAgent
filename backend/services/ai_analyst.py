@@ -5,6 +5,7 @@
 """
 
 import json
+import re
 import time
 
 import anthropic
@@ -940,7 +941,6 @@ def evaluate_analysis(
 ) -> dict:
     """AI 对分析结果做自我评估。"""
     from backend.prompts.self_evaluation import CONTRACT, build_user_message
-    import re
 
     system = apply_language(CONTRACT.SYSTEM_PROMPT, language)
     user_msg = build_user_message(question, sections, trace)
