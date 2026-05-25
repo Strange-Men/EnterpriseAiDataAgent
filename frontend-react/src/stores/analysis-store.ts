@@ -10,6 +10,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { generateId } from "@/utils/id";
 import type { ChartSpec } from "@/components/ui/ai-chart";
 import type { MultiStepResult } from "@/services/api";
+import type { AnomalyResult } from "@/types";
 
 const MAX_HISTORY = 20;
 
@@ -40,7 +41,7 @@ export interface TraceSnapshot {
 
 // ── Analysis run types ────────────────────────────────────────────
 
-export type AnalysisMode = "explain" | "insights" | "charts" | "full-analysis" | "autonomous";
+export type AnalysisMode = "explain" | "insights" | "charts" | "full-analysis" | "autonomous" | "anomalies";
 
 export interface AnalysisSection {
   title: string;
@@ -76,6 +77,7 @@ export interface AnalysisRun {
   parentRunId?: string;
   notes?: string;
   evaluation?: EvaluationResult;
+  anomalies?: AnomalyResult;
 }
 
 // ── Store ─────────────────────────────────────────────────────────
@@ -85,7 +87,7 @@ interface AnalysisState {
   activeRunId: string | null;
 
   addRun: (mode: AnalysisMode, question: string, table?: string) => string;
-  updateRun: (id: string, update: Partial<Pick<AnalysisRun, "status" | "sections" | "chartSpecs" | "multiResult" | "trace" | "error">>) => void;
+  updateRun: (id: string, update: Partial<Pick<AnalysisRun, "status" | "sections" | "chartSpecs" | "multiResult" | "trace" | "error" | "anomalies">>) => void;
   setActiveRun: (id: string | null) => void;
   getActiveRun: () => AnalysisRun | null;
   clearHistory: () => void;

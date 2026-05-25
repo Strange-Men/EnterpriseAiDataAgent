@@ -244,6 +244,21 @@ const zh = {
     "ai.generating-plan": "正在生成分析计划...",
     "ai.executing-step": "正在执行步骤",
 
+    // Anomaly Detection
+    "ai.anomaly-detection": "异常检测",
+    "ai.anomalies-found": "个异常",
+    "ai.no-anomalies": "数据中未检测到异常。",
+    "ai.anomaly-summary": "异常摘要",
+    "ai.anomaly-details": "异常详情",
+    "ai.anomaly-interpretations": "异常解读",
+    "ai.columns-affected": "影响列",
+    "ai.of-rows": "的行",
+    "ai.expected-range": "预期范围",
+    "ai.deviation": "偏离度",
+    "ai.method": "方法",
+    "ai.investigation": "调查建议",
+    "ai.recommended-actions": "建议操作",
+
     // SQL Workspace AI
     "sql.ai-analyze": "AI 分析",
     "sql.ai-explain": "AI 解释",

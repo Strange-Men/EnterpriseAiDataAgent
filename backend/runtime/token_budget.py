@@ -136,6 +136,14 @@ OPERATION_BUDGETS: dict[str, TokenBudget] = {
         max_history_turns=0,
         max_workflow_total=3000,
     ),
+    "anomaly_interpretation": TokenBudget(
+        max_input_tokens=4000,
+        max_output_tokens=1024,
+        max_schema_tokens=500,
+        max_sample_rows=20,
+        max_history_turns=0,
+        max_workflow_total=4000,
+    ),
 }
 
 

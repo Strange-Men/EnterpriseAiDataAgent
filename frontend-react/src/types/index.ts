@@ -73,3 +73,44 @@ export interface DatasetMeta {
   lastAnalyzedAt: string | null;
   qualityScore: number | null;
 }
+
+export interface AnomalyItem {
+  column: string;
+  row_index: number;
+  value: number;
+  expected_range: [number, number];
+  deviation_score: number;
+  method: "zscore" | "iqr";
+}
+
+export interface AnomalyInterpretation {
+  column: string;
+  anomaly_type: string;
+  business_meaning: string;
+  severity: "high" | "medium" | "low";
+  suggested_investigation: string;
+  confidence: number;
+}
+
+export interface AnomalyResult {
+  anomalies: AnomalyItem[];
+  summary: {
+    total_anomalies: number;
+    columns_affected: string[];
+    anomaly_rate_pct: number;
+  };
+  column_stats: Record<string, {
+    mean: number;
+    std: number;
+    q25: number;
+    q75: number;
+    min: number;
+    max: number;
+    count: number;
+  }>;
+  interpretations: AnomalyInterpretation[];
+  interpretation_summary: string;
+  recommended_actions: string[];
+  status: string;
+  elapsed_ms?: number;
+}

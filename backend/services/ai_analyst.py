@@ -55,6 +55,11 @@ from backend.prompts.analysis_plan import (
     SYSTEM_PROMPT as PLAN_SYSTEM,
     build_user_message as build_plan_user_message,
 )
+from backend.prompts.anomaly_interpretation import (
+    CONTRACT as ANOMALY_CONTRACT,
+    SYSTEM_PROMPT as ANOMALY_SYSTEM,
+    build_user_message as build_anomaly_user_message,
+)
 
 # Token Budget 导入
 from backend.runtime.token_budget import (
@@ -66,6 +71,131 @@ from backend.runtime.token_budget import (
 
 # Trace 导入
 from backend.services.trace import TraceRecorder
+
+
+# ── Anomaly Detection ──────────────────────────────────────────
+
+def detect_and_interpret_anomalies(
+    question: str,
+    results: list[dict],
+    columns: list[str] | None = None,
+    method: str = "auto",
+    language: str = "zh",
+    tracker: WorkflowTokenTracker | None = None,
+    trace: TraceRecorder | None = None,
+) -> dict:
+    """检测数据异常并用 LLM 解读业务意义。
+
+    流程: 统计检测 → LLM 解读 → 合并结果。
+    """
+    from backend.services.anomaly_detector import detect_anomalies
+
+    start = time.time()
+
+    # Step 1: 纯统计检测（无 LLM 依赖）
+    detection = detect_anomalies(results, columns=columns, method=method)
+
+    if not detection["anomalies"]:
+        return {
+            "anomalies": [],
+            "summary": detection["summary"],
+            "column_stats": detection["column_stats"],
+            "interpretations": [],
+            "interpretation_summary": "No anomalies detected.",
+            "recommended_actions": [],
+            "status": "success",
+            "elapsed_ms": round((time.time() - start) * 1000, 2),
+        }
+
+    # Step 2: LLM 解读异常的业务意义
+    budget = get_budget("anomaly_interpretation")
+    data_context = f"Table with {len(results)} rows, columns: {', '.join(results[0].keys()) if results else 'none'}"
+    user_msg = build_anomaly_user_message(
+        question=question,
+        anomalies=detection["anomalies"],
+        data_context=data_context,
+    )
+
+    try:
+        raw = _call_llm(
+            ANOMALY_SYSTEM, user_msg,
+            max_tokens=budget.max_output_tokens,
+            language=language,
+            tracker=tracker,
+            operation="anomaly_interpretation",
+            trace=trace, phase="anomaly_interpretation", prompt_name="anomaly_interpretation",
+        )
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        parsed = {
+            "interpretations": [],
+            "summary": "Failed to parse anomaly interpretation.",
+            "recommended_actions": [],
+        }
+    except Exception:
+        parsed = {
+            "interpretations": [],
+            "summary": "Anomaly interpretation failed.",
+            "recommended_actions": [],
+        }
+
+    return {
+        "anomalies": detection["anomalies"],
+        "summary": detection["summary"],
+        "column_stats": detection["column_stats"],
+        "interpretations": parsed.get("interpretations", []),
+        "interpretation_summary": parsed.get("summary", ""),
+        "recommended_actions": parsed.get("recommended_actions", []),
+        "status": "success",
+        "elapsed_ms": round((time.time() - start) * 1000, 2),
+    }
+
+
+def detect_and_interpret_anomalies_stream(
+    question: str,
+    results: list[dict],
+    columns: list[str] | None = None,
+    method: str = "auto",
+    language: str = "zh",
+    tracker: WorkflowTokenTracker | None = None,
+    trace: TraceRecorder | None = None,
+):
+    """流式异常检测: 先返回统计结果，再流式输出 LLM 解读。"""
+    from backend.services.anomaly_detector import detect_anomalies
+
+    # Step 1: 统计检测
+    detection = detect_anomalies(results, columns=columns, method=method)
+
+    # 先 yield 统计结果
+    yield json.dumps({"type": "detection", "data": detection}, ensure_ascii=False)
+
+    if not detection["anomalies"]:
+        yield json.dumps({"type": "done", "data": {"status": "success", "message": "No anomalies detected."}}, ensure_ascii=False)
+        return
+
+    # Step 2: 流式 LLM 解读
+    budget = get_budget("anomaly_interpretation")
+    data_context = f"Table with {len(results)} rows, columns: {', '.join(results[0].keys()) if results else 'none'}"
+    user_msg = build_anomaly_user_message(
+        question=question,
+        anomalies=detection["anomalies"],
+        data_context=data_context,
+    )
+
+    try:
+        for chunk in _call_llm_stream(
+            ANOMALY_SYSTEM, user_msg,
+            max_tokens=budget.max_output_tokens,
+            language=language,
+            tracker=tracker,
+            operation="anomaly_interpretation",
+            trace=trace, phase="anomaly_interpretation", prompt_name="anomaly_interpretation",
+        ):
+            yield json.dumps({"type": "text", "content": chunk}, ensure_ascii=False)
+    except Exception as e:
+        yield json.dumps({"type": "error", "error": str(e)}, ensure_ascii=False)
+
+    yield json.dumps({"type": "done"}, ensure_ascii=False)
 
 
 # ── Configuration ────────────────────────────────────────────────
