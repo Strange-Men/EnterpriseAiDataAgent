@@ -258,6 +258,10 @@ const zh = {
     "ai.method": "方法",
     "ai.investigation": "调查建议",
     "ai.recommended-actions": "建议操作",
+    "ai.drill-down": "深入分析",
+    "ai.drill-down-hint": "深入调查此发现",
+    "ai.prior-context": "基于先前分析",
+    "ai.key-findings": "关键发现",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI 分析",

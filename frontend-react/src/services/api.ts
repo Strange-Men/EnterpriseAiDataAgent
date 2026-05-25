@@ -230,6 +230,8 @@ export interface FollowUpContext {
   previous_result_schema?: { name: string; dtype: string }[];
   previous_sample_rows?: Record<string, unknown>[];
   previous_insight_summary?: string;
+  prior_key_findings?: string[];
+  investigation_summary?: string;
 }
 
 export interface AIQueryResult {
@@ -284,10 +286,12 @@ export async function aiExplain(
 export async function aiInsights(
   question: string,
   results: Record<string, unknown>[],
-  language?: string
+  language?: string,
+  priorContext?: string
 ): Promise<{ insights: (string | { text: string; confidence?: number; severity?: string; impact?: string; category?: string })[]; trends: (string | { text: string; confidence?: number })[]; suggested_next_steps: string[] }> {
   const body: Record<string, unknown> = { question, results };
   if (language) body.language = language;
+  if (priorContext) body.prior_context = priorContext;
   return apiFetch("/ai/insights", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -521,10 +525,12 @@ export function streamAiInsights(
   question: string,
   results: Record<string, unknown>[],
   callbacks: StreamCallbacks,
-  language?: string
+  language?: string,
+  priorContext?: string
 ): AbortController {
   const body: Record<string, unknown> = { question, results };
   if (language) body.language = language;
+  if (priorContext) body.prior_context = priorContext;
   return consumeSseStream(
     (signal) => fetch(`${API_BASE}/ai/insights/stream`, {
       method: "POST",
@@ -731,10 +737,12 @@ export function streamAiAnalyzeMulti(
   sampleRows: Record<string, unknown>[],
   callbacks: MultiStreamCallbacks,
   language?: string,
-  maxRows: number = 500
+  maxRows: number = 500,
+  priorFindings?: string[]
 ): AbortController {
   const body: Record<string, unknown> = { question, table, columns, sample_rows: sampleRows, max_rows: maxRows };
   if (language) body.language = language;
+  if (priorFindings?.length) body.prior_findings = priorFindings;
 
   return consumeSseStreamGeneric(
     (signal) => fetch(`${API_BASE}/ai/analyze-multi/stream`, {

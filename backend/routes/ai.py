@@ -76,6 +76,8 @@ class FollowUpContext(BaseModel):
     previous_result_schema: list[dict] | None = None
     previous_sample_rows: list[dict] | None = None
     previous_insight_summary: str | None = None
+    prior_key_findings: list[str] | None = None
+    investigation_summary: str | None = None
 
 
 class AIQueryRequest(BaseModel):
@@ -99,6 +101,7 @@ class InsightsRequest(BaseModel):
     question: str
     results: list[dict]
     language: str = "zh"
+    prior_context: str | None = None
 
 
 class ChartSuggestRequest(BaseModel):
@@ -128,7 +131,7 @@ async def ai_explain(req: ExplainRequest):
 @router.post("/ai/insights")
 async def ai_insights(req: InsightsRequest):
     """Generate structured insights from results."""
-    result = generate_insights(req.question, req.results, req.language)
+    result = generate_insights(req.question, req.results, req.language, prior_context=req.prior_context)
     if result["status"] == "error":
         raise HTTPException(status_code=500, detail=result.get("error", "Insights generation failed"))
     return result
@@ -210,7 +213,7 @@ async def ai_insights_stream(req: InsightsRequest):
     """Stream AI insights as SSE (raw JSON text chunks)."""
     def event_generator():
         try:
-            for chunk in generate_insights_stream(req.question, req.results, req.language):
+            for chunk in generate_insights_stream(req.question, req.results, req.language, prior_context=req.prior_context):
                 yield _sse_event({"type": "text", "content": chunk})
             yield _sse_event({"type": "done"})
         except Exception as e:
@@ -259,6 +262,7 @@ class AnalysisPlanRequest(BaseModel):
     columns: list[dict]
     sample_rows: list[dict]
     language: str = "zh"
+    prior_findings: list[str] | None = None
 
 
 @router.post("/ai/plan")
@@ -266,7 +270,7 @@ async def ai_analysis_plan(req: AnalysisPlanRequest):
     """Generate a multi-step analysis plan for a complex question."""
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Empty question")
-    return generate_analysis_plan(req.question, req.table, req.columns, req.sample_rows, req.language)
+    return generate_analysis_plan(req.question, req.table, req.columns, req.sample_rows, req.language, prior_findings=req.prior_findings)
 
 
 # ── Autonomous Multi-step Analysis ─────────────────────────────
@@ -279,6 +283,7 @@ class MultiAnalyzeRequest(BaseModel):
     language: str = "zh"
     max_rows: int = 500
     guardrails: dict | None = None
+    prior_findings: list[str] | None = None
 
 
 @router.post("/ai/analyze-multi")
@@ -288,7 +293,8 @@ async def ai_analyze_multi(req: MultiAnalyzeRequest):
         raise HTTPException(status_code=400, detail="Empty question")
     gr = _parse_guardrails(req.guardrails)
     return run_autonomous_analysis(
-        req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows, gr
+        req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows, gr,
+        prior_findings=req.prior_findings,
     )
 
 
@@ -299,7 +305,8 @@ async def ai_analyze_multi_stream(req: MultiAnalyzeRequest):
     def event_generator():
         try:
             for event in run_autonomous_analysis_stream(
-                req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows, gr
+                req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows, gr,
+                prior_findings=req.prior_findings,
             ):
                 yield _sse_event(event)
         except Exception as e:

@@ -165,6 +165,7 @@ def run_autonomous_analysis(
     language: str = "zh",
     max_rows: int = 500,
     guardrails: AnalysisGuardrails | None = None,
+    prior_findings: list[str] | None = None,
 ) -> dict:
     """Plan → Execute each step → Executive summary.
 
@@ -180,7 +181,7 @@ def run_autonomous_analysis(
     trace = TraceRecorder(question, table=table, mode="autonomous", language=language)
 
     # 1. Generate plan
-    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker, trace=trace, phase="planning")
+    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker, trace=trace, phase="planning", prior_findings=prior_findings)
     if plan_result["status"] == "error":
         trace.finish("error")
         return {
@@ -404,6 +405,7 @@ def run_autonomous_analysis_stream(
     language: str = "zh",
     max_rows: int = 500,
     guardrails: AnalysisGuardrails | None = None,
+    prior_findings: list[str] | None = None,
 ):
     """Streaming variant: yields dict events at each stage.
 
@@ -424,7 +426,7 @@ def run_autonomous_analysis_stream(
     trace = TraceRecorder(question, table=table, mode="autonomous", language=language)
 
     # 1. Generate plan
-    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker, trace=trace, phase="planning")
+    plan_result = generate_analysis_plan(question, table, columns, sample_rows, language, tracker=tracker, trace=trace, phase="planning", prior_findings=prior_findings)
     if plan_result["status"] == "error":
         trace.finish("error")
         yield {"type": "error", "error": plan_result.get("error", "Planning failed")}

@@ -4,53 +4,62 @@
 
 ## Current Version
 
-- **Version**: v0.7.0
+- **Version**: v0.7.1
 - **Phase**: v0.7.x AI Analyst Intelligence Layer
-- **Status**: Anomaly Detection Engine — 统计异常检测 + LLM 解读 + API 端点 + 前端展示
+- **Status**: Multi-Turn Analysis Continuity — 增强上下文传递 + 结构化压缩 + drill-down 流 + key findings 积累
 
 ## Session Goals
 
-1. 异常检测引擎 — 纯 Python 统计检测（z-score/IQR/auto）+ LLM 业务解读
-2. 多轮分析连续性 — 增强 follow-up 上下文，结构化会话记忆
-3. AI 会话质量 — 自评估增强，误报过滤，质量评分
-4. 系统精简清理 — 提取共享逻辑，移除死码，文档更新
+1. 多轮分析连续性 — 增强 follow-up 上下文，结构化会话记忆
+2. AI 会话质量 — 自评估增强，误报过滤，质量评分
+3. 系统精简清理 — 提取共享逻辑，移除死码，文档更新
 
 ## System Health
 
 - Frontend build: PASS
 - Backend import: PASS
-- Frontend tests: 142/142 PASS
-- Backend tests: 24 new (anomaly_detector) + existing PASS
+- Frontend tests: 160/160 PASS
+- Backend tests: 149/149 PASS (core) + 26 PASS (AI endpoints/pipeline)
 - TypeScript: PASS
 - Prompts: 11 registered
 
-## Key Changes (v0.7.0)
+## Key Changes (v0.7.1)
 
 ### 后端
-- `backend/services/anomaly_detector.py`: 新建 — 纯 Python 统计异常检测引擎
-  - z-score / IQR / auto 三种检测方法
-  - 支持指定列检测或自动检测全部数值列
-  - 返回异常列表、摘要、列统计
-- `backend/prompts/anomaly_interpretation.py`: 新建 — LLM 异常解读 prompt
-  - 评估业务意义、严重性、调查建议
-- `backend/prompts/registry.py`: 注册 anomaly_interpretation（10→11 prompts）
-- `backend/runtime/token_budget.py`: 新增 anomaly_interpretation 预算（4000/1024）
-- `backend/services/ai_analyst.py`: 新增 detect_and_interpret_anomalies() 和流式变体
-- `backend/routes/ai.py`: 新增 POST /ai/anomalies 和 POST /ai/anomalies/stream
+- `backend/routes/ai.py`: FollowUpContext 新增 prior_key_findings + investigation_summary 字段
+- `backend/routes/ai.py`: InsightsRequest 新增 prior_context 字段
+- `backend/routes/ai.py`: AnalysisPlanRequest 新增 prior_findings 字段
+- `backend/routes/ai.py`: MultiAnalyzeRequest 新增 prior_findings 字段
+- `backend/services/ai_analyst.py`: build_follow_up_context() 增强 — 支持 prior_key_findings 编号列表 + investigation_summary + 智能截断
+- `backend/services/ai_analyst.py`: generate_insights() / generate_insights_stream() 新增 prior_context 参数
+- `backend/services/ai_analyst.py`: generate_analysis_plan() 新增 prior_findings 参数
+- `backend/prompts/insights.py`: 新增 prior_context optional var，system prompt 增加 prior context 引导
+- `backend/prompts/analysis_plan.py`: 新增 prior_findings optional var，system prompt 增加 prior findings 引导
+- `backend/runtime/token_budget.py`: insights max_history_turns 0→4
+- `backend/services/ai_pipeline.py`: run_autonomous_analysis/stream 新增 prior_findings 透传
 
 ### 前端
-- `types/index.ts`: 新增 AnomalyItem, AnomalyInterpretation, AnomalyResult 类型
-- `services/api.ts`: 新增 aiDetectAnomalies() 和 streamAiDetectAnomalies()
-- `stores/analysis-store.ts`: AnalysisMode 新增 "anomalies"，AnalysisRun 新增 anomalies 字段
-- `panels/ai-analysis-panel.tsx`: 新增 anomalies 模式处理（摘要/详情/解读/建议）
-- `panels/sql-workspace-panel.tsx`: 新增异常检测按钮（amber 色）
-- `i18n/en.ts` + `zh.ts`: 新增 ~15 个异常检测相关 i18n 键
+- `stores/ai-session-store.ts`: 结构化压缩（120 字符问题 + 完整 SQL + 首句提取）
+- `stores/ai-session-store.ts`: 新增 keyFindings[] + investigationSummary + addKeyFinding + setInvestigationSummary
+- `stores/ai-session-store.ts`: 新增 getContextForInsights() / getContextForPlan() 上下文助手
+- `stores/analysis-store.ts`: AnalysisRun 新增 drillDownFrom 字段 + drillDownRun() 方法
+- `services/api.ts`: FollowUpContext 新增 prior_key_findings + investigation_summary
+- `services/api.ts`: aiInsights() 新增 priorContext 参数
+- `services/api.ts`: streamAiInsights() 新增 priorContext 参数
+- `services/api.ts`: streamAiAnalyzeMulti() 新增 priorFindings 参数
+- `panels/ai-analysis-panel.tsx`: 自动积累 key findings（explain/insights/anomalies/full-analysis）
+- `panels/ai-analysis-panel.tsx`: insights 模式传递 priorContext
+- `panels/ai-analysis-panel.tsx`: autonomous 模式传递 priorFindings
+- `panels/ai-analysis-panel.tsx`: drill-down 按钮（高严重性洞察）
+- `components/ai/follow-up-input.tsx`: FollowUpContext 富化（keyFindings + investigationSummary）
+- i18n: 新增 4 个键 (drill-down, drill-down-hint, prior-context, key-findings)
 
 ### 测试
-- `tests/test_anomaly_detector.py`: 24 个测试（检测引擎 + 辅助函数）
+- `tests/test_follow_up_context.py`: 12 个测试（向后兼容、findings 渲染、截断、token 预算等）
+- `stores/__tests__/ai-session-store.test.ts`: 更新 + 新增 keyFindings/investigation/compression 测试
+- `stores/__tests__/analysis-store.test.ts`: 新增 drillDownRun 测试
 
 ## Next Steps
 
-- v0.7.1: multi-turn analysis continuity
 - v0.7.2: AI session quality improvements
 - v0.7.3: system simplification and cleanup

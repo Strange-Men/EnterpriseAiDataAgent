@@ -258,6 +258,10 @@ const en = {
     "ai.method": "Method",
     "ai.investigation": "Investigation",
     "ai.recommended-actions": "Recommended Actions",
+    "ai.drill-down": "Drill Down",
+    "ai.drill-down-hint": "Investigate this finding further",
+    "ai.prior-context": "Based on prior analysis",
+    "ai.key-findings": "Key Findings",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI Analyze",

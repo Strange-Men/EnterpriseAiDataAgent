@@ -254,7 +254,8 @@ def _safe_serialize(obj):
 def build_follow_up_context(ctx: dict) -> str:
     """构建结构化的前序分析上下文，用于追问查询。
 
-    Token 预算: ~220-500 tokens。
+    Token 预算: ~220-600 tokens。
+    支持 enhanced fields: prior_key_findings, investigation_summary。
     """
     parts = ["=== PREVIOUS ANALYSIS CONTEXT ===\n"]
 
@@ -275,11 +276,30 @@ def build_follow_up_context(ctx: dict) -> str:
             f"{json.dumps(samples, default=_safe_serialize, ensure_ascii=False)}\n"
         )
 
-    summary = ctx.get("previous_insight_summary", "")
-    if summary:
-        if len(summary) > 500:
-            summary = summary[:500] + "..."
-        parts.append(f"Previous Insight Summary:\n{summary}\n")
+    # Enhanced: prior key findings (structured list)
+    findings = ctx.get("prior_key_findings", [])
+    if findings:
+        parts.append("Prior Key Findings:")
+        for i, f in enumerate(findings[:5], 1):
+            parts.append(f"  {i}. {f}")
+        parts.append("")
+
+    # Enhanced: investigation thread summary
+    inv_summary = ctx.get("investigation_summary", "")
+    if inv_summary:
+        parts.append(f"Investigation Thread Summary:\n{inv_summary}\n")
+        # If we have thread summary, truncate previous insight summary more aggressively
+        summary = ctx.get("previous_insight_summary", "")
+        if summary:
+            if len(summary) > 200:
+                summary = summary[:200] + "..."
+            parts.append(f"Previous Insight Summary:\n{summary}\n")
+    else:
+        summary = ctx.get("previous_insight_summary", "")
+        if summary:
+            if len(summary) > 500:
+                summary = summary[:500] + "..."
+            parts.append(f"Previous Insight Summary:\n{summary}\n")
 
     return "\n".join(parts)
 
@@ -614,12 +634,13 @@ def generate_insights(
     language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
+    prior_context: str | None = None,
 ) -> dict:
     """生成结构化洞察。"""
     start = time.time()
     budget = get_budget("insights")
     truncated_rows = results[:budget.max_sample_rows]
-    user_msg = build_insights_user_message(question, truncated_rows)
+    user_msg = build_insights_user_message(question, truncated_rows, prior_context)
     try:
         raw = _call_llm(
             INSIGHTS_SYSTEM, user_msg,
@@ -657,11 +678,12 @@ def generate_insights_stream(
     language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
+    prior_context: str | None = None,
 ):
     """流式生成洞察。"""
     budget = get_budget("insights")
     truncated_rows = results[:budget.max_sample_rows]
-    user_msg = build_insights_user_message(question, truncated_rows)
+    user_msg = build_insights_user_message(question, truncated_rows, prior_context)
     yield from _call_llm_stream(
         INSIGHTS_SYSTEM, user_msg,
         max_tokens=budget.max_output_tokens,
@@ -813,12 +835,15 @@ def generate_analysis_plan(
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
     phase: str = "planning",
+    prior_findings: list[str] | None = None,
 ) -> dict:
     """为复杂问题生成多步骤分析计划。"""
     start = time.time()
     budget = get_budget("analysis_plan")
     cols = columns[:20]
-    user_msg = build_plan_user_message(question, table, cols, sample_rows[:budget.max_sample_rows])
+    user_msg = build_plan_user_message(
+        question, table, cols, sample_rows[:budget.max_sample_rows], prior_findings
+    )
     try:
         raw = _call_llm(
             PLAN_SYSTEM, user_msg,

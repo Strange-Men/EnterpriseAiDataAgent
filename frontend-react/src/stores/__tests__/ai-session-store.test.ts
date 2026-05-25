@@ -11,6 +11,8 @@ describe("ai-session-store", () => {
       lastSql: null,
       lastInsightSummary: null,
       compressedSummary: null,
+      keyFindings: [],
+      investigationSummary: null,
     });
   });
 
@@ -23,6 +25,8 @@ describe("ai-session-store", () => {
     expect(state.lastSql).toBeNull();
     expect(state.lastInsightSummary).toBeNull();
     expect(state.compressedSummary).toBeNull();
+    expect(state.keyFindings).toEqual([]);
+    expect(state.investigationSummary).toBeNull();
   });
 
   it("should add user turn", () => {
@@ -122,5 +126,165 @@ describe("ai-session-store", () => {
     expect(state.lastSql).toBeNull();
     expect(state.lastInsightSummary).toBeNull();
     expect(state.compressedSummary).toBeNull();
+    expect(state.keyFindings).toEqual([]);
+    expect(state.investigationSummary).toBeNull();
+  });
+
+  // ── v0.7.1: Key Findings ─────────────────────────────────────
+
+  describe("addKeyFinding", () => {
+    it("should add a key finding", () => {
+      const { addKeyFinding } = useAiSessionStore.getState();
+      addKeyFinding("Revenue grew 20%");
+      expect(useAiSessionStore.getState().keyFindings).toEqual(["Revenue grew 20%"]);
+    });
+
+    it("should deduplicate findings (case-insensitive)", () => {
+      const { addKeyFinding } = useAiSessionStore.getState();
+      addKeyFinding("Revenue grew 20%");
+      addKeyFinding("revenue grew 20%");
+      expect(useAiSessionStore.getState().keyFindings).toHaveLength(1);
+    });
+
+    it("should cap at 10 findings", () => {
+      const { addKeyFinding } = useAiSessionStore.getState();
+      for (let i = 0; i < 15; i++) {
+        addKeyFinding(`Finding ${i}`);
+      }
+      const findings = useAiSessionStore.getState().keyFindings;
+      expect(findings).toHaveLength(10);
+      expect(findings[0]).toBe("Finding 5"); // oldest dropped
+      expect(findings[9]).toBe("Finding 14");
+    });
+  });
+
+  describe("setInvestigationSummary", () => {
+    it("should set investigation summary", () => {
+      const { setInvestigationSummary } = useAiSessionStore.getState();
+      setInvestigationSummary("Investigating Q3 trends");
+      expect(useAiSessionStore.getState().investigationSummary).toBe("Investigating Q3 trends");
+    });
+  });
+
+  describe("getContextForInsights", () => {
+    it("should return null when no findings or summary", () => {
+      const { getContextForInsights } = useAiSessionStore.getState();
+      expect(getContextForInsights()).toBeNull();
+    });
+
+    it("should build context from key findings", () => {
+      const { addKeyFinding, getContextForInsights } = useAiSessionStore.getState();
+      addKeyFinding("Revenue grew 20%");
+      addKeyFinding("Churn rate is 5%");
+      const context = getContextForInsights();
+      expect(context).toContain("Key Findings from prior analysis:");
+      expect(context).toContain("1. Revenue grew 20%");
+      expect(context).toContain("2. Churn rate is 5%");
+    });
+
+    it("should include investigation summary", () => {
+      const { addKeyFinding, setInvestigationSummary, getContextForInsights } = useAiSessionStore.getState();
+      addKeyFinding("Finding A");
+      setInvestigationSummary("Thread summary here");
+      const context = getContextForInsights();
+      expect(context).toContain("Investigation Summary:");
+      expect(context).toContain("Thread summary here");
+    });
+
+    it("should cap findings at 5 in context", () => {
+      const { addKeyFinding, getContextForInsights } = useAiSessionStore.getState();
+      for (let i = 0; i < 8; i++) {
+        addKeyFinding(`Finding ${i}`);
+      }
+      const context = getContextForInsights();
+      // Cap at 5 means first 5 findings (0-4)
+      expect(context).toContain("5. Finding 4");
+      expect(context).not.toContain("6. Finding 5");
+    });
+  });
+
+  describe("getContextForPlan", () => {
+    it("should return null when no findings", () => {
+      const { getContextForPlan } = useAiSessionStore.getState();
+      expect(getContextForPlan()).toBeNull();
+    });
+
+    it("should return top 5 findings", () => {
+      const { addKeyFinding, getContextForPlan } = useAiSessionStore.getState();
+      for (let i = 0; i < 8; i++) {
+        addKeyFinding(`Finding ${i}`);
+      }
+      const findings = getContextForPlan();
+      expect(findings).toHaveLength(5);
+      expect(findings![0]).toBe("Finding 0");
+      expect(findings![4]).toBe("Finding 4");
+    });
+  });
+
+  describe("getContextForApi", () => {
+    it("should include keyFindings and investigationSummary", () => {
+      const { addKeyFinding, setInvestigationSummary, getContextForApi } = useAiSessionStore.getState();
+      addKeyFinding("Finding A");
+      setInvestigationSummary("Summary");
+      const apiCtx = getContextForApi();
+      expect(apiCtx.keyFindings).toEqual(["Finding A"]);
+      expect(apiCtx.investigationSummary).toBe("Summary");
+    });
+  });
+
+  // ── v0.7.1: Structured Compression ───────────────────────────
+
+  describe("structured compression", () => {
+    it("should produce structured summary with full SQL", () => {
+      const { addUserTurn, addAssistantTurn } = useAiSessionStore.getState();
+      // Add 8 pairs to get past COMPRESS_AT (16 turns total)
+      for (let i = 0; i < 8; i++) {
+        addUserTurn(`Question ${i}`);
+        addAssistantTurn(`Answer ${i}. This is detailed.`, `SELECT ${i}`);
+      }
+      const state = useAiSessionStore.getState();
+      expect(state.compressedSummary).toBeTruthy();
+      // Full SQL should be preserved (not truncated)
+      expect(state.compressedSummary).toContain("SQL: SELECT");
+      // Finding entries should be present
+      expect(state.compressedSummary).toContain("Finding:");
+    });
+
+    it("should extract first sentence as Finding in compressed summary", () => {
+      const { addUserTurn, addAssistantTurn } = useAiSessionStore.getState();
+      for (let i = 0; i < 8; i++) {
+        addUserTurn(`Question ${i}`);
+        addAssistantTurn(`Revenue grew 20% in Q${i}. More details here.`);
+      }
+      const state = useAiSessionStore.getState();
+      // At least one Finding entry should be in compressed summary
+      expect(state.compressedSummary).toContain("Finding:");
+      expect(state.compressedSummary).toMatch(/Finding: Revenue grew 20% in Q\d/);
+    });
+
+    it("should truncate long user questions to 120 chars in compression", () => {
+      const longQ = "A".repeat(200);
+      const { addUserTurn, addAssistantTurn } = useAiSessionStore.getState();
+      for (let i = 0; i < 8; i++) {
+        addUserTurn(longQ);
+        addAssistantTurn("Answer");
+      }
+      const state = useAiSessionStore.getState();
+      // Compressed summary should contain truncated version
+      expect(state.compressedSummary).toContain("A".repeat(120) + "...");
+    });
+
+    it("should produce Q-prefix for user turns and Finding/SQL for assistant turns", () => {
+      const { addUserTurn, addAssistantTurn } = useAiSessionStore.getState();
+      for (let i = 0; i < 8; i++) {
+        addUserTurn(`Test question ${i}`);
+        addAssistantTurn(`Test answer ${i}.`, `SELECT ${i}`);
+      }
+      const state = useAiSessionStore.getState();
+      // Verify structured format
+      expect(state.compressedSummary).toMatch(/Q: Test question \d/);
+      expect(state.compressedSummary).toMatch(/SQL: SELECT \d/);
+      expect(state.compressedSummary).toMatch(/Finding: Test answer \d/);
+    });
   });
 });

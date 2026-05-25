@@ -105,6 +105,7 @@ export function AIAnalysisPanel({
   const [multiResult, setMultiResult] = useState<MultiStepResult | null>(null);
   const [trace, setTrace] = useState<TraceSnapshot | null>(null);
   const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
+  const [drillDownFindings, setDrillDownFindings] = useState<{ text: string; severity: string; index: number }[]>([]);
 
   const streamAbortRef = useRef<AbortController | null>(null);
 
@@ -127,6 +128,7 @@ export function AIAnalysisPanel({
     setMultiResult(null);
     setTrace(null);
     setFollowUpQuestion(null);
+    setDrillDownFindings([]);
 
     // Record in analysis store
     const runId = useAnalysisStore.getState().addRun(mode, question || tableName || "", tableName);
@@ -166,6 +168,12 @@ export function AIAnalysisPanel({
         sessionStore.addAssistantTurn(accumulated, sql);
         setStreamingContent(null);
 
+        // Auto-populate key findings from explanation
+        const firstSentence = accumulated.split(/[.。!！]/)[0]?.trim();
+        if (firstSentence && firstSentence.length > 10) {
+          sessionStore.addKeyFinding(firstSentence);
+        }
+
         let explainChartSpecs: ChartSpec[] = [];
         if (results && results.length > 0) {
           try {
@@ -195,20 +203,34 @@ export function AIAnalysisPanel({
         });
         return;
       } else if (mode === "insights" && question && results) {
-        const res = await aiInsights(question, results, i18n.language);
+        // Pass prior context from session store
+        const priorContext = useAiSessionStore.getState().getContextForInsights();
+        const res = await aiInsights(question, results, i18n.language, priorContext ?? undefined);
         raw = res;
         let md = "";
+        const highSeverityInsights: { text: string; severity: string; index: number }[] = [];
         if (res.insights?.length) {
           md += "### " + t("ai.key-insights") + "\n\n";
-          res.insights.forEach((i) => {
+          res.insights.forEach((i, idx) => {
             if (typeof i === "string") {
               md += `- ${i}\n`;
             } else {
               const conf = i.confidence != null ? ` (${Math.round(i.confidence * 100)}%)` : "";
               const badge = i.severity === "high" ? " **[HIGH]**" : i.severity === "medium" ? " [MED]" : "";
               md += `- ${i.text}${conf}${badge}\n`;
+              if (i.severity === "high" && i.text) {
+                highSeverityInsights.push({ text: i.text, severity: i.severity, index: idx });
+              }
             }
           });
+        }
+        // Auto-populate key findings from high-severity insights
+        if (highSeverityInsights.length > 0) {
+          setDrillDownFindings(highSeverityInsights);
+          const sessionStore = useAiSessionStore.getState();
+          if (!priorContext) {
+            sessionStore.addKeyFinding(highSeverityInsights[0].text);
+          }
         }
         if (res.trends?.length) {
           md += "\n### " + t("ai.trends") + "\n\n";
@@ -323,6 +345,13 @@ export function AIAnalysisPanel({
 
         // Store anomalies on the run
         useAnalysisStore.getState().updateRun(runId, { anomalies: res });
+
+        // Auto-populate key findings from anomalies
+        if (res.anomalies.length > 0) {
+          useAiSessionStore.getState().addKeyFinding(
+            `${res.summary.total_anomalies} anomalies detected in ${res.summary.columns_affected.join(", ")}`
+          );
+        }
       } else if (mode === "full-analysis" && tableName) {
         const res = await analyzeTable(tableName, i18n.language);
         raw = res;
@@ -352,7 +381,8 @@ export function AIAnalysisPanel({
 
         if (Array.isArray(insights) && insights.length > 0) {
           let insMd = "";
-          insights.forEach((i: unknown) => {
+          const highSeverity: { text: string; severity: string; index: number }[] = [];
+          insights.forEach((i: unknown, idx: number) => {
             if (typeof i === "string") {
               insMd += `- ${i}\n`;
             } else if (typeof i === "object" && i !== null) {
@@ -360,9 +390,16 @@ export function AIAnalysisPanel({
               const conf = item.confidence != null ? ` (${Math.round(item.confidence * 100)}%)` : "";
               const badge = item.severity === "high" ? " **[HIGH]**" : item.severity === "medium" ? " [MED]" : "";
               insMd += `- ${item.text || ""}${conf}${badge}\n`;
+              if (item.severity === "high" && item.text) {
+                highSeverity.push({ text: item.text, severity: item.severity, index: idx });
+              }
             }
           });
           if (insMd) builtSections.push({ title: t("ai.key-insights"), content: insMd, type: "markdown" });
+          if (highSeverity.length > 0) {
+            setDrillDownFindings(highSeverity);
+            useAiSessionStore.getState().addKeyFinding(highSeverity[0].text);
+          }
         } else if (res.ai_summary) {
           builtSections.push({ title: t("ai.summary"), content: res.ai_summary, type: "markdown" });
         }
@@ -452,6 +489,7 @@ export function AIAnalysisPanel({
         const profileRes = await getTableProfile(tableName);
         const cols = profileRes.profile.columns.map((c) => ({ name: c.name, dtype: c.dtype }));
         const q = question || t("ai.full-analysis");
+        const priorFindings = useAiSessionStore.getState().getContextForPlan();
 
         let planSteps: PlanStep[] = [];
         const executedSteps: MultiStepExecuted[] = [];
@@ -533,7 +571,7 @@ export function AIAnalysisPanel({
               }
               resolve();
             },
-          }, i18n.language);
+          }, i18n.language, 500, priorFindings ?? undefined);
           streamAbortRef.current = ctrl;
         });
 
@@ -662,6 +700,37 @@ export function AIAnalysisPanel({
         {/* Suggested questions */}
         {suggestedQuestions.length > 0 && (
           <SuggestedQuestions questions={suggestedQuestions} onQuestionClick={setFollowUpQuestion} />
+        )}
+
+        {/* Drill-down on high-severity findings */}
+        {drillDownFindings.length > 0 && hasRun && !isLoading && (
+          <div className="mt-4 pt-3 border-t border-[var(--border-default)]">
+            <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-2">
+              {t("ai.drill-down")}
+            </p>
+            <div className="space-y-1.5">
+              {drillDownFindings.map((finding, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    const runId = useAnalysisStore.getState().activeRunId;
+                    if (!runId) return;
+                    const newId = useAnalysisStore.getState().drillDownRun(runId, finding.index, finding.text);
+                    if (newId) {
+                      useAiSessionStore.getState().addKeyFinding(finding.text);
+                      setFollowUpQuestion(finding.text);
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-md bg-amber-500/5 border border-amber-500/20 hover:border-amber-500/40 transition-colors group"
+                >
+                  <p className="text-xs text-[var(--text-primary)] group-hover:text-amber-400">
+                    <span className="text-amber-400 font-semibold">[HIGH]</span> {finding.text}
+                  </p>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{t("ai.drill-down-hint")}</p>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Follow-up */}

@@ -78,6 +78,7 @@ export interface AnalysisRun {
   notes?: string;
   evaluation?: EvaluationResult;
   anomalies?: AnomalyResult;
+  drillDownFrom?: { runId: string; findingIndex: number; findingText: string };
 }
 
 // ── Store ─────────────────────────────────────────────────────────
@@ -102,6 +103,7 @@ interface AnalysisState {
   compareRuns: (idA: string, idB: string) => ComparisonResult | null;
   getEvolutionChain: (runId: string) => AnalysisRun[];
   importRuns: (runs: AnalysisRun[]) => void;
+  drillDownRun: (sourceRunId: string, findingIndex: number, findingText: string) => string | null;
 }
 
 // ── Comparison types ────────────────────────────────────────────
@@ -355,6 +357,27 @@ export const useAnalysisStore = create<AnalysisState>()(
           });
           return { runs: [...state.runs, ...newRuns] };
         });
+      },
+
+      drillDownRun: (sourceRunId, findingIndex, findingText) => {
+        const { runs, addRun } = get();
+        const source = runs.find((r) => r.id === sourceRunId);
+        if (!source) return null;
+        const question = `Investigate further: ${findingText}`;
+        const newId = addRun("autonomous", question, source.table);
+        set((state) => ({
+          runs: state.runs.map((r) =>
+            r.id === newId
+              ? {
+                  ...r,
+                  parentRunId: source.id,
+                  version: 1,
+                  drillDownFrom: { runId: sourceRunId, findingIndex, findingText },
+                }
+              : r
+          ),
+        }));
+        return newId;
       },
     }),
     {

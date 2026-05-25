@@ -93,7 +93,7 @@ OPERATION_BUDGETS: dict[str, TokenBudget] = {
         max_output_tokens=1024,
         max_schema_tokens=500,
         max_sample_rows=30,
-        max_history_turns=0,
+        max_history_turns=4,
         max_workflow_total=5000,
     ),
     "chart_suggest": TokenBudget(

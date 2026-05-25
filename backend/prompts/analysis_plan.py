@@ -6,7 +6,7 @@ CONTRACT = PromptContract(
     name="analysis_plan",
     purpose="将复杂数据分析问题分解为 3-6 个可执行的 SQL 步骤",
     required_vars=["question", "table", "columns", "sample_rows"],
-    optional_vars=[],
+    optional_vars=["prior_findings"],
     response_format="json",
     max_output_tokens=1024,
     supports_streaming=False,
@@ -15,6 +15,8 @@ CONTRACT = PromptContract(
 SYSTEM_PROMPT = """You are a senior data analyst creating an investigation plan.
 
 Given a question and dataset schema, break the question into 3-6 analytical steps.
+
+If prior key findings are provided, build on them — go deeper rather than repeating what was already discovered.
 
 Rules:
 1. Each step must have: purpose (why), sql_goal (what SQL should achieve)
@@ -38,15 +40,23 @@ def build_user_message(
     table: str,
     columns: list[dict],
     sample_rows: list[dict],
+    prior_findings: list[str] | None = None,
 ) -> str:
     """构建分析计划的用户消息。"""
     import json
 
     col_desc = [f"  - {c['name']} ({c.get('dtype', 'VARCHAR')})" for c in columns]
-    return (
-        f"Question: {question}\n\n"
-        f"Table: {table}\n"
-        f"Columns:\n" + "\n".join(col_desc) + "\n\n"
+    parts = []
+    if prior_findings:
+        parts.append("Prior Key Findings:")
+        for i, f in enumerate(prior_findings[:5], 1):
+            parts.append(f"  {i}. {f}")
+        parts.append("")
+    parts.append(f"Question: {question}\n\n")
+    parts.append(f"Table: {table}\n")
+    parts.append(f"Columns:\n" + "\n".join(col_desc) + "\n\n")
+    parts.append(
         f"Sample data (first {len(sample_rows)} rows):\n"
         f"{json.dumps(sample_rows, default=str, ensure_ascii=False)}"
     )
+    return "\n".join(parts)

@@ -182,4 +182,50 @@ describe("analysis-store", () => {
     setActiveRun(null);
     expect(getActiveRun()).toBeNull();
   });
+
+  // ── v0.7.1: Drill-Down ───────────────────────────────────────
+
+  describe("drillDownRun", () => {
+    it("should create a drill-down run with correct fields", () => {
+      const { addRun, updateRun, drillDownRun } = useAnalysisStore.getState();
+      const sourceId = addRun("insights", "Analyze revenue", "sales");
+      updateRun(sourceId, { status: "success" });
+
+      const ddId = drillDownRun(sourceId, 0, "Revenue dropped 20% in Q3");
+      expect(ddId).toBeTruthy();
+      expect(ddId).not.toBe(sourceId);
+
+      const state = useAnalysisStore.getState();
+      expect(state.runs).toHaveLength(2);
+
+      const ddRun = state.runs.find((r) => r.id === ddId)!;
+      expect(ddRun.mode).toBe("autonomous");
+      expect(ddRun.question).toBe("Investigate further: Revenue dropped 20% in Q3");
+      expect(ddRun.table).toBe("sales");
+      expect(ddRun.parentRunId).toBe(sourceId);
+      expect(ddRun.drillDownFrom).toEqual({
+        runId: sourceId,
+        findingIndex: 0,
+        findingText: "Revenue dropped 20% in Q3",
+      });
+    });
+
+    it("should return null for drillDownRun with invalid id", () => {
+      const { drillDownRun } = useAnalysisStore.getState();
+      expect(drillDownRun("nonexistent", 0, "test")).toBeNull();
+    });
+
+    it("should include drill-down runs in evolution chain", () => {
+      const { addRun, updateRun, drillDownRun, getEvolutionChain } = useAnalysisStore.getState();
+      const sourceId = addRun("insights", "Original question", "sales");
+      updateRun(sourceId, { status: "success" });
+
+      const ddId = drillDownRun(sourceId, 0, "Finding text");
+
+      const chain = getEvolutionChain(sourceId);
+      expect(chain).toHaveLength(2);
+      expect(chain[0].id).toBe(sourceId);
+      expect(chain[1].id).toBe(ddId);
+    });
+  });
 });
