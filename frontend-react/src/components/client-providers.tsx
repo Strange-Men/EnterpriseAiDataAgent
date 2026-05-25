@@ -1,10 +1,12 @@
 "use client";
 
 import "@/i18n";
-import { useEffect, type ReactNode } from "react";
+import { Suspense, useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
-import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { ErrorBoundary } from "react-error-boundary";
+import { ErrorFallback } from "@/components/ui/error-fallback";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useThemeStore, applyTheme } from "@/hooks/use-theme";
 
 const queryClient = new QueryClient({
@@ -30,10 +32,12 @@ function ThemeSync({ children }: { children: ReactNode }) {
 
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
       <QueryClientProvider client={queryClient}>
         <ThemeSync>
-          {children}
+          <Suspense fallback={<PanelSkeleton />}>
+            {children}
+          </Suspense>
           <Toaster
             position="top-right"
             toastOptions={{

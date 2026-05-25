@@ -77,16 +77,18 @@ export function InvestigationLayout({ context, main, tools }: InvestigationLayou
 
             <PanelResizeHandle className="w-1 bg-[var(--border-default)] hover:bg-[var(--accent)] transition-colors cursor-col-resize" />
 
-            {/* Center: Main */}
+            {/* Center: Main — ultra-wide centering */}
             <Panel defaultSize={56} minSize={36}>
               <div className="h-full overflow-y-auto">
-                {main}
+                <div className="max-w-[1200px] mx-auto">
+                  {main}
+                </div>
               </div>
             </Panel>
 
             <PanelResizeHandle className="w-1 bg-[var(--border-default)] hover:bg-[var(--accent)] transition-colors cursor-col-resize" />
 
-            {/* Right: Tools */}
+            {/* Right: Tools — auto-collapse on laptop */}
             <Panel defaultSize={26} minSize={18} maxSize={36}>
               <div className="h-full overflow-y-auto border-l border-[var(--border-default)] bg-[var(--bg-secondary)]/50">
                 {tools}

@@ -7,6 +7,8 @@ import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { executeQuery } from "@/services/api";
+import { Textarea } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export function ToolsPanel() {
   const { t } = useTranslation();
@@ -58,11 +60,11 @@ export function ToolsPanel() {
           <h4 className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
             {t("inv.quick-sql")}
           </h4>
-          <textarea
+          <Textarea
             value={sql}
             onChange={(e) => setSql(e.target.value)}
             rows={3}
-            className="w-full px-2 py-1.5 text-xs font-mono bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-md text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] resize-none"
+            className="!text-xs !font-mono !px-2 !py-1.5 !resize-none"
             placeholder={t("inv.quick-sql-placeholder", { table: activeTable ?? "table" })}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -72,13 +74,15 @@ export function ToolsPanel() {
             }}
           />
           <div className="flex items-center justify-between mt-1.5">
-            <button
+            <Button
               onClick={handleRunSql}
               disabled={sqlLoading || !sql.trim()}
-              className="px-2 py-0.5 text-[10px] bg-[var(--accent)] text-[var(--bg-primary)] rounded hover:opacity-90 transition-opacity disabled:opacity-40"
+              variant="primary"
+              size="sm"
+              loading={sqlLoading}
             >
               {sqlLoading ? t("sql.running") : t("inv.run-sql")}
-            </button>
+            </Button>
             {sqlResult && (
               <span className="text-[10px] text-[var(--text-muted)]">{sqlResult}</span>
             )}

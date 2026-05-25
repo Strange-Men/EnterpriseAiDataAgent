@@ -6,41 +6,177 @@
 
 :root,
 [data-theme="dark"] {
+  /* Colors — surfaces */
   --bg-primary: #0E1117;
   --bg-secondary: #161B22;
   --bg-tertiary: #21262D;
   --border-default: #30363D;
   --border-hover: #484F58;
+
+  /* Colors — text */
   --text-primary: #E6EDF3;
   --text-secondary: #C9D1D9;
   --text-muted: #8B949E;
+
+  /* Colors — semantic */
   --accent: #00D4AA;
   --accent-hover: #00B894;
+  --accent-subtle: rgba(0, 212, 170, 0.1);
+  --accent-emphasis: #00FFCC;
   --success: #3FB950;
+  --success-subtle: rgba(63, 185, 80, 0.1);
   --warning: #D29922;
+  --warning-subtle: rgba(210, 153, 34, 0.1);
   --error: #F85149;
+  --danger-subtle: rgba(248, 81, 73, 0.1);
   --info: #58A6FF;
   --shadow-color: rgba(0, 0, 0, 0.4);
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.875rem;
+  --font-size-lg: 1rem;
+  --font-size-xl: 1.125rem;
+  --font-size-2xl: 1.5rem;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px var(--shadow-color);
+  --shadow-md: 0 4px 12px var(--shadow-color);
+  --shadow-lg: 0 8px 24px var(--shadow-color);
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Z-index scale */
+  --z-dropdown: 50;
+  --z-sticky: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+  --z-command: 400;
 }
 
 /* ── Light Theme ─────────────────────────────────────────── */
 
 [data-theme="light"] {
+  /* Colors — surfaces */
   --bg-primary: #FFFFFF;
   --bg-secondary: #F6F8FA;
   --bg-tertiary: #EAECEF;
   --border-default: #D0D7DE;
   --border-hover: #AFB8C1;
+
+  /* Colors — text */
   --text-primary: #1F2328;
   --text-secondary: #24292F;
   --text-muted: #656D76;
+
+  /* Colors — semantic */
   --accent: #00876C;
   --accent-hover: #006D55;
+  --accent-subtle: rgba(0, 135, 108, 0.1);
+  --accent-emphasis: #00A67D;
   --success: #1A7F37;
+  --success-subtle: rgba(26, 127, 55, 0.1);
   --warning: #9A6700;
+  --warning-subtle: rgba(154, 103, 0, 0.1);
   --error: #CF222E;
+  --danger-subtle: rgba(207, 34, 46, 0.1);
   --info: #0969DA;
   --shadow-color: rgba(0, 0, 0, 0.08);
+
+  /* Spacing — same as dark */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* Typography — same as dark */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.875rem;
+  --font-size-lg: 1rem;
+  --font-size-xl: 1.125rem;
+  --font-size-2xl: 1.5rem;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Border radius — same as dark */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px var(--shadow-color);
+  --shadow-md: 0 4px 12px var(--shadow-color);
+  --shadow-lg: 0 8px 24px var(--shadow-color);
+
+  /* Motion — same as dark */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Z-index — same as dark */
+  --z-dropdown: 50;
+  --z-sticky: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+  --z-command: 400;
 }
 
 /* ── Base ─────────────────────────────────────────────────── */
@@ -48,9 +184,9 @@
 body {
   background-color: var(--bg-primary);
   color: var(--text-secondary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Noto Sans SC", sans-serif;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  font-family: var(--font-sans);
+  transition: background-color var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
 }
 
 /* ── Scrollbar ───────────────────────────────────────────── */
@@ -98,8 +234,8 @@ body {
   text-overflow: ellipsis;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s ease;
-  z-index: 100;
+  transition: opacity var(--duration-fast) var(--ease-default);
+  z-index: var(--z-sticky);
 }
 
 [data-tooltip]:hover::after {
@@ -109,29 +245,80 @@ body {
 /* ── Resizable Panel Handle ──────────────────────────────── */
 
 [data-resize-handle] {
-  transition: background-color 0.15s ease;
+  transition: background-color var(--duration-fast) var(--ease-default);
 }
 
 [data-resize-handle]:hover {
   background-color: var(--accent) !important;
 }
 
+/* ── Transition Theme Utility ────────────────────────────── */
+
+.transition-theme {
+  transition:
+    background-color var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default),
+    border-color var(--duration-normal) var(--ease-default);
+}
+
 /* ── Skeleton Animation ──────────────────────────────────── */
 
 @keyframes shimmer {
-  0% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.8;
-  }
-  100% {
-    opacity: 0.5;
-  }
+  0% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.5; }
 }
 
 .animate-pulse {
   animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── UI Animations ───────────────────────────────────────── */
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: var(--accent); }
+  50% { border-color: var(--accent-subtle); }
+}
+
+@keyframes typing-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-slide-up {
+  animation: slide-up var(--duration-normal) var(--ease-out) forwards;
+}
+
+.animate-slide-down {
+  animation: slide-down var(--duration-normal) var(--ease-out) forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in var(--duration-normal) var(--ease-out) forwards;
+}
+
+.animate-pulse-border {
+  animation: pulse-border 1.5s var(--ease-default) infinite;
+}
+
+.animate-typing-cursor::after {
+  content: "|";
+  animation: typing-cursor 0.8s ease-in-out infinite;
 }
 
 /* ── Toast Styles ────────────────────────────────────────── */

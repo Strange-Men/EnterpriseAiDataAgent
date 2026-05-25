@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { useAnalysisStore } from "@/stores/analysis-store";
-import { useInvestigationStore } from "@/stores/investigation-store";
+import { cn } from "@/utils/cn";
 
 interface DrillDownChainProps {
   currentRunId: string;
@@ -13,11 +13,14 @@ interface DrillDownChainProps {
 export function DrillDownChain({ currentRunId }: DrillDownChainProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  const runs = useAnalysisStore((s) => s.runs);
   const setActiveRun = useAnalysisStore((s) => s.setActiveRun);
-
-  // Build chain: walk parentRunId up, then gather children
   const chain = useAnalysisStore((s) => s.getEvolutionChain(currentRunId));
+  const [viewMode, setViewMode] = useState<"timeline" | "breadcrumb">("timeline");
+
+  const handleNavigate = useCallback((runId: string) => {
+    setActiveRun(runId);
+    router.push(`/analyze/${runId}`);
+  }, [router, setActiveRun]);
 
   if (chain.length <= 1) {
     return (
@@ -32,64 +35,109 @@ export function DrillDownChain({ currentRunId }: DrillDownChainProps) {
     );
   }
 
-  const handleNavigate = useCallback((runId: string) => {
-    setActiveRun(runId);
-    router.push(`/analyze/${runId}`);
-  }, [router, setActiveRun]);
-
   return (
     <div>
-      <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-3">
-        {t("inv.drill-chain")} ({chain.length})
-      </h3>
-      <div className="space-y-0">
-        {chain.map((run, i) => {
-          const isCurrent = run.id === currentRunId;
-          const isLast = i === chain.length - 1;
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
+          {t("inv.drill-chain")} ({chain.length})
+        </h3>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={() => setViewMode("timeline")}
+            className={cn(
+              "px-1.5 py-0.5 text-[10px] rounded transition-colors",
+              viewMode === "timeline" ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            )}
+          >
+            Timeline
+          </button>
+          <button
+            onClick={() => setViewMode("breadcrumb")}
+            className={cn(
+              "px-1.5 py-0.5 text-[10px] rounded transition-colors",
+              viewMode === "breadcrumb" ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            )}
+          >
+            Breadcrumb
+          </button>
+        </div>
+      </div>
 
-          return (
-            <div key={run.id} className="flex gap-2">
-              <div className="flex flex-col items-center">
-                <div className={`w-2 h-2 rounded-full shrink-0 ${
-                  isCurrent ? "bg-[var(--accent)] ring-2 ring-[var(--accent)]/30" : "bg-[var(--bg-tertiary)]"
-                }`} />
-                {!isLast && <div className="w-px flex-1 bg-[var(--border-default)]" />}
-              </div>
-              <div className="pb-3 flex-1 min-w-0">
+      {viewMode === "breadcrumb" ? (
+        /* Breadcrumb view */
+        <div className="flex flex-wrap items-center gap-1">
+          {chain.map((run, i) => {
+            const isCurrent = run.id === currentRunId;
+            const isLast = i === chain.length - 1;
+            return (
+              <div key={run.id} className="flex items-center gap-1">
                 <button
                   onClick={() => handleNavigate(run.id)}
-                  className={`w-full text-left px-2 py-1.5 rounded-md transition-colors ${
+                  className={cn(
+                    "px-2 py-0.5 text-[10px] rounded-md transition-colors",
                     isCurrent
-                      ? "bg-[var(--accent)]/10 border border-[var(--accent)]/20"
-                      : "hover:bg-[var(--bg-tertiary)] border border-transparent"
-                  }`}
+                      ? "bg-[var(--accent)]/10 text-[var(--accent)] font-medium"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                  )}
                 >
-                  <div className="flex items-center gap-1.5">
-                    {run.drillDownFrom && (
-                      <span className="text-[9px] text-[var(--text-muted)]" title={run.drillDownFrom.findingText}>
-                        {t("inv.drill-from")}
-                      </span>
-                    )}
-                  </div>
-                  <p className={`text-xs mt-0.5 ${isCurrent ? "text-[var(--accent)] font-medium" : "text-[var(--text-primary)]"}`}>
-                    {run.question || run.table || run.mode}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className={`text-[9px] px-1 rounded ${
-                      run.status === "success" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
-                    }`}>
-                      {run.status}
-                    </span>
-                    <span className="text-[9px] text-[var(--text-muted)]">
-                      {new Date(run.timestamp).toLocaleDateString()}
-                    </span>
-                  </div>
+                  {run.question?.slice(0, 30) || run.mode || "..."}
                 </button>
+                {!isLast && (
+                  <span className="text-[var(--text-muted)] text-[8px]">/</span>
+                )}
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Timeline view */
+        <div className="space-y-0">
+          {chain.map((run, i) => {
+            const isCurrent = run.id === currentRunId;
+            const isLast = i === chain.length - 1;
+            return (
+              <div key={run.id} className="flex gap-2">
+                <div className="flex flex-col items-center">
+                  <div className={cn(
+                    "w-2 h-2 rounded-full shrink-0",
+                    isCurrent ? "bg-[var(--accent)] ring-2 ring-[var(--accent)]/30" : "bg-[var(--bg-tertiary)]"
+                  )} />
+                  {!isLast && <div className="w-px flex-1 bg-[var(--border-default)]" />}
+                </div>
+                <div className="pb-3 flex-1 min-w-0">
+                  <button
+                    onClick={() => handleNavigate(run.id)}
+                    className={cn(
+                      "w-full text-left px-2 py-1.5 rounded-md transition-colors",
+                      isCurrent
+                        ? "bg-[var(--accent)]/10 border border-[var(--accent)]/20"
+                        : "hover:bg-[var(--bg-tertiary)] border border-transparent"
+                    )}
+                  >
+                    <p className={cn(
+                      "text-xs mt-0.5",
+                      isCurrent ? "text-[var(--accent)] font-medium" : "text-[var(--text-primary)]"
+                    )}>
+                      {run.question || run.table || run.mode}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className={cn(
+                        "text-[9px] px-1 rounded",
+                        run.status === "success" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+                      )}>
+                        {run.status}
+                      </span>
+                      <span className="text-[9px] text-[var(--text-muted)]">
+                        {new Date(run.timestamp).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

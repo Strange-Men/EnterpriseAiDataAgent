@@ -77,7 +77,7 @@ function WorkspaceContent() {
   );
 }
 
-export default function HomePage() {
+export default function LegacyWorkspacePage() {
   return (
     <ClientProviders>
       <WorkspaceContent />

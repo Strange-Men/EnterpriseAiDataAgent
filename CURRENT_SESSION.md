@@ -1,59 +1,99 @@
 # Current Session — Enterprise AI Data Agent
 
-> Last updated: 2026-05-25
+> Last updated: 2026-05-26
 
 ## Current Version
 
-- **Version**: v0.7.6
-- **Phase**: v0.7.x AI Analyst Intelligence Layer
-- **Status**: Runtime Stabilization — 序列化修复、全局诊断、回归测试
+- **Version**: v0.8.0
+- **Phase**: v0.8.x Product UX + Design System Refactor (Phase 3)
+- **Status**: Complete — build, type-check, tests all passing
 
 ## Session Goals
 
-1. ~~多轮分析连续性~~ — v0.7.1 完成
-2. ~~AI 会话质量~~ — v0.7.2 完成
-3. ~~系统精简清理~~ — v0.7.3 完成
-4. ~~运行时稳定性~~ — v0.7.4 完成
-5. ~~系统验证与稳定性加固~~ — v0.7.5 完成
-6. 运行时序列化修复 — API 500 根因修复、全局序列化层
+1. ~~Design System V2 foundation~~ — CSS tokens, Tailwind config, keyframes
+2. ~~UI Primitives~~ — Button, Card, Input, Dialog, DropdownMenu
+3. ~~Investigation UX polish~~ — Streaming, confidence, trace, charts, drill-down
+4. ~~Product-level UX~~ — Command palette, global search, keyboard shortcuts, smart empty states
+5. ~~Performance & Polish~~ — Suspense, lazy loading, icons migration, responsive, docs
 
 ## System Health
 
-- Frontend build: TBD
+- Frontend build: PASS (Next.js 15.5.18)
 - Backend import: PASS
-- Frontend tests: TBD
-- Backend tests: 341/342 PASS (排除预存失败)
-- Serialization regression tests: 41/41 PASS
-- TypeScript: TBD
-- Prompts: 11 registered
+- Frontend tests: 160/160 PASS
+- Backend tests: 341/342 PASS (1 pre-existing fail)
+- TypeScript: PASS
+- Lint: TBD
 
-## Key Changes (v0.7.6)
+## Key Changes (v0.8.0)
 
-### 后端
-- `backend/utils/json_safe.py`: 新增统一序列化工具
-  - `normalize_for_response()` — 递归类型转换
-  - `json_safe_encoder()` — json.dumps default handler
-  - 覆盖: numpy bool/int/float/datetime/timedelta, pandas Timestamp/NaT, Decimal, UUID, NaN/Inf
-- `backend/services/data_service.py`: `_sanitize_for_json` 重写为 `normalize_for_response` 代理
-- `backend/routes/query.py`: 所有响应包裹 `normalize_for_response()`
-- `backend/routes/tables.py`: 表列表和分页数据包裹 `normalize_for_response()`
-- `backend/routes/analyze.py`: 分析结果包裹 `normalize_for_response()`
-- `backend/routes/ai.py`: SSE 事件使用 `json_safe_encoder`，导入 `normalize_for_response`
-- `backend/main.py`: 新增全局异常处理器、`logging.basicConfig`
+### Design System
+- `globals.css`: Expanded CSS custom properties — spacing, typography, radius, elevation, motion, z-index, semantic colors (dark + light)
+- `tailwind.config.ts`: Extended with CSS variable mappings — colors, borderRadius, fontSize, fontFamily, transitionDuration, boxShadow, zIndex, plugins
+- New keyframes: slide-up, slide-down, fade-in, pulse-border, typing-cursor
 
-### 测试
-- `tests/test_json_safe.py`: 41 个序列化回归测试（numpy bool/int/float/datetime/timedelta, Decimal, UUID, NaN/Inf, 嵌套结构, 向后兼容）
+### UI Primitives (new)
+- `components/ui/button.tsx` — 5 variants, 3 sizes, loading state
+- `components/ui/card.tsx` — Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+- `components/ui/input.tsx` — Input, Textarea, Select
+- `components/ui/dialog.tsx` — Dialog family
+- `components/ui/dropdown-menu.tsx` — DropdownMenu family
+- `components/ui/command-palette.tsx` — Ctrl+K command palette
+- `components/ui/global-search.tsx` — Ctrl+/ global search
+- `components/ui/keyboard-shortcuts-modal.tsx` — Shortcuts reference
+- `components/ui/error-fallback.tsx` — Error boundary fallback
+- `hooks/use-keyboard-shortcuts.ts` — Centralized keyboard shortcut system
 
-### 文档
-- `docs/ROOT_CAUSE_ANALYSIS.md`: API 500 根因分析
-- `docs/SYSTEM_ARCHITECTURE_STATE.md`: 系统架构状态
-- `docs/KNOWN_RUNTIME_RISKS.md`: 已知运行时风险
-- `docs/FULL_RUNTIME_VALIDATION_REPORT.md`: 完整运行时验证报告
-- `KNOWN_ISSUES.md`: 新增 ISSUE-013, 014, 015
+### Investigation UX
+- `ai-streaming-indicator.tsx`: Phase icons (Lightbulb/Play/FileText), progress bar, step count, typing cursor
+- `step-results.tsx`: Slide-up animation, collapse/expand, CheckCircle2/XCircle icons
+- `run-evaluation.tsx`: SVG confidence ring gauge, horizontal metric bars
+- `trace-timeline.tsx`: Phase grouping, collapsible sections, summary line, lucide icons
+- `ai-chart.tsx`: Loading/empty states, SVG download, fullscreen toggle, theme colors
+- `drill-down-chain.tsx`: Timeline/breadcrumb view toggle
+- `streaming-output.tsx`: StreamingSkeleton, lucide empty state icon
+- `skeleton.tsx`: New ChartSkeleton, StreamingSkeleton, AnalysisCardSkeleton
+
+### Component Migrations
+- `question-input.tsx` → Textarea, Select, Button primitives
+- `run-header.tsx` → Button, DropdownMenu (consolidated 6 buttons to 2 + dropdown)
+- `follow-up-input.tsx` → Input, Button primitives
+- `tools-panel.tsx` → Textarea, Button primitives
+- `app-shell.tsx` → Button primitives, command palette/global search mounting, keyboard shortcuts
+- `settings/page.tsx` → Card, Button with lucide icons
+- `sidebar.tsx` → 6 lucide-react icons replace inline SVGs
+- `context-panel.tsx` → ChevronRight lucide icon
+- `analysis-section.tsx` → Copy lucide icon, removed CopyIcon function
+
+### Placeholder Routes
+- `/data` → Smart empty state with feature preview cards (Upload, Table, Database)
+- `/query` → Smart empty state with feature preview cards (SQL Editor, Results, Quick Actions)
+- `/history` → Smart empty state with feature preview cards (Query History, Run History, Timeline)
+
+### Homepage
+- Onboarding: 3-step guide for new users (Upload → Ask → Explore)
+- "time ago" relative timestamps for recent analyses
+- Smart empty state when tables exist but no runs
+
+### Performance
+- `client-providers.tsx`: react-error-boundary migration, Suspense boundary
+- `analyze/page.tsx`: next/dynamic lazy loading
+- `analyze/[runId]/page.tsx`: next/dynamic lazy loading for all sub-components
+- All inline SVGs → lucide-react (already installed)
+
+### Responsive
+- `investigation-layout.tsx`: Ultra-wide centering (max-w-[1200px])
+- `app-shell.tsx`: Sidebar hidden on mobile (max-md:hidden)
+
+### Documentation
+- `docs/design/DESIGN_SYSTEM_V2.md` — Full design token reference, component catalog
+- `docs/design/PRODUCT_UX_GUIDELINES.md` — Navigation, shortcuts, workflow UX, empty states, error patterns
+- `docs/design/INTERACTION_PATTERNS.md` — Command palette, search, shortcuts, streaming, drill-down
+- `docs/design/PHASE3_CHANGELOG.md` — Complete change list, file manifest, migration notes
 
 ## Next Steps
 
-- v0.7.6 commit
-- 前端 E2E 测试
-- CSV 导出 NaN 修复
-- 测试隔离修复
+- v0.8.0 commit
+- Lint check
+- Runtime validation (start backend + frontend, test full user journey)
+- E2E test pass

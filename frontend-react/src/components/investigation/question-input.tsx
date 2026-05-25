@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import { ModeSelector } from "./ai-mode-selector";
+import { Textarea, Select } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import type { AnalysisMode } from "@/stores/analysis-store";
 
 interface QuestionInputProps {
@@ -33,7 +35,7 @@ export function QuestionInput({ onStart, isLoading }: QuestionInputProps) {
   return (
     <div className="space-y-3">
       {/* Question input */}
-      <textarea
+      <Textarea
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
         onKeyDown={(e) => {
@@ -44,7 +46,7 @@ export function QuestionInput({ onStart, isLoading }: QuestionInputProps) {
         }}
         placeholder={t("inv.question-placeholder")}
         rows={2}
-        className="w-full px-3 py-2 text-sm bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] resize-none"
+        className="!text-sm !rounded-lg !resize-none"
         disabled={isLoading}
       />
 
@@ -56,10 +58,9 @@ export function QuestionInput({ onStart, isLoading }: QuestionInputProps) {
             {t("inv.table-label")}
           </label>
           {tables.length > 0 ? (
-            <select
+            <Select
               value={selectedTable || tables[0]?.name || ""}
               onChange={(e) => setSelectedTable(e.target.value)}
-              className="px-2 py-1 text-xs bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-md text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
               disabled={isLoading}
             >
               {tables.map((tbl) => (
@@ -67,7 +68,7 @@ export function QuestionInput({ onStart, isLoading }: QuestionInputProps) {
                   {tbl.name} ({tbl.rowCount} rows)
                 </option>
               ))}
-            </select>
+            </Select>
           ) : (
             <span className="text-[10px] text-[var(--text-muted)] italic">
               {t("inv.select-table-hint")}
@@ -84,13 +85,16 @@ export function QuestionInput({ onStart, isLoading }: QuestionInputProps) {
         </div>
 
         {/* Submit */}
-        <button
+        <Button
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="ml-auto px-4 py-1.5 text-xs bg-[var(--accent)] text-[var(--bg-primary)] rounded-md hover:opacity-90 transition-opacity font-medium disabled:opacity-40"
+          variant="primary"
+          size="md"
+          className="ml-auto"
+          loading={isLoading}
         >
           {isLoading ? t("inv.running") : t("inv.run")}
-        </button>
+        </Button>
       </div>
     </div>
   );

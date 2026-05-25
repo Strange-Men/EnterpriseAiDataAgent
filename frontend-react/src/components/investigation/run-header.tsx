@@ -4,8 +4,11 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { Save, Copy, Play, Download, Trash2, MoreHorizontal } from "lucide-react";
 import { useAnalysisStore, type AnalysisRun } from "@/stores/analysis-store";
 import { downloadBlob } from "@/utils/download";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 const MODE_LABELS: Record<string, string> = {
   "full-analysis": "inv.mode.full",
@@ -110,21 +113,30 @@ export function RunHeader({ run }: RunHeaderProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
-          <button onClick={handleSave} className="px-2 py-1 text-[10px] border border-[var(--border-default)] rounded text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors">
+          <Button variant="secondary" size="sm" onClick={handleSave} leftIcon={<Save className="w-3 h-3" />}>
             {run.saved ? t("analysis.unsave") : t("analysis.save")}
-          </button>
-          <button onClick={handleDuplicate} className="px-2 py-1 text-[10px] border border-[var(--border-default)] rounded text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
-            {t("analysis.duplicate")}
-          </button>
-          <button onClick={handleRerun} className="px-2 py-1 text-[10px] border border-[var(--border-default)] rounded text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleRerun} leftIcon={<Play className="w-3 h-3" />}>
             {t("analysis.rerun")}
-          </button>
-          <button onClick={handleExport} className="px-2 py-1 text-[10px] border border-[var(--border-default)] rounded text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
-            {t("analysis.export")}
-          </button>
-          <button onClick={handleDelete} className="px-2 py-1 text-[10px] border border-red-500/30 rounded text-red-400 hover:bg-red-500/10 transition-colors">
-            {t("analysis.delete")}
-          </button>
+          </Button>
+          <DropdownMenu
+            trigger={
+              <Button variant="ghost" size="sm" className="!px-1">
+                <MoreHorizontal className="w-3.5 h-3.5" />
+              </Button>
+            }
+          >
+            <DropdownMenuItem onClick={handleDuplicate}>
+              <Copy className="w-3 h-3" /> {t("analysis.duplicate")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExport}>
+              <Download className="w-3 h-3" /> {t("analysis.export")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleDelete} danger>
+              <Trash2 className="w-3 h-3" /> {t("analysis.delete")}
+            </DropdownMenuItem>
+          </DropdownMenu>
         </div>
       </div>
     </div>

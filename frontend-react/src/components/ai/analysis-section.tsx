@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { Copy } from "lucide-react";
 import toast from "react-hot-toast";
 import { useThemeStore } from "@/hooks/use-theme";
 
@@ -27,16 +28,6 @@ const darkTheme: Record<string, React.CSSProperties> = {
 function useCodeTheme() {
   const theme = useThemeStore((s) => s.theme);
   return theme === "dark" ? darkTheme : lightTheme;
-}
-
-// ── Icons ─────────────────────────────────────────────────────
-function CopyIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-    </svg>
-  );
 }
 
 // ── Types ─────────────────────────────────────────────────────
@@ -132,7 +123,7 @@ export function AnalysisSectionView({ section }: { section: AnalysisSection }) {
           className="p-0.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
           title="Copy section"
         >
-          <CopyIcon className="w-3 h-3" />
+          <Copy className="w-3 h-3" />
         </button>
       </div>
       <div className="ai-markdown-content">

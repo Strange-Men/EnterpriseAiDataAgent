@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import { aiQuery } from "@/services/api";
 import type { FollowUpContext } from "@/services/api";
 import { useInvestigationStore } from "@/stores/investigation-store";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface FollowUpInputProps {
   results?: Record<string, unknown>[];
@@ -77,22 +79,25 @@ export function FollowUpInput({ results, onSqlGenerated, question: controlledQue
     <div className="mt-4 pt-3 border-t border-[var(--border-default)]">
       <p className="text-xs text-[var(--text-muted)] mb-2">{t("ai.follow-up-hint")}</p>
       <div className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
           placeholder={t("ai.follow-up-placeholder")}
-          className="flex-1 px-3 py-1.5 text-xs bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-md text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+          className="flex-1"
           disabled={loading}
         />
-        <button
+        <Button
           onClick={handleSubmit}
           disabled={loading || !question.trim()}
-          className="px-3 py-1.5 text-xs bg-[var(--accent)] text-[var(--bg-primary)] rounded-md hover:opacity-90 transition-opacity font-medium disabled:opacity-50"
+          variant="primary"
+          size="md"
+          loading={loading}
+          className="shrink-0"
         >
           {loading ? t("ai.generating") : t("ai.generate-sql")}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { ChevronRight } from "lucide-react";
 import { useDataStore } from "@/stores/data-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import { fetchTableData } from "@/services/api";
+import { cn } from "@/utils/cn";
 
 interface ContextPanelProps {
   onTableSelect?: (table: string) => void;
@@ -83,9 +85,7 @@ export function ContextPanel({ onTableSelect }: ContextPanelProps) {
                   onClick={(e) => { e.stopPropagation(); loadSchema(tbl.name); }}
                   className="ml-1 p-0.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
                 >
-                  <svg className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  <ChevronRight className={cn("w-3 h-3 transition-transform", isExpanded && "rotate-90")} />
                 </button>
               </button>
 
