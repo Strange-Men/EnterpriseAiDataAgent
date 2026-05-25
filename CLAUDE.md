@@ -10,9 +10,9 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.7.4 (Runtime Stability & Resource Lifecycle — lazy init, lifespan, import cleanup)
+- **Current**: v0.7.5 (Stability & System Validation — E2E tests, health diagnostics, state resilience)
 - **Phase**: v0.7.x AI Analyst Intelligence Layer
-- **Next**: v0.7.5 (待定)
+- **Next**: v0.7.6 (待定)
 
 ## Scope Rules
 

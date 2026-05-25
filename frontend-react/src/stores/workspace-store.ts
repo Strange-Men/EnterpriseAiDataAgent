@@ -36,6 +36,13 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           collapsedPanels: { ...state.collapsedPanels, [panel]: collapsed },
         })),
     }),
-    { name: "workspace-settings", storage: createJSONStorage(() => localStorage) }
+    {
+      name: "workspace-settings",
+      storage: createJSONStorage(() => localStorage),
+      merge: (persisted, current) => {
+        if (!persisted || typeof persisted !== "object") return current;
+        return { ...current, ...persisted };
+      },
+    }
   )
 );

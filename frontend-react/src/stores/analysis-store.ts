@@ -355,7 +355,16 @@ export const useAnalysisStore = create<AnalysisState>()(
               timestamp: new Date().toISOString(),
             };
           });
-          return { runs: [...state.runs, ...newRuns] };
+          let runs = [...state.runs, ...newRuns];
+          // Enforce MAX_HISTORY: preserve saved runs
+          if (runs.length > MAX_HISTORY) {
+            const saved = runs.filter((r) => r.saved);
+            const unsaved = runs.filter((r) => !r.saved);
+            const slotsForUnsaved = Math.max(0, MAX_HISTORY - saved.length);
+            runs = [...saved, ...unsaved.slice(-slotsForUnsaved)];
+            runs.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+          }
+          return { runs };
         });
       },
 
@@ -383,6 +392,15 @@ export const useAnalysisStore = create<AnalysisState>()(
     {
       name: "analysis-history",
       storage: createJSONStorage(() => localStorage),
+      merge: (persisted, current) => {
+        if (!persisted || typeof persisted !== "object") return current;
+        const p = persisted as Record<string, unknown>;
+        if (!Array.isArray(p.runs)) return current;
+        return { ...current, runs: p.runs };
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) state.recoverInterruptedRuns();
+      },
       partialize: (state) => {
         const MAX_STORAGE_BYTES = 4 * 1024 * 1024; // 4MB
         let runs = state.runs.map((r) => {

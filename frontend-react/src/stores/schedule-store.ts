@@ -6,6 +6,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { generateId } from "@/utils/id";
 
 export interface ScheduledTask {
   id: string;
@@ -36,10 +37,6 @@ interface ScheduleState {
   toggleTask: (id: string) => void;
   addResult: (result: ScheduleResult) => void;
   getResultsForTask: (taskId: string) => ScheduleResult[];
-}
-
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
 function computeNextRun(interval: string): string {
@@ -100,6 +97,12 @@ export const useScheduleStore = create<ScheduleState>()(
     {
       name: "schedule-tasks",
       storage: createJSONStorage(() => localStorage),
+      merge: (persisted, current) => {
+        if (!persisted || typeof persisted !== "object") return current;
+        const p = persisted as Record<string, unknown>;
+        if (!Array.isArray(p.tasks)) return current;
+        return { ...current, tasks: p.tasks, results: Array.isArray(p.results) ? p.results : [] };
+      },
       partialize: (state) => ({
         tasks: state.tasks,
         results: state.results.slice(-50),

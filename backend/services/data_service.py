@@ -69,6 +69,80 @@ def check_db_connection() -> bool:
         return False
 
 
+def get_system_health() -> dict:
+    """Aggregate system health for diagnostics endpoint."""
+    import os
+
+    # DB
+    db_ok = check_db_connection()
+
+    # AI
+    ai_configured = False
+    ai_model = ""
+    try:
+        from backend.config import ANTHROPIC_API_KEY, DEFAULT_LLM_MODEL
+        ai_configured = bool(ANTHROPIC_API_KEY)
+        ai_model = DEFAULT_LLM_MODEL
+    except Exception:
+        pass
+
+    # Scheduler
+    sched_tasks = 0
+    sched_enabled = 0
+    sched_due = 0
+    sched_worker_alive = False
+    try:
+        from backend.services.scheduler import get_manager
+        from backend.runtime.scheduler_worker import _worker_thread
+        mgr = get_manager()
+        tasks = mgr.list_tasks()
+        sched_tasks = len(tasks)
+        sched_enabled = sum(1 for t in tasks if t.enabled)
+        sched_due = len(mgr.check_due_tasks())
+        sched_worker_alive = _worker_thread is not None and _worker_thread.is_alive()
+    except Exception:
+        pass
+
+    # Query history
+    qh_total = 0
+    qh_errors = 0
+    try:
+        from backend.services.query_history import query_history
+        recent = query_history.get_all(limit=100)
+        qh_total = len(recent)
+        qh_errors = sum(1 for e in recent if e.get("status") == "error")
+    except Exception:
+        pass
+
+    # Temp files
+    temp_count = 0
+    temp_bytes = 0
+    temp_dir = "temp"
+    if os.path.isdir(temp_dir):
+        for entry in os.scandir(temp_dir):
+            if entry.is_file():
+                temp_count += 1
+                temp_bytes += entry.stat().st_size
+
+    # Overall status
+    status = "ok" if db_ok else "degraded"
+
+    return {
+        "status": status,
+        "db": {"connected": db_ok},
+        "ai": {"configured": ai_configured, "model": ai_model},
+        "scheduler": {
+            "tasks": sched_tasks,
+            "enabled": sched_enabled,
+            "due": sched_due,
+            "worker_alive": sched_worker_alive,
+        },
+        "query_history": {"total": qh_total, "errors": qh_errors},
+        "temp_files": {"count": temp_count, "total_bytes": temp_bytes},
+        "uptime": get_uptime(),
+    }
+
+
 def list_tables() -> list[dict]:
     tables = get_db().list_tables()
     for tbl in tables:
