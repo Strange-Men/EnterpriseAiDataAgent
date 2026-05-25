@@ -17,7 +17,7 @@ interface WorkspaceState {
 export const useWorkspaceStore = create<WorkspaceState>()(
   persist(
     (set) => ({
-      language: "en",
+      language: "zh",
       setLanguage: (language) => set({ language }),
 
       layout: "default",

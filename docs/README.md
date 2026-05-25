@@ -1,6 +1,6 @@
 # Documentation Index — Enterprise AI Data Agent
 
-> Last updated: 2026-05-25 (v0.5.8)
+> Last updated: 2026-05-25 (v0.6.0)
 
 ## Recommended Reading Order (for new sessions)
 
@@ -21,7 +21,7 @@
 | [PROJECT_RULES.md](../PROJECT_RULES.md) | 10 mandatory development rules |
 | [KNOWN_ISSUES.md](../KNOWN_ISSUES.md) | Open issues tracker |
 | [SESSION_SUMMARY_TEMPLATE.md](../SESSION_SUMMARY_TEMPLATE.md) | New session context restore |
-| [REPOSITORY_HEALTH.md](../REPOSITORY_HEALTH.md) | Repository health audit (auto-generated) |
+| [REPOSITORY_HEALTH.md](governance/REPOSITORY_HEALTH.md) | Repository health audit |
 | [README.md](../README.md) | Project overview |
 
 ## Architecture (`docs/architecture/`)
@@ -29,10 +29,8 @@
 | File | Description |
 |------|-------------|
 | [项目架构说明.md](architecture/项目架构说明.md) | System architecture (React/FastAPI/DuckDB/AI) |
-| [开发路线图.md](architecture/开发路线图.md) | Version roadmap (v0.3.x — v0.5.x) |
+| [开发路线图.md](architecture/开发路线图.md) | Version roadmap (v0.3.x — v0.6.x) |
 | [版本记录.md](architecture/版本记录.md) | Complete version history |
-| [v0.5.1-plan.md](architecture/v0.5.1-plan.md) | v0.5.1 implementation plan |
-| [v0.5.4-plan.md](architecture/v0.5.4-plan.md) | v0.5.4 implementation plan |
 
 ## Governance (`docs/governance/`)
 
@@ -42,6 +40,7 @@
 | [SKILL_LIFECYCLE.md](governance/SKILL_LIFECYCLE.md) | Skill lifecycle states and governance |
 | [DOCUMENTATION_LIFECYCLE.md](governance/DOCUMENTATION_LIFECYCLE.md) | Doc lifecycle states (active/stable/archived/deprecated) |
 | [DOCUMENTATION_NAMING.md](governance/DOCUMENTATION_NAMING.md) | File naming conventions |
+| [REPOSITORY_HEALTH.md](governance/REPOSITORY_HEALTH.md) | Repository health audit |
 | [claude-workflow.md](governance/claude-workflow.md) | Claude development workflow rules |
 | [AB_TESTING.md](governance/AB_TESTING.md) | Technical decision A/B tests |
 | [ERROR_ANALYSIS.md](governance/ERROR_ANALYSIS.md) | Error categorization and patterns |
@@ -68,19 +67,11 @@
 | [analysis-workspace.md](../skills/active/analysis-workspace.md) | Analysis workspace panel |
 | [SKILL_REGISTRY.md](../skills/SKILL_REGISTRY.md) | Master skill registry |
 
-## Frontend Rules (`docs/frontend_rules/`)
-
-| File | Description |
-|------|-------------|
-| [agents-capability-guide.md](frontend_rules/agents-capability-guide.md) | .agents capability reference |
-| [agents-config-raw.md](frontend_rules/agents-config-raw.md) | .agents config reference |
-| [agents-structure-blueprint.md](frontend_rules/agents-structure-blueprint.md) | .agents structure reference |
-
 ## Performance (`docs/performance/`)
 
 | File | Description |
 |------|-------------|
-| [performance-baseline.md](performance/performance-baseline.md) | Performance baseline metrics |
+| [performance-baseline.md](performance/performance-baseline.md) | Performance baseline metrics (DRAFT) |
 
 ## Reports (`docs/reports/`)
 
@@ -91,6 +82,8 @@ Version deliverable reports. Named: `v{version}-{type}.md`
 Deprecated or superseded documents.
 - `docs/archive/reports/` — Archived version reports (v0.3.x, v0.4.0)
 - `docs/archive/legacy_frontend/` — Legacy Streamlit frontend
+- `docs/archive/frontend_rules/` — Archived Vue/Element Plus reference (wrong project)
+- `docs/archive/v0.5.1-plan.md`, `v0.5.4-plan.md` — Completed version plans
 
 ## Test Data
 

@@ -23,30 +23,55 @@
 **What to test**:
 - Zustand stores: state transitions, persist/rehydrate
 - Utility functions: `cn.ts`, formatters
-- Components: render, props, interactions
+- Services: API functions, SSE consumers
 
-**Example test files**:
+**Test files** (117 tests across 11 files):
 - `src/stores/__tests__/query-tabs-store.test.ts`
 - `src/stores/__tests__/saved-queries-store.test.ts`
 - `src/stores/__tests__/sql-history-store.test.ts`
-- `src/components/__tests__/export-dropdown.test.tsx`
+- `src/stores/__tests__/sql-workspace-store.test.ts`
+- `src/stores/__tests__/data-store.test.ts`
+- `src/stores/__tests__/workflow-store.test.ts`
+- `src/stores/__tests__/ai-session-store.test.ts`
+- `src/services/__tests__/api.test.ts`
+- `src/utils/__tests__/logger.test.ts`
+- `src/utils/__tests__/cn-util.test.ts`
+- `src/utils/__tests__/utils-index.test.ts`
 
 ### Backend (pytest)
 
-**Setup**: `python -m pytest backend/ tests/`
+**Setup**: `cd tests && python -m pytest -v`
 
 **What to test**:
-- `QueryExecutor.execute()` — success, error, edge cases
-- `QueryExecutor.explain()` — valid SQL, invalid SQL
-- `QueryHistory.add/get_all` — ring buffer behavior
+- `QueryExecutor` — SQL execution, explain, edge cases
+- `QueryHistory` — ring buffer behavior
 - API endpoints — request/response validation
 - `_sanitize_for_json()` — NaN/Inf/NaT handling
+- AI infrastructure (v0.6.0): guardrails, trace, token_budget, AI endpoints, pipeline unit
 
-**Example test files**:
-- `tests/test_query_executor.py`
-- `tests/test_query_history.py`
-- `tests/test_api_endpoints.py`
-- `tests/test_data_quality.py`
+**Test files** (161+ tests):
+- `tests/test_query_executor.py` — Basic SQL execution
+- `tests/test_query_executor_extended.py` — Joins, subqueries, window functions
+- `tests/test_api_endpoints.py` — All REST endpoints
+- `tests/test_upload_quality_routes.py` — Upload, quality, table CRUD, AI status
+- `tests/test_observability.py` — Error classification, speed, QueryTimer
+- `tests/test_query_history.py` — Query history tracking
+- `tests/test_schema_detector.py` — Schema detection
+- `tests/test_data_quality.py` — Data quality checks
+- `tests/test_file_loader.py` — File loading
+- `tests/test_guardrails.py` — Guardrail system (v0.6.0)
+- `tests/test_trace.py` — Trace recorder (v0.6.0)
+- `tests/test_token_budget.py` — Token budget (v0.6.0)
+- `tests/test_ai_endpoints.py` — AI API endpoints mocked (v0.6.0)
+- `tests/test_ai_pipeline_unit.py` — Pipeline unit tests (v0.6.0)
+
+### AI Evaluation (pytest — requires API key)
+
+**Setup**: `cd tests/ai && python -m pytest test_golden_questions.py -v`
+
+- 15 golden questions across 7 categories (basic, aggregation, sorting, filtering, window, subquery, hallucination, edge_case)
+- SQL evaluation: pattern matching, column checks, row count, hallucination detection
+- Pass rate threshold: 60%, zero hallucination tolerance
 
 ## 2. Integration Tests
 
@@ -55,18 +80,18 @@
 - File upload flow: CSV → upload → table creation → query
 - Export flow: query → export → file download
 
-**Tools**: pytest + httpx (TestClient), Vitest + MSW
+**Tools**: pytest + httpx (TestClient)
 
 ## 3. E2E Tests (Playwright)
 
-**Setup**: `npx playwright test`
+**Setup**: `cd frontend-react && npx playwright test`
 
 **Critical user flows**:
-1. Upload CSV → see table in list → query table → see results
-2. Write SQL → execute → see results → export CSV
-3. Explain query → see plan → format SQL
-4. Create tab → rename tab → switch tabs → delete tab
-5. Save query → load saved query → favorite → delete
+1. Upload CSV → see table → query → results (`sql-workspace.spec.ts`)
+2. Write SQL → execute → results → export CSV
+3. AI workflow: upload → explain → insights → charts → follow-up → autonomous (`ai-workflow.spec.ts`, v0.6.0)
+4. Error handling: timeout, empty input, network error (`ai-error-handling.spec.ts`, v0.6.0)
+5. Performance: page load, DOM nodes, heap memory (`performance.spec.ts`)
 
 ## 4. Performance Tests
 
@@ -75,23 +100,10 @@
 - Query execution time benchmarks
 - Large dataset rendering (10K+ rows virtual table)
 - Memory usage monitoring
-- Monaco Editor load time
 
-**Run**: `cd frontend-react && npm run build` (check bundle sizes)
+**Run**: `cd frontend-react && npx playwright test e2e/performance.spec.ts`
 
-## 5. Fuzz Tests
-
-**Inputs to test**:
-- Random SQL (invalid syntax, injection attempts)
-- Oversized CSV (100K+ rows)
-- Empty files
-- Special characters in table names
-- Unicode content
-- Concurrent queries
-
-**Strategy**: Generate random inputs, verify system doesn't crash, returns appropriate errors.
-
-## 6. Regression Tests
+## 5. Regression Tests
 
 After every version:
 1. Run full unit test suite
@@ -99,16 +111,27 @@ After every version:
 3. Manual smoke test: upload → query → export flow
 4. Check `git diff` for unintended changes
 
-## Test Configuration
+## CI-Ready Commands
 
-### vitest.config.ts
-Located at `frontend-react/vitest.config.ts`
+```bash
+# Backend tests (no API key needed)
+cd tests && python -m pytest -v
 
-### pytest
-Located at `pytest.ini` or `pyproject.toml`
+# Frontend unit tests
+cd frontend-react && npm run test
 
-### playwright
-Located at `playwright.config.ts`
+# Frontend E2E tests (requires backend running on port 8000)
+cd frontend-react && npx playwright test
+
+# AI golden question evaluation (requires ANTHROPIC_API_KEY)
+cd tests/ai && python -m pytest test_golden_questions.py -v
+
+# TypeScript type check
+cd frontend-react && npx tsc --noEmit
+
+# Full build
+cd frontend-react && npm run build
+```
 
 ## CI/CD (Future)
 

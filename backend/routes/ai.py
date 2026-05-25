@@ -82,7 +82,7 @@ class AIQueryRequest(BaseModel):
     explain: bool = True
     max_rows: int = 1000
     follow_up_context: FollowUpContext | None = None
-    language: str = "en"
+    language: str = "zh"
 
 
 class ExplainRequest(BaseModel):
@@ -90,19 +90,19 @@ class ExplainRequest(BaseModel):
     sql: str
     results: list[dict]
     conversation_history: list[dict] | None = None
-    language: str = "en"
+    language: str = "zh"
 
 
 class InsightsRequest(BaseModel):
     question: str
     results: list[dict]
-    language: str = "en"
+    language: str = "zh"
 
 
 class ChartSuggestRequest(BaseModel):
     results: list[dict]
     question: str = ""
-    language: str = "en"
+    language: str = "zh"
 
 
 @router.post("/ai/query")
@@ -187,7 +187,7 @@ class SemanticsRequest(BaseModel):
     table: str
     columns: list[dict]
     sample_rows: list[dict]
-    language: str = "en"
+    language: str = "zh"
 
 
 @router.post("/ai/semantics")
@@ -200,7 +200,7 @@ class SuggestQuestionsRequest(BaseModel):
     table: str
     profile: dict
     semantics: dict | None = None
-    language: str = "en"
+    language: str = "zh"
 
 
 @router.post("/ai/suggest-questions")
@@ -216,7 +216,7 @@ class AnalysisPlanRequest(BaseModel):
     table: str
     columns: list[dict]
     sample_rows: list[dict]
-    language: str = "en"
+    language: str = "zh"
 
 
 @router.post("/ai/plan")
@@ -234,7 +234,7 @@ class MultiAnalyzeRequest(BaseModel):
     table: str
     columns: list[dict]
     sample_rows: list[dict]
-    language: str = "en"
+    language: str = "zh"
     max_rows: int = 500
     guardrails: dict | None = None
 

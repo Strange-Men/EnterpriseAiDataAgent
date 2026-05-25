@@ -50,10 +50,15 @@ Systematic comparison of technical approaches to make data-driven architecture d
 | **Decision** | **Winner: Hybrid** | — |
 | **Reason** | History in localStorage (small, persistent), query results in memory (large, ephemeral) | — |
 
+## Resolved (no further testing needed)
+
+| Decision | Winner | Version |
+|----------|--------|---------|
+| State management | Zustand (persist middleware) | v0.3.x |
+| CSS approach | TailwindCSS | v0.3.x |
+
 ## Future A/B Tests
 
-- [ ] State management: Zustand vs Jotai vs Redux Toolkit
-- [ ] CSS approach: Tailwind vs CSS Modules vs Styled Components
 - [ ] API client: fetch vs axios vs ky
 - [ ] Form handling: react-hook-form vs formik
 - [ ] Error tracking: Sentry vs custom logging

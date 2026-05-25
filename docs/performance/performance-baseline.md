@@ -1,6 +1,8 @@
-# Performance Baseline — Enterprise AI Data Agent
+# [DRAFT] Performance Baseline — Enterprise AI Data Agent
 
-> Generated: 2026-05-23 | Version: v0.5.4
+> Generated: 2026-05-23 | Version: v0.5.4 | Status: DRAFT — metrics not yet populated
+
+**TODO**: Run `npx playwright test e2e/performance.spec.ts` and populate all TBD values below.
 
 ## Overview
 

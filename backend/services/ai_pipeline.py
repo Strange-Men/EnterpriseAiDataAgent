@@ -24,14 +24,14 @@ import time
 def _infer_column_types(data: list[dict], columns: list[str]) -> list[dict]:
     """Infer column dtypes from sample data instead of hardcoding VARCHAR.
 
-    Scans up to first 10 non-null values per column for robust type detection.
+    Scans up to first 50 non-null values per column for robust type detection.
     """
     if not data or not columns:
         return [{"name": c, "dtype": "VARCHAR"} for c in columns]
     result = []
     for col in columns:
         dtype = "VARCHAR"
-        for row in data[:10]:
+        for row in data[:50]:
             val = row.get(col)
             if val is None:
                 continue
@@ -70,7 +70,7 @@ def run_ai_query(
     explain: bool = True,
     max_rows: int = 1000,
     follow_up_context: dict | None = None,
-    language: str = "en",
+    language: str = "zh",
 ) -> dict:
     """Natural language → SQL → Execute → Explain pipeline.
 
@@ -162,7 +162,7 @@ def run_autonomous_analysis(
     table: str,
     columns: list[dict],
     sample_rows: list[dict],
-    language: str = "en",
+    language: str = "zh",
     max_rows: int = 500,
     guardrails: AnalysisGuardrails | None = None,
 ) -> dict:
@@ -323,6 +323,21 @@ def run_autonomous_analysis(
         guardrail_violations.append(f"{v.rule}: {v.message}")
         trace.record_guardrail_violation(v.rule, v.message)
 
+    # 4b. Dead-end recovery: if ALL steps failed, record diagnostic
+    successful_steps_check = [s for s in executed_steps if s["status"] == "success" and s["data"]]
+    diagnostic = None
+    if not successful_steps_check and executed_steps:
+        failures = []
+        for s in executed_steps:
+            if s.get("error"):
+                failures.append(f"Step {s['step']}: {s['error'][:100]}")
+            elif s["status"].startswith("skipped"):
+                failures.append(f"Step {s['step']}: {s['status']}")
+        diagnostic = {
+            "message": f"All {len(executed_steps)} steps failed or were skipped.",
+            "failures": failures,
+        }
+
     # 5. Generate executive summary
     successful_steps = [s for s in executed_steps if s["status"] == "success" and s["data"]]
     summary = ""
@@ -376,6 +391,7 @@ def run_autonomous_analysis(
         "token_budget": tracker.to_dict(),
         "guardrails": guard.to_dict(),
         "guardrail_violations": guardrail_violations,
+        "diagnostic": diagnostic,
         "trace": trace.to_dict(),
     }
 
@@ -385,7 +401,7 @@ def run_autonomous_analysis_stream(
     table: str,
     columns: list[dict],
     sample_rows: list[dict],
-    language: str = "en",
+    language: str = "zh",
     max_rows: int = 500,
     guardrails: AnalysisGuardrails | None = None,
 ):
@@ -532,6 +548,21 @@ def run_autonomous_analysis_stream(
     except GuardrailViolation as v:
         guardrail_violations.append(f"{v.rule}: {v.message}")
         trace.record_guardrail_violation(v.rule, v.message)
+
+    # 4b. Dead-end recovery: if ALL steps failed, yield diagnostic event
+    successful_steps_check = [s for s in executed_steps if s["status"] == "success" and s["data"]]
+    if not successful_steps_check and executed_steps:
+        failures = []
+        for s in executed_steps:
+            if s.get("error"):
+                failures.append(f"Step {s['step']}: {s['error'][:100]}")
+            elif s["status"].startswith("skipped"):
+                failures.append(f"Step {s['step']}: {s['status']}")
+        yield {
+            "type": "diagnostic",
+            "message": f"All {len(executed_steps)} steps failed or were skipped. Common causes: insufficient data, invalid SQL generation, or guardrail limits.",
+            "failures": failures,
+        }
 
     # 5. Generate executive summary
     summary = ""
