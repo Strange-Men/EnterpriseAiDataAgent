@@ -10,7 +10,7 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.6.0 (Meta Governance & Autonomous QA — language governance, doc cleanup, backend unit tests, AI reliability, E2E tests)
+- **Current**: v0.6.2 (Analyst Workflow Layer — templates, reports, dataset lifecycle, crash recovery)
 - **Phase**: v0.6.x Meta Governance & Autonomous QA
 - **Next**: v0.7.x (anomaly detection, multi-turn UX polish)
 

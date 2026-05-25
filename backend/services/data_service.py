@@ -34,6 +34,7 @@ class UploadFileAdapter:
 _db = DatabaseManager()
 _executor = QueryExecutor(_db)
 _start_time = time.time()
+_UPLOAD_TIMESTAMPS: dict[str, str] = {}  # table_name → ISO 8601 upload timestamp
 
 
 def get_uptime() -> str:
@@ -52,7 +53,10 @@ def check_db_connection() -> bool:
 
 
 def list_tables() -> list[dict]:
-    return _db.list_tables()
+    tables = _db.list_tables()
+    for tbl in tables:
+        tbl["uploadTime"] = _UPLOAD_TIMESTAMPS.get(tbl["name"])
+    return tables
 
 
 def upload_file(filename: str, content: bytes) -> dict:
@@ -60,8 +64,11 @@ def upload_file(filename: str, content: bytes) -> dict:
     df = load_file(adapter)
     table_name = _db.import_dataframe(df, filename=filename)
     schema = detect_schema(df)
+    name = table_name["table_name"]
+    from datetime import datetime, timezone
+    _UPLOAD_TIMESTAMPS[name] = datetime.now(timezone.utc).isoformat()
     return {
-        "tableName": table_name["table_name"],
+        "tableName": name,
         "rowCount": schema["row_count"],
         "columnCount": schema["col_count"],
         "status": "success",

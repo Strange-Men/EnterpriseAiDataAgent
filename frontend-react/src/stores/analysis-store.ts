@@ -62,6 +62,10 @@ export interface AnalysisRun {
   multiResult: MultiStepResult | null;
   trace: TraceSnapshot | null;
   error?: string;
+  saved: boolean;
+  version: number;
+  parentRunId?: string;
+  notes?: string;
 }
 
 // ── Store ─────────────────────────────────────────────────────────
@@ -75,6 +79,14 @@ interface AnalysisState {
   setActiveRun: (id: string | null) => void;
   getActiveRun: () => AnalysisRun | null;
   clearHistory: () => void;
+  saveRun: (id: string) => void;
+  unsaveRun: (id: string) => void;
+  deleteRun: (id: string) => void;
+  rerunRun: (id: string) => string | null;
+  exportRun: (id: string) => string | null;
+  duplicateRun: (id: string) => string | null;
+  updateRunNotes: (id: string, notes: string) => void;
+  recoverInterruptedRuns: () => void;
 }
 
 export const useAnalysisStore = create<AnalysisState>()(
@@ -96,11 +108,22 @@ export const useAnalysisStore = create<AnalysisState>()(
           chartSpecs: [],
           multiResult: null,
           trace: null,
+          saved: false,
+          version: 1,
         };
-        set((state) => ({
-          runs: [...state.runs, run].slice(-MAX_HISTORY),
-          activeRunId: id,
-        }));
+        set((state) => {
+          let runs = [...state.runs, run];
+          // FIFO: trim to MAX_HISTORY but never evict saved runs
+          if (runs.length > MAX_HISTORY) {
+            const saved = runs.filter((r) => r.saved);
+            const unsaved = runs.filter((r) => !r.saved);
+            const slotsForUnsaved = Math.max(0, MAX_HISTORY - saved.length);
+            runs = [...saved, ...unsaved.slice(-slotsForUnsaved)];
+            // Sort by timestamp to maintain chronological order
+            runs.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+          }
+          return { runs, activeRunId: id };
+        });
         return id;
       },
 
@@ -116,45 +139,125 @@ export const useAnalysisStore = create<AnalysisState>()(
         return runs.find((r) => r.id === activeRunId) ?? null;
       },
 
-      clearHistory: () => set({ runs: [], activeRunId: null }),
+      clearHistory: () =>
+        set((state) => ({
+          runs: state.runs.filter((r) => r.saved),
+          activeRunId: null,
+        })),
+
+      saveRun: (id) =>
+        set((state) => ({
+          runs: state.runs.map((r) => (r.id === id ? { ...r, saved: true } : r)),
+        })),
+
+      unsaveRun: (id) =>
+        set((state) => ({
+          runs: state.runs.map((r) => (r.id === id ? { ...r, saved: false } : r)),
+        })),
+
+      deleteRun: (id) =>
+        set((state) => ({
+          runs: state.runs.filter((r) => r.id !== id),
+          activeRunId: state.activeRunId === id ? null : state.activeRunId,
+        })),
+
+      rerunRun: (id) => {
+        const { runs, addRun } = get();
+        const original = runs.find((r) => r.id === id);
+        if (!original) return null;
+        const newId = addRun(original.mode, original.question, original.table);
+        set((state) => ({
+          runs: state.runs.map((r) =>
+            r.id === newId ? { ...r, version: original.version + 1, parentRunId: original.id } : r
+          ),
+        }));
+        return newId;
+      },
+
+      exportRun: (id) => {
+        const { runs } = get();
+        const run = runs.find((r) => r.id === id);
+        if (!run) return null;
+        return JSON.stringify(run, null, 2);
+      },
+
+      duplicateRun: (id) => {
+        const { runs, addRun } = get();
+        const original = runs.find((r) => r.id === id);
+        if (!original) return null;
+        const newId = addRun(original.mode, original.question, original.table);
+        set((state) => ({
+          runs: state.runs.map((r) =>
+            r.id === newId
+              ? {
+                  ...r,
+                  parentRunId: original.id,
+                  saved: false,
+                  notes: undefined,
+                }
+              : r
+          ),
+        }));
+        return newId;
+      },
+
+      updateRunNotes: (id, notes) =>
+        set((state) => ({
+          runs: state.runs.map((r) => (r.id === id ? { ...r, notes } : r)),
+        })),
+
+      recoverInterruptedRuns: () =>
+        set((state) => ({
+          runs: state.runs.map((r) =>
+            r.status === "running"
+              ? { ...r, status: "error" as RunStatus, error: "Session interrupted — run was not completed" }
+              : r
+          ),
+        })),
     }),
     {
       name: "analysis-history",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        ...state,
-        runs: state.runs.map((r) => ({
-          ...r,
-          // Keep section titles + truncated content for history display
-          sections: r.sections.map((s) => ({
-            ...s,
-            content: s.content.length > 500 ? s.content.slice(-500) : s.content,
-          })),
-          // Keep chart metadata but drop data arrays (too large for localStorage)
-          chartSpecs: r.chartSpecs.map((c) => ({
-            ...c,
-            data: [],
-          })),
-          // Keep multi-step summary + step metadata, drop row data
-          multiResult: r.multiResult ? {
-            ...r.multiResult,
-            steps: r.multiResult.steps.map((s) => ({
+      partialize: (state) => {
+        const MAX_STORAGE_BYTES = 4 * 1024 * 1024; // 4MB
+        let runs = state.runs.map((r) => {
+          if (r.saved) return r; // Saved runs: full persistence
+          // Unsaved runs: truncate heavy data
+          return {
+            ...r,
+            sections: r.sections.map((s) => ({
               ...s,
-              columns: s.columns,
-              data: [],
+              content: s.content.length > 500 ? s.content.slice(-500) : s.content,
             })),
-          } : null,
-          // Keep trace summary only, drop event details
-          trace: r.trace ? {
-            trace_id: r.trace.trace_id,
-            total_llm_calls: r.trace.total_llm_calls,
-            total_input_tokens: r.trace.total_input_tokens,
-            total_output_tokens: r.trace.total_output_tokens,
-            events: [],
-            guardrail_violations: r.trace.guardrail_violations,
-          } : null,
-        })),
-      }),
+            chartSpecs: r.chartSpecs.map((c) => ({ ...c, data: [] })),
+            multiResult: r.multiResult ? {
+              ...r.multiResult,
+              steps: r.multiResult.steps.map((s) => ({ ...s, columns: s.columns, data: [] })),
+            } : null,
+            trace: r.trace ? {
+              trace_id: r.trace.trace_id,
+              total_llm_calls: r.trace.total_llm_calls,
+              total_input_tokens: r.trace.total_input_tokens,
+              total_output_tokens: r.trace.total_output_tokens,
+              events: [],
+              guardrail_violations: r.trace.guardrail_violations,
+            } : null,
+          };
+        });
+        // Size guard: drop oldest unsaved runs if over limit
+        const jsonSize = JSON.stringify({ ...state, runs }).length;
+        if (jsonSize > MAX_STORAGE_BYTES) {
+          console.warn(`[analysis-store] Persisted size ${(jsonSize / 1024 / 1024).toFixed(1)}MB exceeds 4MB limit, trimming oldest unsaved runs`);
+          const saved = runs.filter((r) => r.saved);
+          const unsaved = runs.filter((r) => !r.saved).reverse(); // newest first
+          while (unsaved.length > 0 && JSON.stringify({ ...state, runs: [...saved, ...unsaved] }).length > MAX_STORAGE_BYTES) {
+            unsaved.pop(); // drop oldest
+          }
+          runs = [...saved, ...unsaved.reverse()];
+          runs.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+        }
+        return { ...state, runs };
+      },
     }
   )
 );

@@ -1,6 +1,6 @@
 # Repository Health Audit — Enterprise AI Data Agent
 
-> Auto-generated: 2026-05-25 | Version: v0.5.9
+> Auto-generated: 2026-05-25 | Version: v0.6.1
 
 ## Health Score: 91/100
 
@@ -61,10 +61,10 @@
 
 | Document | Status | Last Updated |
 |----------|--------|-------------|
-| `CLAUDE.md` | Active | v0.5.9 |
-| `PROJECT_RULES.md` | Active | v0.5.9 |
+| `CLAUDE.md` | Active | v0.6.1 |
+| `PROJECT_RULES.md` | Active | v0.6.1 |
 | `KNOWN_ISSUES.md` | Active | v0.5.9 |
-| `CURRENT_SESSION.md` | Active | v0.5.9 |
+| `CURRENT_SESSION.md` | Active | v0.6.1 |
 | `docs/governance/FILE_SYSTEM_RULES.md` | Active | v0.3.11 |
 | `docs/governance/SKILL_LIFECYCLE.md` | Active | v0.3.11 |
 | `docs/governance/DOCUMENTATION_LIFECYCLE.md` | Active | v0.5.5 |
@@ -101,11 +101,11 @@
 |-------|------|-------|----------|
 | Frontend | Unit (Vitest) | 11 files / 117 tests | `src/**/__tests__/` |
 | Frontend | E2E (Playwright) | 2+ files | `e2e/` |
-| Backend | Unit (pytest) | 7+ files / 161 tests | `tests/` |
+| Backend | Unit (pytest) | 8+ files / 239 tests | `tests/` |
 | Backend | AI Evaluation | 15 golden questions | `tests/ai/` |
-| Backend | AI Unit (v0.6.0) | 5 new files | `tests/` |
+| Backend | AI Unit (v0.6.0+) | 6 files / 248 total | `tests/` |
 
-## Repository File Tree (v0.5.9)
+## Repository File Tree (v0.6.1)
 
 ```
 EnterpriseAiDataAgent/

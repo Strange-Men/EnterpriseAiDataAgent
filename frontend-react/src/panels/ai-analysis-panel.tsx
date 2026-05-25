@@ -434,6 +434,16 @@ export function AIAnalysisPanel({
               });
               // Don't remove running indicator here; onStepStart will update it
             },
+            onStepRetry: (stepNum, attempt) => {
+              setSections((prev) => [
+                ...prev.filter((s) => s.title !== t("ai.running-steps")),
+                {
+                  title: t("ai.running-steps"),
+                  content: `Step ${stepNum}: Retrying (attempt ${attempt})...`,
+                  type: "markdown",
+                },
+              ]);
+            },
             onSummary: (summary) => {
               execSummary = summary;
               setSections((prev) => [

@@ -65,3 +65,11 @@ export interface SystemStatus {
 export type PanelId = "left" | "center" | "right";
 export type LayoutPreset = "default" | "left-wide" | "right-wide" | "center-focus";
 export type Language = "en" | "zh";
+
+export interface DatasetMeta {
+  table: string;
+  uploadTime: string | null;
+  analysisCount: number;
+  lastAnalyzedAt: string | null;
+  qualityScore: number | null;
+}

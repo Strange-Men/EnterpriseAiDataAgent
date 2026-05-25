@@ -110,6 +110,7 @@ class TraceRecorder:
         if t.end_time:
             elapsed = round((t.end_time - t.start_time) * 1000, 2)
         return {
+            "schema_version": "1.0",
             "trace_id": t.trace_id,
             "question": t.question,
             "table": t.table,

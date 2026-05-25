@@ -4,7 +4,9 @@ import type {
   QualityReport,
   UploadedFile,
   SystemStatus,
+  DatasetMeta,
 } from "@/types";
+import { useAnalysisStore } from "@/stores/analysis-store";
 
 interface DataState {
   // Database
@@ -31,9 +33,12 @@ interface DataState {
   // System status
   systemStatus: SystemStatus;
   setSystemStatus: (status: Partial<SystemStatus>) => void;
+
+  // Dataset lifecycle
+  getDatasetMeta: (table: string) => DatasetMeta;
 }
 
-export const useDataStore = create<DataState>((set) => ({
+export const useDataStore = create<DataState>((set, get) => ({
   dbStatus: "idle",
   tables: [],
   setDbStatus: (dbStatus) => set({ dbStatus }),
@@ -60,4 +65,17 @@ export const useDataStore = create<DataState>((set) => ({
   },
   setSystemStatus: (status) =>
     set((state) => ({ systemStatus: { ...state.systemStatus, ...status } })),
+
+  getDatasetMeta: (table) => {
+    const runs = useAnalysisStore.getState().runs;
+    const tableRuns = runs.filter((r) => r.table === table);
+    const analysisCount = tableRuns.length;
+    let lastAnalyzedAt: string | null = null;
+    if (tableRuns.length > 0) {
+      const sorted = [...tableRuns].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+      lastAnalyzedAt = sorted[0].timestamp;
+    }
+    const qualityScore = get().qualityReport?.overallScore ?? null;
+    return { table, uploadTime: null, analysisCount, lastAnalyzedAt, qualityScore };
+  },
 }));
