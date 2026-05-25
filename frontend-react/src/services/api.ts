@@ -641,13 +641,14 @@ export async function aiAnalyzeMulti(
 
 // ── Multi-step Streaming ───────────────────────────────────────
 
-export type MultiStreamEventType = "plan" | "step_start" | "step_result" | "summary" | "error" | "done";
+export type MultiStreamEventType = "plan" | "step_start" | "step_result" | "step_retry" | "summary" | "error" | "done";
 
 export interface MultiStreamEvent {
   type: MultiStreamEventType;
   plan?: PlanStep[];
   step?: number;
   purpose?: string;
+  attempt?: number;
   sql?: string;
   columns?: string[];
   data?: Record<string, unknown>[];
@@ -664,6 +665,7 @@ export interface MultiStreamEvent {
 export interface MultiStreamCallbacks {
   onPlan: (plan: PlanStep[]) => void;
   onStepStart: (step: number, purpose: string) => void;
+  onStepRetry: (step: number, attempt: number, error: string) => void;
   onStepResult: (event: MultiStreamEvent) => void;
   onSummary: (summary: string) => void;
   onError: (err: Error) => void;
@@ -694,6 +696,7 @@ export function streamAiAnalyzeMulti(
         const type = data.type as string;
         if (type === "plan" && data.plan) callbacks.onPlan(data.plan as PlanStep[]);
         else if (type === "step_start" && data.step != null) callbacks.onStepStart(data.step as number, (data.purpose as string) || "");
+        else if (type === "step_retry" && data.step != null) callbacks.onStepRetry(data.step as number, (data.attempt as number) || 2, (data.error as string) || "");
         else if (type === "step_result") callbacks.onStepResult(data as unknown as MultiStreamEvent);
         else if (type === "summary" && data.summary != null) callbacks.onSummary(data.summary as string);
       },
@@ -757,4 +760,61 @@ export async function analyzeTable(tableName: string, language?: string): Promis
 
 export async function getTableProfile(tableName: string): Promise<{ table: string; profile: AnalysisProfile; status: string }> {
   return apiFetch(`/analyze/${encodeURIComponent(tableName)}/profile`);
+}
+
+// ── Template Adaptation ────────────────────────────────────────
+
+export interface AdaptedQuestion {
+  order: number;
+  question: string;
+  status: "ok" | "unadaptable";
+  reason?: string;
+}
+
+export async function aiAdaptTemplate(
+  templateSteps: { question: string; mode: string; order: number }[],
+  originalColumns: { name: string; dtype: string }[],
+  targetTable: string,
+  targetColumns: { name: string; dtype: string }[],
+  language?: string,
+): Promise<{ adapted_questions: AdaptedQuestion[]; status: string }> {
+  return apiFetch("/ai/adapt-template", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      template_steps: templateSteps,
+      original_columns: originalColumns,
+      target_table: targetTable,
+      target_columns: targetColumns,
+      language: language || "zh",
+    }),
+  });
+}
+
+// ── Report Generation ──────────────────────────────────────────
+
+export interface ReportOptions {
+  title?: string;
+  includeTrace?: boolean;
+  includeDataSamples?: boolean;
+  language?: string;
+}
+
+export async function generateReport(
+  runs: unknown[],
+  options?: ReportOptions,
+): Promise<{ markdown: string; status: string }> {
+  return apiFetch("/ai/generate-report", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      runs,
+      options: {
+        title: options?.title ?? "Analysis Report",
+        include_trace: options?.includeTrace ?? false,
+        include_data_samples: options?.includeDataSamples ?? true,
+        language: options?.language ?? "zh",
+      },
+    }),
+  });
 }

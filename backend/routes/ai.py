@@ -268,3 +268,73 @@ async def ai_analyze_multi_stream(req: MultiAnalyzeRequest):
         "Connection": "keep-alive",
         "X-Accel-Buffering": "no",
     })
+
+
+# ── Template Adaptation ──────────────────────────────────────────
+
+class AdaptTemplateRequest(BaseModel):
+    template_steps: list[dict]
+    original_columns: list[dict]
+    target_table: str
+    target_columns: list[dict]
+    language: str = "zh"
+
+
+@router.post("/ai/adapt-template")
+async def ai_adapt_template(req: AdaptTemplateRequest):
+    """将分析模板适配到目标数据集。"""
+    try:
+        from backend.prompts.template_adaptation import CONTRACT, build_user_message
+        from backend.prompts.locale import apply_language
+        from backend.services.ai_analyst import _call_llm
+
+        system = apply_language(CONTRACT.SYSTEM_PROMPT, req.language)
+        user_msg = build_user_message(req.template_steps, req.original_columns, req.target_columns)
+
+        raw = _call_llm(
+            system=system,
+            user_message=user_msg,
+            max_tokens=CONTRACT.max_output_tokens,
+            language=req.language,
+            operation="template_adaptation",
+            phase="adapt",
+            prompt_name="template_adaptation",
+        )
+
+        import json as _json
+        try:
+            parsed = _json.loads(raw)
+        except _json.JSONDecodeError:
+            import re
+            match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
+            if match:
+                parsed = _json.loads(match.group(1))
+            else:
+                raise ValueError(f"Failed to parse LLM response as JSON: {raw[:200]}")
+
+        return {"adapted_questions": parsed.get("adapted_questions", []), "status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Report Generation ───────────────────────────────────────────
+
+class ReportOptions(BaseModel):
+    title: str = "Analysis Report"
+    include_trace: bool = False
+    include_data_samples: bool = True
+    language: str = "zh"
+
+
+class ReportRequest(BaseModel):
+    runs: list[dict]
+    options: ReportOptions | None = None
+
+
+@router.post("/ai/generate-report")
+async def generate_report(req: ReportRequest):
+    """将多个分析运行编译为 Markdown 报告。"""
+    from backend.services.report_builder import build_report
+    opts = req.options.model_dump() if req.options else {}
+    md = build_report(req.runs, opts)
+    return {"markdown": md, "status": "success"}

@@ -10,6 +10,7 @@ describe("ai-session-store", () => {
       lastRowCount: null,
       lastSql: null,
       lastInsightSummary: null,
+      compressedSummary: null,
     });
   });
 
@@ -21,6 +22,7 @@ describe("ai-session-store", () => {
     expect(state.lastRowCount).toBeNull();
     expect(state.lastSql).toBeNull();
     expect(state.lastInsightSummary).toBeNull();
+    expect(state.compressedSummary).toBeNull();
   });
 
   it("should add user turn", () => {
@@ -67,13 +69,16 @@ describe("ai-session-store", () => {
     expect(useAiSessionStore.getState().turns).toHaveLength(3);
   });
 
-  it("should cap turns at MAX_TURNS", () => {
+  it("should compress turns when exceeding COMPRESS_AT", () => {
     const { addUserTurn } = useAiSessionStore.getState();
     for (let i = 0; i < 25; i++) {
       addUserTurn(`Question ${i}`);
     }
-    expect(useAiSessionStore.getState().turns).toHaveLength(20);
-    expect(useAiSessionStore.getState().turns[0].content).toBe("Question 5");
+    // Compression kicks in at 16 turns, keeping 8 + new additions
+    // After 25 turns: compressed at 16→8, then grew to 9 (25-16=9 kept)
+    expect(useAiSessionStore.getState().turns.length).toBeLessThanOrEqual(10);
+    // Older turns are compressed into summary
+    expect(useAiSessionStore.getState().compressedSummary).toBeTruthy();
   });
 
   it("should set context metadata", () => {
@@ -116,5 +121,6 @@ describe("ai-session-store", () => {
     expect(state.activeTable).toBeNull();
     expect(state.lastSql).toBeNull();
     expect(state.lastInsightSummary).toBeNull();
+    expect(state.compressedSummary).toBeNull();
   });
 });

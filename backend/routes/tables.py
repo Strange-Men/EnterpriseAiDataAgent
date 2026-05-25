@@ -27,6 +27,7 @@ async def get_tables():
                 "rowCount": tbl["row_count"],
                 "columnCount": tbl["column_count"],
                 "columns": cols,
+                "uploadTime": tbl.get("uploadTime"),
             })
         return result
     except Exception as e:

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
+import { useAnalysisStore } from "@/stores/analysis-store";
 import { useTables } from "@/hooks/use-tables";
 import { useSqlWorkspaceStore } from "@/stores/sql-workspace-store";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -22,6 +23,7 @@ export function TableManagementPanel() {
   const { setCurrentTable, setCurrentData, setQualityReport } = useDataStore();
   const { tables, reload: loadTables } = useTables();
   const { setCurrentSql, setSelectedTable } = useSqlWorkspaceStore();
+  const analysisRuns = useAnalysisStore((s) => s.runs);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -146,9 +148,19 @@ export function TableManagementPanel() {
                     >
                       <Tooltip text={tbl.name} maxLen={22} />
                     </button>
-                    <span className="text-xs text-[var(--text-muted)] tabular-nums">
-                      {tbl.rowCount.toLocaleString()} × {tbl.columnCount}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {(() => {
+                        const count = analysisRuns.filter((r) => r.table === tbl.name).length;
+                        return count > 0 ? (
+                          <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent)]" title={t("dataset.analysis-count")}>
+                            {count}A
+                          </span>
+                        ) : null;
+                      })()}
+                      <span className="text-xs text-[var(--text-muted)] tabular-nums">
+                        {tbl.rowCount.toLocaleString()} × {tbl.columnCount}
+                      </span>
+                    </div>
                   </>
                 )}
               </div>

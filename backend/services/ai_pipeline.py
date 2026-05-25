@@ -498,9 +498,15 @@ def run_autonomous_analysis_stream(
                     })
                     break
 
-        # Generate SQL
+        # Generate SQL (with retry on failure)
         step_question = f"{purpose}: {sql_goal}"
         sql_result = generate_sql(step_question, schema_context, fu_ctx, language, tracker=tracker, trace=trace, phase=f"step_{step_num}", step=step_num)
+
+        if sql_result["status"] == "error":
+            # Step-level retry: inject error context and try again
+            yield {"type": "step_retry", "step": step_num, "attempt": 2, "error": sql_result.get("error", "")[:200]}
+            retry_question = f"{step_question}\n\nPrevious attempt failed with: {sql_result.get('error', 'unknown error')[:200]}. Try a different approach."
+            sql_result = generate_sql(retry_question, schema_context, fu_ctx, language, tracker=tracker, trace=trace, phase=f"step_{step_num}_retry", step=step_num)
 
         if sql_result["status"] == "error":
             guard.record_step_result(success=False)

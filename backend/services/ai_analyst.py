@@ -7,6 +7,8 @@
 import json
 import time
 
+import anthropic
+
 from backend.config import (
     ANTHROPIC_API_KEY,
     ANTHROPIC_BASE_URL,
@@ -154,6 +156,17 @@ def build_follow_up_context(ctx: dict) -> str:
 
 # ── LLM Call ────────────────────────────────────────────────────
 
+_TRANSIENT_ERRORS = (
+    anthropic.RateLimitError,
+    anthropic.APITimeoutError,
+    anthropic.APIConnectionError,
+    anthropic.InternalServerError,
+)
+
+MAX_RETRIES = 2
+RETRY_DELAYS = [1, 3]  # exponential backoff in seconds
+
+
 def _call_llm(
     system: str,
     user_message: str,
@@ -181,60 +194,84 @@ def _call_llm(
 
     start = time.time()
     client = _get_client()
-    try:
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=max_tokens,
-            temperature=TEMPERATURE,
-            system=apply_language(system, language),
-            messages=[{"role": "user", "content": user_message}],
+    last_error = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=max_tokens,
+                temperature=TEMPERATURE,
+                system=apply_language(system, language),
+                messages=[{"role": "user", "content": user_message}],
+            )
+
+            # 提取输出文本 — concatenate ALL text blocks
+            text = ""
+            for block in response.content:
+                if hasattr(block, "text"):
+                    text += block.text
+            if not text:
+                text = str(response.content[0])
+
+            elapsed = (time.time() - start) * 1000
+
+            # 记录到 tracker
+            if tracker:
+                output_tokens = estimate_tokens(text)
+                tracker.record(operation, input_tokens, output_tokens)
+
+            # 记录到 trace
+            if trace:
+                trace.record_llm_call(
+                    operation=operation,
+                    phase=phase,
+                    prompt_name=prompt_name,
+                    input_text=user_message,
+                    output_text=text,
+                    latency_ms=elapsed,
+                    status="success",
+                    sql=text if operation == "sql_generation" else None,
+                    step=step,
+                )
+
+            return text
+        except _TRANSIENT_ERRORS as e:
+            last_error = e
+            if attempt < MAX_RETRIES:
+                time.sleep(RETRY_DELAYS[attempt])
+                continue
+            break
+        except Exception as e:
+            elapsed = (time.time() - start) * 1000
+            if trace:
+                trace.record_llm_call(
+                    operation=operation,
+                    phase=phase,
+                    prompt_name=prompt_name,
+                    input_text=user_message,
+                    output_text="",
+                    latency_ms=elapsed,
+                    status="error",
+                    error=str(e),
+                    step=step,
+                )
+            raise
+
+    # All retries exhausted
+    elapsed = (time.time() - start) * 1000
+    if trace:
+        trace.record_llm_call(
+            operation=operation,
+            phase=phase,
+            prompt_name=prompt_name,
+            input_text=user_message,
+            output_text="",
+            latency_ms=elapsed,
+            status="error",
+            error=f"Retried {MAX_RETRIES}x: {last_error}",
+            step=step,
         )
-
-        # 提取输出文本 — concatenate ALL text blocks
-        text = ""
-        for block in response.content:
-            if hasattr(block, "text"):
-                text += block.text
-        if not text:
-            text = str(response.content[0])
-
-        elapsed = (time.time() - start) * 1000
-
-        # 记录到 tracker
-        if tracker:
-            output_tokens = estimate_tokens(text)
-            tracker.record(operation, input_tokens, output_tokens)
-
-        # 记录到 trace
-        if trace:
-            trace.record_llm_call(
-                operation=operation,
-                phase=phase,
-                prompt_name=prompt_name,
-                input_text=user_message,
-                output_text=text,
-                latency_ms=elapsed,
-                status="success",
-                sql=text if operation == "sql_generation" else None,
-                step=step,
-            )
-
-        return text
-    except Exception as e:
-        elapsed = (time.time() - start) * 1000
-        if trace:
-            trace.record_llm_call(
-                operation=operation,
-                phase=phase,
-                prompt_name=prompt_name,
-                input_text=user_message,
-                output_text="",
-                latency_ms=elapsed,
-                status="error",
-                error=str(e),
-                step=step,
-            )
-        raise
+    raise last_error
 
 
 def _call_llm_stream(
@@ -264,52 +301,81 @@ def _call_llm_stream(
     start = time.time()
     client = _get_client()
     output_text = ""
-    try:
-        with client.messages.stream(
-            model=MODEL,
-            max_tokens=max_tokens,
-            temperature=TEMPERATURE,
-            system=apply_language(system, language),
-            messages=[{"role": "user", "content": user_message}],
-        ) as stream:
-            for chunk in stream.text_stream:
-                output_text += chunk
-                yield chunk
+    last_error = None
 
+    # Retry only on stream establishment (before any chunks yielded)
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            with client.messages.stream(
+                model=MODEL,
+                max_tokens=max_tokens,
+                temperature=TEMPERATURE,
+                system=apply_language(system, language),
+                messages=[{"role": "user", "content": user_message}],
+            ) as stream:
+                for chunk in stream.text_stream:
+                    output_text += chunk
+                    yield chunk
+            break  # success — exit retry loop
+        except _TRANSIENT_ERRORS as e:
+            last_error = e
+            if output_text:
+                # Already yielded chunks — can't retry mid-stream
+                raise
+            if attempt < MAX_RETRIES:
+                time.sleep(RETRY_DELAYS[attempt])
+                continue
+        except Exception as e:
+            elapsed = (time.time() - start) * 1000
+            if trace:
+                trace.record_llm_call(
+                    operation=operation,
+                    phase=phase,
+                    prompt_name=prompt_name,
+                    input_text=user_message,
+                    output_text=output_text,
+                    latency_ms=elapsed,
+                    status="error",
+                    error=str(e),
+                    step=step,
+                )
+            raise
+    else:
+        # All retries exhausted without success
         elapsed = (time.time() - start) * 1000
-
-        # 流式完成后记录
-        if tracker:
-            output_tokens = estimate_tokens(output_text)
-            tracker.record(operation, input_tokens, output_tokens)
-
-        # 记录到 trace
         if trace:
             trace.record_llm_call(
                 operation=operation,
                 phase=phase,
                 prompt_name=prompt_name,
                 input_text=user_message,
-                output_text=output_text,
-                latency_ms=elapsed,
-                status="success",
-                step=step,
-            )
-    except Exception as e:
-        elapsed = (time.time() - start) * 1000
-        if trace:
-            trace.record_llm_call(
-                operation=operation,
-                phase=phase,
-                prompt_name=prompt_name,
-                input_text=user_message,
-                output_text=output_text,
+                output_text="",
                 latency_ms=elapsed,
                 status="error",
-                error=str(e),
+                error=f"Retried {MAX_RETRIES}x: {last_error}",
                 step=step,
             )
-        raise
+        raise last_error
+
+    elapsed = (time.time() - start) * 1000
+
+    # 流式完成后记录
+    if tracker:
+        output_tokens = estimate_tokens(output_text)
+        tracker.record(operation, input_tokens, output_tokens)
+
+    # 记录到 trace
+    if trace:
+        trace.record_llm_call(
+            operation=operation,
+            phase=phase,
+            prompt_name=prompt_name,
+            input_text=user_message,
+            output_text=output_text,
+            latency_ms=elapsed,
+            status="success",
+            step=step,
+        )
 
 
 # ── Public API ──────────────────────────────────────────────────
