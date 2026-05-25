@@ -19,9 +19,9 @@ Track all open issues, bugs, and improvements here.
 | id | title | severity | reproducible | status | owner | workaround |
 |----|-------|----------|-------------|--------|-------|------------|
 | ISSUE-001 | Monaco Editor loads large workers (~2MB) on first load | Medium | Yes | Open | Claude | Acceptable for enterprise use |
-| ISSUE-002 | Query history lost on server restart (in-memory deque) | Medium | Yes | Open | Claude | Frontend localStorage persists history |
+| ISSUE-002 | Query history lost on server restart (in-memory deque) | Medium | Yes | Fixed | Claude | v0.6.4: Added DuckDB persistence, loads on startup |
 | ISSUE-005 | `docs/frontend_rules/` files reference Vue/Element Plus (different project) | Low | Yes | Open | Claude | Keep as reference pattern; not directly applicable |
-| ISSUE-006 | SQL query API returns all data in one response (no pagination) | Medium | Yes | In Progress | Claude | v0.3.12: Added hasMore/totalRows/truncated to response; full pagination deferred to v0.4.x |
+| ISSUE-006 | SQL query API returns all data in one response (no pagination) | Medium | Yes | Fixed | Claude | v0.6.4: Added server-side OFFSET/LIMIT pagination, infinite scroll |
 
 ## Closed Issues
 

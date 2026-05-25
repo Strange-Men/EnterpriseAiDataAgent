@@ -91,6 +91,7 @@ export interface QueryResult {
   data: Record<string, unknown>[];
   rowCount: number;
   totalRows?: number;
+  offset?: number;
   hasMore?: boolean;
   truncated?: boolean;
   runtimeMs: number;
@@ -100,13 +101,14 @@ export interface QueryResult {
 
 export async function executeQuery(
   sql: string,
+  offset: number = 0,
   limit: number = 10000,
   signal?: AbortSignal
 ): Promise<QueryResult> {
   return apiFetch<QueryResult>("/query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sql, limit }),
+    body: JSON.stringify({ sql, offset, limit }),
     signal,
   });
 }
@@ -307,9 +309,12 @@ export interface GenericStreamCallbacks {
   onError: (err: Error) => void;
 }
 
-function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promise<Response>, callbacks: GenericStreamCallbacks, timeoutMs = 120_000): AbortController {
+function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promise<Response>, callbacks: GenericStreamCallbacks, timeoutMs = 120_000, maxRetries = 2): AbortController {
   const controller = new AbortController();
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let retryCount = 0;
+  let receivedEvents = false;
+
   const resetTimeout = () => {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
@@ -317,68 +322,92 @@ function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promis
       callbacks.onError(new Error(`Stream timeout after ${timeoutMs / 1000}s of inactivity`));
     }, timeoutMs);
   };
-  resetTimeout();
-  createResponse(controller.signal).then(async (res) => {
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      callbacks.onError(new Error(`API ${res.status}: ${body || res.statusText}`));
-      return;
-    }
-    const reader = res.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        resetTimeout();
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === "done") { if (timeoutId) clearTimeout(timeoutId); callbacks.onDone(data); }
-              else if (data.type === "error") { if (timeoutId) clearTimeout(timeoutId); callbacks.onError(new Error(data.error || "Unknown error")); }
-              else callbacks.onEvent(data);
-            } catch {
-              // Skip malformed SSE line
+
+  const tryConnect = () => {
+    resetTimeout();
+    createResponse(controller.signal).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        callbacks.onError(new Error(`API ${res.status}: ${body || res.statusText}`));
+        return;
+      }
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          resetTimeout();
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === "done") { if (timeoutId) clearTimeout(timeoutId); callbacks.onDone(data); return; }
+                else if (data.type === "error") { if (timeoutId) clearTimeout(timeoutId); callbacks.onError(new Error(data.error || "Unknown error")); return; }
+                else { receivedEvents = true; callbacks.onEvent(data); }
+              } catch {
+                // Skip malformed SSE line
+              }
             }
           }
         }
-      }
-      if (timeoutId) clearTimeout(timeoutId);
-      // Drain remaining buffer after stream ends
-      buffer += decoder.decode();
-      if (buffer.trim()) {
-        for (const line of buffer.split("\n")) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === "done") callbacks.onDone(data);
-              else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
-              else callbacks.onEvent(data);
-            } catch {
-              // Skip malformed SSE line
+        if (timeoutId) clearTimeout(timeoutId);
+        // Drain remaining buffer after stream ends
+        buffer += decoder.decode();
+        if (buffer.trim()) {
+          for (const line of buffer.split("\n")) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === "done") callbacks.onDone(data);
+                else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
+                else { receivedEvents = true; callbacks.onEvent(data); }
+              } catch {
+                // Skip malformed SSE line
+              }
             }
           }
         }
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          // Retry on connection reset if no events received yet
+          if (!receivedEvents && retryCount < maxRetries) {
+            retryCount++;
+            console.warn(`[SSE] Stream failed, retrying (${retryCount}/${maxRetries})...`);
+            setTimeout(tryConnect, 1000 * retryCount); // Exponential backoff
+          } else {
+            callbacks.onError(err instanceof Error ? err : new Error("Stream failed"));
+          }
+        }
       }
-    } catch (err) {
-      if ((err as Error).name !== "AbortError") {
-        callbacks.onError(err instanceof Error ? err : new Error("Stream failed"));
+    }).catch((err) => {
+      if (err.name !== "AbortError") {
+        // Retry on fetch error if no events received yet
+        if (!receivedEvents && retryCount < maxRetries) {
+          retryCount++;
+          console.warn(`[SSE] Connection failed, retrying (${retryCount}/${maxRetries})...`);
+          setTimeout(tryConnect, 1000 * retryCount);
+        } else {
+          callbacks.onError(err);
+        }
       }
-    }
-  }).catch((err) => {
-    if (err.name !== "AbortError") callbacks.onError(err);
-  });
+    });
+  };
+
+  tryConnect();
   return controller;
 }
 
-function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Response>, callbacks: StreamCallbacks, timeoutMs = 60_000): AbortController {
+function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Response>, callbacks: StreamCallbacks, timeoutMs = 60_000, maxRetries = 2): AbortController {
   const controller = new AbortController();
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let retryCount = 0;
+  let receivedChunks = false;
+
   const resetTimeout = () => {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
@@ -386,60 +415,83 @@ function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Respo
       callbacks.onError(new Error(`Stream timeout after ${timeoutMs / 1000}s of inactivity`));
     }, timeoutMs);
   };
-  resetTimeout();
-  createResponse(controller.signal).then(async (res) => {
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      callbacks.onError(new Error(`API ${res.status}: ${body || res.statusText}`));
-      return;
-    }
-    const reader = res.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        resetTimeout();
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === "text") callbacks.onChunk(data.content);
-              else if (data.type === "done") { if (timeoutId) clearTimeout(timeoutId); callbacks.onDone(); }
-              else if (data.type === "error") { if (timeoutId) clearTimeout(timeoutId); callbacks.onError(new Error(data.error)); }
-            } catch {
-              // Skip malformed SSE line
+
+  const tryConnect = () => {
+    resetTimeout();
+    createResponse(controller.signal).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        callbacks.onError(new Error(`API ${res.status}: ${body || res.statusText}`));
+        return;
+      }
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          resetTimeout();
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === "text") { receivedChunks = true; callbacks.onChunk(data.content); }
+                else if (data.type === "done") { if (timeoutId) clearTimeout(timeoutId); callbacks.onDone(); return; }
+                else if (data.type === "error") { if (timeoutId) clearTimeout(timeoutId); callbacks.onError(new Error(data.error)); return; }
+              } catch {
+                // Skip malformed SSE line
+              }
             }
           }
         }
-      }
-      if (timeoutId) clearTimeout(timeoutId);
-      // Drain remaining buffer after stream ends
-      buffer += decoder.decode();
-      if (buffer.trim()) {
-        for (const line of buffer.split("\n")) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === "text") callbacks.onChunk(data.content);
-              else if (data.type === "done") callbacks.onDone();
-              else if (data.type === "error") callbacks.onError(new Error(data.error));
-            } catch {
-              // Skip malformed SSE line
+        if (timeoutId) clearTimeout(timeoutId);
+        // Drain remaining buffer after stream ends
+        buffer += decoder.decode();
+        if (buffer.trim()) {
+          for (const line of buffer.split("\n")) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === "text") { receivedChunks = true; callbacks.onChunk(data.content); }
+                else if (data.type === "done") callbacks.onDone();
+                else if (data.type === "error") callbacks.onError(new Error(data.error));
+              } catch {
+                // Skip malformed SSE line
+              }
             }
           }
         }
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          // Retry on connection reset if no chunks received yet
+          if (!receivedChunks && retryCount < maxRetries) {
+            retryCount++;
+            console.warn(`[SSE] Stream failed, retrying (${retryCount}/${maxRetries})...`);
+            setTimeout(tryConnect, 1000 * retryCount);
+          } else {
+            callbacks.onError(err instanceof Error ? err : new Error("Stream failed"));
+          }
+        }
       }
-    } catch (err) {
-      if ((err as Error).name !== "AbortError") {
-        callbacks.onError(err instanceof Error ? err : new Error("Stream failed"));
+    }).catch((err) => {
+      if (err.name !== "AbortError") {
+        // Retry on fetch error if no chunks received yet
+        if (!receivedChunks && retryCount < maxRetries) {
+          retryCount++;
+          console.warn(`[SSE] Connection failed, retrying (${retryCount}/${maxRetries})...`);
+          setTimeout(tryConnect, 1000 * retryCount);
+        } else {
+          callbacks.onError(err);
+        }
       }
-    }
-  }).catch((err) => callbacks.onError(err));
+    });
+  };
+
+  tryConnect();
   return controller;
 }
 

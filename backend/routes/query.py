@@ -13,7 +13,9 @@ router = APIRouter()
 
 class QueryRequest(BaseModel):
     sql: str
+    offset: int = 0
     limit: int = 10000
+    timeout_ms: int = 300000
 
 
 class ExplainRequest(BaseModel):
@@ -45,7 +47,7 @@ async def execute_query(req: QueryRequest):
 
     start = time.time()
     try:
-        result = _executor.execute(sql)
+        result = _executor.execute_paginated(sql, offset=req.offset, limit=req.limit, timeout_ms=req.timeout_ms)
         runtime_ms = int((time.time() - start) * 1000)
 
         if result["status"] == "error":
@@ -56,15 +58,16 @@ async def execute_query(req: QueryRequest):
                 "columns": [],
                 "data": [],
                 "rowCount": 0,
+                "totalRows": 0,
+                "offset": req.offset,
+                "hasMore": False,
                 "runtimeMs": runtime_ms,
                 "status": "error",
                 "error": result["error"],
             }
 
-        total_rows = result["row_count"]
-        truncated = total_rows > req.limit
-        data = _sanitize_for_json(result["data"][:req.limit])
-        query_history.add(sql, "success", runtime_ms, total_rows)
+        data = _sanitize_for_json(result["data"])
+        query_history.add(sql, "success", runtime_ms, result["total_rows"])
 
         return {
             "queryId": query_id,
@@ -72,9 +75,9 @@ async def execute_query(req: QueryRequest):
             "columns": result["columns"],
             "data": data,
             "rowCount": len(data),
-            "totalRows": total_rows,
-            "hasMore": truncated,
-            "truncated": truncated,
+            "totalRows": result["total_rows"],
+            "offset": result["offset"],
+            "hasMore": result["has_more"],
             "runtimeMs": runtime_ms,
             "status": "success",
             "error": None,

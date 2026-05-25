@@ -361,40 +361,47 @@ export const useAnalysisStore = create<AnalysisState>()(
       partialize: (state) => {
         const MAX_STORAGE_BYTES = 4 * 1024 * 1024; // 4MB
         let runs = state.runs.map((r) => {
-          if (r.saved) return r; // Saved runs: full persistence
-          // Unsaved runs: truncate heavy data
-          return {
-            ...r,
-            sections: r.sections.map((s) => ({
+          // Compress both saved and unsaved runs
+          const compressRun = (run: typeof r) => ({
+            ...run,
+            sections: run.sections.map((s) => ({
               ...s,
               content: s.content.length > 500 ? s.content.slice(-500) : s.content,
             })),
-            chartSpecs: r.chartSpecs.map((c) => ({ ...c, data: [] })),
-            multiResult: r.multiResult ? {
-              ...r.multiResult,
-              steps: r.multiResult.steps.map((s) => ({ ...s, columns: s.columns, data: [] })),
+            chartSpecs: run.chartSpecs.map((c) => ({
+              ...c,
+              // Keep max 100 data points per chart
+              data: c.data.length > 100 ? c.data.slice(0, 100) : c.data,
+            })),
+            multiResult: run.multiResult ? {
+              ...run.multiResult,
+              steps: run.multiResult.steps.map((s) => ({
+                ...s,
+                // Keep max 50 rows per step
+                data: s.data.length > 50 ? s.data.slice(0, 50) : s.data,
+              })),
             } : null,
-            trace: r.trace ? {
-              trace_id: r.trace.trace_id,
-              total_llm_calls: r.trace.total_llm_calls,
-              total_input_tokens: r.trace.total_input_tokens,
-              total_output_tokens: r.trace.total_output_tokens,
-              events: [],
-              guardrail_violations: r.trace.guardrail_violations,
+            trace: run.trace ? {
+              trace_id: run.trace.trace_id,
+              total_llm_calls: run.trace.total_llm_calls,
+              total_input_tokens: run.trace.total_input_tokens,
+              total_output_tokens: run.trace.total_output_tokens,
+              events: run.trace.events.slice(-20), // Keep last 20 events
+              guardrail_violations: run.trace.guardrail_violations,
             } : null,
-          };
+          });
+
+          return compressRun(r);
         });
-        // Size guard: drop oldest unsaved runs if over limit
+
+        // Size guard: drop oldest runs if over limit
         const jsonSize = JSON.stringify({ ...state, runs }).length;
         if (jsonSize > MAX_STORAGE_BYTES) {
-          console.warn(`[analysis-store] Persisted size ${(jsonSize / 1024 / 1024).toFixed(1)}MB exceeds 4MB limit, trimming oldest unsaved runs`);
-          const saved = runs.filter((r) => r.saved);
-          const unsaved = runs.filter((r) => !r.saved).reverse(); // newest first
-          while (unsaved.length > 0 && JSON.stringify({ ...state, runs: [...saved, ...unsaved] }).length > MAX_STORAGE_BYTES) {
-            unsaved.pop(); // drop oldest
+          console.warn(`[analysis-store] Persisted size ${(jsonSize / 1024 / 1024).toFixed(1)}MB exceeds 4MB limit, trimming oldest runs`);
+          // Drop oldest runs first, regardless of saved status
+          while (runs.length > 5 && JSON.stringify({ ...state, runs }).length > MAX_STORAGE_BYTES) {
+            runs.shift(); // drop oldest
           }
-          runs = [...saved, ...unsaved.reverse()];
-          runs.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
         }
         return { ...state, runs };
       },

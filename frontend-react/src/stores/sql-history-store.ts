@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { fetchQueryHistory } from "@/services/api";
 
 export interface SqlHistoryEntry {
   id: number;
@@ -15,6 +16,7 @@ interface SqlHistoryState {
   history: SqlHistoryEntry[];
   searchQuery: string;
   filterStatus: "all" | "success" | "error";
+  isLoading: boolean;
 
   setHistory: (history: SqlHistoryEntry[]) => void;
   addEntry: (entry: SqlHistoryEntry) => void;
@@ -24,6 +26,7 @@ interface SqlHistoryState {
   setFilterStatus: (status: "all" | "success" | "error") => void;
   getFiltered: () => SqlHistoryEntry[];
   exportHistory: () => string;
+  fetchHistory: () => Promise<void>;
 }
 
 export const useSqlHistoryStore = create<SqlHistoryState>()(
@@ -32,6 +35,7 @@ export const useSqlHistoryStore = create<SqlHistoryState>()(
       history: [],
       searchQuery: "",
       filterStatus: "all",
+      isLoading: false,
 
       setHistory: (history) => set({ history }),
 
@@ -68,7 +72,50 @@ export const useSqlHistoryStore = create<SqlHistoryState>()(
         const { history } = get();
         return JSON.stringify(history, null, 2);
       },
+
+      // Fetch history from backend (DuckDB persistence)
+      fetchHistory: async () => {
+        set({ isLoading: true });
+        try {
+          const backendHistory = await fetchQueryHistory(200);
+          if (backendHistory && Array.isArray(backendHistory)) {
+            set({ history: backendHistory });
+          }
+        } catch (error) {
+          console.error("Failed to fetch history from backend:", error);
+          // Fallback to localStorage data already loaded by persist middleware
+        } finally {
+          set({ isLoading: false });
+        }
+      },
     }),
-    { name: "sql-history", storage: createJSONStorage(() => localStorage) }
+    {
+      name: "sql-history",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => {
+        const MAX_STORAGE_BYTES = 2 * 1024 * 1024; // 2MB limit for query history
+        let history = state.history;
+
+        // Truncate long SQL queries to save space
+        history = history.map((entry) => ({
+          ...entry,
+          sql: entry.sql.length > 1000 ? entry.sql.slice(0, 1000) + "\n... [truncated]" : entry.sql,
+          error: entry.error && entry.error.length > 500 ? entry.error.slice(0, 500) : entry.error,
+        }));
+
+        // Size guard: drop oldest entries if over limit
+        const jsonSize = JSON.stringify({ ...state, history }).length;
+        if (jsonSize > MAX_STORAGE_BYTES) {
+          console.warn(
+            `[sql-history-store] Persisted size ${(jsonSize / 1024 / 1024).toFixed(1)}MB exceeds 2MB limit, trimming oldest entries`
+          );
+          while (history.length > 50 && JSON.stringify({ ...state, history }).length > MAX_STORAGE_BYTES) {
+            history.pop(); // drop oldest
+          }
+        }
+
+        return { ...state, history };
+      },
+    }
   )
 );

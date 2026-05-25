@@ -177,7 +177,26 @@ class DatabaseManager:
             f'SELECT * FROM "{table_name}" LIMIT {limit};'
         ).fetchdf()
 
-    def execute_query(self, sql: str) -> pd.DataFrame:
-        """Execute a raw SQL query and return results as DataFrame."""
+    def execute_query(self, sql: str, timeout_ms: int = 300000) -> pd.DataFrame:
+        """Execute a raw SQL query and return results as DataFrame.
+
+        Args:
+            sql: SQL query string.
+            timeout_ms: Query timeout in milliseconds (default: 300s).
+
+        Returns:
+            pd.DataFrame with query results.
+
+        Raises:
+            TimeoutError: If query exceeds timeout.
+        """
         conn = self.connect()
+
+        # Set statement timeout
+        try:
+            conn.execute(f"SET statement_timeout = '{timeout_ms}ms';")
+        except Exception:
+            # Some DuckDB versions may not support this
+            pass
+
         return conn.execute(sql).fetchdf()

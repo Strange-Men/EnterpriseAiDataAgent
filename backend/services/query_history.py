@@ -1,20 +1,64 @@
-"""In-memory query history store.
+"""In-memory query history store with DuckDB persistence.
 
 Stores recent SQL query executions with metadata for the UI.
-Persists across page refreshes within the server lifetime.
+Persists across server restarts via DuckDB backend.
 """
 
 import time
 from collections import deque
+from database.db_manager import DatabaseManager
 
 
 class QueryHistory:
-    """Thread-safe ring buffer of recent query executions."""
+    """Thread-safe ring buffer of recent query executions with DuckDB persistence."""
 
     def __init__(self, max_size: int = 200):
         self._history: deque[dict] = deque(maxlen=max_size)
+        self._db = DatabaseManager()
+        self._table_name = "query_history"
+        self._init_table()
+        self._load_from_db()
+
+    def _init_table(self):
+        """Create query_history table if not exists."""
+        conn = self._db.connect()
+        conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS "{self._table_name}" (
+                id BIGINT PRIMARY KEY,
+                sql TEXT NOT NULL,
+                status VARCHAR(10) NOT NULL,
+                runtime_ms INTEGER NOT NULL,
+                row_count INTEGER DEFAULT 0,
+                error TEXT,
+                timestamp VARCHAR(25) NOT NULL
+            );
+        """)
+
+    def _load_from_db(self):
+        """Load existing history from DuckDB into memory."""
+        try:
+            conn = self._db.connect()
+            rows = conn.execute(
+                f'SELECT id, sql, status, runtime_ms, row_count, error, timestamp '
+                f'FROM "{self._table_name}" ORDER BY id DESC LIMIT 200;'
+            ).fetchall()
+            for row in rows:
+                entry = {
+                    "id": row[0],
+                    "sql": row[1],
+                    "status": row[2],
+                    "runtimeMs": row[3],
+                    "rowCount": row[4],
+                    "error": row[5],
+                    "timestamp": row[6],
+                }
+                self._history.append(entry)
+        except Exception:
+            # Table might be empty or not exist yet
+            pass
 
     def add(self, sql: str, status: str, runtime_ms: int, row_count: int = 0, error: str = None):
+        """Add a query execution entry to history."""
         entry = {
             "id": int(time.time() * 1000),
             "sql": sql.strip(),
@@ -24,10 +68,39 @@ class QueryHistory:
             "error": error,
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
         }
+
+        # Add to memory
         self._history.appendleft(entry)
+
+        # Persist to DuckDB
+        try:
+            conn = self._db.connect()
+            conn.execute(
+                f'INSERT INTO "{self._table_name}" (id, sql, status, runtime_ms, row_count, error, timestamp) '
+                f'VALUES (?, ?, ?, ?, ?, ?, ?);',
+                [entry["id"], entry["sql"], entry["status"], entry["runtimeMs"],
+                 entry["rowCount"], entry["error"], entry["timestamp"]]
+            )
+        except Exception:
+            # Silently fail persistence - in-memory still works
+            pass
+
+        # Cleanup old entries from DB (keep 200)
+        try:
+            conn = self._db.connect()
+            conn.execute(f"""
+                DELETE FROM "{self._table_name}"
+                WHERE id NOT IN (
+                    SELECT id FROM "{self._table_name}" ORDER BY id DESC LIMIT 200
+                );
+            """)
+        except Exception:
+            pass
+
         return entry
 
     def get_all(self, limit: int = 50) -> list[dict]:
+        """Return up to limit entries from history."""
         return list(self._history)[:limit]
 
 
