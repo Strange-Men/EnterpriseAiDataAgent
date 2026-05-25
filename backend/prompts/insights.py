@@ -6,7 +6,7 @@ CONTRACT = PromptContract(
     name="insights",
     purpose="从查询结果中生成带置信度的结构化洞察",
     required_vars=["question", "results"],
-    optional_vars=[],
+    optional_vars=["prior_context"],
     response_format="json",
     max_output_tokens=1024,
     supports_streaming=True,
@@ -15,6 +15,8 @@ CONTRACT = PromptContract(
 SYSTEM_PROMPT = """You are an AI data analyst generating insights from query results.
 
 Given the query results and the original question, provide ranked insights.
+
+If prior analysis context is provided, build on those findings — avoid repeating them, and focus on new or deeper insights.
 
 Output as JSON:
 {
@@ -39,13 +41,21 @@ Rules:
 - category: type of finding"""
 
 
-def build_user_message(question: str, results: list[dict]) -> str:
+def build_user_message(
+    question: str,
+    results: list[dict],
+    prior_context: str | None = None,
+) -> str:
     """构建洞察的用户消息。"""
     import json
 
     truncated = results[:50]
-    return (
-        f"Question: {question}\n\n"
+    parts = []
+    if prior_context:
+        parts.append(f"Prior analysis context:\n{prior_context}\n")
+    parts.append(f"Question: {question}\n\n")
+    parts.append(
         f"Results ({len(results)} rows, showing first {len(truncated)}):\n"
         f"{json.dumps(truncated, default=str, ensure_ascii=False)}"
     )
+    return "\n".join(parts)

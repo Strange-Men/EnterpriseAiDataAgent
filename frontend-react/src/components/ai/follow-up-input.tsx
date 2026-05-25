@@ -43,6 +43,13 @@ export function FollowUpInput({ results, onSqlGenerated, question: controlledQue
         });
         ctx.previous_sample_rows = results.slice(0, 5);
       }
+      // Enhanced: enrich with accumulated key findings and investigation summary
+      if (sessionStore.keyFindings.length > 0) {
+        ctx.prior_key_findings = sessionStore.keyFindings.slice(0, 5);
+      }
+      if (sessionStore.investigationSummary) {
+        ctx.investigation_summary = sessionStore.investigationSummary;
+      }
 
       const res = await aiQuery(q, true, true, Object.keys(ctx).length > 0 ? ctx : undefined, i18n.language);
 

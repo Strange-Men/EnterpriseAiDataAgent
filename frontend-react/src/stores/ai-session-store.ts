@@ -21,6 +21,7 @@ export interface AiTurn {
 const MAX_TURNS = 20;
 const KEEP_TURNS = 8; // turns kept verbatim after compression
 const COMPRESS_AT = 15; // compress when turns exceed this count
+const MAX_KEY_FINDINGS = 10;
 
 interface AiContextForApi {
   compressedSummary: string | null;
@@ -29,6 +30,8 @@ interface AiContextForApi {
   lastColumns: string[] | null;
   lastRowCount: number | null;
   lastSql: string | null;
+  keyFindings: string[];
+  investigationSummary: string | null;
 }
 
 interface AiSessionState {
@@ -39,12 +42,18 @@ interface AiSessionState {
   lastSql: string | null;
   lastInsightSummary: string | null;
   compressedSummary: string | null;
+  keyFindings: string[];
+  investigationSummary: string | null;
 
   addUserTurn: (content: string) => void;
   addAssistantTurn: (content: string, sql?: string) => void;
   setContext: (ctx: { table?: string; columns?: string[]; rowCount?: number }) => void;
   getRecentTurns: (max?: number) => AiTurn[];
   getContextForApi: () => AiContextForApi;
+  addKeyFinding: (finding: string) => void;
+  setInvestigationSummary: (summary: string) => void;
+  getContextForInsights: () => string | null;
+  getContextForPlan: () => string[] | null;
   clear: () => void;
 }
 
@@ -54,14 +63,17 @@ function compressTurns(turns: AiTurn[]): { summary: string; keptTurns: AiTurn[] 
   if (turns.length <= KEEP_TURNS) return { summary: "", keptTurns: turns };
   const older = turns.slice(0, -KEEP_TURNS);
   const recent = turns.slice(-KEEP_TURNS);
-  // Build summary from older turns: extract key user questions and SQL
+  // Structured compression: extract key info per turn
   const parts: string[] = [];
   for (const turn of older) {
     if (turn.role === "user") {
-      const preview = turn.content.length > 80 ? turn.content.slice(0, 80) + "..." : turn.content;
+      const preview = turn.content.length > 120 ? turn.content.slice(0, 120) + "..." : turn.content;
       parts.push(`Q: ${preview}`);
-    } else if (turn.sql) {
-      parts.push(`SQL: ${turn.sql.slice(0, 100)}`);
+    } else {
+      if (turn.sql) parts.push(`SQL: ${turn.sql}`); // full SQL, not truncated
+      // Extract first sentence as key finding
+      const firstSentence = turn.content.split(/[.。!！]/)[0]?.trim();
+      if (firstSentence) parts.push(`Finding: ${firstSentence.slice(0, 150)}`);
     }
   }
   return { summary: parts.join("\n"), keptTurns: recent };
@@ -79,6 +91,8 @@ export const useAiSessionStore = create<AiSessionState>()(
       lastSql: null,
       lastInsightSummary: null,
       compressedSummary: null,
+      keyFindings: [],
+      investigationSummary: null,
 
       addUserTurn: (content) =>
         set((state) => {
@@ -140,7 +154,42 @@ export const useAiSessionStore = create<AiSessionState>()(
           lastColumns: state.lastColumns,
           lastRowCount: state.lastRowCount,
           lastSql: state.lastSql,
+          keyFindings: state.keyFindings,
+          investigationSummary: state.investigationSummary,
         };
+      },
+
+      addKeyFinding: (finding) =>
+        set((state) => {
+          // Deduplicate: skip if already present (case-insensitive prefix match)
+          const normalized = finding.toLowerCase().trim();
+          if (state.keyFindings.some((f) => f.toLowerCase().trim() === normalized)) {
+            return {};
+          }
+          const updated = [...state.keyFindings, finding];
+          return { keyFindings: updated.slice(-MAX_KEY_FINDINGS) };
+        }),
+
+      setInvestigationSummary: (summary) => set({ investigationSummary: summary }),
+
+      getContextForInsights: () => {
+        const state = get();
+        const parts: string[] = [];
+        if (state.keyFindings.length > 0) {
+          parts.push("Key Findings from prior analysis:");
+          state.keyFindings.slice(0, 5).forEach((f, i) => {
+            parts.push(`  ${i + 1}. ${f}`);
+          });
+        }
+        if (state.investigationSummary) {
+          parts.push(`\nInvestigation Summary:\n${state.investigationSummary}`);
+        }
+        return parts.length > 0 ? parts.join("\n") : null;
+      },
+
+      getContextForPlan: () => {
+        const state = get();
+        return state.keyFindings.length > 0 ? state.keyFindings.slice(0, 5) : null;
       },
 
       clear: () =>
@@ -152,6 +201,8 @@ export const useAiSessionStore = create<AiSessionState>()(
           lastSql: null,
           lastInsightSummary: null,
           compressedSummary: null,
+          keyFindings: [],
+          investigationSummary: null,
         }),
     }),
     {
@@ -165,6 +216,8 @@ export const useAiSessionStore = create<AiSessionState>()(
         lastRowCount: state.lastRowCount,
         lastSql: state.lastSql,
         lastInsightSummary: state.lastInsightSummary,
+        keyFindings: state.keyFindings,
+        investigationSummary: state.investigationSummary,
       }),
     }
   )
