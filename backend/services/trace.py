@@ -49,7 +49,7 @@ class AnalysisTrace:
 class TraceRecorder:
     """每个分析实例一个 recorder，记录所有 LLM 调用。"""
 
-    def __init__(self, question: str, table: str = "", mode: str = "query", language: str = "en"):
+    def __init__(self, question: str, table: str = "", mode: str = "query", language: str = "zh"):
         self.trace = AnalysisTrace(
             trace_id=str(uuid.uuid4())[:8],
             question=question,

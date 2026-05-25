@@ -1,0 +1,11 @@
+id,name,category,amount,date
+1,Product A,Electronics,299.99,2025-01-15
+2,Product B,Clothing,49.50,2025-01-16
+3,Product C,Electronics,599.00,2025-02-01
+4,Product D,Food,12.99,2025-02-10
+5,Product E,Clothing,89.99,2025-03-05
+6,Product F,Electronics,199.99,2025-03-15
+7,Product G,Food,24.50,2025-04-01
+8,Product H,Clothing,120.00,2025-04-20
+9,Product I,Electronics,449.99,2025-05-10
+10,Product J,Food,8.75,2025-05-25

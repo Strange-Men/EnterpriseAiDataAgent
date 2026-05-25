@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.post("/analyze/{table_name}")
-async def analyze_table(table_name: str, language: str = "en"):
+async def analyze_table(table_name: str, language: str = "zh"):
     """Run full automated analysis on a table."""
     start = time.time()
 

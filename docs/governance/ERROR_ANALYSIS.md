@@ -30,6 +30,19 @@
 | Zustand persist conflict | Low | State corruption | Clear localStorage |
 | React hydration mismatch | Low | Brief flicker | Use `useEffect` for client-only state |
 
+### 5. AI Pipeline Errors (v0.5.x+)
+| Category | Frequency | Impact | Resolution |
+|----------|-----------|--------|------------|
+| LLM API timeout | Medium | AI feature fails | Add timeout + retry with backoff |
+| LLM rate limit | Low | AI feature delayed | Respect Retry-After header |
+| Malformed LLM JSON response | Medium | Partial results | JSON parse fallback, return partial status |
+| SSE stream interruption | Low | Streaming stops mid-response | Timeout mechanism (120s), drain buffer |
+| Token budget overflow | Low | Steps skipped | Budget tracking, skip gracefully |
+| Guardrail violation | Low | Steps aborted | Record violation, continue or break per severity |
+| Follow-up context corruption | Low | Wrong follow-up results | Explicit type handling before JSON serialization |
+| Type inference failure (all-null) | Low | Wrong SQL type functions | Scan 50 rows, VARCHAR fallback |
+| Empty AI result | Low | Blank UI | Diagnostic event with failure summary |
+
 ## Known Patterns
 
 ### Pattern: TypeScript implicit `any` in Monaco

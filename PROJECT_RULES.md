@@ -92,17 +92,25 @@
 |------|------|------|
 | v0.3.x | Enterprise Data Platform | Done |
 | v0.5.x | AI Data Analyst MVP — AI System Engineering | Done |
-| v0.6.x | Anomaly Detection, Multi-turn UX, E2E Tests | Next |
+| v0.6.x | Meta Governance & Autonomous QA | In Progress |
+| v0.7.x | Anomaly Detection, Multi-turn UX | Next |
 
 禁止跳版本乱开发。
+
+### 2.11 语言治理规则 (v0.6.0+)
+
+- 人类沟通（注释、文档、commit 描述）：**中文**
+- 代码标识符、commit message、API 名称、架构术语：**英文**
+- AI 输出：跟随当前 UI 语言
+- 默认语言：`zh`（中文），通过 UI 切换到英文
 
 ---
 
 ## 三、当前项目阶段
 
 - **已完成**: v0.3.x Enterprise Data Platform + v0.5.x AI Data Analyst MVP
-- **当前版本**: v0.5.9
-- **当前重点**: Anomaly detection, multi-turn UX polish, E2E tests
+- **当前版本**: v0.6.0
+- **当前重点**: 语言治理、文档清理、后端单元测试、AI 可靠性、E2E 测试
 
 ---
 

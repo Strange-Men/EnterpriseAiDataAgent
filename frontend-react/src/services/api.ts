@@ -307,8 +307,17 @@ export interface GenericStreamCallbacks {
   onError: (err: Error) => void;
 }
 
-function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promise<Response>, callbacks: GenericStreamCallbacks): AbortController {
+function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promise<Response>, callbacks: GenericStreamCallbacks, timeoutMs = 120_000): AbortController {
   const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const resetTimeout = () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      callbacks.onError(new Error(`Stream timeout after ${timeoutMs / 1000}s of inactivity`));
+    }, timeoutMs);
+  };
+  resetTimeout();
   createResponse(controller.signal).then(async (res) => {
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -322,6 +331,7 @@ function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promis
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        resetTimeout();
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
@@ -329,8 +339,8 @@ function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promis
           if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.type === "done") callbacks.onDone(data);
-              else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
+              if (data.type === "done") { if (timeoutId) clearTimeout(timeoutId); callbacks.onDone(data); }
+              else if (data.type === "error") { if (timeoutId) clearTimeout(timeoutId); callbacks.onError(new Error(data.error || "Unknown error")); }
               else callbacks.onEvent(data);
             } catch {
               // Skip malformed SSE line
@@ -338,6 +348,7 @@ function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promis
           }
         }
       }
+      if (timeoutId) clearTimeout(timeoutId);
       // Drain remaining buffer after stream ends
       buffer += decoder.decode();
       if (buffer.trim()) {
@@ -365,8 +376,17 @@ function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promis
   return controller;
 }
 
-function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Response>, callbacks: StreamCallbacks): AbortController {
+function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Response>, callbacks: StreamCallbacks, timeoutMs = 60_000): AbortController {
   const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const resetTimeout = () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      callbacks.onError(new Error(`Stream timeout after ${timeoutMs / 1000}s of inactivity`));
+    }, timeoutMs);
+  };
+  resetTimeout();
   createResponse(controller.signal).then(async (res) => {
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -380,6 +400,7 @@ function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Respo
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        resetTimeout();
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
@@ -388,14 +409,15 @@ function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Respo
             try {
               const data = JSON.parse(line.slice(6));
               if (data.type === "text") callbacks.onChunk(data.content);
-              else if (data.type === "done") callbacks.onDone();
-              else if (data.type === "error") callbacks.onError(new Error(data.error));
+              else if (data.type === "done") { if (timeoutId) clearTimeout(timeoutId); callbacks.onDone(); }
+              else if (data.type === "error") { if (timeoutId) clearTimeout(timeoutId); callbacks.onError(new Error(data.error)); }
             } catch {
               // Skip malformed SSE line
             }
           }
         }
       }
+      if (timeoutId) clearTimeout(timeoutId);
       // Drain remaining buffer after stream ends
       buffer += decoder.decode();
       if (buffer.trim()) {

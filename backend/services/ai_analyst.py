@@ -103,6 +103,22 @@ def build_schema_context(tables: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _safe_serialize(obj):
+    """安全序列化: datetime→ISO, Decimal→float, bytes→base64。"""
+    import decimal
+    import datetime
+    import base64
+    if isinstance(obj, datetime.datetime):
+        return obj.isoformat()
+    if isinstance(obj, datetime.date):
+        return obj.isoformat()
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    if isinstance(obj, bytes):
+        return base64.b64encode(obj).decode("ascii")
+    return str(obj)
+
+
 def build_follow_up_context(ctx: dict) -> str:
     """构建结构化的前序分析上下文，用于追问查询。
 
@@ -124,7 +140,7 @@ def build_follow_up_context(ctx: dict) -> str:
     if samples:
         parts.append(
             f"Previous Result Sample (first {len(samples)} rows):\n"
-            f"{json.dumps(samples, default=str, ensure_ascii=False)}\n"
+            f"{json.dumps(samples, default=_safe_serialize, ensure_ascii=False)}\n"
         )
 
     summary = ctx.get("previous_insight_summary", "")
@@ -142,7 +158,7 @@ def _call_llm(
     system: str,
     user_message: str,
     max_tokens: int = 1024,
-    language: str = "en",
+    language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     operation: str = "unknown",
     trace: TraceRecorder | None = None,
@@ -225,7 +241,7 @@ def _call_llm_stream(
     system: str,
     user_message: str,
     max_tokens: int = 1024,
-    language: str = "en",
+    language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     operation: str = "unknown",
     trace: TraceRecorder | None = None,
@@ -302,7 +318,7 @@ def generate_sql(
     question: str,
     schema_context: str,
     follow_up_context: str | None = None,
-    language: str = "en",
+    language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
     phase: str = "unknown",
@@ -344,7 +360,7 @@ def generate_sql(
 def explain_results(
     question: str, sql: str, results: list[dict],
     conversation_history: list[dict] | None = None,
-    language: str = "en",
+    language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
 ) -> dict:
@@ -379,7 +395,7 @@ def explain_results(
 def explain_results_stream(
     question: str, sql: str, results: list[dict],
     conversation_history: list[dict] | None = None,
-    language: str = "en",
+    language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
 ):
@@ -399,7 +415,7 @@ def explain_results_stream(
 
 def generate_insights(
     question: str, results: list[dict],
-    language: str = "en",
+    language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
 ) -> dict:
@@ -442,7 +458,7 @@ def generate_insights(
 
 def generate_insights_stream(
     question: str, results: list[dict],
-    language: str = "en",
+    language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
 ):
@@ -463,7 +479,7 @@ def generate_insights_stream(
 def suggest_charts(
     results: list[dict],
     question: str = "",
-    language: str = "en",
+    language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
 ) -> dict:
@@ -506,7 +522,7 @@ def generate_semantics(
     table: str,
     columns: list[dict],
     sample_rows: list[dict],
-    language: str = "en",
+    language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
 ) -> dict:
@@ -554,7 +570,7 @@ def suggest_questions(
     table: str,
     profile: dict,
     semantics: dict | None = None,
-    language: str = "en",
+    language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
 ) -> dict:
@@ -597,7 +613,7 @@ def generate_analysis_plan(
     table: str,
     columns: list[dict],
     sample_rows: list[dict],
-    language: str = "en",
+    language: str = "zh",
     tracker: WorkflowTokenTracker | None = None,
     trace: TraceRecorder | None = None,
     phase: str = "planning",

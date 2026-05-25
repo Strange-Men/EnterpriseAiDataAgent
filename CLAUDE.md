@@ -10,9 +10,9 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.5.9 (Core AI Stabilization — 12 bug fixes, explain pipeline, follow-up redesign, trace accuracy)
-- **Phase**: v0.5.x AI Data Analyst MVP — DONE
-- **Next**: v0.6.x (anomaly detection, multi-turn UX polish, E2E tests)
+- **Current**: v0.6.0 (Meta Governance & Autonomous QA — language governance, doc cleanup, backend unit tests, AI reliability, E2E tests)
+- **Phase**: v0.6.x Meta Governance & Autonomous QA
+- **Next**: v0.7.x (anomaly detection, multi-turn UX polish)
 
 ## Scope Rules
 
@@ -28,9 +28,8 @@ Claude must NOT:
 1. Read `CURRENT_SESSION.md` (mandatory — session restore)
 2. Read `PROJECT_RULES.md` (mandatory)
 3. Read `docs/governance/FILE_SYSTEM_RULES.md` (mandatory — file placement)
-4. Read `docs/frontend_rules/` files (mandatory)
-5. Check `KNOWN_ISSUES.md` for open bugs
-6. Check current version in `docs/architecture/版本记录.md`
+4. Check `KNOWN_ISSUES.md` for open bugs
+5. Check current version in `docs/architecture/版本记录.md`
 
 ### Git Rules
 - Every version MUST be committed: `git add .` + `git commit -m "version-name"`
@@ -49,6 +48,13 @@ Claude must NOT:
 - Read error messages completely
 - Fix root causes, not symptoms
 - Retry after fixes until system runs
+
+### Language Governance Rules (v0.6.0+)
+- Human communication (comments, docs, commit descriptions): **Chinese**
+- Code identifiers, commit messages, API names, architecture terms: **English**
+- AI output: follow current UI language (`apply_language()` from `backend.prompts.locale`)
+- Default language: `zh` (Chinese). English via UI toggle.
+- System prompts: always authored in English; language directive appended as suffix
 
 ### Code Quality Rules
 - NO demo-level implementations
