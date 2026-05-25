@@ -818,3 +818,115 @@ export async function generateReport(
     }),
   });
 }
+
+// ── Analysis Comparison ─────────────────────────────────────────
+
+export interface CompareResult {
+  run_a_id: string;
+  run_b_id: string;
+  summary: {
+    sections_added: number;
+    sections_removed: number;
+    sections_changed: number;
+    sections_unchanged: number;
+    sql_changed: boolean;
+    has_metrics_delta: boolean;
+  };
+  sections_diff: Array<{ title: string; change: string; old_content: string | null; new_content: string | null }>;
+  sql_diff: { old: string | null; new: string | null; changed: boolean };
+  metrics_diff: Record<string, { old: number; new: number; delta: number }>;
+}
+
+export async function compareRuns(runA: unknown, runB: unknown): Promise<CompareResult> {
+  return apiFetch("/ai/compare", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ run_a: runA, run_b: runB }),
+  });
+}
+
+// ── Analysis Bundle ──────────────────────────────────────────────
+
+export async function exportBundle(runs: unknown[], name: string): Promise<{ version: string; name: string; created_at: string; runs: unknown[]; metadata: Record<string, unknown>; status: string }> {
+  return apiFetch("/ai/bundle/export", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ runs, name }),
+  });
+}
+
+export async function importBundle(bundle: unknown): Promise<{ runs: unknown[]; metadata: Record<string, unknown>; status: string }> {
+  return apiFetch("/ai/bundle/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bundle }),
+  });
+}
+
+// ── AI Self-Evaluation ──────────────────────────────────────────
+
+export interface EvaluationResult {
+  confidence: number;
+  completeness: string;
+  accuracy: string;
+  actionability: string;
+  diagnostics: string[];
+  suggested_improvements: string[];
+  status: string;
+}
+
+export async function aiEvaluate(
+  question: string,
+  sections: unknown[],
+  trace?: unknown,
+  language?: string,
+): Promise<EvaluationResult> {
+  return apiFetch("/ai/evaluate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      question,
+      sections,
+      trace,
+      language: language || "zh",
+    }),
+  });
+}
+
+// ── Scheduled Analysis ──────────────────────────────────────────
+
+export async function createSchedule(data: {
+  name: string;
+  question: string;
+  table: string;
+  columns: unknown[];
+  sample_rows: unknown[];
+  interval: string;
+  language?: string;
+}): Promise<{ task_id: string; status: string }> {
+  return apiFetch("/ai/schedule", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...data, language: data.language || "zh" }),
+  });
+}
+
+export async function listSchedules(): Promise<{ tasks: unknown[] }> {
+  return apiFetch("/ai/schedule");
+}
+
+export async function deleteSchedule(taskId: string): Promise<{ status: string }> {
+  return apiFetch(`/ai/schedule/${taskId}`, { method: "DELETE" });
+}
+
+export async function toggleSchedule(taskId: string, enabled: boolean): Promise<{ status: string }> {
+  return apiFetch(`/ai/schedule/${taskId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+}
+
+export async function getScheduleResults(taskId: string): Promise<{ results: unknown[] }> {
+  return apiFetch(`/ai/schedule/${taskId}/results`);
+}

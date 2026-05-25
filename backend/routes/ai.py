@@ -338,3 +338,194 @@ async def generate_report(req: ReportRequest):
     opts = req.options.model_dump() if req.options else {}
     md = build_report(req.runs, opts)
     return {"markdown": md, "status": "success"}
+
+
+# ── Analysis Comparison ─────────────────────────────────────────
+
+class CompareRequest(BaseModel):
+    run_a: dict
+    run_b: dict
+
+
+@router.post("/ai/compare")
+async def compare_runs(req: CompareRequest):
+    """比较两个分析运行的结构化差异。"""
+    from backend.services.diff_engine import diff_runs
+    return diff_runs(req.run_a, req.run_b)
+
+
+# ── Analysis Bundle ─────────────────────────────────────────────
+
+class BundleExportRequest(BaseModel):
+    runs: list[dict]
+    name: str = "Analysis Bundle"
+
+
+@router.post("/ai/bundle/export")
+async def bundle_export(req: BundleExportRequest):
+    """将分析运行打包为可分享的 bundle。"""
+    from datetime import datetime
+    tables = set()
+    total_tokens = 0
+    for run in req.runs:
+        if run.get("table"):
+            tables.add(run["table"])
+        trace = run.get("trace") or {}
+        total_tokens += trace.get("total_output_tokens", 0)
+    return {
+        "version": "1.0",
+        "name": req.name,
+        "created_at": datetime.now().isoformat(),
+        "runs": req.runs,
+        "metadata": {
+            "run_count": len(req.runs),
+            "total_tokens": total_tokens,
+            "tables": list(tables),
+        },
+        "status": "success",
+    }
+
+
+class BundleImportRequest(BaseModel):
+    bundle: dict
+
+
+@router.post("/ai/bundle/import")
+async def bundle_import(req: BundleImportRequest):
+    """验证并导入 bundle。"""
+    b = req.bundle
+    if not isinstance(b, dict):
+        raise HTTPException(status_code=400, detail="Invalid bundle: not a dict")
+    if "runs" not in b or not isinstance(b["runs"], list):
+        raise HTTPException(status_code=400, detail="Invalid bundle: missing runs")
+    if "version" not in b:
+        raise HTTPException(status_code=400, detail="Invalid bundle: missing version")
+    # Validate each run has required fields
+    for i, run in enumerate(b["runs"]):
+        if not isinstance(run, dict):
+            raise HTTPException(status_code=400, detail=f"Invalid run at index {i}: not a dict")
+        if "mode" not in run:
+            raise HTTPException(status_code=400, detail=f"Invalid run at index {i}: missing mode")
+    return {
+        "runs": b["runs"],
+        "metadata": b.get("metadata", {}),
+        "status": "success",
+    }
+
+
+# ── AI Self-Evaluation ──────────────────────────────────────────
+
+class EvaluateRequest(BaseModel):
+    question: str
+    sections: list[dict]
+    trace: dict | None = None
+    language: str = "zh"
+
+
+@router.post("/ai/evaluate")
+async def ai_evaluate(req: EvaluateRequest):
+    """AI 对分析结果做自我评估。"""
+    from backend.prompts.self_evaluation import CONTRACT, build_user_message
+    from backend.prompts.locale import apply_language
+    from backend.services.ai_analyst import _call_llm
+    import json as _json
+    import re
+
+    system = apply_language(CONTRACT.SYSTEM_PROMPT, req.language)
+    user_msg = build_user_message(req.question, req.sections, req.trace)
+
+    raw = _call_llm(
+        system=system,
+        user_message=user_msg,
+        max_tokens=CONTRACT.max_output_tokens,
+        language=req.language,
+        operation="self_evaluation",
+        phase="evaluate",
+        prompt_name="self_evaluation",
+    )
+
+    try:
+        parsed = _json.loads(raw)
+    except _json.JSONDecodeError:
+        match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
+        if match:
+            parsed = _json.loads(match.group(1))
+        else:
+            raise HTTPException(status_code=500, detail=f"Failed to parse evaluation response")
+
+    return {
+        "confidence": parsed.get("confidence", 0.5),
+        "completeness": parsed.get("completeness", "unknown"),
+        "accuracy": parsed.get("accuracy", "unknown"),
+        "actionability": parsed.get("actionability", "unknown"),
+        "diagnostics": parsed.get("diagnostics", []),
+        "suggested_improvements": parsed.get("suggested_improvements", []),
+        "status": "success",
+    }
+
+
+# ── Scheduled Analysis ──────────────────────────────────────────
+
+class ScheduleCreateRequest(BaseModel):
+    name: str
+    question: str
+    table: str
+    columns: list[dict]
+    sample_rows: list[dict]
+    interval: str = "daily"
+    language: str = "zh"
+
+
+@router.post("/ai/schedule")
+async def create_schedule(req: ScheduleCreateRequest):
+    """创建定时分析任务。"""
+    from backend.services.scheduler import get_manager
+    manager = get_manager()
+    task_id = manager.add_task(
+        name=req.name,
+        question=req.question,
+        table=req.table,
+        columns=req.columns,
+        sample_rows=req.sample_rows,
+        interval=req.interval,
+        language=req.language,
+    )
+    return {"task_id": task_id, "status": "success"}
+
+
+@router.get("/ai/schedule")
+async def list_schedules():
+    """列出所有定时分析任务。"""
+    from backend.services.scheduler import get_manager
+    manager = get_manager()
+    return {"tasks": [t.to_dict() for t in manager.list_tasks()]}
+
+
+@router.delete("/ai/schedule/{task_id}")
+async def delete_schedule(task_id: str):
+    """删除定时分析任务。"""
+    from backend.services.scheduler import get_manager
+    manager = get_manager()
+    if not manager.remove_task(task_id):
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"status": "success"}
+
+
+@router.patch("/ai/schedule/{task_id}")
+async def toggle_schedule(task_id: str, body: dict):
+    """启用/禁用定时分析任务。"""
+    from backend.services.scheduler import get_manager
+    manager = get_manager()
+    enabled = body.get("enabled", True)
+    if not manager.set_enabled(task_id, enabled):
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"status": "success"}
+
+
+@router.get("/ai/schedule/{task_id}/results")
+async def get_schedule_results(task_id: str):
+    """获取定时任务的执行结果。"""
+    from backend.services.scheduler import get_manager
+    manager = get_manager()
+    results = manager.get_results(task_id)
+    return {"results": results}

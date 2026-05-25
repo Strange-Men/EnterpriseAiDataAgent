@@ -325,6 +325,37 @@ const en = {
     "report.download": "Download .md",
     "report.generating": "Generating report...",
     "report.empty": "No completed runs to include.",
+    // Diff
+    "diff.compare": "Compare",
+    "diff.run-a": "Run A",
+    "diff.run-b": "Run B",
+    "diff.metrics": "Metrics",
+    "diff.tokens": "Tokens",
+    "diff.llm-calls": "LLM Calls",
+    "diff.row-count": "Row Count",
+    "diff.sections": "Sections",
+    // Timeline
+    "timeline.evolution": "Timeline",
+    "timeline.no-evolution": "No version history for this run.",
+    "timeline.close": "Close",
+    // Evaluation
+    "eval.confidence": "Confidence",
+    "eval.diagnostics": "Diagnostics",
+    "eval.improvements": "Suggestions",
+    // Schedule
+    "schedule.title": "Scheduled Analysis",
+    "schedule.add": "Add Schedule",
+    "schedule.name": "Name",
+    "schedule.question": "Question",
+    "schedule.interval": "Interval",
+    "schedule.hourly": "Hourly",
+    "schedule.daily": "Daily",
+    "schedule.weekly": "Weekly",
+    "schedule.enabled": "Enabled",
+    "schedule.disabled": "Disabled",
+    "schedule.no-tasks": "No scheduled tasks.",
+    "schedule.last-run": "Last run",
+    "schedule.next-run": "Next run",
   },
 };
 

@@ -325,6 +325,37 @@ const zh = {
     "report.download": "下载 .md",
     "report.generating": "生成报告中...",
     "report.empty": "暂无已完成的运行记录。",
+    // Diff
+    "diff.compare": "对比",
+    "diff.run-a": "运行 A",
+    "diff.run-b": "运行 B",
+    "diff.metrics": "指标",
+    "diff.tokens": "Token 数",
+    "diff.llm-calls": "LLM 调用",
+    "diff.row-count": "行数",
+    "diff.sections": "分析段落",
+    // Timeline
+    "timeline.evolution": "版本演进",
+    "timeline.no-evolution": "该运行没有版本历史。",
+    "timeline.close": "关闭",
+    // Evaluation
+    "eval.confidence": "置信度",
+    "eval.diagnostics": "诊断",
+    "eval.improvements": "改进建议",
+    // Schedule
+    "schedule.title": "定时分析",
+    "schedule.add": "添加定时任务",
+    "schedule.name": "名称",
+    "schedule.question": "问题",
+    "schedule.interval": "频率",
+    "schedule.hourly": "每小时",
+    "schedule.daily": "每天",
+    "schedule.weekly": "每周",
+    "schedule.enabled": "已启用",
+    "schedule.disabled": "已禁用",
+    "schedule.no-tasks": "暂无定时任务。",
+    "schedule.last-run": "上次执行",
+    "schedule.next-run": "下次执行",
   },
 };
 
