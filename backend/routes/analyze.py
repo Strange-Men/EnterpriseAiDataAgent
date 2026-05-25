@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException
 from backend.services import data_service
 from backend.services.profiler import build_profile
 from backend.services.ai_analyst import generate_insights, suggest_charts
+from backend.utils.json_safe import normalize_for_response
 
 router = APIRouter()
 
@@ -62,7 +63,7 @@ async def analyze_table(table_name: str, language: str = "zh"):
 
         elapsed = (time.time() - start) * 1000
 
-        return {
+        return normalize_for_response({
             "table": table_name,
             "profile": profile,
             "quality": quality,
@@ -75,7 +76,7 @@ async def analyze_table(table_name: str, language: str = "zh"):
             "data": sample_data,
             "elapsed_ms": round(elapsed, 2),
             "status": "success",
-        }
+        })
 
     except HTTPException:
         raise
@@ -91,7 +92,7 @@ async def get_profile(table_name: str):
         if df.empty:
             raise HTTPException(status_code=404, detail=f"Table '{table_name}' is empty")
         profile = build_profile(df, table_name)
-        return {"table": table_name, "profile": profile, "status": "success"}
+        return normalize_for_response({"table": table_name, "profile": profile, "status": "success"})
     except HTTPException:
         raise
     except Exception as e:

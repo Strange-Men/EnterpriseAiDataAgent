@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from backend.services.data_service import get_executor, _sanitize_for_json
 from backend.services.query_history import query_history
 from backend.services.export_service import export_as_csv, export_as_json, export_as_excel
+from backend.utils.json_safe import normalize_for_response
 
 router = APIRouter()
 
@@ -52,7 +53,7 @@ async def execute_query(req: QueryRequest):
 
         if result["status"] == "error":
             query_history.add(sql, "error", runtime_ms, 0, result["error"])
-            return {
+            return normalize_for_response({
                 "queryId": query_id,
                 "sql": sql,
                 "columns": [],
@@ -64,12 +65,12 @@ async def execute_query(req: QueryRequest):
                 "runtimeMs": runtime_ms,
                 "status": "error",
                 "error": result["error"],
-            }
+            })
 
         data = _sanitize_for_json(result["data"])
         query_history.add(sql, "success", runtime_ms, result["total_rows"])
 
-        return {
+        return normalize_for_response({
             "queryId": query_id,
             "sql": sql,
             "columns": result["columns"],
@@ -81,7 +82,7 @@ async def execute_query(req: QueryRequest):
             "runtimeMs": runtime_ms,
             "status": "success",
             "error": None,
-        }
+        })
     except Exception as e:
         runtime_ms = int((time.time() - start) * 1000)
         query_history.add(sql, "error", runtime_ms, 0, str(e))
@@ -92,7 +93,7 @@ async def execute_query(req: QueryRequest):
 
 @router.get("/query/history")
 async def get_history(limit: int = 50):
-    return query_history.get_all(limit)
+    return normalize_for_response(query_history.get_all(limit))
 
 
 @router.post("/query/explain")
@@ -103,8 +104,8 @@ async def explain_query(req: ExplainRequest):
 
     result = get_executor().explain(sql)
     if result["status"] == "error":
-        return {"sql": sql, "plan": [], "status": "error", "error": result["error"]}
-    return {"sql": sql, "plan": result["plan"], "status": "success", "error": None}
+        return normalize_for_response({"sql": sql, "plan": [], "status": "error", "error": result["error"]})
+    return normalize_for_response({"sql": sql, "plan": result["plan"], "status": "success", "error": None})
 
 
 @router.post("/query/cancel")
@@ -152,4 +153,4 @@ async def get_all_schemas():
         name = table["name"]
         cols = [c["name"] for c in table.get("columns", [])]
         result[name] = cols
-    return result
+    return normalize_for_response(result)

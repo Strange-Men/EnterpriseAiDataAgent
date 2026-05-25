@@ -14,13 +14,20 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from backend.config import API_VERSION
 from backend.routes import upload, tables, quality, query, ai, analyze
 from backend.services.data_service import check_db_connection, get_uptime, get_db, get_system_health
 from backend.middleware.observability import ObservabilityMiddleware
+
+# Configure root logger for full traceback visibility
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 logger = logging.getLogger("enterprise_ai.main")
 
@@ -68,6 +75,26 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Enterprise AI Data Agent API", version=API_VERSION, lifespan=lifespan)
+
+
+# ── Global exception handler ──────────────────────────────────────
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch-all for unhandled exceptions — logs full traceback, returns clean JSON."""
+    import traceback
+    tb = traceback.format_exc()
+    logger.error(
+        f"Unhandled exception in {request.method} {request.url.path}:\n{tb}"
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "detail": str(exc),
+            "path": str(request.url.path),
+        },
+    )
+
 
 # Observability middleware (must be added before CORS for proper timing)
 app.add_middleware(ObservabilityMiddleware)
