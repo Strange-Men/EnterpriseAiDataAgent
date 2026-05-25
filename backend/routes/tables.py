@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from backend.services.data_service import get_db, list_tables, get_table_preview, get_table_schema, delete_table, _sanitize_for_json
+from backend.utils.json_safe import normalize_for_response
 
 router = APIRouter()
 
@@ -29,7 +30,7 @@ async def get_tables():
                 "columns": cols,
                 "uploadTime": tbl.get("uploadTime"),
             })
-        return result
+        return normalize_for_response(result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -74,14 +75,14 @@ async def get_table_data_paginated(
         rows = conn.execute(f'SELECT * FROM "{table_name}" LIMIT {page_size} OFFSET {offset}').fetchdf()
         columns = list(rows.columns)
         data = _sanitize_for_json(rows.to_dict(orient="records"))
-        return {
+        return normalize_for_response({
             "columns": columns,
             "data": data,
             "page": page,
             "pageSize": page_size,
             "totalRows": total_rows,
             "hasMore": offset + page_size < total_rows,
-        }
+        })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

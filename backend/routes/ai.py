@@ -31,6 +31,7 @@ from backend.services.ai_analyst import (
 )
 from backend.services.ai_pipeline import run_ai_query, run_autonomous_analysis, run_autonomous_analysis_stream
 from backend.services.guardrails import AnalysisGuardrails
+from backend.utils.json_safe import json_safe_encoder, normalize_for_response
 
 router = APIRouter()
 
@@ -193,7 +194,7 @@ async def ai_anomalies_stream(req: AnomalyDetectRequest):
 
 def _sse_event(data: dict) -> str:
     """Format a dict as an SSE event string."""
-    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+    return f"data: {json.dumps(data, default=json_safe_encoder, ensure_ascii=False)}\n\n"
 
 
 @router.post("/ai/explain/stream")

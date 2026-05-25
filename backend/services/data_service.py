@@ -2,15 +2,13 @@
 
 import io
 import time
-import math
-import numpy as np
-import pandas as pd
 
 from database.db_manager import DatabaseManager
 from database.file_loader import load_file, FileLoadError
 from database.schema_detector import detect_schema
 from database.data_quality import analyze_dataframe
 from database.query_executor import QueryExecutor
+from backend.utils.json_safe import normalize_for_response
 
 
 class UploadFileAdapter:
@@ -167,30 +165,12 @@ def upload_file(filename: str, content: bytes) -> dict:
 
 
 def _sanitize_for_json(data: list[dict]) -> list[dict]:
-    """Replace NaN/Inf/NaT with None for JSON compliance."""
-    cleaned = []
-    for row in data:
-        clean_row = {}
-        for k, v in row.items():
-            if isinstance(v, (float, np.floating)):
-                if math.isnan(float(v)) or math.isinf(float(v)):
-                    clean_row[k] = None
-                    continue
-            if isinstance(v, (np.integer,)):
-                clean_row[k] = int(v)
-                continue
-            if isinstance(v, (np.bool_,)):
-                clean_row[k] = bool(v)
-                continue
-            try:
-                if pd.isna(v):
-                    clean_row[k] = None
-                    continue
-            except (TypeError, ValueError):
-                pass
-            clean_row[k] = v
-        cleaned.append(clean_row)
-    return cleaned
+    """Normalize a list of row dicts to JSON-safe native Python types.
+
+    Delegates to normalize_for_response for comprehensive type handling.
+    Kept for backward compatibility with existing imports.
+    """
+    return normalize_for_response(data)
 
 
 def get_table_preview(table_name: str, limit: int = 100) -> dict:

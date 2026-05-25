@@ -22,6 +22,8 @@ Track all open issues, bugs, and improvements here.
 | ISSUE-002 | Query history lost on server restart (in-memory deque) | Medium | Yes | Fixed | Claude | v0.6.4: Added DuckDB persistence, loads on startup |
 | ISSUE-005 | `docs/frontend_rules/` files reference Vue/Element Plus (different project) | Low | Yes | Open | Claude | Keep as reference pattern; not directly applicable |
 | ISSUE-006 | SQL query API returns all data in one response (no pagination) | Medium | Yes | Fixed | Claude | v0.6.4: Added server-side OFFSET/LIMIT pagination, infinite scroll |
+| ISSUE-013 | CSV export writes "nan" string for NaN values instead of empty | Low | Yes | Open | Claude | Use df.fillna('').to_csv() instead of manual iteration |
+| ISSUE-014 | Test isolation: QueryHistory shares DuckDB between tests | Low | Yes | Open | Claude | Use in-memory DB or mock for tests |
 
 ## Closed Issues
 
@@ -35,6 +37,7 @@ Track all open issues, bugs, and improvements here.
 | ISSUE-010 | DuckDB file locked by stale Python process — SQL execution fails with "另一个程序正在使用此文件" | Critical | Fixed | 2026-05-23 | Root cause: orphaned Python process (PID 15232) held exclusive DuckDB lock. Fix: kill stale process. Added `dev:clean` workflow (v0.3.10) |
 | ISSUE-011 | `queryId` always null when Cancel button clicked — backend cancel never called | Critical | Fixed | 2026-05-23 | Root cause: `queryId` in `useState` only set after query completes, but Cancel only visible during execution. Fix: moved to `useRef` (v0.3.10) |
 | ISSUE-012 | `handleExecute` recreated on every `isExecuting` change — stale closure risk in Monaco | Medium | Fixed | 2026-05-23 | Root cause: `isExecuting` in dependency array causes new function ref on every state change. Fix: read from `useSqlWorkspaceStore.getState()` directly (v0.3.10) |
+| ISSUE-015 | SQL query API returns 500 — numpy.bool_ not serializable by FastAPI | Critical | Fixed | 2026-05-25 | Root cause: `jsonable_encoder` can't handle `numpy.bool_`. Fix: new `normalize_for_response()` utility, applied to all route returns + SSE events. Added 41 regression tests. (v0.7.6) |
 
 ## Backlog (Future Improvements)
 
