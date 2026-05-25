@@ -244,6 +244,21 @@ const en = {
     "ai.generating-plan": "Generating analysis plan...",
     "ai.executing-step": "Executing step",
 
+    // Anomaly Detection
+    "ai.anomaly-detection": "Anomaly Detection",
+    "ai.anomalies-found": "anomalies found",
+    "ai.no-anomalies": "No anomalies detected in the data.",
+    "ai.anomaly-summary": "Anomaly Summary",
+    "ai.anomaly-details": "Anomaly Details",
+    "ai.anomaly-interpretations": "Interpretations",
+    "ai.columns-affected": "Columns Affected",
+    "ai.of-rows": "of rows",
+    "ai.expected-range": "Expected Range",
+    "ai.deviation": "Deviation",
+    "ai.method": "Method",
+    "ai.investigation": "Investigation",
+    "ai.recommended-actions": "Recommended Actions",
+
     // SQL Workspace AI
     "sql.ai-analyze": "AI Analyze",
     "sql.ai-explain": "AI Explain",

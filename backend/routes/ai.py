@@ -22,6 +22,8 @@ from backend.services.ai_analyst import (
     generate_semantics,
     suggest_questions,
     generate_analysis_plan,
+    detect_and_interpret_anomalies,
+    detect_and_interpret_anomalies_stream,
     MODEL,
     TEMPERATURE,
 )
@@ -136,6 +138,46 @@ async def ai_insights(req: InsightsRequest):
 async def ai_chart_suggest(req: ChartSuggestRequest):
     """Suggest chart types for data."""
     return suggest_charts(req.results, req.question, req.language)
+
+
+# ── Anomaly Detection ──────────────────────────────────────────
+
+class AnomalyDetectRequest(BaseModel):
+    question: str
+    results: list[dict]
+    columns: list[str] | None = None
+    method: str = "auto"
+    language: str = "zh"
+
+
+@router.post("/ai/anomalies")
+async def ai_anomalies(req: AnomalyDetectRequest):
+    """Detect and interpret anomalies in query results."""
+    result = detect_and_interpret_anomalies(
+        req.question, req.results, req.columns, req.method, req.language
+    )
+    if result["status"] == "error":
+        raise HTTPException(status_code=500, detail=result.get("error", "Anomaly detection failed"))
+    return result
+
+
+@router.post("/ai/anomalies/stream")
+async def ai_anomalies_stream(req: AnomalyDetectRequest):
+    """Stream anomaly detection: statistical results first, then LLM interpretation."""
+    def event_generator():
+        try:
+            for event in detect_and_interpret_anomalies_stream(
+                req.question, req.results, req.columns, req.method, req.language
+            ):
+                yield _sse_event(json.loads(event))
+        except Exception as e:
+            yield _sse_event({"type": "error", "error": str(e)})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+    })
 
 
 # ── Streaming Endpoints ─────────────────────────────────────────

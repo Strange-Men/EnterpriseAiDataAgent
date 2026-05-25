@@ -416,6 +416,13 @@ export function SqlWorkspacePanel() {
             >
               {t("ai.charts-title")}
             </button>
+            <button
+              onClick={() => handleAiAction("anomalies")}
+              className="px-3 py-1.5 text-xs border border-amber-500/30 text-amber-400 rounded-md hover:bg-amber-500/10 hover:border-amber-500/50 transition-colors"
+              title={t("ai.anomaly-detection")}
+            >
+              {t("ai.anomaly-detection")}
+            </button>
           </>
         )}
 

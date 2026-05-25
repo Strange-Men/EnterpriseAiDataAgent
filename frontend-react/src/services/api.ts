@@ -4,7 +4,7 @@
  * All endpoints proxy through Next.js rewrites: /api/* → http://localhost:8000/api/*
  */
 
-import type { TableInfo, QualityReport } from "@/types";
+import type { TableInfo, QualityReport, AnomalyResult } from "@/types";
 
 const API_BASE = "/api";
 
@@ -981,4 +981,61 @@ export async function toggleSchedule(taskId: string, enabled: boolean): Promise<
 
 export async function getScheduleResults(taskId: string): Promise<{ results: unknown[] }> {
   return apiFetch(`/ai/schedule/${taskId}/results`);
+}
+
+// ── Anomaly Detection ──────────────────────────────────────────
+
+export async function aiDetectAnomalies(
+  question: string,
+  results: Record<string, unknown>[],
+  columns?: string[],
+  method: string = "auto",
+  language?: string
+): Promise<AnomalyResult> {
+  const body: Record<string, unknown> = { question, results, method };
+  if (columns) body.columns = columns;
+  if (language) body.language = language;
+  return apiFetch<AnomalyResult>("/ai/anomalies", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export interface AnomalyStreamCallbacks {
+  onDetection: (data: AnomalyResult) => void;
+  onChunk: (text: string) => void;
+  onDone: () => void;
+  onError: (err: Error) => void;
+}
+
+export function streamAiDetectAnomalies(
+  question: string,
+  results: Record<string, unknown>[],
+  callbacks: AnomalyStreamCallbacks,
+  columns?: string[],
+  method: string = "auto",
+  language?: string
+): AbortController {
+  const body: Record<string, unknown> = { question, results, method };
+  if (columns) body.columns = columns;
+  if (language) body.language = language;
+
+  return consumeSseStreamGeneric(
+    (signal) => fetch(`${API_BASE}/ai/anomalies/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal,
+    }),
+    {
+      onEvent: (data) => {
+        const type = data.type as string;
+        if (type === "detection") callbacks.onDetection(data.data as unknown as AnomalyResult);
+        else if (type === "text") callbacks.onChunk((data.content as string) || "");
+      },
+      onDone: () => callbacks.onDone(),
+      onError: callbacks.onError,
+    }
+  );
 }

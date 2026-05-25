@@ -10,17 +10,18 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.6.3 (Analysis Operations Layer — comparison, schedule, timeline, bundle, self-evaluation)
-- **Phase**: v0.6.x Meta Governance & Autonomous QA
-- **Next**: v0.7.x (anomaly detection, multi-turn UX polish)
+- **Current**: v0.7.0 (Anomaly Detection Engine — statistical detection + LLM interpretation)
+- **Phase**: v0.7.x AI Analyst Intelligence Layer
+- **Next**: v0.7.1 (multi-turn analysis continuity)
 
 ## Scope Rules
 
 **v0.5.x completed scope**: AI Data Analyst MVP (streaming, semantics, planning, guardrails, trace, evaluation).
+**v0.6.x completed scope**: Meta Governance & Autonomous QA (language governance, templates, reports, scheduler, diff, evaluation).
 Claude must NOT:
 - Proactively add LangGraph, Multi-Agent, or RAG features
 - Suggest implementing multi-agent capabilities
-- Add features beyond v0.6.x scope without user approval
+- Add features beyond v0.7.x scope without user approval
 
 ## Development Rules
 
@@ -142,3 +143,5 @@ AI API:
 - `/ai/plan` (POST) — generate analysis plan
 - `/ai/analyze-multi` (POST) — multi-step autonomous analysis
 - `/ai/analyze-multi/stream` (POST) — streaming multi-step analysis (SSE)
+- `/ai/anomalies` (POST) — detect and interpret data anomalies
+- `/ai/anomalies/stream` (POST) — streaming anomaly detection (SSE)

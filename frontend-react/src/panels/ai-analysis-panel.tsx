@@ -12,6 +12,7 @@ import {
   aiSuggestQuestions,
   streamAiAnalyzeMulti,
   getTableProfile,
+  aiDetectAnomalies,
   type FollowUpContext,
   type MultiStepResult,
   type PlanStep,
@@ -28,7 +29,7 @@ import { FollowUpInput } from "@/components/ai/follow-up-input";
 
 // Re-export for consumers
 export type { AnalysisSection } from "@/stores/analysis-store";
-export type AnalysisMode = "explain" | "insights" | "charts" | "full-analysis" | "autonomous";
+export type AnalysisMode = "explain" | "insights" | "charts" | "full-analysis" | "autonomous" | "anomalies";
 
 // ── Loading skeleton ──────────────────────────────────────────
 function AnalysisSkeleton() {
@@ -259,6 +260,69 @@ export function AIAnalysisPanel({
           content: md || t("ai.no-charts"),
           type: "markdown",
         });
+      } else if (mode === "anomalies" && question && results) {
+        // Anomaly detection mode
+        const res = await aiDetectAnomalies(question, results, undefined, "auto", i18n.language);
+        raw = res;
+
+        if (res.anomalies.length === 0) {
+          builtSections.push({
+            title: t("ai.anomaly-detection"),
+            content: t("ai.no-anomalies"),
+            type: "markdown",
+          });
+        } else {
+          // Summary section
+          let summaryMd = `**${res.summary.total_anomalies}** ${t("ai.anomalies-found")} `;
+          summaryMd += `(${res.summary.anomaly_rate_pct}% ${t("ai.of-rows")})\n\n`;
+          summaryMd += `**${t("ai.columns-affected")}:** ${res.summary.columns_affected.join(", ")}\n`;
+          builtSections.push({
+            title: t("ai.anomaly-summary"),
+            content: summaryMd,
+            type: "markdown",
+          });
+
+          // Anomaly details
+          let detailMd = `| ${t("ai.column")} | ${t("ai.value")} | ${t("ai.expected-range")} | ${t("ai.deviation")} | ${t("ai.method")} |\n|---|---|---|---|---|\n`;
+          res.anomalies.slice(0, 20).forEach((a) => {
+            detailMd += `| ${a.column} | ${a.value} | [${a.expected_range[0]}, ${a.expected_range[1]}] | ${a.deviation_score}x | ${a.method} |\n`;
+          });
+          builtSections.push({
+            title: t("ai.anomaly-details"),
+            content: detailMd,
+            type: "markdown",
+          });
+
+          // LLM interpretations
+          if (res.interpretations.length > 0) {
+            let interpMd = "";
+            res.interpretations.forEach((interp) => {
+              const sevBadge = interp.severity === "high" ? " **[HIGH]**" : interp.severity === "medium" ? " [MED]" : "";
+              interpMd += `#### ${interp.column} — ${interp.anomaly_type}${sevBadge}\n`;
+              interpMd += `${interp.business_meaning}\n\n`;
+              interpMd += `*${t("ai.investigation")}: ${interp.suggested_investigation}*\n\n`;
+            });
+            builtSections.push({
+              title: t("ai.anomaly-interpretations"),
+              content: interpMd,
+              type: "markdown",
+            });
+          }
+
+          // Recommended actions
+          if (res.recommended_actions.length > 0) {
+            let actMd = "";
+            res.recommended_actions.forEach((a) => { actMd += `- [ ] ${a}\n`; });
+            builtSections.push({
+              title: t("ai.recommended-actions"),
+              content: actMd,
+              type: "markdown",
+            });
+          }
+        }
+
+        // Store anomalies on the run
+        useAnalysisStore.getState().updateRun(runId, { anomalies: res });
       } else if (mode === "full-analysis" && tableName) {
         const res = await analyzeTable(tableName, i18n.language);
         raw = res;
