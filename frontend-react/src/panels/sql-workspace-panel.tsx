@@ -26,8 +26,9 @@ export function SqlWorkspacePanel() {
   const {
     isExecuting, setExecuting,
     queryResult, setQueryResult,
+    hasMore, isLoadingMore, loadMore,
   } = useSqlWorkspaceStore();
-  const { addEntry } = useSqlHistoryStore();
+  const { addEntry, fetchHistory } = useSqlHistoryStore();
   const {
     tabs, activeTabId, addTab, removeTab, renameTab,
     setActiveTab, updateTabSql, getActiveTab,
@@ -49,6 +50,11 @@ export function SqlWorkspacePanel() {
       }
     };
   }, []);
+
+  // Fetch query history from backend on mount
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   // Query state — use ref (not useState) so handleCancel always reads current value
   const queryIdRef = useRef<number | null>(null);
@@ -122,7 +128,7 @@ export function SqlWorkspacePanel() {
     abortControllerRef.current = controller;
 
     try {
-      const result = await executeQuery(sql, 10000, controller.signal);
+      const result = await executeQuery(sql, 0, 10000, controller.signal);
       queryIdRef.current = result.queryId;
       setQueryResult(result);
       addEntry({
@@ -650,7 +656,13 @@ export function SqlWorkspacePanel() {
       {/* ── Result table ─────────────────────────────────── */}
       {queryResult?.status === "success" && queryResult.columns.length > 0 && (
         <div className="flex-1 min-h-0">
-          <DataTable data={queryResult.data} columns={queryResult.columns} />
+          <DataTable
+            data={queryResult.data}
+            columns={queryResult.columns}
+            onLoadMore={loadMore}
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+          />
         </div>
       )}
 

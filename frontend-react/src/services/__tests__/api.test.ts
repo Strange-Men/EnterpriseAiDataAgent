@@ -123,14 +123,14 @@ describe("api service", () => {
       expect(res.status).toBe("success");
       expect(mockFetch).toHaveBeenCalledWith("/api/query", expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ sql: "SELECT 1", limit: 10000 }),
+        body: JSON.stringify({ sql: "SELECT 1", offset: 0, limit: 10000 }),
       }));
     });
 
     it("should pass abort signal", async () => {
       const controller = new AbortController();
       mockFetch.mockResolvedValueOnce(mockJsonResponse({ status: "success" }));
-      await executeQuery("SELECT 1", 100, controller.signal);
+      await executeQuery("SELECT 1", 0, 100, controller.signal);
       expect(mockFetch).toHaveBeenCalledWith("/api/query", expect.objectContaining({
         signal: controller.signal,
       }));

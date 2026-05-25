@@ -52,6 +52,70 @@ class QueryExecutor:
         except Exception as e:
             return self._error_result(sql, str(e))
 
+    def execute_paginated(self, sql: str, offset: int = 0, limit: int = 10000, timeout_ms: int = 300000) -> dict:
+        """Execute a SQL query with server-side pagination.
+
+        Args:
+            sql: The SQL query string.
+            offset: Number of rows to skip.
+            limit: Maximum rows to return.
+            timeout_ms: Query timeout in milliseconds (default: 300s).
+
+        Returns:
+            {
+                "sql": str,
+                "columns": list[str],
+                "data": list[dict],
+                "row_count": int,
+                "total_rows": int,
+                "offset": int,
+                "has_more": bool,
+                "status": "success" | "error",
+                "error": str | None,
+            }
+        """
+        sql = sql.strip()
+        if not sql:
+            return self._error_result(sql, "Empty SQL query.")
+
+        try:
+            # Wrap user query in pagination
+            sql_clean = sql.rstrip(";").strip()
+            paginated_sql = f"SELECT * FROM ({sql_clean}) AS _sub LIMIT {limit} OFFSET {offset}"
+            df = self.db.execute_query(paginated_sql, timeout_ms=timeout_ms)
+
+            # Get total count (separate query with shorter timeout)
+            count_sql = f"SELECT COUNT(*) FROM ({sql_clean}) AS _sub"
+            count_df = self.db.execute_query(count_sql, timeout_ms=min(timeout_ms, 60000))
+            total_rows = count_df.iloc[0, 0] if len(count_df) > 0 else 0
+
+            return {
+                "sql": sql,
+                "columns": list(df.columns),
+                "data": df.to_dict(orient="records"),
+                "row_count": len(df),
+                "total_rows": int(total_rows),
+                "offset": offset,
+                "has_more": (offset + len(df)) < total_rows,
+                "status": "success",
+                "error": None,
+            }
+        except Exception as e:
+            error_msg = str(e)
+            if "timeout" in error_msg.lower() or "Timeout" in error_msg:
+                error_msg = f"Query timeout after {timeout_ms}ms. Consider adding LIMIT to your query."
+            return {
+                "sql": sql,
+                "columns": [],
+                "data": [],
+                "row_count": 0,
+                "total_rows": 0,
+                "offset": offset,
+                "has_more": False,
+                "status": "error",
+                "error": error_msg,
+            }
+
     def preview_table(self, table_name: str, limit: int = 50) -> dict:
         """Fetch the first N rows of a table."""
         sql = f'SELECT * FROM "{table_name}" LIMIT {limit};'
