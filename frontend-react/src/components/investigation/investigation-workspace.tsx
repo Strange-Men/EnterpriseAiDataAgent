@@ -19,7 +19,7 @@ import { ToolsPanel } from "./tools-panel";
 import { QuestionInput } from "./question-input";
 import { StreamingOutput, type InvestigationResult } from "./streaming-output";
 import { StreamingIndicator } from "./ai-streaming-indicator";
-import type { ChartSpec } from "@/components/ui/ai-chart";
+import type { ChartSpec } from "@/types";
 import type { AnomalyResult } from "@/types";
 
 export function InvestigationWorkspace() {
@@ -50,6 +50,10 @@ export function InvestigationWorkspace() {
   const handleStart = useCallback(async (question: string, table: string, mode: AnalysisMode) => {
     // Abort any in-progress stream
     abortRef.current?.abort();
+
+    // Reset investigation context — prevents bleed between investigations (B1)
+    investigation.clear();
+    investigation.reset();
 
     setIsLoading(true);
     setStreamStage("");

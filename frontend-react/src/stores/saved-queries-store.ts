@@ -72,11 +72,14 @@ export const useSavedQueriesStore = create<SavedQueriesState>()(
     {
       name: "saved-queries",
       storage: createJSONStorage(() => localStorage),
-      merge: (persisted, current) => {
-        if (!persisted || typeof persisted !== "object") return current;
+      version: 1,
+      migrate: (persisted: unknown, version: number) => {
+        if (!persisted || typeof persisted !== "object") return { queries: [] };
         const p = persisted as Record<string, unknown>;
-        if (!Array.isArray(p.queries)) return current;
-        return { ...current, queries: p.queries };
+        if (version < 1) {
+          return { queries: Array.isArray(p.queries) ? p.queries : [] };
+        }
+        return persisted as { queries: SavedQuery[] };
       },
     }
   )

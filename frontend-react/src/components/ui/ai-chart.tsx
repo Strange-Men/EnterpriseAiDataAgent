@@ -11,14 +11,10 @@ import {
 import { Download, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChartSkeleton } from "@/components/ui/skeleton";
+import type { ChartSpec } from "@/types";
 
-export interface ChartSpec {
-  type: "bar" | "line" | "pie" | "scatter";
-  title: string;
-  xKey: string;
-  yKey: string;
-  data: Record<string, unknown>[];
-}
+// Re-export for consumers
+export type { ChartSpec } from "@/types";
 
 const THEME_COLORS = [
   "var(--accent)", "var(--success)", "var(--info)",

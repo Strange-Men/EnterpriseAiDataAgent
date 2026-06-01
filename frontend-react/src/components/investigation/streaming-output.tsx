@@ -8,7 +8,7 @@ import { StepResults } from "@/components/ai/step-results";
 import { AiChart } from "@/components/ui/ai-chart";
 import { StreamingSkeleton } from "@/components/ui/skeleton";
 import type { MultiStreamEvent, MultiStepExecuted, PlanStep } from "@/services/api";
-import type { ChartSpec } from "@/components/ui/ai-chart";
+import type { ChartSpec } from "@/types";
 import type { AnomalyResult } from "@/types";
 
 export interface InvestigationResult {

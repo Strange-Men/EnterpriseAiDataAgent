@@ -261,23 +261,26 @@ export const useSqlEditorStore = create<SqlEditorState>()(
     {
       name: NEW_KEY,
       storage: createJSONStorage(() => localStorage),
-      merge: (persisted, current) => {
-        if (!persisted || typeof persisted !== "object") return current;
+      version: 1,
+      migrate: (persisted: unknown, version: number) => {
+        if (!persisted || typeof persisted !== "object") return {};
         const p = persisted as Record<string, unknown>;
-        if (!Array.isArray(p.tabs)) return current;
-        const tabs = (p.tabs as QueryTab[]).filter(
-          (t) => t && typeof t === "object" && typeof t.id === "string"
-        );
-        if (tabs.length === 0) return current;
-        const activeTabId = typeof p.activeTabId === "string" ? p.activeTabId : tabs[0].id;
-        const activeTab = tabs.find((t) => t.id === activeTabId);
-        return {
-          ...current,
-          tabs,
-          activeTabId,
-          currentSql: activeTab?.sql ?? "",
-          activePanelTab: p.activePanelTab === "history" ? "history" : "editor",
-        };
+        if (version < 1) {
+          if (!Array.isArray(p.tabs)) return {};
+          const tabs = (p.tabs as QueryTab[]).filter(
+            (t) => t && typeof t === "object" && typeof t.id === "string"
+          );
+          if (tabs.length === 0) return {};
+          const activeTabId = typeof p.activeTabId === "string" ? p.activeTabId : tabs[0].id;
+          const activeTab = tabs.find((t) => t.id === activeTabId);
+          return {
+            tabs,
+            activeTabId,
+            currentSql: activeTab?.sql ?? "",
+            activePanelTab: p.activePanelTab === "history" ? "history" : "editor",
+          };
+        }
+        return p;
       },
       partialize: (state) => ({
         tabs: state.tabs,

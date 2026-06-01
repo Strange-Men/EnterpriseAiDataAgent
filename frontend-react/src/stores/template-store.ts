@@ -88,11 +88,14 @@ export const useTemplateStore = create<TemplateState>()(
     {
       name: "analysis-templates",
       storage: createJSONStorage(() => localStorage),
-      merge: (persisted, current) => {
-        if (!persisted || typeof persisted !== "object") return current;
+      version: 1,
+      migrate: (persisted: unknown, version: number) => {
+        if (!persisted || typeof persisted !== "object") return { templates: [] };
         const p = persisted as Record<string, unknown>;
-        if (!Array.isArray(p.templates)) return current;
-        return { ...current, templates: p.templates };
+        if (version < 1) {
+          return { templates: Array.isArray(p.templates) ? p.templates : [] };
+        }
+        return persisted as { templates: AnalysisTemplate[] };
       },
     }
   )

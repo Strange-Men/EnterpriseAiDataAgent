@@ -92,6 +92,14 @@ export interface AnomalyInterpretation {
   confidence: number;
 }
 
+export interface ChartSpec {
+  type: "bar" | "line" | "pie" | "scatter";
+  title: string;
+  xKey: string;
+  yKey: string;
+  data: Record<string, unknown>[];
+}
+
 export interface AnomalyResult {
   anomalies: AnomalyItem[];
   summary: {

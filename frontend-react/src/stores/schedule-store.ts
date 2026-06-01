@@ -97,11 +97,17 @@ export const useScheduleStore = create<ScheduleState>()(
     {
       name: "schedule-tasks",
       storage: createJSONStorage(() => localStorage),
-      merge: (persisted, current) => {
-        if (!persisted || typeof persisted !== "object") return current;
+      version: 1,
+      migrate: (persisted: unknown, version: number) => {
+        if (!persisted || typeof persisted !== "object") return { tasks: [], results: [] };
         const p = persisted as Record<string, unknown>;
-        if (!Array.isArray(p.tasks)) return current;
-        return { ...current, tasks: p.tasks, results: Array.isArray(p.results) ? p.results : [] };
+        if (version < 1) {
+          return {
+            tasks: Array.isArray(p.tasks) ? p.tasks : [],
+            results: Array.isArray(p.results) ? p.results : [],
+          };
+        }
+        return persisted as { tasks: ScheduledTask[]; results: ScheduleResult[] };
       },
       partialize: (state) => ({
         tasks: state.tasks,

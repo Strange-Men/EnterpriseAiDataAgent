@@ -21,8 +21,9 @@ import {
   type EvaluationResult,
 } from "@/services/api";
 import { useInvestigationStore } from "@/stores/investigation-store";
-import { useAnalysisStore, type AnalysisSection, type TraceSnapshot } from "@/stores/analysis-store";
-import { AiChart, type ChartSpec } from "@/components/ui/ai-chart";
+import { useAnalysisStore, type AnalysisSection, type AnalysisMode, type TraceSnapshot } from "@/stores/analysis-store";
+import { AiChart } from "@/components/ui/ai-chart";
+import type { ChartSpec } from "@/types";
 import { AnalysisHeader } from "@/components/ai/analysis-header";
 import { AnalysisSectionView } from "@/components/ai/analysis-section";
 import { StepResults } from "@/components/ai/step-results";
@@ -30,8 +31,7 @@ import { TraceTimeline } from "@/components/ai/trace-timeline";
 import { FollowUpInput } from "@/components/ai/follow-up-input";
 
 // Re-export for consumers
-export type { AnalysisSection } from "@/stores/analysis-store";
-export type AnalysisMode = "explain" | "insights" | "charts" | "full-analysis" | "autonomous" | "anomalies";
+export type { AnalysisSection, AnalysisMode } from "@/stores/analysis-store";
 
 // ── Loading skeleton ──────────────────────────────────────────
 function AnalysisSkeleton() {

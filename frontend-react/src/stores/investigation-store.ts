@@ -165,6 +165,10 @@ interface InvestigationState {
   // ── Reset ───────────────────────────────────────────────────────
 
   clear: () => void;
+
+  // ── Recovery ────────────────────────────────────────────────────
+
+  recoverStaleStage: () => void;
 }
 
 // ── Migrate before store creation ───────────────────────────────────
@@ -344,15 +348,46 @@ export const useInvestigationStore = create<InvestigationState>()(
           investigationSummary: null,
           drillChain: [],
         }),
+
+      // ── Recovery ──────────────────────────────────────────────────
+
+      recoverStaleStage: () => {
+        const { stage } = get();
+        const transientStages: InvestigationStage[] = ["uploading", "profiling", "analyzing", "executing"];
+        if (transientStages.includes(stage)) {
+          set({ stage: "idle" });
+        }
+      },
     }),
     {
       name: NEW_KEY,
       storage: createJSONStorage(() => localStorage),
-      merge: (persisted, current) => {
-        if (!persisted || typeof persisted !== "object") return current;
+      version: 1,
+      migrate: (persisted: unknown, version: number) => {
+        if (!persisted || typeof persisted !== "object") return {};
         const p = persisted as Record<string, unknown>;
-        if (!Array.isArray(p.turns) && !p.stage) return current;
-        return { ...current, ...p };
+        // Version 0 → 1: validate shape, pass through valid fields
+        if (version < 1) {
+          const result: Record<string, unknown> = {};
+          if (Array.isArray(p.turns)) result.turns = p.turns;
+          if (typeof p.stage === "string") result.stage = p.stage;
+          if (typeof p.source === "string") result.source = p.source;
+          if (typeof p.startedAt === "string") result.startedAt = p.startedAt;
+          if (typeof p.activeTable === "string") result.activeTable = p.activeTable;
+          if (typeof p.compressedSummary === "string") result.compressedSummary = p.compressedSummary;
+          if (Array.isArray(p.keyFindings)) result.keyFindings = p.keyFindings;
+          if (typeof p.investigationSummary === "string") result.investigationSummary = p.investigationSummary;
+          if (typeof p.lastSql === "string") result.lastSql = p.lastSql;
+          if (Array.isArray(p.lastColumns)) result.lastColumns = p.lastColumns;
+          if (typeof p.lastRowCount === "number") result.lastRowCount = p.lastRowCount;
+          if (typeof p.lastInsightSummary === "string") result.lastInsightSummary = p.lastInsightSummary;
+          if (Array.isArray(p.drillChain)) result.drillChain = p.drillChain;
+          return result;
+        }
+        return p;
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) state.recoverStaleStage();
       },
       partialize: (state) => ({
         stage: state.stage,

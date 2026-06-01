@@ -39,9 +39,18 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     {
       name: "workspace-settings",
       storage: createJSONStorage(() => localStorage),
-      merge: (persisted, current) => {
-        if (!persisted || typeof persisted !== "object") return current;
-        return { ...current, ...persisted };
+      version: 1,
+      migrate: (persisted: unknown, version: number) => {
+        if (!persisted || typeof persisted !== "object") return {};
+        const p = persisted as Record<string, unknown>;
+        if (version < 1) {
+          const result: Record<string, unknown> = {};
+          if (typeof p.language === "string") result.language = p.language;
+          if (typeof p.layout === "string") result.layout = p.layout;
+          if (p.collapsedPanels && typeof p.collapsedPanels === "object") result.collapsedPanels = p.collapsedPanels;
+          return result;
+        }
+        return p;
       },
     }
   )

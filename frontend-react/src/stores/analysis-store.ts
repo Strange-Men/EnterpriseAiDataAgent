@@ -8,7 +8,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { generateId } from "@/utils/id";
-import type { ChartSpec } from "@/components/ui/ai-chart";
+import type { ChartSpec } from "@/types";
 import type { MultiStepResult } from "@/services/api";
 import type { AnomalyResult } from "@/types";
 
@@ -392,11 +392,15 @@ export const useAnalysisStore = create<AnalysisState>()(
     {
       name: "analysis-history",
       storage: createJSONStorage(() => localStorage),
-      merge: (persisted, current) => {
-        if (!persisted || typeof persisted !== "object") return current;
+      version: 1,
+      migrate: (persisted: unknown, version: number) => {
+        if (!persisted || typeof persisted !== "object") return { runs: [] };
         const p = persisted as Record<string, unknown>;
-        if (!Array.isArray(p.runs)) return current;
-        return { ...current, runs: p.runs };
+        // Version 0 → 1: validate runs array exists
+        if (version < 1) {
+          return { runs: Array.isArray(p.runs) ? p.runs : [] };
+        }
+        return persisted as { runs: AnalysisRun[] };
       },
       onRehydrateStorage: () => (state) => {
         if (state) state.recoverInterruptedRuns();
