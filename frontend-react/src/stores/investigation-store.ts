@@ -118,9 +118,8 @@ interface InvestigationState {
   source: "upload" | "manual" | null;
   startedAt: string | null;
 
-  // Active context (references)
+  // Active context (reference)
   activeTable: string | null;
-  activeRunId: string | null;
 
   // AI conversation
   turns: AiTurn[];
@@ -148,7 +147,7 @@ interface InvestigationState {
 
   addUserTurn: (content: string) => void;
   addAssistantTurn: (content: string, sql?: string) => void;
-  setContext: (ctx: { table?: string; columns?: string[]; rowCount?: number }) => void;
+  setContext: (ctx: { table?: string | null; columns?: string[]; rowCount?: number }) => void;
   getRecentTurns: (max?: number) => AiTurn[];
   getContextForApi: () => AiContextForApi;
 
@@ -161,7 +160,6 @@ interface InvestigationState {
 
   // ── Investigation actions (new) ─────────────────────────────────
 
-  setActiveRun: (runId: string | null) => void;
   addToDrillChain: (runId: string) => void;
 
   // ── Reset ───────────────────────────────────────────────────────
@@ -185,7 +183,6 @@ export const useInvestigationStore = create<InvestigationState>()(
 
       // Context
       activeTable: null,
-      activeRunId: null,
 
       // Conversation
       turns: [],
@@ -219,7 +216,6 @@ export const useInvestigationStore = create<InvestigationState>()(
         set({
           stage: "idle",
           activeTable: null,
-          activeRunId: null,
           lastSql: null,
           startedAt: null,
           source: null,
@@ -270,7 +266,7 @@ export const useInvestigationStore = create<InvestigationState>()(
 
       setContext: (ctx) =>
         set({
-          activeTable: ctx.table ?? get().activeTable,
+          activeTable: ctx.table !== undefined ? ctx.table : get().activeTable,
           lastColumns: ctx.columns ?? get().lastColumns,
           lastRowCount: ctx.rowCount ?? get().lastRowCount,
         }),
@@ -327,8 +323,6 @@ export const useInvestigationStore = create<InvestigationState>()(
 
       // ── Investigation actions (new) ─────────────────────────────
 
-      setActiveRun: (runId) => set({ activeRunId: runId }),
-
       addToDrillChain: (runId) =>
         set((state) => {
           const chain = [...state.drillChain, runId];
@@ -341,7 +335,6 @@ export const useInvestigationStore = create<InvestigationState>()(
         set({
           turns: [],
           activeTable: null,
-          activeRunId: null,
           lastColumns: null,
           lastRowCount: null,
           lastSql: null,
@@ -366,7 +359,6 @@ export const useInvestigationStore = create<InvestigationState>()(
         source: state.source,
         startedAt: state.startedAt,
         activeTable: state.activeTable,
-        activeRunId: state.activeRunId,
         turns: state.turns.slice(-KEEP_TURNS),
         compressedSummary: state.compressedSummary,
         keyFindings: state.keyFindings,

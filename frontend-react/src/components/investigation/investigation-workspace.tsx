@@ -61,7 +61,6 @@ export function InvestigationWorkspace() {
     // Create run
     const runId = addRun(mode, question, table);
     setCurrentRunId(runId);
-    investigation.setActiveRun(runId);
     investigation.addUserTurn(question);
     investigation.advance("analyzing", { table });
 

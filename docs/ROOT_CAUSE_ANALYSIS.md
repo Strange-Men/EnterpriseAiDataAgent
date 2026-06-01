@@ -1,111 +1,249 @@
-# Root Cause Analysis — SQL API 500 (v0.7.5)
+# Root Cause Analysis — Enterprise AI Data Agent
 
-> Date: 2026-05-25
-> Severity: Critical
-> Status: Fixed in v0.7.6
+> Audit date: 2026-05-25 | Version: v0.7.6
 
-## 摘要
+## Historical Bug Registry
 
-SQL 查询 API 返回 HTTP 500 错误，FastAPI 响应序列化阶段崩溃。
+All major bugs from v0.3.9 through v0.7.6, with root causes, fixes, and regression risk.
 
-## 根因
+---
 
-**`numpy.bool_` 类型无法被 FastAPI `jsonable_encoder` 序列化。**
+### ISSUE-009: Corrupted .next Build Cache — Blank Page
 
-### 错误链
+| Field | Value |
+|-------|-------|
+| **Severity** | Critical |
+| **Found** | v0.3.10 |
+| **Status** | Fixed |
 
+**Symptom**: SSR 500, missing webpack chunk, blank page after build.
+
+**Root Cause**: Stale `.next` build cache from previous build contained orphaned chunks referenced by new build.
+
+**Fix**: Added `dev:clean` script (`rm -rf .next && npm run dev`). Added `clean` script to package.json.
+
+**Regression Risk**: Low. Cache corruption is environment-specific. `dev:clean` is a reliable escape hatch.
+
+---
+
+### ISSUE-010: DuckDB File Lock — SQL Execution Fails
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Critical |
+| **Found** | v0.3.10 |
+| **Status** | Fixed (v0.7.4 further hardened) |
+
+**Symptom**: `另一个程序正在使用此文件` — DuckDB file locked by stale Python process.
+
+**Root Cause**: Orphaned Python process (PID 15232) held exclusive DuckDB lock. The `DatabaseManager` singleton connected to the file at import time, and `uvicorn --reload` spawned new processes without releasing the old connection.
+
+**Fix (v0.3.10)**: Kill stale process. Added `dev:clean` workflow.
+**Fix (v0.7.4)**: Lazy initialization — `QueryHistory.__init__()` no longer calls `_init_table()`. `data_service._db`/`_executor` changed from module-level to lazy getters. Import-time no longer triggers `duckdb.connect()`.
+
+**Regression Risk**: Medium. The lazy init fixes the `--reload` case, but if `DatabaseManager.__new__` singleton is called directly from two processes, the old pattern still applies. The `reset_instance()` method exists but is not auto-called.
+
+---
+
+### ISSUE-011: queryId Always Null — Cancel Never Works
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Critical |
+| **Found** | v0.3.10 |
+| **Status** | Fixed |
+
+**Symptom**: Cancel button visible during execution, but `queryId` is null, so backend cancel endpoint never called.
+
+**Root Cause**: `queryId` was stored in `useState`, which is only set after query completes. But Cancel button is only visible during execution (`isExecuting === true`), so `queryId` was always null when the button was visible.
+
+**Fix**: Moved `queryId` from `useState` to `useRef`. `useRef` is synchronous and doesn't trigger re-renders.
+
+**Regression Risk**: Low. The pattern is now correct. Future developers adding state to the cancel flow should use `useRef` for values read during async operations.
+
+---
+
+### ISSUE-012: handleExecute Stale Closure
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Found** | v0.3.10 |
+| **Status** | Fixed |
+
+**Symptom**: Monaco Editor Ctrl+Enter executes stale SQL or wrong tab.
+
+**Root Cause**: `handleExecute` was recreated on every `isExecuting` change because `isExecuting` was in the dependency array. Each state change created a new function ref, causing Monaco's `onExecute` callback to capture stale state.
+
+**Fix**: Read `isExecuting` from `useSqlWorkspaceStore.getState()` directly inside the handler, removing it from the dependency array.
+
+**Regression Risk**: Low. The `getState()` pattern is now standard. But any future `useCallback` that includes store state in its deps could reintroduce this class of bug.
+
+---
+
+### ISSUE-015: numpy.bool_ Serialization 500
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Critical |
+| **Found** | v0.7.5 |
+| **Status** | Fixed in v0.7.6 |
+
+**Symptom**: SQL query API returns HTTP 500. FastAPI `jsonable_encoder` crashes on `numpy.bool_`.
+
+**Root Cause Chain**:
 ```
 POST /api/query
-  → execute_query() 返回 dict，包含 numpy 类型
-    → FastAPI serialize_response()
-      → jsonable_encoder(response_content)
-        → 遇到 numpy.bool_ 值
-          → dict(obj) 失败 (TypeError: not iterable)
-            → vars(obj) 失败 (no __dict__)
-              → ValueError 抛出 → 500
+  -> execute_paginated() returns has_more = (offset + len(df)) < total_rows
+  -> numpy int64 arithmetic -> numpy.bool_ result
+  -> FastAPI serialize_response() -> jsonable_encoder()
+  -> dict(obj) fails (TypeError: not iterable) -> vars(obj) fails -> ValueError -> 500
 ```
 
-### 具体原因
+**Additional issues with old `_sanitize_for_json`**: Only processed `data` list rows, not response dict scalar fields. Missing datetime, Decimal, numpy.datetime64, pandas Timestamp, UUID, NaN/Inf handling.
 
-`QueryExecutor.execute_paginated()` 返回 `has_more` 字段，计算逻辑：
-```python
-has_more = (offset + len(df)) < total_rows
-```
+**Fix**: New `backend/utils/json_safe.py` with `normalize_for_response()` (recursive) and `json_safe_encoder()` (json.dumps handler). Applied to all route returns + SSE events. 41 regression tests. Global exception handler as safety net.
 
-当 `offset + len(df)` 运算涉及 numpy int64 时，比较结果为 `numpy.bool_` 而非 Python `bool`。
-FastAPI 的 `jsonable_encoder` 不识别 numpy 类型，导致序列化失败。
+**Regression Risk**: Low for covered types. Risk: custom objects with unusual `__repr__` or classes with both `__iter__` and numeric `__bool__` could still hit edge cases. The `normalize_for_response` returns unknown types as-is (defers to jsonable_encoder), so truly unknown types could still fail.
 
-### 旧的 `_sanitize_for_json` 问题
+---
 
-原函数只处理 `data` 列表中的行数据，不处理响应 dict 的标量字段（如 `hasMore`、`totalRows`）。
-此外缺少以下类型处理：
-- `datetime.datetime` / `datetime.date`
-- `decimal.Decimal`
-- `numpy.datetime64` / `numpy.timedelta64`
-- `pandas.Timestamp` / `pd.NaT`
-- `UUID`
-- Python `float('nan')` / `float('inf')`
+### SSR Hydration Mismatch (v0.5.7/v0.5.8)
 
-## 修复方案
+| Field | Value |
+|-------|-------|
+| **Severity** | High |
+| **Found** | v0.5.7 |
+| **Status** | Fixed |
 
-### 1. 新建 `backend/utils/json_safe.py`
+**Symptom**: React hydration errors on page load. Theme flash (dark->light or vice versa).
 
-统一序列化工具模块：
-- `normalize_for_response(obj)` — 递归转换整棵树为 JSON 安全的 Python 原生类型
-- `json_safe_encoder(obj)` — `json.dumps` 的 `default` 处理器
+**Root Cause**: Zustand persisted stores read from localStorage during SSR (which doesn't have localStorage), causing server/client state mismatch. Theme was applied after hydration, causing FOUC.
 
-覆盖类型：
-| 类型 | 转换结果 |
-|------|----------|
-| `numpy.bool_` | `bool` |
-| `numpy.integer` (所有子类) | `int` |
-| `numpy.floating` | `float` (NaN/Inf → `None`) |
-| `numpy.datetime64` | ISO 8601 字符串 |
-| `numpy.timedelta64` | 字符串 |
-| `numpy.str_` | `str` |
-| `numpy.ndarray` | `list` |
-| `pandas.Timestamp` | ISO 8601 字符串 |
-| `pd.NaT` | `None` |
-| `datetime/date/time/timedelta` | ISO 8601 / 字符串 |
-| `Decimal` | `int` 或 `float` (NaN/Inf → `None`) |
-| `UUID` | 字符串 |
-| Python `float('nan')`/`inf` | `None` |
+**Fix (v0.5.7)**: SSR hydration safety in 6 persisted stores.
+**Fix (v0.5.8)**: Inline `<script>` in layout.tsx reads theme from localStorage before React hydrates. `suppressHydrationWarning` on `<html>`.
 
-### 2. 修改 `data_service.py`
+**Regression Risk**: Low. The inline script pattern is robust. Risk: if a new store adds `persist` without the merge function (added v0.7.5), corrupted localStorage could cause hydration errors.
 
-`_sanitize_for_json` 重写为调用 `normalize_for_response` 的代理函数，保持向后兼容。
+---
 
-### 3. 修改路由返回点
+### SSE Stream Truncation (v0.5.8)
 
-- `routes/query.py` — 所有响应 dict 包裹 `normalize_for_response()`
-- `routes/tables.py` — 表列表和分页数据包裹 `normalize_for_response()`
-- `routes/analyze.py` — 分析结果包裹 `normalize_for_response()`
-- `routes/ai.py` — SSE 事件使用 `json_safe_encoder` 作为 `json.dumps` 的 `default`
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Found** | v0.5.8 |
+| **Status** | Fixed |
 
-### 4. 添加全局异常处理器
+**Symptom**: Last SSE event(s) lost. Stream ends without final "done" event.
 
-`main.py` 新增 `@app.exception_handler(Exception)` 捕获所有未处理异常，返回结构化 JSON 错误。
+**Root Cause**: `consumeSseStream` and `consumeSseStreamGeneric` did not drain the remaining buffer after the stream loop ended. If the final chunk arrived in the same read as the stream close, it was lost.
 
-## 验证结果
+**Fix**: Added buffer drain after the while loop. Both consumers now process remaining buffer content before calling `onDone`.
 
-| 测试 | 结果 |
-|------|------|
-| `SELECT 1 as test` | ✅ 200 |
-| `SELECT NULL` | ✅ 200 |
-| `SELECT current_timestamp` | ✅ 200 |
-| DECIMAL 类型 | ✅ 200 |
-| NaN/Inf 值 | ✅ 200, 正确转为 null |
-| CSV 上传 + 查询 | ✅ 200 |
-| 分页查询 | ✅ 200 |
-| 20 次重复请求 | ✅ 全部 200 |
-| 5 并发请求 | ✅ 全部 200 |
-| 错误 SQL (优雅降级) | ✅ 200, 返回 error 状态 |
-| 后端测试套件 | ✅ 341/342 通过 |
-| 序列化回归测试 | ✅ 41/41 通过 |
+**Regression Risk**: Low. The drain pattern is solid. Risk: if the SSE format changes (e.g., multi-line data events), the line-based parser could misparse.
 
-## 经验教训
+---
 
-1. **numpy 类型层次陷阱** — `np.timedelta64` 是 `np.integer` 的子类，isinstance 检查顺序至关重要
-2. **标量字段也需序列化** — `_sanitize_for_json` 只处理 data 行不够，响应 dict 中所有字段都可能含 numpy 类型
-3. **json.dumps 的类型转换** — `json.dumps` 在调用 `default` 前会把部分 numpy 类型转为 Python 类型，需要双重保护
-4. **全局安全网** — 单靠路由层不够，需要中间件/异常处理器兜底
+### AI Explanation Truncation (v0.5.9)
+
+| Field | Value |
+|-------|-------|
+| **Severity** | High |
+| **Found** | v0.5.9 |
+| **Status** | Fixed |
+
+**Symptom**: AI explanations were truncated or empty.
+
+**Root Cause**: `_call_llm` only concatenated the first text block from Claude API response. Subsequent blocks were dropped.
+
+**Fix**: Concatenate ALL text blocks from the response.
+
+**Regression Risk**: Low. The fix is straightforward. Risk: if Claude API returns a mix of text and tool_use blocks, the concatenation logic might need adjustment.
+
+---
+
+### Analysis Store Persistence Zeroing (v0.5.9)
+
+| Field | Value |
+|-------|-------|
+| **Severity** | High |
+| **Found** | v0.5.9 |
+| **Status** | Fixed |
+
+**Symptom**: After page refresh, analysis history was empty — all run data lost.
+
+**Root Cause**: `analysis-store` `partialize` function was stripping all content fields (sections, multiResult, chartSpecs, trace) to reduce localStorage size. But it was too aggressive — it zeroed everything, leaving only metadata (id, mode, question, timestamp, status).
+
+**Fix**: Partialize now preserves section titles + truncated content (500 chars), chart metadata, step metadata, trace summary.
+
+**Regression Risk**: Medium. The partialize logic is complex. If new fields are added to `AnalysisRun` without updating partialize, they'll be lost on persist. The 4MB localStorage limit enforcement could also silently drop data.
+
+---
+
+### Follow-Up Context Corruption (v0.5.7)
+
+| Field | Value |
+|-------|-------|
+| **Severity** | High |
+| **Found** | v0.5.7 |
+| **Status** | Fixed |
+
+**Symptom**: Follow-up questions produced wrong SQL — referencing tables/columns from the wrong context.
+
+**Root Cause**: Follow-up context was not properly reset between analysis runs. Previous run's schema context leaked into subsequent runs.
+
+**Fix**: `followUpQuestion` state properly reset between analysis runs.
+
+**Regression Risk**: Medium. The AI session store's `compressedSummary` and `keyFindings` accumulate across turns. If the compression logic drops context that's still needed, follow-up quality could degrade.
+
+---
+
+### SQL Generation Missing FROM Clause (Intermittent)
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Found** | v0.5.x (AI golden questions) |
+| **Status** | Mitigated |
+
+**Symptom**: LLM occasionally generates SQL without FROM clause (e.g., `SELECT COUNT(*)` instead of `SELECT COUNT(*) FROM table`).
+
+**Root Cause**: LLM non-determinism. The prompt includes schema context but the model sometimes produces incomplete SQL.
+
+**Mitigation**: `_generate_step_sql_with_retry()` in ai_pipeline.py retries once with error context injected. Step-level retry was added in v0.7.3 for non-streaming path.
+
+**Regression Risk**: Inherent to LLM-based SQL generation. Cannot be fully eliminated, only mitigated with retry + guardrails.
+
+---
+
+## Regression Patterns
+
+### Pattern 1: Import-Time Side Effects
+- **ISSUE-010** (DuckDB lock): Module-level `DatabaseManager()` at import time
+- **Multiple versions**: Lazy getters were introduced in v0.7.4
+- **Risk**: Any new module that connects to DuckDB at import time will reintroduce this
+- **Defense**: All DB access through `get_db()` / `get_executor()` lazy getters
+
+### Pattern 2: Stale Closures in React
+- **ISSUE-011** (queryId null): useState not synced with async flow
+- **ISSUE-012** (handleExecute): useCallback with store state in deps
+- **Risk**: Any new async handler that captures Zustand store state via `useSelector` could go stale
+- **Defense**: Use `useRef` for values read during async ops; use `getState()` for store reads in callbacks
+
+### Pattern 3: Serialization Type Leakage
+- **ISSUE-015** (numpy.bool_): numpy types in DuckDB results leaking to JSON
+- **Earlier**: `_safe_serialize` (v0.5.8) handled datetime/Decimal but missed numpy
+- **Risk**: New DuckDB operations returning unusual types (e.g., DuckDB LIST, STRUCT) could break serialization
+- **Defense**: `normalize_for_response()` on all route returns + 41 regression tests
+
+### Pattern 4: localStorage Corruption
+- **ISSUE-009** (.next cache): Build artifacts corrupt
+- **v0.7.5**: Merge functions added to 7 stores to handle corrupted localStorage
+- **Risk**: If `zustand/migrate` is not used, future schema changes could break old localStorage data
+- **Defense**: Merge functions validate array fields, fall back to defaults on corruption
+
+### Pattern 5: SSE Buffer Loss
+- **v0.5.8**: Last events lost due to missing buffer drain
+- **Risk**: Any new SSE endpoint must ensure buffer drain after stream ends
+- **Defense**: Both SSE consumers now drain buffer. Pattern documented in ai_pipeline.py streaming variant.

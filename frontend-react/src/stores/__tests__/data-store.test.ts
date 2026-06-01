@@ -6,7 +6,6 @@ describe("data-store", () => {
     useDataStore.setState({
       dbStatus: "idle",
       tables: [],
-      currentTable: null,
       currentData: null,
       currentColumns: [],
       qualityReport: null,
@@ -24,7 +23,6 @@ describe("data-store", () => {
     const state = useDataStore.getState();
     expect(state.dbStatus).toBe("idle");
     expect(state.tables).toEqual([]);
-    expect(state.currentTable).toBeNull();
     expect(state.currentData).toBeNull();
     expect(state.currentColumns).toEqual([]);
     expect(state.qualityReport).toBeNull();
@@ -48,15 +46,6 @@ describe("data-store", () => {
     ];
     setTables(tables as any);
     expect(useDataStore.getState().tables).toEqual(tables);
-  });
-
-  it("should set current table", () => {
-    const { setCurrentTable } = useDataStore.getState();
-    setCurrentTable("users");
-    expect(useDataStore.getState().currentTable).toBe("users");
-
-    setCurrentTable(null);
-    expect(useDataStore.getState().currentTable).toBeNull();
   });
 
   it("should set current data with columns", () => {

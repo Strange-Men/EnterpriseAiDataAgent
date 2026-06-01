@@ -106,10 +106,6 @@ interface SqlEditorState {
   loadMore: () => Promise<void>;
   resetPagination: () => void;
 
-  // Selected table context
-  selectedTable: string | null;
-  setSelectedTable: (table: string | null) => void;
-
   // Panel tab (editor | history)
   activePanelTab: "editor" | "history";
   setActivePanelTab: (tab: "editor" | "history") => void;
@@ -258,10 +254,6 @@ export const useSqlEditorStore = create<SqlEditorState>()(
         isLoadingMore: false,
       }),
 
-      // Selected table context
-      selectedTable: null,
-      setSelectedTable: (selectedTable) => set({ selectedTable }),
-
       // Panel tab
       activePanelTab: "editor" as const,
       setActivePanelTab: (activePanelTab) => set({ activePanelTab }),
@@ -285,14 +277,12 @@ export const useSqlEditorStore = create<SqlEditorState>()(
           activeTabId,
           currentSql: activeTab?.sql ?? "",
           activePanelTab: p.activePanelTab === "history" ? "history" : "editor",
-          selectedTable: typeof p.selectedTable === "string" ? p.selectedTable : null,
         };
       },
       partialize: (state) => ({
         tabs: state.tabs,
         activeTabId: state.activeTabId,
         activePanelTab: state.activePanelTab,
-        selectedTable: state.selectedTable,
       }),
     }
   )

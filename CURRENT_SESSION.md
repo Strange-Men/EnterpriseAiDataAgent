@@ -1,11 +1,11 @@
 # Current Session — Enterprise AI Data Agent
 
-> Last updated: 2026-05-26
+> Last updated: 2026-06-01
 
 ## Current Version
 
-- **Version**: v0.8.0
-- **Phase**: v0.8.x Product UX + Design System Refactor (Phase 3)
+- **Version**: v0.8.3
+- **Phase**: v0.8.x Stabilization Sprint (P3.5)
 - **Status**: Complete — build, type-check, tests all passing
 
 ## Session Goals

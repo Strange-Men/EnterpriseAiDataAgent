@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
+import { useInvestigationStore } from "@/stores/investigation-store";
 import { TabGroup } from "@/components/ui/tab-group";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -18,23 +19,24 @@ interface SchemaCol {
 
 export function DataPreviewPanel() {
   const { t } = useTranslation();
-  const { currentTable, currentData, currentColumns, qualityReport } = useDataStore();
+  const { currentData, currentColumns, qualityReport } = useDataStore();
+  const activeTable = useInvestigationStore((s) => s.activeTable);
   const [schema, setSchema] = useState<SchemaCol[]>([]);
   const [schemaLoading, setSchemaLoading] = useState(false);
 
   useEffect(() => {
-    if (!currentTable) {
+    if (!activeTable) {
       setSchema([]);
       return;
     }
     setSchemaLoading(true);
-    fetchTableSchema(currentTable)
+    fetchTableSchema(activeTable)
       .then(setSchema)
       .catch(() => setSchema([]))
       .finally(() => setSchemaLoading(false));
-  }, [currentTable]);
+  }, [activeTable]);
 
-  if (!currentTable) {
+  if (!activeTable) {
     return (
       <EmptyState
         icon=" "
@@ -169,9 +171,9 @@ export function DataPreviewPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      {currentTable && (
+      {activeTable && (
         <div className="text-xs text-[var(--text-muted)] mb-2">
-          {t("preview.table")}: <code className="text-[var(--accent)]">{currentTable}</code>
+          {t("preview.table")}: <code className="text-[var(--accent)]">{activeTable}</code>
         </div>
       )}
       <div className="flex-1 min-h-0">

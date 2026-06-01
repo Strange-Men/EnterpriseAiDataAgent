@@ -7,7 +7,6 @@ describe("sql-workspace (via sql-editor-store)", () => {
       currentSql: "",
       isExecuting: false,
       queryResult: null,
-      selectedTable: null,
       activePanelTab: "editor",
     });
   });
@@ -17,7 +16,6 @@ describe("sql-workspace (via sql-editor-store)", () => {
     expect(state.currentSql).toBe("");
     expect(state.isExecuting).toBe(false);
     expect(state.queryResult).toBeNull();
-    expect(state.selectedTable).toBeNull();
     expect(state.activePanelTab).toBe("editor");
   });
 
@@ -104,14 +102,6 @@ describe("sql-workspace (via sql-editor-store)", () => {
     setQueryResult(result);
     expect(useSqlEditorStore.getState().queryResult?.status).toBe("error");
     expect(useSqlEditorStore.getState().queryResult?.error).toBe("Table not found");
-  });
-
-  it("should set selected table", () => {
-    const { setSelectedTable } = useSqlEditorStore.getState();
-    setSelectedTable("users");
-    expect(useSqlEditorStore.getState().selectedTable).toBe("users");
-    setSelectedTable(null);
-    expect(useSqlEditorStore.getState().selectedTable).toBeNull();
   });
 
   it("should set active panel tab", () => {

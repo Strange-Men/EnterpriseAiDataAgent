@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
+import { useInvestigationStore } from "@/stores/investigation-store";
 import { useTables } from "@/hooks/use-tables";
 import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -20,17 +21,17 @@ import type { TableInfo } from "@/types";
 
 export function TableManagementPanel() {
   const { t } = useTranslation();
-  const { setCurrentTable, setCurrentData, setQualityReport } = useDataStore();
+  const { setCurrentData, setQualityReport } = useDataStore();
   const { tables, reload: loadTables } = useTables();
-  const { setCurrentSql, setSelectedTable } = useSqlEditorStore();
+  const { setCurrentSql } = useSqlEditorStore();
+  const setInvestigationContext = useInvestigationStore((s) => s.setContext);
   const analysisRuns = useAnalysisStore((s) => s.runs);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSelect = async (table: TableInfo) => {
-    setSelectedTable(table.name);
-    setCurrentTable(table.name);
+    setInvestigationContext({ table: table.name });
     setCurrentSql(`SELECT * FROM "${table.name}" LIMIT 100;`);
     try {
       const { columns, data } = await fetchTableData(table.name);
@@ -54,8 +55,8 @@ export function TableManagementPanel() {
       toast.success(`Deleted "${tableName}"`);
       logger.info("store", `Deleted table: ${tableName}`);
       await loadTables();
-      if (useDataStore.getState().currentTable === tableName) {
-        setCurrentTable(null);
+      if (useInvestigationStore.getState().activeTable === tableName) {
+        setInvestigationContext({ table: null });
         setCurrentData(null);
       }
     } catch (err: unknown) {

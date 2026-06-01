@@ -16,10 +16,8 @@ interface DataState {
   setTables: (tables: TableInfo[]) => void;
 
   // Current data
-  currentTable: string | null;
   currentData: Record<string, unknown>[] | null;
   currentColumns: string[];
-  setCurrentTable: (table: string | null) => void;
   setCurrentData: (data: Record<string, unknown>[] | null, columns?: string[]) => void;
 
   // Quality
@@ -44,10 +42,8 @@ export const useDataStore = create<DataState>((set, get) => ({
   setDbStatus: (dbStatus) => set({ dbStatus }),
   setTables: (tables) => set({ tables }),
 
-  currentTable: null,
   currentData: null,
   currentColumns: [],
-  setCurrentTable: (currentTable) => set({ currentTable }),
   setCurrentData: (currentData, columns) =>
     set({ currentData, currentColumns: columns ?? [] }),
 

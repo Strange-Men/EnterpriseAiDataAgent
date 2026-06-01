@@ -19,7 +19,7 @@ export function FileUploadPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     uploadedFiles, setUploadedFiles,
-    setCurrentTable, setCurrentData, setQualityReport,
+    setCurrentData, setQualityReport,
   } = useDataStore();
   const { tables, reload: loadTables } = useTables();
   const [uploading, setUploading] = useState(false);
@@ -87,7 +87,7 @@ export function FileUploadPanel() {
   };
 
   const handleTableClick = async (tableName: string) => {
-    setCurrentTable(tableName);
+    useInvestigationStore.getState().setContext({ table: tableName });
     try {
       const { columns, data } = await fetchTableData(tableName);
       setCurrentData(data, columns);
