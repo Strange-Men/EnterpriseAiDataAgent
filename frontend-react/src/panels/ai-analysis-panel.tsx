@@ -150,14 +150,22 @@ export function AIAnalysisPanel({
         }));
 
         let accumulated = "";
+        let lastUpdateTime = 0;
         setStreamingContent("");
         await new Promise<void>((resolve, reject) => {
           const ctrl = streamAiExplain(question, sql, results, {
             onChunk: (text) => {
               accumulated += text;
-              setStreamingContent(accumulated);
+              const now = Date.now();
+              if (now - lastUpdateTime > 100) {
+                lastUpdateTime = now;
+                setStreamingContent(accumulated);
+              }
             },
-            onDone: () => resolve(),
+            onDone: () => {
+              setStreamingContent(accumulated);
+              resolve();
+            },
             onError: (err) => reject(err),
           }, history.length > 0 ? history : undefined, i18n.language);
           streamAbortRef.current = ctrl;
@@ -541,7 +549,6 @@ export function AIAnalysisPanel({
                 summary: execSummary,
                 status: "success",
               });
-              // Don't remove running indicator here; onStepStart will update it
             },
             onStepRetry: (stepNum, attempt) => {
               setSections((prev) => [

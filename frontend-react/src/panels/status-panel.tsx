@@ -1,47 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { fetchStatus, fetchAIStatus, type AIStatus } from "@/services/api";
+import { useAIStatus } from "@/hooks/use-system-status";
 
 export function StatusPanel() {
   const { t } = useTranslation();
-  const { systemStatus, setSystemStatus } = useDataStore();
-  const [aiStatus, setAiStatus] = useState<AIStatus | null>(null);
-  const [aiError, setAiError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const s = await fetchStatus();
-        setSystemStatus({
-          api: s.api as "ok" | "error" | "unknown",
-          db: s.db as "ok" | "error" | "unknown",
-          version: s.version,
-          uptime: s.uptime,
-        });
-      } catch {
-        setSystemStatus({ api: "error" });
-      }
-    };
-
-    const pollAI = async () => {
-      try {
-        const ai = await fetchAIStatus();
-        setAiStatus(ai);
-        setAiError(null);
-      } catch (err) {
-        setAiError(err instanceof Error ? err.message : "AI status unavailable");
-      }
-    };
-
-    poll();
-    pollAI();
-    const interval = setInterval(() => { poll(); pollAI(); }, 10000);
-    return () => clearInterval(interval);
-  }, [setSystemStatus]);
+  const systemStatus = useDataStore((s) => s.systemStatus);
+  const { aiStatus, aiError } = useAIStatus();
 
   return (
     <div className="space-y-4">

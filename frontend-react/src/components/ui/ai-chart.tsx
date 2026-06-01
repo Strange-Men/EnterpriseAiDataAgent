@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
   BarChart, Bar,
   LineChart, Line,
@@ -121,6 +121,16 @@ function ScatterChartView({ spec }: { spec: ChartSpec }) {
 export function AiChart({ spec, loading }: { spec: ChartSpec; loading?: boolean }) {
   const [fullscreen, setFullscreen] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
+
+  // ESC to exit fullscreen
+  useEffect(() => {
+    if (!fullscreen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreen(false);
+    };
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [fullscreen]);
 
   const handleDownload = useCallback(() => {
     const svg = chartRef.current?.querySelector("svg");

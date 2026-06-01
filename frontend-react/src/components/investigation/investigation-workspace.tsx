@@ -28,7 +28,10 @@ export function InvestigationWorkspace() {
   const addRun = useAnalysisStore((s) => s.addRun);
   const updateRun = useAnalysisStore((s) => s.updateRun);
   const activeRunId = useAnalysisStore((s) => s.activeRunId);
-  const investigation = useInvestigationStore();
+  // Subscribe to specific fields to avoid unnecessary re-renders
+  const keyFindings = useInvestigationStore((s) => s.keyFindings);
+  // Get stable action references (Zustand actions are stable by default)
+  const investigation = useInvestigationStore;
 
   const [isLoading, setIsLoading] = useState(false);
   const [streamStage, setStreamStage] = useState("");
@@ -52,8 +55,9 @@ export function InvestigationWorkspace() {
     abortRef.current?.abort();
 
     // Reset investigation context — prevents bleed between investigations (B1)
-    investigation.clear();
-    investigation.reset();
+    const store = useInvestigationStore.getState();
+    store.clear();
+    store.reset();
 
     setIsLoading(true);
     setStreamStage("");
@@ -65,8 +69,8 @@ export function InvestigationWorkspace() {
     // Create run
     const runId = addRun(mode, question, table);
     setCurrentRunId(runId);
-    investigation.addUserTurn(question);
-    investigation.advance("analyzing", { table });
+    store.addUserTurn(question);
+    store.advance("analyzing", { table });
 
     // Fetch table data for context
     let columns: { name: string; dtype: string }[] = [];
@@ -136,7 +140,7 @@ export function InvestigationWorkspace() {
           setIsLoading(false);
           setStreamStage("");
           updateRun(runId, { status: "error", error: err.message });
-          investigation.advance("done");
+          useInvestigationStore.getState().advance("done");
           toast.error(err.message);
         },
         onDone: (data) => {
@@ -178,13 +182,14 @@ export function InvestigationWorkspace() {
           });
 
           // Update investigation context
-          investigation.addAssistantTurn(accumulatedSummary, accumulatedSteps[accumulatedSteps.length - 1]?.sql);
-          investigation.advance("done");
+          const doneStore = useInvestigationStore.getState();
+          doneStore.addAssistantTurn(accumulatedSummary, accumulatedSteps[accumulatedSteps.length - 1]?.sql);
+          doneStore.advance("done");
 
           // Extract key findings from sections
           if (accumulatedSummary) {
             const sentences = accumulatedSummary.split(/[.!?]+/).filter((s) => s.trim().length > 10);
-            sentences.slice(0, 5).forEach((s) => investigation.addKeyFinding(s.trim()));
+            sentences.slice(0, 5).forEach((s) => doneStore.addKeyFinding(s.trim()));
           }
 
           setStreamEvent(data ?? null);
@@ -193,15 +198,15 @@ export function InvestigationWorkspace() {
       },
       i18n.language,
       500,
-      investigation.keyFindings.length > 0 ? investigation.keyFindings.slice(0, 5) : undefined
+      keyFindings.length > 0 ? keyFindings.slice(0, 5) : undefined
     );
 
     abortRef.current = abort;
-  }, [addRun, updateRun, investigation, i18n.language, t]);
+  }, [addRun, updateRun, keyFindings, i18n.language, t]);
 
   const handleTableSelect = useCallback((table: string) => {
-    investigation.advance("profiling", { table });
-  }, [investigation]);
+    useInvestigationStore.getState().advance("profiling", { table });
+  }, []);
 
   // Load existing run if activeRunId is set from navigation
   useEffect(() => {

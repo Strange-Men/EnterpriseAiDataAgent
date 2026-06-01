@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { aiQuery } from "@/services/api";
@@ -24,6 +24,12 @@ export function FollowUpInput({ results, onSqlGenerated, question: controlledQue
     ? (val: string) => onQuestionChange?.(val)
     : setInternalQuestion;
   const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
+
+  // Cleanup: prevent state updates after unmount
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     const q = question.trim();
@@ -67,9 +73,9 @@ export function FollowUpInput({ results, onSqlGenerated, question: controlledQue
         toast.error(res.error || "AI could not generate SQL");
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("ai.analysis-failed"));
+      if (mountedRef.current) toast.error(err instanceof Error ? err.message : t("ai.analysis-failed"));
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [question, loading, results, onSqlGenerated, t, i18n.language]);
 

@@ -217,6 +217,7 @@ def _get_client():
     return anthropic.Anthropic(
         api_key=ANTHROPIC_API_KEY,
         base_url=ANTHROPIC_BASE_URL,
+        timeout=30.0,
     )
 
 
@@ -364,6 +365,7 @@ def _call_llm(
                 temperature=TEMPERATURE,
                 system=apply_language(system, language),
                 messages=[{"role": "user", "content": user_message}],
+                timeout=30.0,
             )
 
             # 提取输出文本 — concatenate ALL text blocks
@@ -473,6 +475,7 @@ def _call_llm_stream(
                 temperature=TEMPERATURE,
                 system=apply_language(system, language),
                 messages=[{"role": "user", "content": user_message}],
+                timeout=60.0,
             ) as stream:
                 for chunk in stream.text_stream:
                     output_text += chunk

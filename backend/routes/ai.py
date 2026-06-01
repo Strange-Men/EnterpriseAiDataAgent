@@ -8,6 +8,7 @@ Endpoints:
 - POST /api/ai/chart-suggest — Suggest chart types
 """
 
+import asyncio
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -119,13 +120,29 @@ async def ai_query(req: AIQueryRequest):
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Empty question")
     ctx = req.follow_up_context.model_dump() if req.follow_up_context else None
-    return run_ai_query(req.question, req.execute, req.explain, req.max_rows, ctx, req.language)
+    try:
+        return await asyncio.wait_for(
+            asyncio.get_event_loop().run_in_executor(
+                None, lambda: run_ai_query(req.question, req.execute, req.explain, req.max_rows, ctx, req.language)
+            ),
+            timeout=60.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="AI query timed out after 60s")
 
 
 @router.post("/ai/explain")
 async def ai_explain(req: ExplainRequest):
     """Explain existing query results."""
-    result = explain_results(req.question, req.sql, req.results, req.conversation_history, req.language)
+    try:
+        result = await asyncio.wait_for(
+            asyncio.get_event_loop().run_in_executor(
+                None, lambda: explain_results(req.question, req.sql, req.results, req.conversation_history, req.language)
+            ),
+            timeout=60.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="AI explain timed out after 60s")
     if result["status"] == "error":
         raise HTTPException(status_code=500, detail=result.get("error", "Explanation failed"))
     return result
@@ -134,7 +151,15 @@ async def ai_explain(req: ExplainRequest):
 @router.post("/ai/insights")
 async def ai_insights(req: InsightsRequest):
     """Generate structured insights from results."""
-    result = generate_insights(req.question, req.results, req.language, prior_context=req.prior_context)
+    try:
+        result = await asyncio.wait_for(
+            asyncio.get_event_loop().run_in_executor(
+                None, lambda: generate_insights(req.question, req.results, req.language, prior_context=req.prior_context)
+            ),
+            timeout=60.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="AI insights timed out after 60s")
     if result["status"] == "error":
         raise HTTPException(status_code=500, detail=result.get("error", "Insights generation failed"))
     return result

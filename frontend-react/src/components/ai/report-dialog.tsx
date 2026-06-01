@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useAnalysisStore, type AnalysisRun } from "@/stores/analysis-store";
 import { generateReport } from "@/services/api";
@@ -76,8 +76,18 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
     </label>
   );
 
+  // ESC to close
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-xl w-full max-w-2xl p-4 space-y-4 max-h-[85vh] overflow-y-auto">
         <h3 className="text-sm font-semibold text-[var(--text-primary)]">
           {t("report.generate")}

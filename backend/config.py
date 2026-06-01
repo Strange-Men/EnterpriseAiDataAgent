@@ -4,6 +4,7 @@ All env vars are read here. Import from this module instead of calling os.getenv
 """
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,4 +19,4 @@ DEFAULT_LLM_MODEL: str = os.getenv("DEFAULT_LLM_MODEL", "claude-sonnet-4-5-20250
 DEFAULT_TEMPERATURE: float = float(os.getenv("DEFAULT_TEMPERATURE", "0.3"))
 
 # ── App ──────────────────────────────────────────────────────────
-API_VERSION: str = "0.7.6"
+API_VERSION: str = Path(__file__).parent.joinpath("VERSION").read_text().strip()

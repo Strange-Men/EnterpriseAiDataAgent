@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/utils/cn";
+import { useDataStore } from "@/stores/data-store";
 import { House, Database, Code, MonitorPlay, Clock, Settings } from "lucide-react";
 
 interface NavItem {
@@ -25,6 +26,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useTranslation();
+  const version = useDataStore((s) => s.systemStatus.version);
 
   return (
     <aside className="flex flex-col h-full bg-[var(--bg-secondary)] border-r border-[var(--border-default)]">
@@ -69,7 +71,7 @@ export function Sidebar() {
       {/* Footer */}
       <div className="px-3 py-3 border-t border-[var(--border-default)]">
         <p className="text-[10px] text-[var(--text-muted)] text-center">
-          v0.9.0
+          v{version}
         </p>
       </div>
     </aside>

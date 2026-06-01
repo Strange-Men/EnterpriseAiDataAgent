@@ -119,6 +119,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           item.action();
           onClose();
         }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
       }
     };
     document.addEventListener("keydown", handleKey);

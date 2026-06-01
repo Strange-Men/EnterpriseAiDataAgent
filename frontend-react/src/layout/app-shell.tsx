@@ -12,6 +12,7 @@ import { GlobalSearch } from "@/components/ui/global-search";
 import { KeyboardShortcutsModal } from "@/components/ui/keyboard-shortcuts-modal";
 import { useKeyboardShortcuts, type Shortcut, formatShortcutKey } from "@/hooks/use-keyboard-shortcuts";
 import { useDataStore } from "@/stores/data-store";
+import { useSystemStatus } from "@/hooks/use-system-status";
 import {
   Sun, Moon, Languages, Search, Keyboard,
 } from "lucide-react";
@@ -34,6 +35,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { theme, toggleTheme } = useThemeStore();
   const tables = useDataStore((s) => s.tables);
 
+  // Initialize system status + tables on mount (single source of polling)
+  useSystemStatus();
+
   const basePath = "/" + (pathname.split("/")[1] || "");
   const pageTitleKey = PAGE_TITLES[basePath] || PAGE_TITLES["/"];
   const isInvestigation = pathname.startsWith("/analyze");
@@ -47,11 +51,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const shortcutsList: (Shortcut & { id: string })[] = useMemo(
     () => [
       { id: "command-palette", key: "k", mod: "ctrl", description: "Open command palette", handler: () => setCommandOpen(true), global: true },
-      { id: "global-search", key: "/", mod: "ctrl", description: "Global search", handler: () => setSearchOpen(true), global: true },
-      { id: "open-shortcuts", key: "?", description: "Keyboard shortcuts help", handler: () => setShortcutsOpen(true), global: true },
+      { id: "global-search", key: "f", mod: "ctrl+shift", description: "Global search", handler: () => setSearchOpen(true), global: true },
+      { id: "open-shortcuts", key: "?", mod: "ctrl+shift", description: "Keyboard shortcuts help", handler: () => setShortcutsOpen(true), global: true },
       { id: "go-home", key: "h", mod: "ctrl", description: "Go Home", handler: () => router.push("/") },
-      { id: "go-analyze", key: "a", mod: "ctrl", description: "Go to Analyze", handler: () => router.push("/analyze") },
-      { id: "go-data", key: "d", mod: "ctrl", description: "Go to Data", handler: () => router.push("/data") },
+      { id: "go-analyze", key: "a", mod: "ctrl+shift", description: "Go to Analyze", handler: () => router.push("/analyze") },
+      { id: "go-data", key: "d", mod: "ctrl+shift", description: "Go to Data", handler: () => router.push("/data") },
       { id: "go-query", key: "q", mod: "ctrl", description: "Go to Query", handler: () => router.push("/query") },
       { id: "go-settings", key: ",", mod: "ctrl", description: "Go to Settings", handler: () => router.push("/settings") },
       { id: "toggle-theme", key: "t", mod: "ctrl+shift", description: "Toggle theme", handler: toggleTheme, global: true },

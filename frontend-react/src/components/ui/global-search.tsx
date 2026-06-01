@@ -85,6 +85,10 @@ export function GlobalSearch({ open, onClose, tables }: GlobalSearchProps) {
         const r = results[selectedIndex];
         if (r) { router.push(r.href); onClose(); }
       }
+      else if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);

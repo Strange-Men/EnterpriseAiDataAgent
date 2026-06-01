@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useTemplateStore, type TemplateStep } from "@/stores/template-store";
 import type { AnalysisRun } from "@/stores/analysis-store";
@@ -35,8 +35,18 @@ export function SaveTemplateDialog({
     onClose();
   };
 
+  // ESC to close
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-xl w-full max-w-md p-4 space-y-4">
         <h3 className="text-sm font-semibold text-[var(--text-primary)]">
           {t("template.save-as")}

@@ -56,7 +56,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   systemStatus: {
     api: "unknown",
     db: "unknown",
-    version: "0.3.3",
+    version: "...",
     uptime: "0:00:00",
   },
   setSystemStatus: (status) =>

@@ -258,11 +258,11 @@ export function SqlWorkspacePanel() {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "S") {
         e.preventDefault();
         if (currentSql.trim()) setShowSaveDialog(true);
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === "l") {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "K") {
         e.preventDefault();
         if (activeTab) updateTabSql(activeTab.id, "");
       }
@@ -449,15 +449,17 @@ export function SqlWorkspacePanel() {
           onClick={() => setShowSaveDialog(true)}
           disabled={!currentSql.trim()}
           className="px-3 py-1.5 text-xs border border-[var(--border-default)] text-[var(--text-muted)] rounded-md hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Ctrl+Shift+S"
         >
-          Ctrl+S
+          Save
         </button>
 
         <button
           onClick={() => updateTabSql(activeTabId, "")}
           className="px-3 py-1.5 text-xs border border-[var(--border-default)] text-[var(--text-muted)] rounded-md hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+          title="Ctrl+Shift+K"
         >
-          Ctrl+L
+          Clear
         </button>
 
         <ExportDropdown sql={currentSql} disabled={isExecuting} />
@@ -506,7 +508,7 @@ export function SqlWorkspacePanel() {
 
       {/* ── Save Query Dialog ────────────────────────────── */}
       {showSaveDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={(e) => { if (e.target === e.currentTarget) setShowSaveDialog(false); }}>
           <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg p-4 w-80 shadow-xl">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">{t("saved.save-title")}</h3>
             <input

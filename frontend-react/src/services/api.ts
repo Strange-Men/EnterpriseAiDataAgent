@@ -14,8 +14,10 @@ async function apiFetch<T>(
   path: string,
   options?: RequestInit & { signal?: AbortSignal }
 ): Promise<T> {
+  const signal = options?.signal ?? AbortSignal.timeout(60_000);
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
+    signal,
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
