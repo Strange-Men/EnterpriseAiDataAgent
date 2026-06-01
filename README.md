@@ -65,7 +65,33 @@ EnterpriseAiDataAgent is an enterprise-grade AI data analysis platform with inte
 | AI | Anthropic SDK (Claude API, streaming, tool use) |
 | Charts | Recharts (bar/line/pie/scatter) |
 
+## Prerequisites
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Python | 3.11+ | Backend runtime |
+| Node.js | 20+ | Frontend build |
+| npm | 10+ | Frontend dependencies |
+
 ## Quick Start
+
+### 1. Environment Configuration
+
+```bash
+# Copy the environment template
+cp .env.example .env
+
+# Edit .env and fill in your Anthropic API key
+# ANTHROPIC_API_KEY=your-actual-api-key
+```
+
+Key environment variables:
+- `ANTHROPIC_API_KEY` — Your Anthropic API key (required for AI features)
+- `ANTHROPIC_BASE_URL` — API endpoint (default: `https://api.anthropic.com`)
+- `DEFAULT_LLM_MODEL` — Model to use (default: `claude-sonnet-4-6`)
+- `DUCKDB_PATH` — Database file path (default: `data/enterprise.duckdb`)
+- `APP_DEBUG` — Debug mode (default: `true`)
+- `LOG_LEVEL` — Logging level (default: `INFO`)
 
 ### Backend (FastAPI)
 
@@ -204,8 +230,8 @@ EnterpriseAiDataAgent/
 | v0.3.x | Enterprise Data Platform (SQL Workspace, DuckDB, Quality) | Done |
 | v0.5.x | AI Data Analyst MVP (Streaming, Semantics, Planning, Guardrails) | Done |
 | v0.6.x | Meta Governance & Autonomous QA | Done |
-| v0.7.x | AI Analyst Intelligence Layer (Anomaly Detection, Quality Gates, Stability) | Current |
-| v0.7.5 | Stability & System Validation | Current |
+| v0.7.x | AI Analyst Intelligence Layer (Anomaly Detection, Quality Gates, Stability) | Done |
+| v0.8.x | Product Readiness Consolidation (Design System, UX Polish, Doc Governance) | Current |
 
 ## License
 

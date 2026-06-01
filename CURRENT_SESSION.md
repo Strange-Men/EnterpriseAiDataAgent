@@ -12,6 +12,36 @@
 
 1. ~~Product Readiness Consolidation~~ — Documentation audit, legacy cleanup analysis, demo readiness review
 2. ~~Generate consolidation reports~~ — DOCS_CONSOLIDATION_PLAN.md, LEGACY_REMOVAL_PLAN.md, DEMO_READINESS_REPORT.md
+3. ~~Execute Quick Wins~~ — 5 项零风险修复全部完成
+
+## v0.8.6 Quick Wins 执行结果
+
+### ✅ Task 1: .env.example 安全修复
+- 真实 API Key (`tp-c8bt3...`) 替换为 `your-api-key-here`
+- Base URL 替换为 `https://api.anthropic.com`
+- Model 替换为 `claude-sonnet-4-6`
+
+### ✅ Task 2: package.json 版本漂移修复
+- `frontend-react/package.json` version: `"0.3.10"` → `"0.8.6"`
+
+### ✅ Task 3: 孤立测试文件删除
+- 删除 4 个引用已删除 store 的测试文件：
+  - `workflow-store.test.ts`、`ai-session-store.test.ts`
+  - `query-tabs-store.test.ts`、`sql-workspace-store.test.ts`
+
+### ✅ Task 4: 文档整合（22 个文件重定位）
+- 根目录违规 → `docs/reports/`（2 个文件）
+- docs/ 报告 → `docs/reports/`（7 个文件）
+- docs/ 架构 → `docs/architecture/`（7 个文件）
+- docs/ v0.8 → `docs/reports/v0.8/`（6 个文件）
+- 治理文件重命名：`claude-workflow.md` → `CLAUDE_WORKFLOW.md`
+- 创建缺失目录：`skills/stable/`、`skills/archived/`、`error_logs/reports/`
+
+### ✅ Task 5: 文档索引更新
+- `docs/README.md` — 全面重写，反映新目录结构
+- `docs/architecture/版本记录.md` — 新增 v0.8.6 条目
+- `README.md` — 新增 Prerequisites、.env 配置、版本路线图更新
+- `CURRENT_SESSION.md` — 本文件
 
 ## System Health
 
@@ -88,7 +118,7 @@
 
 ## Next Steps
 
-- v0.8.0 commit
+- v0.8.6 commit
 - Lint check
 - Runtime validation (start backend + frontend, test full user journey)
 - E2E test pass
