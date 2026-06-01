@@ -1,6 +1,6 @@
 # Documentation Index — Enterprise AI Data Agent
 
-> Last updated: 2026-05-25 (v0.6.0)
+> Last updated: 2026-06-01 (v0.8.6)
 
 ## Recommended Reading Order (for new sessions)
 
@@ -76,6 +76,16 @@
 ## Reports (`docs/reports/`)
 
 Version deliverable reports. Named: `v{version}-{type}.md`
+
+| File | Description |
+|------|-------------|
+| [DOCS_CONSOLIDATION_PLAN.md](reports/DOCS_CONSOLIDATION_PLAN.md) | Documentation sprawl audit and remediation plan |
+| [LEGACY_REMOVAL_PLAN.md](reports/LEGACY_REMOVAL_PLAN.md) | Safe deletion plan for workspace-legacy |
+| [DEMO_READINESS_REPORT.md](reports/DEMO_READINESS_REPORT.md) | Demo/deployment/onboarding readiness evaluation |
+| [PRODUCTIZATION_GAP_REPORT.md](reports/PRODUCTIZATION_GAP_REPORT.md) | Product feature gap analysis |
+| [P4_PRODUCTIZATION_ROADMAP.md](reports/P4_PRODUCTIZATION_ROADMAP.md) | P4 productization roadmap |
+| [PROJECT_MATURITY_REPORT.md](reports/PROJECT_MATURITY_REPORT.md) | Project maturity assessment |
+| [NEXT_90_DAYS_PLAN.md](reports/NEXT_90_DAYS_PLAN.md) | 90-day execution plan |
 
 ## Archive (`docs/archive/`)
 

@@ -4,24 +4,19 @@
 
 ## Current Version
 
-- **Version**: v0.8.3
-- **Phase**: v0.8.x Stabilization Sprint (P3.5)
-- **Status**: Complete — build, type-check, tests all passing
+- **Version**: v0.8.6
+- **Phase**: v0.8.x Product Readiness Consolidation
+- **Status**: Complete — build, type-check, backend import all passing
 
 ## Session Goals
 
-1. ~~Design System V2 foundation~~ — CSS tokens, Tailwind config, keyframes
-2. ~~UI Primitives~~ — Button, Card, Input, Dialog, DropdownMenu
-3. ~~Investigation UX polish~~ — Streaming, confidence, trace, charts, drill-down
-4. ~~Product-level UX~~ — Command palette, global search, keyboard shortcuts, smart empty states
-5. ~~Performance & Polish~~ — Suspense, lazy loading, icons migration, responsive, docs
+1. ~~Product Readiness Consolidation~~ — Documentation audit, legacy cleanup analysis, demo readiness review
+2. ~~Generate consolidation reports~~ — DOCS_CONSOLIDATION_PLAN.md, LEGACY_REMOVAL_PLAN.md, DEMO_READINESS_REPORT.md
 
 ## System Health
 
 - Frontend build: PASS (Next.js 15.5.18)
 - Backend import: PASS
-- Frontend tests: 160/160 PASS
-- Backend tests: 341/342 PASS (1 pre-existing fail)
 - TypeScript: PASS
 - Lint: TBD
 
