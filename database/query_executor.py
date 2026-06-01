@@ -4,6 +4,7 @@ Provides a safe, validated interface for executing SQL queries
 against the DuckDB database. Designed for later AI Agent integration.
 """
 
+import threading
 import pandas as pd
 from database.db_manager import DatabaseManager
 
@@ -16,8 +17,18 @@ class QueryError(Exception):
 class QueryExecutor:
     """Executes SQL queries with validation and result formatting."""
 
-    def __init__(self, db_manager: DatabaseManager = None):
+    def __init__(self, db_manager: DatabaseManager = None, readonly: bool = False):
         self.db = db_manager or DatabaseManager()
+        self.readonly = readonly
+
+    def _validate_readonly(self, sql: str) -> None:
+        """Validate query is read-only if executor is in readonly mode."""
+        if not self.readonly:
+            return
+        from backend.services.sql_validator import validate_readonly
+        is_valid, error_msg = validate_readonly(sql)
+        if not is_valid:
+            raise QueryError(error_msg)
 
     def execute(self, sql: str) -> dict:
         """Execute a SQL query and return structured results.
@@ -39,6 +50,8 @@ class QueryExecutor:
         if not sql:
             return self._error_result(sql, "Empty SQL query.")
 
+        self._validate_readonly(sql)
+
         try:
             df = self.db.execute_query(sql)
             return {
@@ -52,7 +65,9 @@ class QueryExecutor:
         except Exception as e:
             return self._error_result(sql, str(e))
 
-    def execute_paginated(self, sql: str, offset: int = 0, limit: int = 10000, timeout_ms: int = 300000) -> dict:
+    def execute_paginated(self, sql: str, offset: int = 0, limit: int = 10000,
+                          timeout_ms: int = 300000,
+                          cancel_event: threading.Event | None = None) -> dict:
         """Execute a SQL query with server-side pagination.
 
         Args:
@@ -60,6 +75,7 @@ class QueryExecutor:
             offset: Number of rows to skip.
             limit: Maximum rows to return.
             timeout_ms: Query timeout in milliseconds (default: 300s).
+            cancel_event: Optional threading.Event to check for cancellation.
 
         Returns:
             {
@@ -78,11 +94,21 @@ class QueryExecutor:
         if not sql:
             return self._error_result(sql, "Empty SQL query.")
 
+        self._validate_readonly(sql)
+
+        # Check cancellation before starting
+        if cancel_event and cancel_event.is_set():
+            return self._error_result(sql, "Query cancelled by user.")
+
         try:
             # Wrap user query in pagination
             sql_clean = sql.rstrip(";").strip()
             paginated_sql = f"SELECT * FROM ({sql_clean}) AS _sub LIMIT {limit} OFFSET {offset}"
             df = self.db.execute_query(paginated_sql, timeout_ms=timeout_ms)
+
+            # Check cancellation before count query
+            if cancel_event and cancel_event.is_set():
+                return self._error_result(sql, "Query cancelled by user.")
 
             # Get total count (separate query with shorter timeout)
             count_sql = f"SELECT COUNT(*) FROM ({sql_clean}) AS _sub"
@@ -153,6 +179,8 @@ class QueryExecutor:
         sql = sql.strip()
         if not sql:
             return {"sql": sql, "plan": [], "status": "error", "error": "Empty SQL query."}
+
+        self._validate_readonly(sql)
 
         # Strip trailing semicolons for EXPLAIN wrapping
         sql_clean = sql.rstrip(";").strip()

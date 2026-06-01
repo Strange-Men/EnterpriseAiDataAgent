@@ -119,7 +119,7 @@ export function GlobalSearch({ open, onClose, tables }: GlobalSearchProps) {
         </div>
         <div className="max-h-64 overflow-y-auto p-1">
           {results.length === 0 && query.length > 0 ? (
-            <div className="py-8 text-center text-xs text-[var(--text-muted)]">No results for "{query}"</div>
+            <div className="py-8 text-center text-xs text-[var(--text-muted)]">No results for &ldquo;{query}&rdquo;</div>
           ) : query.length === 0 ? (
             <div className="py-6 text-center text-xs text-[var(--text-muted)]">Start typing to search...</div>
           ) : (

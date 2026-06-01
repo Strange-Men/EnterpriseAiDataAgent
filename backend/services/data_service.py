@@ -2,6 +2,7 @@
 
 import io
 import time
+import threading
 
 from database.db_manager import DatabaseManager
 from database.file_loader import load_file, FileLoadError
@@ -32,24 +33,43 @@ class UploadFileAdapter:
 # Lazy singletons — no import-time DuckDB connection.
 _db: DatabaseManager | None = None
 _executor: QueryExecutor | None = None
+_readonly_executor: QueryExecutor | None = None
+_init_lock = threading.Lock()
 _start_time = time.time()
 _UPLOAD_TIMESTAMPS: dict[str, str] = {}  # table_name → ISO 8601 upload timestamp
 
 
 def get_db() -> DatabaseManager:
-    """Lazy-init DatabaseManager singleton."""
+    """Lazy-init DatabaseManager singleton (thread-safe)."""
     global _db
     if _db is None:
-        _db = DatabaseManager()
+        with _init_lock:
+            if _db is None:
+                _db = DatabaseManager()
     return _db
 
 
 def get_executor() -> QueryExecutor:
-    """Lazy-init QueryExecutor singleton."""
+    """Lazy-init QueryExecutor singleton (thread-safe)."""
     global _executor
     if _executor is None:
-        _executor = QueryExecutor(get_db())
+        with _init_lock:
+            if _executor is None:
+                _executor = QueryExecutor(get_db())
     return _executor
+
+
+def get_readonly_executor() -> QueryExecutor:
+    """Lazy-init read-only QueryExecutor singleton (thread-safe).
+
+    Used for user-facing query endpoints to prevent data modification.
+    """
+    global _readonly_executor
+    if _readonly_executor is None:
+        with _init_lock:
+            if _readonly_executor is None:
+                _readonly_executor = QueryExecutor(get_db(), readonly=True)
+    return _readonly_executor
 
 
 def get_uptime() -> str:
@@ -192,12 +212,17 @@ def get_table_schema(table_name: str) -> list[dict]:
             "nullable": col["nullable"] == "YES",
             "uniqueCount": 0,
         })
-    # Enrich with unique counts from pandas
+    # Enrich with unique counts using DuckDB COUNT(DISTINCT) — much faster than pandas
     try:
-        df = get_db().get_sample_data(table_name, limit=100000)
+        conn = get_db().connect()
         for col_info in columns:
-            if col_info["name"] in df.columns:
-                col_info["uniqueCount"] = int(df[col_info["name"]].nunique())
+            try:
+                result = conn.execute(
+                    f'SELECT COUNT(DISTINCT "{col_info["name"]}") FROM "{table_name}"'
+                ).fetchone()
+                col_info["uniqueCount"] = int(result[0]) if result else 0
+            except Exception:
+                pass
     except Exception:
         pass
     return columns

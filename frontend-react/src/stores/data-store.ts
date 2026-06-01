@@ -20,9 +20,10 @@ interface DataState {
   currentColumns: string[];
   setCurrentData: (data: Record<string, unknown>[] | null, columns?: string[]) => void;
 
-  // Quality
-  qualityReport: QualityReport | null;
-  setQualityReport: (report: QualityReport | null) => void;
+  // Quality (per-table)
+  qualityReports: Record<string, QualityReport>;
+  qualityReport: QualityReport | null; // backward compat — reads from active table
+  setQualityReport: (report: QualityReport | null, tableName?: string) => void;
 
   // Uploads
   uploadedFiles: UploadedFile[];
@@ -47,8 +48,16 @@ export const useDataStore = create<DataState>((set, get) => ({
   setCurrentData: (currentData, columns) =>
     set({ currentData, currentColumns: columns ?? [] }),
 
+  qualityReports: {},
   qualityReport: null,
-  setQualityReport: (qualityReport) => set({ qualityReport }),
+  setQualityReport: (qualityReport, tableName) =>
+    set((state) => {
+      if (tableName && qualityReport) {
+        const updated = { ...state.qualityReports, [tableName]: qualityReport };
+        return { qualityReports: updated, qualityReport };
+      }
+      return { qualityReport };
+    }),
 
   uploadedFiles: [],
   setUploadedFiles: (uploadedFiles) => set({ uploadedFiles }),

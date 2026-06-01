@@ -9,12 +9,15 @@ Endpoints:
 """
 
 import asyncio
+import logging
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import json
 import re
 from backend.config import ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL
+
+logger = logging.getLogger("enterprise_ai.routes.ai")
 from backend.services.ai_analyst import (
     explain_results,
     explain_results_stream,
@@ -324,10 +327,19 @@ async def ai_analyze_multi(req: MultiAnalyzeRequest):
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Empty question")
     gr = _parse_guardrails(req.guardrails)
-    return run_autonomous_analysis(
-        req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows, gr,
-        prior_findings=req.prior_findings,
-    )
+    try:
+        result = await asyncio.wait_for(
+            asyncio.get_event_loop().run_in_executor(
+                None, lambda: run_autonomous_analysis(
+                    req.question, req.table, req.columns, req.sample_rows,
+                    req.language, req.max_rows, gr, prior_findings=req.prior_findings,
+                )
+            ),
+            timeout=180.0,
+        )
+        return result
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Multi-step analysis timed out after 180s")
 
 
 @router.post("/ai/analyze-multi/stream")
@@ -367,7 +379,7 @@ async def ai_adapt_template(req: AdaptTemplateRequest):
     try:
         from backend.prompts.template_adaptation import CONTRACT, build_user_message
         from backend.prompts.locale import apply_language
-        from backend.services.ai_analyst import _call_llm
+        from backend.services.ai_analyst import _call_llm, _parse_llm_json
 
         system = apply_language(CONTRACT.SYSTEM_PROMPT, req.language)
         user_msg = build_user_message(req.template_steps, req.original_columns, req.target_columns)
@@ -382,18 +394,11 @@ async def ai_adapt_template(req: AdaptTemplateRequest):
             prompt_name="template_adaptation",
         )
 
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
-            match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
-            if match:
-                parsed = json.loads(match.group(1))
-            else:
-                raise ValueError(f"Failed to parse LLM response as JSON: {raw[:200]}")
-
+        parsed = _parse_llm_json(raw)
         return {"adapted_questions": parsed.get("adapted_questions", []), "status": "success"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Template adaptation error: {e}")
+        raise HTTPException(status_code=500, detail="Template adaptation failed")
 
 
 # ── Report Generation ───────────────────────────────────────────
@@ -506,7 +511,8 @@ async def ai_evaluate(req: EvaluateRequest):
     """AI 对分析结果做自我评估。"""
     result = evaluate_analysis(req.question, req.sections, req.trace, req.language)
     if result["status"] == "error":
-        raise HTTPException(status_code=500, detail=result.get("diagnostics", ["Evaluation failed"])[0])
+        logger.error(f"AI evaluation error: {result.get('diagnostics', ['Unknown'])}")
+        raise HTTPException(status_code=500, detail="AI evaluation failed")
     return result
 
 

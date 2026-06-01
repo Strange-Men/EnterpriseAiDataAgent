@@ -14,9 +14,13 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
+import traceback
+
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.config import API_VERSION
 from backend.routes import upload, tables, quality, query, ai, analyze
@@ -92,12 +96,43 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Enterprise AI Data Agent API", version=API_VERSION, lifespan=lifespan)
 
 
-# ── Global exception handler ──────────────────────────────────────
+# ── Global exception handlers ─────────────────────────────────────
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Handle HTTP exceptions — preserve status code, log 5xx errors."""
+    if exc.status_code >= 500:
+        logger.error(
+            f"HTTP {exc.status_code} in {request.method} {request.url.path}: {exc.detail}"
+        )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "status": "error",
+            "detail": exc.detail,
+            "path": str(request.url.path),
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle request validation errors — return 422."""
+    return JSONResponse(
+        status_code=422,
+        content={
+            "status": "error",
+            "detail": "Invalid request parameters",
+            "errors": exc.errors(),
+            "path": str(request.url.path),
+        },
+    )
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Catch-all for unhandled exceptions — logs full traceback, returns clean JSON."""
-    import traceback
-    tb = traceback.format_exc()
+    """Catch-all for unhandled exceptions — logs full traceback, returns sanitized JSON."""
+    tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
     logger.error(
         f"Unhandled exception in {request.method} {request.url.path}:\n{tb}"
     )
@@ -105,7 +140,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={
             "status": "error",
-            "detail": str(exc),
+            "detail": "Internal server error",
             "path": str(request.url.path),
         },
     )

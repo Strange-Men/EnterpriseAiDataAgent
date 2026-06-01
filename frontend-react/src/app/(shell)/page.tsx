@@ -14,18 +14,19 @@ import {
   Database, Zap, BrainCircuit, Clock,
 } from "lucide-react";
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
+  if (isNaN(then)) return dateStr;
   const diff = now - then;
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
 
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
+  if (minutes < 1) return t("dashboard.just-now");
+  if (minutes < 60) return t("dashboard.minutes-ago", { n: minutes });
+  if (hours < 24) return t("dashboard.hours-ago", { n: hours });
+  if (days < 7) return t("dashboard.days-ago", { n: days });
   return new Date(dateStr).toLocaleDateString();
 }
 
@@ -34,10 +35,9 @@ export default function HomePage() {
   const router = useRouter();
   const tables = useDataStore((s) => s.tables);
   const runs = useAnalysisStore((s) => s.runs);
-  const allRuns = useAnalysisStore((s) => s.runs);
   const recentRuns = useMemo(
-    () => allRuns.filter((r) => r.status === "success").slice(-5).reverse(),
-    [allRuns]
+    () => runs.filter((r) => r.status === "success").slice(-5).reverse(),
+    [runs]
   );
   const systemStatus = useDataStore((s) => s.systemStatus);
   const history = useSqlHistoryStore((s) => s.history);
@@ -70,7 +70,7 @@ export default function HomePage() {
       {isNewUser && (
         <Card variant="highlighted">
           <CardHeader>
-            <CardTitle>Get Started</CardTitle>
+            <CardTitle>{t("dashboard.get-started")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -78,27 +78,27 @@ export default function HomePage() {
                 <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
                   <Upload className="w-5 h-5 text-[var(--accent)]" />
                 </div>
-                <p className="text-xs font-medium text-[var(--text-primary)]">1. Upload Data</p>
-                <p className="text-2xs text-[var(--text-muted)] mt-0.5">Start by uploading a CSV or Excel file to analyze</p>
+                <p className="text-xs font-medium text-[var(--text-primary)]">{t("dashboard.upload-data")}</p>
+                <p className="text-2xs text-[var(--text-muted)] mt-0.5">{t("dashboard.upload-hint")}</p>
               </div>
               <div className="text-center">
                 <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
                   <BrainCircuit className="w-5 h-5 text-[var(--accent)]" />
                 </div>
-                <p className="text-xs font-medium text-[var(--text-primary)]">2. Ask Questions</p>
-                <p className="text-2xs text-[var(--text-muted)] mt-0.5">Ask AI to analyze your data in plain language</p>
+                <p className="text-xs font-medium text-[var(--text-primary)]">{t("dashboard.ask-questions")}</p>
+                <p className="text-2xs text-[var(--text-muted)] mt-0.5">{t("dashboard.ask-hint")}</p>
               </div>
               <div className="text-center">
                 <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
                   <Zap className="w-5 h-5 text-[var(--accent)]" />
                 </div>
-                <p className="text-xs font-medium text-[var(--text-primary)]">3. Explore Results</p>
-                <p className="text-2xs text-[var(--text-muted)] mt-0.5">Get insights, charts, SQL, and drill-down investigations</p>
+                <p className="text-xs font-medium text-[var(--text-primary)]">{t("dashboard.explore-results")}</p>
+                <p className="text-2xs text-[var(--text-muted)] mt-0.5">{t("dashboard.explore-hint")}</p>
               </div>
             </div>
             <div className="mt-4 text-center">
               <Button variant="primary" size="lg" onClick={() => router.push("/analyze")} rightIcon={<ArrowRight className="w-4 h-4" />}>
-                Start Your First Analysis
+                {t("dashboard.start-analysis")}
               </Button>
             </div>
           </CardContent>
@@ -113,7 +113,7 @@ export default function HomePage() {
         >
           <Upload className="w-6 h-6 text-[var(--accent)]" />
           <span className="text-sm font-medium text-[var(--text-primary)]">{t("nav.data")}</span>
-          <span className="text-[10px] text-[var(--text-muted)]">Upload & manage datasets</span>
+          <span className="text-[10px] text-[var(--text-muted)]">{t("dashboard.data-hint")}</span>
         </button>
 
         <button
@@ -122,7 +122,7 @@ export default function HomePage() {
         >
           <Code className="w-6 h-6 text-[var(--accent)]" />
           <span className="text-sm font-medium text-[var(--text-primary)]">{t("nav.query")}</span>
-          <span className="text-[10px] text-[var(--text-muted)]">Write & execute SQL queries</span>
+          <span className="text-[10px] text-[var(--text-muted)]">{t("dashboard.query-hint")}</span>
         </button>
 
         <button
@@ -131,14 +131,14 @@ export default function HomePage() {
         >
           <MonitorPlay className="w-6 h-6 text-[var(--accent)]" />
           <span className="text-sm font-medium text-[var(--text-primary)]">{t("nav.analyze")}</span>
-          <span className="text-[10px] text-[var(--text-muted)]">AI-powered data analysis</span>
+          <span className="text-[10px] text-[var(--text-muted)]">{t("dashboard.analyze-hint")}</span>
         </button>
       </div>
 
       {/* System status */}
       <Card>
         <CardHeader>
-          <CardTitle>System Status</CardTitle>
+          <CardTitle>{t("dashboard.system-status")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isStatusLoaded ? (
@@ -160,7 +160,7 @@ export default function HomePage() {
                 <span className="text-[var(--text-primary)]">{systemStatus.version}</span>
               </div>
               <div>
-                <span className="text-[var(--text-muted)]">Tables: </span>
+                <span className="text-[var(--text-muted)]">{t("dashboard.tables-count")}: </span>
                 <span className="text-[var(--text-primary)]">{tables.length}</span>
               </div>
             </div>
@@ -178,7 +178,7 @@ export default function HomePage() {
       {recentRuns.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Recent Analyses</CardTitle>
+            <CardTitle>{t("dashboard.recent-analyses")}</CardTitle>
           </CardHeader>
           <CardContent className="!p-0">
             <div className="divide-y divide-[var(--border-default)]">
@@ -195,7 +195,7 @@ export default function HomePage() {
                     {run.question || run.table || run.mode}
                   </span>
                   <span className="text-[10px] text-[var(--text-muted)] shrink-0">
-                    {timeAgo(run.timestamp)}
+                    {timeAgo(run.timestamp, t)}
                   </span>
                 </button>
               ))}
@@ -210,7 +210,7 @@ export default function HomePage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-[var(--text-muted)]" />
-              <CardTitle>Recent Queries</CardTitle>
+              <CardTitle>{t("dashboard.recent-queries")}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="!p-0">
@@ -241,11 +241,11 @@ export default function HomePage() {
       {tables.length > 0 && runs.length === 0 && (
         <EmptyState
           icon={<Database className="w-8 h-8" />}
-          title="Ready to analyze"
-          description={`You have ${tables.length} table${tables.length > 1 ? "s" : ""}. Try asking an AI-powered question.`}
+          title={t("dashboard.ready-to-analyze")}
+          description={t("dashboard.ready-hint", { count: tables.length })}
           action={
             <Button variant="primary" size="md" onClick={() => router.push("/analyze")} rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
-              Start Analysis
+              {t("dashboard.start-btn")}
             </Button>
           }
         />

@@ -124,12 +124,20 @@ def _build_dependency_context(depends_on: int | None, executed_steps: list):
 def _generate_step_sql_with_retry(step_question: str, schema_context: str,
                                    fu_ctx, language: str, step_num: int,
                                    tracker: WorkflowTokenTracker,
-                                   trace: TraceRecorder) -> dict:
-    """Generate SQL for a step, with one retry on failure."""
+                                   trace: TraceRecorder,
+                                   on_retry=None) -> dict:
+    """Generate SQL for a step, with one retry on failure.
+
+    Args:
+        on_retry: Optional callback(step_num, attempt, error) called before retry.
+                  Used by streaming variant to yield step_retry events.
+    """
     sql_result = generate_sql(step_question, schema_context, fu_ctx, language,
                               tracker=tracker, trace=trace,
                               phase=f"step_{step_num}", step=step_num)
     if sql_result["status"] == "error":
+        if on_retry:
+            on_retry(step_num, 2, sql_result.get("error", "")[:200])
         retry_question = (
             f"{step_question}\n\nPrevious attempt failed with: "
             f"{sql_result.get('error', 'unknown error')[:200]}. Try a different approach."
@@ -554,20 +562,13 @@ def run_autonomous_analysis_stream(
 
         # Generate SQL (with retry on failure)
         step_question = f"{purpose}: {sql_goal}"
-        sql_result = generate_sql(step_question, schema_context, fu_ctx, language,
-                                  tracker=tracker, trace=trace,
-                                  phase=f"step_{step_num}", step=step_num)
-
-        if sql_result["status"] == "error":
-            yield {"type": "step_retry", "step": step_num, "attempt": 2,
-                   "error": sql_result.get("error", "")[:200]}
-            retry_question = (
-                f"{step_question}\n\nPrevious attempt failed with: "
-                f"{sql_result.get('error', 'unknown error')[:200]}. Try a different approach."
-            )
-            sql_result = generate_sql(retry_question, schema_context, fu_ctx, language,
-                                      tracker=tracker, trace=trace,
-                                      phase=f"step_{step_num}_retry", step=step_num)
+        retry_events: list[dict] = []
+        sql_result = _generate_step_sql_with_retry(
+            step_question, schema_context, fu_ctx, language, step_num, tracker, trace,
+            on_retry=lambda s, a, e: retry_events.append({"type": "step_retry", "step": s, "attempt": a, "error": e}),
+        )
+        for evt in retry_events:
+            yield evt
 
         if sql_result["status"] == "error":
             guard.record_step_result(success=False)

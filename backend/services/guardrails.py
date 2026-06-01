@@ -77,6 +77,20 @@ class AnalysisGuard:
         if self.consecutive_failures >= self.config.max_consecutive_failures:
             raise GuardrailViolation("consecutive_failures", f"连续失败 {self.config.max_consecutive_failures} 次")
 
+    def check_during_step(self) -> None:
+        """在步骤执行过程中检查是否超时（用于长时间运行的操作）。"""
+        elapsed = time.time() - self.start_time
+        if elapsed > self.config.max_total_time_seconds:
+            raise GuardrailViolation("total_timeout", f"分析超时 {self.config.max_total_time_seconds}s")
+
+        if self.step_start_time is not None:
+            step_elapsed = time.time() - self.step_start_time
+            if step_elapsed > self.config.max_step_time_seconds:
+                raise GuardrailViolation(
+                    "step_timeout",
+                    f"步骤超时 {step_elapsed:.1f}s (限制: {self.config.max_step_time_seconds}s)"
+                )
+
     def record_step_result(self, success: bool):
         """记录每步执行结果。"""
         self.steps_executed += 1

@@ -1,13 +1,17 @@
 """Query endpoints — thin shell delegating to services."""
 
 import time
+import threading
+import logging
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from backend.services.data_service import get_executor, _sanitize_for_json
+from backend.services.data_service import get_readonly_executor, _sanitize_for_json
 from backend.services.query_history import query_history
 from backend.services.export_service import export_as_csv, export_as_json, export_as_excel
 from backend.utils.json_safe import normalize_for_response
+
+logger = logging.getLogger("enterprise_ai.query")
 
 router = APIRouter()
 
@@ -33,8 +37,8 @@ class ExportRequest(BaseModel):
     limit: int = 50000
 
 
-# Track running queries for cancellation
-_active_queries: dict[int, bool] = {}
+# Track running queries for cancellation using threading.Event
+_active_queries: dict[int, threading.Event] = {}
 
 
 @router.post("/query")
@@ -44,12 +48,32 @@ async def execute_query(req: QueryRequest):
         raise HTTPException(status_code=400, detail="Empty SQL query")
 
     query_id = int(time.time() * 1000)
-    _active_queries[query_id] = True
+    cancel_event = threading.Event()
+    _active_queries[query_id] = cancel_event
 
     start = time.time()
     try:
-        result = get_executor().execute_paginated(sql, offset=req.offset, limit=req.limit, timeout_ms=req.timeout_ms)
+        result = get_readonly_executor().execute_paginated(
+            sql, offset=req.offset, limit=req.limit,
+            timeout_ms=req.timeout_ms, cancel_event=cancel_event,
+        )
         runtime_ms = int((time.time() - start) * 1000)
+
+        if cancel_event.is_set():
+            query_history.add(sql, "error", runtime_ms, 0, "Query cancelled")
+            return normalize_for_response({
+                "queryId": query_id,
+                "sql": sql,
+                "columns": [],
+                "data": [],
+                "rowCount": 0,
+                "totalRows": 0,
+                "offset": req.offset,
+                "hasMore": False,
+                "runtimeMs": runtime_ms,
+                "status": "cancelled",
+                "error": "Query cancelled by user",
+            })
 
         if result["status"] == "error":
             query_history.add(sql, "error", runtime_ms, 0, result["error"])
@@ -86,7 +110,8 @@ async def execute_query(req: QueryRequest):
     except Exception as e:
         runtime_ms = int((time.time() - start) * 1000)
         query_history.add(sql, "error", runtime_ms, 0, str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Query execution error: {e}")
+        raise HTTPException(status_code=500, detail="Query execution failed")
     finally:
         _active_queries.pop(query_id, None)
 
@@ -102,7 +127,7 @@ async def explain_query(req: ExplainRequest):
     if not sql:
         raise HTTPException(status_code=400, detail="Empty SQL query")
 
-    result = get_executor().explain(sql)
+    result = get_readonly_executor().explain(sql)
     if result["status"] == "error":
         return normalize_for_response({"sql": sql, "plan": [], "status": "error", "error": result["error"]})
     return normalize_for_response({"sql": sql, "plan": result["plan"], "status": "success", "error": None})
@@ -110,7 +135,11 @@ async def explain_query(req: ExplainRequest):
 
 @router.post("/query/cancel")
 async def cancel_query(req: CancelRequest):
-    _active_queries.pop(req.query_id, None)
+    cancel_event = _active_queries.get(req.query_id)
+    if cancel_event:
+        cancel_event.set()
+    else:
+        _active_queries.pop(req.query_id, None)
     return {"cancelled": True, "queryId": req.query_id}
 
 
@@ -121,11 +150,12 @@ async def export_query(req: ExportRequest):
         raise HTTPException(status_code=400, detail="Empty SQL query")
 
     start = time.time()
-    result = get_executor().execute(sql)
+    result = get_readonly_executor().execute(sql)
     runtime_ms = int((time.time() - start) * 1000)
 
     if result["status"] == "error":
-        raise HTTPException(status_code=400, detail=result["error"])
+        logger.error(f"Export query error: {result['error']}")
+        raise HTTPException(status_code=400, detail="Export query failed")
 
     data = _sanitize_for_json(result["data"][:req.limit])
     columns = result["columns"]

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import dynamic from "next/dynamic";
 
 const VirtualDataTable = dynamic(
@@ -18,12 +19,12 @@ export default function VirtualTablePage() {
         <span className="text-xs text-zinc-500">
           TanStack Table + TanStack Virtual — 50K rows
         </span>
-        <a
+        <Link
           href="/"
           className="ml-auto text-xs text-blue-400 hover:text-blue-300"
         >
           ← Back to Workspace
-        </a>
+        </Link>
       </header>
 
       {/* Virtual Table */}

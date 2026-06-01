@@ -14,6 +14,9 @@ export default function SettingsPage() {
   const { theme, toggleTheme } = useThemeStore();
   const version = useDataStore((s) => s.systemStatus.version);
 
+  const themeLabel = theme === "dark" ? t("settings.dark") : t("settings.light");
+  const nextThemeLabel = theme === "dark" ? t("settings.light") : t("settings.dark");
+
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
       <h2 className="text-lg font-bold text-[var(--text-primary)]">{t("nav.settings")}</h2>
@@ -26,11 +29,11 @@ export default function SettingsPage() {
               <Languages className="w-5 h-5 text-[var(--text-muted)]" />
               <div>
                 <CardTitle className="!text-sm !normal-case !text-[var(--text-primary)] !tracking-normal !font-medium">{t("app.language")}</CardTitle>
-                <p className="text-2xs text-[var(--text-muted)]">Current: {language === "zh" ? "中文" : "English"}</p>
+                <p className="text-2xs text-[var(--text-muted)]">{t("settings.current")}: {language === "zh" ? "中文" : "English"}</p>
               </div>
             </div>
             <Button variant="secondary" size="md" onClick={toggleLanguage}>
-              Switch to {language === "zh" ? "English" : "中文"}
+              {t("settings.switch-to")} {language === "zh" ? "English" : "中文"}
             </Button>
           </CardContent>
         </Card>
@@ -41,12 +44,12 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               {theme === "dark" ? <Moon className="w-5 h-5 text-[var(--text-muted)]" /> : <Sun className="w-5 h-5 text-[var(--text-muted)]" />}
               <div>
-                <CardTitle className="!text-sm !normal-case !text-[var(--text-primary)] !tracking-normal !font-medium">Theme</CardTitle>
-                <p className="text-2xs text-[var(--text-muted)]">Current: {theme}</p>
+                <CardTitle className="!text-sm !normal-case !text-[var(--text-primary)] !tracking-normal !font-medium">{t("settings.theme")}</CardTitle>
+                <p className="text-2xs text-[var(--text-muted)]">{t("settings.current")}: {themeLabel}</p>
               </div>
             </div>
             <Button variant="secondary" size="md" onClick={toggleTheme}>
-              Switch to {theme === "dark" ? "Light" : "Dark"}
+              {t("settings.switch-to")} {nextThemeLabel}
             </Button>
           </CardContent>
         </Card>
@@ -57,7 +60,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <Monitor className="w-5 h-5 text-[var(--text-muted)]" />
               <div>
-                <CardTitle className="!text-sm !normal-case !text-[var(--text-primary)] !tracking-normal !font-medium">Version</CardTitle>
+                <CardTitle className="!text-sm !normal-case !text-[var(--text-primary)] !tracking-normal !font-medium">{t("settings.version")}</CardTitle>
                 <p className="text-2xs text-[var(--text-muted)]">Enterprise AI Data Agent v{version}</p>
               </div>
             </div>

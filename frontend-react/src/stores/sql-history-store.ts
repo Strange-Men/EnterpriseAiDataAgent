@@ -113,17 +113,18 @@ export const useSqlHistoryStore = create<SqlHistoryState>()(
         }));
 
         // Size guard: drop oldest entries if over limit
-        const jsonSize = JSON.stringify({ ...state, history }).length;
+        const jsonSize = JSON.stringify(history).length;
         if (jsonSize > MAX_STORAGE_BYTES) {
           console.warn(
             `[sql-history-store] Persisted size ${(jsonSize / 1024 / 1024).toFixed(1)}MB exceeds 2MB limit, trimming oldest entries`
           );
-          while (history.length > 50 && JSON.stringify({ ...state, history }).length > MAX_STORAGE_BYTES) {
+          while (history.length > 50 && JSON.stringify(history).length > MAX_STORAGE_BYTES) {
             history.pop(); // drop oldest
           }
         }
 
-        return { ...state, history };
+        // Only persist history — not transient state (isLoading, searchQuery, filterStatus)
+        return { history };
       },
     }
   )

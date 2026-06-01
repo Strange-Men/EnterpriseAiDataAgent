@@ -14,9 +14,22 @@ from dataclasses import dataclass, field
 
 # ── 启发式 Token 估算 ──────────────────────────────────────────
 
+def _cjk_ratio(text: str) -> float:
+    """Estimate the ratio of CJK characters in text."""
+    if not text:
+        return 0.0
+    cjk_count = sum(1 for c in text if '一' <= c <= '鿿' or '㐀' <= c <= '䶿')
+    return cjk_count / len(text)
+
+
 def estimate_tokens(text: str) -> int:
-    """启发式 token 估算: ~3 字符/token。偏保守。"""
-    return max(1, len(text) // 3)
+    """启发式 token 估算: CJK ~1.5 char/token, English ~3 char/token, 混合按比例加权。"""
+    if not text:
+        return 1
+    ratio = _cjk_ratio(text)
+    # CJK: ~1.5 chars per token; English: ~3 chars per token
+    chars_per_token = 1.5 * ratio + 3.0 * (1 - ratio)
+    return max(1, int(len(text) / chars_per_token))
 
 
 # ── 截断工具 ──────────────────────────────────────────────────
@@ -33,6 +46,7 @@ def truncate_text(text: str, max_tokens: int) -> str:
 def truncate_rows(rows: list[dict], max_rows: int, max_tokens: int) -> tuple[list[dict], bool]:
     """截断行列表以满足行数和 token 双重限制。
 
+    使用二分搜索替代逐行删除，O(n log n) 替代 O(n²)。
     返回: (截断后行列表, 是否被截断)
     """
     if not rows:
@@ -46,14 +60,20 @@ def truncate_rows(rows: list[dict], max_rows: int, max_tokens: int) -> tuple[lis
     if estimate_tokens(text) <= max_tokens:
         return truncated, was_truncated
 
-    # 超过 token 限制，逐步减少行数
-    while len(truncated) > 1:
-        truncated = truncated[:-1]
-        text = json.dumps(truncated, default=str, ensure_ascii=False)
+    # 二分搜索找到合适的行数
+    lo, hi = 1, len(truncated)
+    best = 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        candidate = truncated[:mid]
+        text = json.dumps(candidate, default=str, ensure_ascii=False)
         if estimate_tokens(text) <= max_tokens:
-            break
+            best = mid
+            lo = mid + 1
+        else:
+            hi = mid - 1
 
-    return truncated, True
+    return truncated[:best], True
 
 
 # ── Per-Operation Budget 配置 ──────────────────────────────────

@@ -142,7 +142,6 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         error_detail = ""
         try:
             response = await call_next(request)
-            return response
         except Exception as e:
             error_detail = str(e)
             raise
@@ -150,7 +149,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             elapsed_ms = (time.time() - start_time) * 1000
             status_code = response.status_code if response else 500
 
-            log_entry = log_request(
+            log_request(
                 request_id=request_id,
                 method=request.method,
                 path=request.url.path,
@@ -159,10 +158,12 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 error_detail=error_detail,
             )
 
-            # Inject timing headers
+            # Inject timing headers BEFORE returning (works for all response types)
             if response:
                 response.headers["X-Request-ID"] = request_id
                 response.headers["X-Response-Time"] = f"{elapsed_ms:.0f}ms"
+
+        return response
 
 
 # ── Query Timing Utilities ──────────────────────────────────────

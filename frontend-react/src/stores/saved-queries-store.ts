@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { generateId } from "@/utils/id";
 
+const MAX_QUERIES = 100;
+
 export interface SavedQuery {
   id: string;
   name: string;
@@ -31,7 +33,20 @@ export const useSavedQueriesStore = create<SavedQueriesState>()(
         const id = generateId();
         const now = new Date().toISOString();
         const query: SavedQuery = { id, name, sql, favorite: false, createdAt: now, updatedAt: now };
-        set((state) => ({ queries: [query, ...state.queries] }));
+        set((state) => {
+          const updated = [query, ...state.queries];
+          // Enforce MAX_QUERIES limit — remove oldest non-favorite if exceeded
+          if (updated.length > MAX_QUERIES) {
+            const trimmed = [...updated];
+            while (trimmed.length > MAX_QUERIES) {
+              const idx = trimmed.findLastIndex((q) => !q.favorite);
+              if (idx === -1) break;
+              trimmed.splice(idx, 1);
+            }
+            return { queries: trimmed };
+          }
+          return { queries: updated };
+        });
         return id;
       },
 

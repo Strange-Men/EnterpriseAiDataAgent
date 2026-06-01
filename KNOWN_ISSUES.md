@@ -22,8 +22,10 @@ Track all open issues, bugs, and improvements here.
 | ISSUE-002 | Query history lost on server restart (in-memory deque) | Medium | Yes | Fixed | Claude | v0.6.4: Added DuckDB persistence, loads on startup |
 | ISSUE-005 | `docs/frontend_rules/` files reference Vue/Element Plus (different project) | Low | Yes | Open | Claude | Keep as reference pattern; not directly applicable |
 | ISSUE-006 | SQL query API returns all data in one response (no pagination) | Medium | Yes | Fixed | Claude | v0.6.4: Added server-side OFFSET/LIMIT pagination, infinite scroll |
-| ISSUE-013 | CSV export writes "nan" string for NaN values instead of empty | Low | Yes | Open | Claude | Use df.fillna('').to_csv() instead of manual iteration |
+| ISSUE-013 | CSV export writes "nan" string for NaN values instead of empty | Low | Yes | Fixed | Claude | v0.9.4: Changed to df.to_csv() which handles NaN correctly |
 | ISSUE-014 | Test isolation: QueryHistory shares DuckDB between tests | Low | Yes | Open | Claude | Use in-memory DB or mock for tests |
+| ISSUE-016 | ai-analysis-panel.tsx 575-line runAnalysis callback | Medium | Yes | Open | Claude | P2-5 deferred: split into per-mode handlers |
+| ISSUE-017 | Command Palette i18n (hardcoded English labels) | Low | Yes | Open | Claude | P2-2 deferred: add i18n keys for command labels |
 
 ## Closed Issues
 

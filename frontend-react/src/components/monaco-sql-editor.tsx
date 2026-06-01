@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useEffect, useState } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { useThemeStore } from "@/hooks/use-theme";
@@ -58,19 +58,30 @@ const DUCKDB_FUNCTIONS = [
   "unnest", "generate_series",
 ];
 
-// Schema cache
+// Schema cache with TTL (5 minutes)
+const SCHEMA_CACHE_TTL_MS = 5 * 60 * 1000;
 let schemaCache: Record<string, string[]> = {};
 let schemaLoaded = false;
+let schemaLoadTime = 0;
 
 async function loadSchema(): Promise<Record<string, string[]>> {
-  if (schemaLoaded) return schemaCache;
+  const now = Date.now();
+  if (schemaLoaded && (now - schemaLoadTime) < SCHEMA_CACHE_TTL_MS) return schemaCache;
   try {
     schemaCache = await fetchAllSchemas();
     schemaLoaded = true;
+    schemaLoadTime = now;
   } catch {
     // Silently fail — autocomplete will still work with keywords
   }
   return schemaCache;
+}
+
+/** Invalidate schema cache — call after table create/delete/rename. */
+export function invalidateSchemaCache(): void {
+  schemaLoaded = false;
+  schemaLoadTime = 0;
+  schemaCache = {};
 }
 
 export function MonacoSqlEditor({
@@ -85,8 +96,6 @@ export function MonacoSqlEditor({
   const monacoRef = useRef<Monaco | null>(null);
   const completionDisposableRef = useRef<{ dispose: () => void } | null>(null);
   const onExecuteRef = useRef(onExecute);
-  const [isReady, setIsReady] = useState(false);
-
   // Keep onExecute ref up to date
   useEffect(() => {
     onExecuteRef.current = onExecute;
@@ -227,12 +236,8 @@ export function MonacoSqlEditor({
       // Set initial theme
       monaco.editor.setTheme(theme === "dark" ? "sql-dark" : "sql-light");
 
-      // Register completion provider
-      registerCompletionProvider(monaco);
-
-      // Load schema for autocomplete
+      // Load schema for autocomplete, then register completion provider once
       loadSchema().then(() => {
-        // Re-register provider with schema data
         registerCompletionProvider(monaco);
       });
 
@@ -244,11 +249,16 @@ export function MonacoSqlEditor({
       editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Slash, () => {
         editor.trigger("keyboard", "editor.action.commentLine", undefined);
       });
-
-      setIsReady(true);
     },
     [theme, registerCompletionProvider]
   );
+
+  // Cleanup completion provider on unmount
+  useEffect(() => {
+    return () => {
+      completionDisposableRef.current?.dispose();
+    };
+  }, []);
 
   // Update theme when it changes
   useEffect(() => {

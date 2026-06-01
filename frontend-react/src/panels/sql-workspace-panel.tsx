@@ -246,21 +246,27 @@ export function SqlWorkspacePanel() {
     setShowSavedPanel(false);
   }, [updateTabSql]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts — use refs to avoid re-registering on every keystroke
+  const currentSqlRef = useRef(currentSql);
+  const activeTabRef = useRef(activeTab);
+  useEffect(() => { currentSqlRef.current = currentSql; }, [currentSql]);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "S") {
         e.preventDefault();
-        if (currentSql.trim()) setShowSaveDialog(true);
+        if (currentSqlRef.current.trim()) setShowSaveDialog(true);
       }
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "K") {
         e.preventDefault();
-        if (activeTab) updateTabSql(activeTab.id, "");
+        const tab = activeTabRef.current;
+        if (tab) updateTabSql(tab.id, "");
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [currentSql, activeTab, updateTabSql]);
+  }, [updateTabSql]);
 
   // Tab rename handler
   const handleTabRename = useCallback((tabId: string) => {

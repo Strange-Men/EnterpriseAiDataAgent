@@ -9,7 +9,7 @@ import type { TableInfo, QualityReport, AnomalyResult } from "@/types";
 
 const API_BASE = "/api";
 // Direct backend URL for SSE streaming (bypasses Next.js proxy 30s timeout)
-const DIRECT_BACKEND = "http://localhost:8000";
+const DIRECT_BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // ── Generic fetch wrapper ──────────────────────────────────
 
@@ -382,6 +382,7 @@ function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promis
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let doneReceived = false;
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -394,8 +395,8 @@ function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promis
             if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6));
-                if (data.type === "done") { if (timeoutId) clearTimeout(timeoutId); callbacks.onDone(data); return; }
-                else if (data.type === "error") { if (timeoutId) clearTimeout(timeoutId); callbacks.onError(new Error(data.error || "Unknown error")); return; }
+                if (data.type === "done") { doneReceived = true; if (timeoutId) clearTimeout(timeoutId); callbacks.onDone(data); return; }
+                else if (data.type === "error") { doneReceived = true; if (timeoutId) clearTimeout(timeoutId); callbacks.onError(new Error(data.error || "Unknown error")); return; }
                 else { receivedEvents = true; callbacks.onEvent(data); }
               } catch {
                 // Skip malformed SSE line
@@ -411,13 +412,21 @@ function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promis
             if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6));
-                if (data.type === "done") callbacks.onDone(data);
-                else if (data.type === "error") callbacks.onError(new Error(data.error || "Unknown error"));
+                if (data.type === "done") { doneReceived = true; callbacks.onDone(data); }
+                else if (data.type === "error") { doneReceived = true; callbacks.onError(new Error(data.error || "Unknown error")); }
                 else { receivedEvents = true; callbacks.onEvent(data); }
               } catch {
                 // Skip malformed SSE line
               }
             }
+          }
+        }
+        // Stream ended without explicit "done" event — signal completion anyway
+        if (!doneReceived) {
+          if (receivedEvents) {
+            callbacks.onDone();
+          } else {
+            callbacks.onError(new Error("Stream ended without completion signal"));
           }
         }
       } catch (err) {
@@ -475,6 +484,7 @@ function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Respo
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let doneReceived = false;
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -488,8 +498,8 @@ function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Respo
               try {
                 const data = JSON.parse(line.slice(6));
                 if (data.type === "text") { receivedChunks = true; callbacks.onChunk(data.content); }
-                else if (data.type === "done") { if (timeoutId) clearTimeout(timeoutId); callbacks.onDone(); return; }
-                else if (data.type === "error") { if (timeoutId) clearTimeout(timeoutId); callbacks.onError(new Error(data.error)); return; }
+                else if (data.type === "done") { doneReceived = true; if (timeoutId) clearTimeout(timeoutId); callbacks.onDone(); return; }
+                else if (data.type === "error") { doneReceived = true; if (timeoutId) clearTimeout(timeoutId); callbacks.onError(new Error(data.error)); return; }
               } catch {
                 // Skip malformed SSE line
               }
@@ -505,12 +515,20 @@ function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Respo
               try {
                 const data = JSON.parse(line.slice(6));
                 if (data.type === "text") { receivedChunks = true; callbacks.onChunk(data.content); }
-                else if (data.type === "done") callbacks.onDone();
-                else if (data.type === "error") callbacks.onError(new Error(data.error));
+                else if (data.type === "done") { doneReceived = true; callbacks.onDone(); }
+                else if (data.type === "error") { doneReceived = true; callbacks.onError(new Error(data.error)); }
               } catch {
                 // Skip malformed SSE line
               }
             }
+          }
+        }
+        // Stream ended without explicit "done" event — signal completion anyway
+        if (!doneReceived) {
+          if (receivedChunks) {
+            callbacks.onDone();
+          } else {
+            callbacks.onError(new Error("Stream ended without completion signal"));
           }
         }
       } catch (err) {

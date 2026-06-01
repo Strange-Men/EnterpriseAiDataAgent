@@ -92,7 +92,7 @@ export function InvestigationWorkspace() {
 
     const accumulatedSteps: MultiStepExecuted[] = [];
     let accumulatedPlan: PlanStep[] = [];
-    let accumulatedSections: { title: string; content: string; type: "markdown" | "sql" | "json" }[] = [];
+    const accumulatedSections: { title: string; content: string; type: "markdown" | "sql" | "json" }[] = [];
     let accumulatedSummary = "";
     let accumulatedTrace: Record<string, unknown> | undefined;
 

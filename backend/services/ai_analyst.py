@@ -74,6 +74,40 @@ from backend.runtime.token_budget import (
 from backend.services.trace import TraceRecorder
 
 
+# ── JSON Parsing Helper ──────────────────────────────────────────
+
+def _parse_llm_json(raw: str) -> dict:
+    """Parse LLM JSON output with markdown-wrapped fallback.
+
+    Handles cases where LLM returns ```json ... ``` wrapped JSON.
+    """
+    # Try direct parse first
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+
+    # Try extracting from markdown code block
+    match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
+    if match:
+        try:
+            return json.loads(match.group(1).strip())
+        except json.JSONDecodeError:
+            pass
+
+    # Try finding JSON object/array in the raw text
+    for start_char, end_char in [('{', '}'), ('[', ']')]:
+        start_idx = raw.find(start_char)
+        end_idx = raw.rfind(end_char)
+        if start_idx != -1 and end_idx > start_idx:
+            try:
+                return json.loads(raw[start_idx:end_idx + 1])
+            except json.JSONDecodeError:
+                pass
+
+    raise json.JSONDecodeError("Failed to parse LLM response as JSON", raw, 0)
+
+
 # ── Anomaly Detection ──────────────────────────────────────────
 
 def detect_and_interpret_anomalies(
@@ -131,7 +165,7 @@ def detect_and_interpret_anomalies(
             operation="anomaly_interpretation",
             trace=trace, phase="anomaly_interpretation", prompt_name="anomaly_interpretation",
         )
-        parsed = json.loads(raw)
+        parsed = _parse_llm_json(raw)
     except json.JSONDecodeError:
         parsed = {
             "interpretations": [],
@@ -211,14 +245,21 @@ def detect_and_interpret_anomalies_stream(
 
 # ── Configuration ────────────────────────────────────────────────
 
-def _get_client():
-    """Lazy-init Anthropic client."""
-    import anthropic
-    return anthropic.Anthropic(
-        api_key=ANTHROPIC_API_KEY,
-        base_url=ANTHROPIC_BASE_URL,
-        timeout=30.0,
-    )
+_client: anthropic.Anthropic | None = None
+_client_api_key: str | None = None
+
+
+def _get_client() -> anthropic.Anthropic:
+    """Lazy-init Anthropic client (singleton, rebuilds on API key change)."""
+    global _client, _client_api_key
+    if _client is None or _client_api_key != ANTHROPIC_API_KEY:
+        _client = anthropic.Anthropic(
+            api_key=ANTHROPIC_API_KEY,
+            base_url=ANTHROPIC_BASE_URL,
+            timeout=30.0,
+        )
+        _client_api_key = ANTHROPIC_API_KEY
+    return _client
 
 
 MODEL = DEFAULT_LLM_MODEL
@@ -434,7 +475,9 @@ def _call_llm(
             error=f"Retried {MAX_RETRIES}x: {last_error}",
             step=step,
         )
-    raise last_error
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError(f"All {MAX_RETRIES} retries exhausted with no error captured for {operation}")
 
 
 def _call_llm_stream(
@@ -519,7 +562,9 @@ def _call_llm_stream(
                 error=f"Retried {MAX_RETRIES}x: {last_error}",
                 step=step,
             )
-        raise last_error
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError(f"All {MAX_RETRIES} retries exhausted with no error captured for {operation}")
 
     elapsed = (time.time() - start) * 1000
 
@@ -970,16 +1015,9 @@ def evaluate_analysis(
         }
 
     try:
-        parsed = json.loads(raw)
+        parsed = _parse_llm_json(raw)
     except json.JSONDecodeError:
-        match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
-        if match:
-            try:
-                parsed = json.loads(match.group(1))
-            except json.JSONDecodeError:
-                parsed = {}
-        else:
-            parsed = {}
+        parsed = {}
 
     result = {
         "confidence": parsed.get("confidence", 0.5),
