@@ -10,27 +10,29 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.7.5 (Stability & System Validation — E2E tests, health diagnostics, state resilience)
-- **Phase**: v0.7.x AI Analyst Intelligence Layer
-- **Next**: v0.7.6 (待定)
+- **Current**: v0.9.2 (Documentation restructure — 9 deleted, 14 archived, PROJECT_RULES merged)
+- **Phase**: v0.9.x Product Readiness & Security
+- **Next**: v0.9.3 (待定)
 
 ## Scope Rules
 
 **v0.5.x completed scope**: AI Data Analyst MVP (streaming, semantics, planning, guardrails, trace, evaluation).
 **v0.6.x completed scope**: Meta Governance & Autonomous QA (language governance, templates, reports, scheduler, diff, evaluation).
+**v0.7.x completed scope**: AI Analyst Intelligence Layer (anomaly detection, multi-turn, E2E tests, health diagnostics).
+**v0.8.x completed scope**: Product Readiness (shell pages, Docker, design system V2, state refactor, stabilization).
+**v0.9.x completed scope**: Security & Stability (git history cleanup, React infinite render fix, docs restructure).
 Claude must NOT:
 - Proactively add LangGraph, Multi-Agent, or RAG features
 - Suggest implementing multi-agent capabilities
-- Add features beyond v0.7.x scope without user approval
+- Add features beyond current version scope without user approval
 
 ## Development Rules
 
 ### Before Starting
 1. Read `CURRENT_SESSION.md` (mandatory — session restore)
-2. Read `PROJECT_RULES.md` (mandatory)
-3. Read `docs/governance/FILE_SYSTEM_RULES.md` (mandatory — file placement)
-4. Check `KNOWN_ISSUES.md` for open bugs
-5. Check current version in `docs/architecture/版本记录.md`
+2. Read `docs/governance/FILE_SYSTEM_RULES.md` (mandatory — file placement)
+3. Check `KNOWN_ISSUES.md` for open bugs
+4. Check current version in `docs/architecture/版本记录.md`
 
 ### Git Rules
 - Every version MUST be committed: `git add .` + `git commit -m "version-name"`
@@ -43,6 +45,7 @@ Claude must NOT:
 - Backend: `python -c "from backend.main import app"` must pass
 - API: Test endpoints with curl before declaring done
 - Performance: Test large datasets, measure FPS, DOM, memory
+- Test report required: feature completion list, test results, build status, performance, open issues, next steps
 
 ### Debug Rules
 - NEVER end a session with broken code
@@ -78,6 +81,20 @@ Claude must NOT:
 - Follow documentation lifecycle: active → stable → archived
 - Skills live in `skills/active/` — never in `docs/skills/`
 - Check `skills/SKILL_REGISTRY.md` before creating new workflows
+- Read `docs/frontend_rules/` guides before frontend development (modularity, layering, extensibility)
+
+### Version Roadmap
+
+| Version | Scope | Status |
+|---------|-------|--------|
+| v0.3.x | Enterprise Data Platform | Done |
+| v0.5.x | AI Data Analyst MVP — AI System Engineering | Done |
+| v0.6.x | Meta Governance & Autonomous QA | Done |
+| v0.7.x | AI Analyst Intelligence Layer | Done |
+| v0.8.x | Product Readiness & Architecture | Done |
+| v0.9.x | Security, Stability & Documentation | Done |
+
+No skipping versions. Follow the roadmap strictly.
 
 ## Architecture
 

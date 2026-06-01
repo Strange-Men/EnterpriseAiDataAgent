@@ -25,11 +25,9 @@
 
 | File | Required | Description |
 |------|----------|-------------|
-| `CLAUDE.md` | Yes | Long-term Claude rules |
-| `PROJECT_RULES.md` | Yes | Mandatory development rules |
+| `CLAUDE.md` | Yes | Long-term Claude rules (merged with PROJECT_RULES) |
 | `KNOWN_ISSUES.md` | Yes | Open issues tracker |
 | `CURRENT_SESSION.md` | Yes | Session persistence |
-| `SESSION_SUMMARY_TEMPLATE.md` | Yes | Session restore template |
 | `README.md` | Yes | Project overview |
 | `.gitignore` | Yes | Git ignore rules |
 | `.env.example` | Yes | Environment template |

@@ -12,11 +12,6 @@ Sidebar "AI 分析" → /analyze → InvestigationWorkspace
 Home "AI Analyze" card → /analyze
 ```
 
-### 从 legacy workspace 进入
-```
-/workspace-legacy → Sidebar footer "经典视图" → /analyze (新)
-```
-
 ## 主流程：发起调查
 
 ```
@@ -99,11 +94,4 @@ Home "AI Analyze" card → /analyze
 任意 /analyze 页面
   └─ 点击 "专注模式" → 隐藏 Context + Tools
        └─ 点击 "退出专注" → 恢复三区布局
-```
-
-## 旧版兼容
-
-```
-任意页面
-  └─ Sidebar footer "经典视图" → /workspace-legacy（三列 IDE 不变）
 ```

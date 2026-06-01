@@ -3,6 +3,15 @@
 > 规划日期：2026-06-01
 > 规划版本：v0.8.3 → v1.0
 > 原则：**ROI优先、避免膨胀、shipping > purity**
+> 
+> **v0.9.2 更新** (2026-06-01)：以下任务已完成 ✅
+> - Phase 1: 空壳页面已填充（/data, /query, /history），onboarding 修复 ✅
+> - Phase 2: Dockerfile + docker-compose 已完成 (v0.9.0) ✅
+> - Phase 2: legacy workspace 已删除 (v0.9.0) ✅
+> - Phase 2: docs/ 散落文件已清理 (v0.9.2) ✅
+> - 安全: Git 历史 API Key 清理 (v0.9.1) ✅
+> - 稳定性: React 无限渲染修复 (v0.9.1) ✅
+> - 未完成: CI/CD、测试覆盖、性能基准、部署文档 → 推至后续版本
 
 ---
 
