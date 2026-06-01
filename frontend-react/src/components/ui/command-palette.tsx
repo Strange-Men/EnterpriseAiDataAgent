@@ -31,7 +31,8 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const router = useRouter();
-  const runs = useAnalysisStore((s) => s.runs.slice(-8).reverse());
+  const allRuns = useAnalysisStore((s) => s.runs);
+  const runs = useMemo(() => allRuns.slice(-8).reverse(), [allRuns]);
   const { theme, toggleTheme } = useThemeStore();
   const { language, toggleLanguage } = useLanguage();
 

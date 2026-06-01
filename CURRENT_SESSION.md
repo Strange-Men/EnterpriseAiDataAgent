@@ -4,74 +4,62 @@
 
 ## Current Version
 
-- **Version**: v0.9.0
-- **Phase**: v0.9.0 Legacy Removal + Demo Deployment
-- **Status**: Complete — build, type-check, backend import, seed data all passing
+- **Version**: v0.9.1
+- **Phase**: v0.9.1 Security & Stability Fix
+- **Status**: Complete — build, type-check, backend import all passing
 
 ## Session Goals
 
-1. ~~Legacy Route Removal (Phase 2)~~ — `/workspace-legacy` route and all entry points removed
-2. ~~Docker Containerization~~ — Dockerfile, Dockerfile.frontend, docker-compose.yml created
-3. ~~Demo Seed Data~~ — idempotent seed script + backend integration
-4. ~~Documentation Updates~~ — 版本记录, CURRENT_SESSION, README, docs/README
+1. ~~Git 历史安全清理~~ — 从所有历史 commit 中移除泄露的 API Key
+2. ~~React 无限渲染循环修复~~ — Zustand selector 稳定化
+3. ~~版本更新与提交~~ — v0.9.1
 
-## v0.9.0 执行结果
+## v0.9.1 执行结果
 
-### ✅ Task 1: Legacy 路由移除 (Phase 2)
-- 删除 `frontend-react/src/app/workspace-legacy/page.tsx`
-- Sidebar: legacy 链接替换为版本号 footer（v0.9.0）
-- Settings: legacy 链接替换为版本信息卡片
-- i18n: `nav.legacy-workspace` key 从 en.ts 和 zh.ts 移除
-- 未使用的 `ArrowUpRight` import 清理
-- `migrateFromLegacy()` 迁移桥保留（2 个 store）
+### ✅ Task 1: Git 历史安全清理
+- 安装 `git-filter-repo`
+- 创建替换文件 `~/replacements.txt`
+- 执行 `git filter-repo --replace-text ~/replacements.txt --force`
+- 验证历史中不再包含真实 API Key（仅文档中的说明性引用）
 
-### ✅ Task 2: Docker 容器化
-- `Dockerfile` — Python 3.11-slim，安装 requirements.txt，暴露 8000，healthcheck
-- `Dockerfile.frontend` — Node 20-alpine 多阶段构建（deps → builder → runner），standalone 输出
-- `docker-compose.yml` — backend(8000) + frontend(3000)，depends_on healthcheck，.env 挂载
-- `.dockerignore` — 排除 node_modules、.next、__pycache__、.git、.env、data/*.duckdb
-- `next.config.ts` — 添加 `output: "standalone"` 支持
+### ✅ Task 2: React 无限渲染循环修复
+- `command-palette.tsx`: `runs` selector 改为 `useMemo` 派生
+- `global-search.tsx`: `runs` selector 改为 `useMemo` 派生
+- `page.tsx`: `recentRuns` selector 改为 `useMemo` 派生
+- `tools-panel.tsx`: `runs` selector 改为 `useMemo` 派生
+- `use-language.ts`: `toggleLanguage` 用 `useCallback` 包装，selector 逐个取值
 
-### ✅ Task 3: Demo 种子数据
-- `scripts/seed-demo-data.py` — 幂等，检查 demo_sales 表是否存在
-- 从 `testExcel/large_sales_data.csv` 加载 50,000 行 × 9 列
-- `backend/main.py` lifespan: `SEED_DEMO_DATA=true` 时自动调用
-- `.env.example`: 新增注释行 `# SEED_DEMO_DATA=true`
+### ✅ Task 3: 验证
+- `npx tsc --noEmit` — PASS
+- `npx next build` — PASS
+- `python -c "from backend.main import app"` — PASS
 
-### ✅ Task 4: 文档更新
-- `docs/reports/LEGACY_REMOVAL_PLAN.md` — Phase 2 标记为完成
-- `docs/architecture/版本记录.md` — 新增 v0.9.0 条目
-- `CURRENT_SESSION.md` — 本文件
-- `README.md` — 新增 Docker 部署段落
-- `docs/README.md` — 新增 Docker 文件索引
+### ✅ Task 4: 版本更新与提交
+- `frontend-react/package.json`: 版本从 `0.8.6` 更新为 `0.9.1`
+- `docs/architecture/版本记录.md`: 新增 v0.9.1 条目
+- `CURRENT_SESSION.md`: 本文件
 
 ## System Health
 
 - Frontend build: PASS (Next.js 15.5.18, standalone output)
 - Backend import: PASS
 - TypeScript: PASS
-- Seed script: PASS (idempotent)
+- Git history: PASS (API key removed)
 
-## Key Changes (v0.9.0)
+## Key Changes (v0.9.1)
 
-### Legacy Removal
-- `/workspace-legacy` route deleted
-- No legacy links in sidebar or settings
-- Migration bridge preserved for returning users
+### Security
+- Git 历史中泄露的 API Key 已移除
+- 需要强制推送到远程仓库
+- 需要轮换 MIMO API Key
 
-### Docker
-- Single-command deployment: `docker-compose up -d`
-- Backend healthcheck with curl
-- Frontend depends on backend health
-- Volume mount for data persistence
-
-### Demo Data
-- First-time users get a populated database automatically
-- `demo_sales` table: 50K rows of sales data
-- Idempotent: safe to run multiple times
+### Stability
+- 修复 Zustand v5 selector 在 React 19 下的无限重渲染
+- 所有 `.slice()`, `.filter()`, `.reverse()` 操作移至 `useMemo`
+- `useLanguage` hook 稳定化
 
 ## Next Steps
 
-- Docker runtime validation (docker-compose build + up)
-- E2E test pass
-- Demo readiness score update
+- 强制推送到远程仓库（`git push --force --all`）
+- 轮换 MIMO API Key
+- 通知协作者重新 clone 仓库

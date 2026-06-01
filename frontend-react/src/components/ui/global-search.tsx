@@ -22,7 +22,8 @@ interface GlobalSearchProps {
 
 export function GlobalSearch({ open, onClose, tables }: GlobalSearchProps) {
   const router = useRouter();
-  const runs = useAnalysisStore((s) => s.runs.slice(-30));
+  const allRuns = useAnalysisStore((s) => s.runs);
+  const runs = useMemo(() => allRuns.slice(-30), [allRuns]);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);

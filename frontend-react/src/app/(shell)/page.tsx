@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { useDataStore } from "@/stores/data-store";
@@ -32,11 +33,10 @@ export default function HomePage() {
   const router = useRouter();
   const tables = useDataStore((s) => s.tables);
   const runs = useAnalysisStore((s) => s.runs);
-  const recentRuns = useAnalysisStore((s) =>
-    s.runs
-      .filter((r) => r.status === "success")
-      .slice(-5)
-      .reverse()
+  const allRuns = useAnalysisStore((s) => s.runs);
+  const recentRuns = useMemo(
+    () => allRuns.filter((r) => r.status === "success").slice(-5).reverse(),
+    [allRuns]
   );
   const systemStatus = useDataStore((s) => s.systemStatus);
 

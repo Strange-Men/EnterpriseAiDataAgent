@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { useSqlEditorStore } from "@/stores/sql-editor-store";
@@ -15,7 +15,8 @@ export function ToolsPanel() {
   const router = useRouter();
   const activeTable = useInvestigationStore((s) => s.activeTable);
   const lastSql = useInvestigationStore((s) => s.lastSql);
-  const runs = useAnalysisStore((s) => s.runs.slice(-5).reverse());
+  const allRuns = useAnalysisStore((s) => s.runs);
+  const runs = useMemo(() => allRuns.slice(-5).reverse(), [allRuns]);
   const activeRunId = useAnalysisStore((s) => s.activeRunId);
   const setActiveRun = useAnalysisStore((s) => s.setActiveRun);
 

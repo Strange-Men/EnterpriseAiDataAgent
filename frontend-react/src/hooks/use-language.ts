@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 
@@ -9,16 +9,14 @@ import { useWorkspaceStore } from "@/stores/workspace-store";
  */
 export function useLanguage() {
   const { i18n } = useTranslation();
-  const { language, setLanguage } = useWorkspaceStore();
+  const language = useWorkspaceStore((s) => s.language);
+  const setLanguage = useWorkspaceStore((s) => s.setLanguage);
 
-  useEffect(() => {
-    i18n.changeLanguage(language);
-  }, [language, i18n]);
-
-  const toggleLanguage = () => {
-    const next = language === "en" ? "zh" : "en";
+  const toggleLanguage = useCallback(() => {
+    const next = language === "zh" ? "en" : "zh";
     setLanguage(next);
-  };
+    i18n.changeLanguage(next);
+  }, [language, setLanguage, i18n]);
 
-  return { language, setLanguage, toggleLanguage };
+  return { language, toggleLanguage };
 }
