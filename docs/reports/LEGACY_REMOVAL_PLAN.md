@@ -84,7 +84,7 @@ git rm frontend-react/src/stores/__tests__/sql-workspace-store.test.ts
 - `npx tsc --noEmit` — should pass
 - `npx next build` — should pass
 
-### Phase 2: Route Removal (v0.9.0 or earlier)
+### Phase 2: Route Removal (v0.9.0) — ✅ COMPLETE (2026-06-01)
 
 ```bash
 # 1. Delete legacy page
@@ -104,11 +104,12 @@ cd frontend-react && rm -rf .next
 ```
 
 **Validation:**
-- `npx next build` — must pass, `/workspace-legacy` should return 404
-- `npx tsc --noEmit` — must pass
-- Manual: visit `http://localhost:3000/workspace-legacy` → should 404
-- Manual: sidebar should have no legacy link
-- Manual: settings page should have no legacy link
+- ✅ `npx next build` — PASS, `/workspace-legacy` not in route table
+- ✅ `npx tsc --noEmit` — PASS
+- ✅ Sidebar: no legacy link (replaced with version footer)
+- ✅ Settings page: no legacy link (replaced with version info card)
+- ✅ i18n: `nav.legacy-workspace` key removed from en.ts and zh.ts
+- ✅ `migrateFromLegacy()` preserved in investigation-store and sql-editor-store
 
 ### Phase 3: Migration Bridge Sunset (v0.10.0+)
 

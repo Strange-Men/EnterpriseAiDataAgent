@@ -24,6 +24,15 @@
 | [REPOSITORY_HEALTH.md](governance/REPOSITORY_HEALTH.md) | Repository health audit |
 | [README.md](../README.md) | Project overview |
 
+## Deployment (root)
+
+| File | Description |
+|------|-------------|
+| [Dockerfile](../Dockerfile) | Backend Docker image (Python 3.11-slim) |
+| [Dockerfile.frontend](../Dockerfile.frontend) | Frontend Docker image (Node 20-alpine, standalone) |
+| [docker-compose.yml](../docker-compose.yml) | Docker Compose orchestration (backend + frontend) |
+| [.dockerignore](../.dockerignore) | Docker build exclusions |
+
 ## Architecture (`docs/architecture/`)
 
 | File | Description |

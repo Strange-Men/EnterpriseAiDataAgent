@@ -4,121 +4,74 @@
 
 ## Current Version
 
-- **Version**: v0.8.6
-- **Phase**: v0.8.x Product Readiness Consolidation
-- **Status**: Complete — build, type-check, backend import all passing
+- **Version**: v0.9.0
+- **Phase**: v0.9.0 Legacy Removal + Demo Deployment
+- **Status**: Complete — build, type-check, backend import, seed data all passing
 
 ## Session Goals
 
-1. ~~Product Readiness Consolidation~~ — Documentation audit, legacy cleanup analysis, demo readiness review
-2. ~~Generate consolidation reports~~ — DOCS_CONSOLIDATION_PLAN.md, LEGACY_REMOVAL_PLAN.md, DEMO_READINESS_REPORT.md
-3. ~~Execute Quick Wins~~ — 5 项零风险修复全部完成
+1. ~~Legacy Route Removal (Phase 2)~~ — `/workspace-legacy` route and all entry points removed
+2. ~~Docker Containerization~~ — Dockerfile, Dockerfile.frontend, docker-compose.yml created
+3. ~~Demo Seed Data~~ — idempotent seed script + backend integration
+4. ~~Documentation Updates~~ — 版本记录, CURRENT_SESSION, README, docs/README
 
-## v0.8.6 Quick Wins 执行结果
+## v0.9.0 执行结果
 
-### ✅ Task 1: .env.example 安全修复
-- 真实 API Key (`tp-c8bt3...`) 替换为 `your-api-key-here`
-- Base URL 替换为 `https://api.anthropic.com`
-- Model 替换为 `claude-sonnet-4-6`
+### ✅ Task 1: Legacy 路由移除 (Phase 2)
+- 删除 `frontend-react/src/app/workspace-legacy/page.tsx`
+- Sidebar: legacy 链接替换为版本号 footer（v0.9.0）
+- Settings: legacy 链接替换为版本信息卡片
+- i18n: `nav.legacy-workspace` key 从 en.ts 和 zh.ts 移除
+- 未使用的 `ArrowUpRight` import 清理
+- `migrateFromLegacy()` 迁移桥保留（2 个 store）
 
-### ✅ Task 2: package.json 版本漂移修复
-- `frontend-react/package.json` version: `"0.3.10"` → `"0.8.6"`
+### ✅ Task 2: Docker 容器化
+- `Dockerfile` — Python 3.11-slim，安装 requirements.txt，暴露 8000，healthcheck
+- `Dockerfile.frontend` — Node 20-alpine 多阶段构建（deps → builder → runner），standalone 输出
+- `docker-compose.yml` — backend(8000) + frontend(3000)，depends_on healthcheck，.env 挂载
+- `.dockerignore` — 排除 node_modules、.next、__pycache__、.git、.env、data/*.duckdb
+- `next.config.ts` — 添加 `output: "standalone"` 支持
 
-### ✅ Task 3: 孤立测试文件删除
-- 删除 4 个引用已删除 store 的测试文件：
-  - `workflow-store.test.ts`、`ai-session-store.test.ts`
-  - `query-tabs-store.test.ts`、`sql-workspace-store.test.ts`
+### ✅ Task 3: Demo 种子数据
+- `scripts/seed-demo-data.py` — 幂等，检查 demo_sales 表是否存在
+- 从 `testExcel/large_sales_data.csv` 加载 50,000 行 × 9 列
+- `backend/main.py` lifespan: `SEED_DEMO_DATA=true` 时自动调用
+- `.env.example`: 新增注释行 `# SEED_DEMO_DATA=true`
 
-### ✅ Task 4: 文档整合（22 个文件重定位）
-- 根目录违规 → `docs/reports/`（2 个文件）
-- docs/ 报告 → `docs/reports/`（7 个文件）
-- docs/ 架构 → `docs/architecture/`（7 个文件）
-- docs/ v0.8 → `docs/reports/v0.8/`（6 个文件）
-- 治理文件重命名：`claude-workflow.md` → `CLAUDE_WORKFLOW.md`
-- 创建缺失目录：`skills/stable/`、`skills/archived/`、`error_logs/reports/`
-
-### ✅ Task 5: 文档索引更新
-- `docs/README.md` — 全面重写，反映新目录结构
-- `docs/architecture/版本记录.md` — 新增 v0.8.6 条目
-- `README.md` — 新增 Prerequisites、.env 配置、版本路线图更新
+### ✅ Task 4: 文档更新
+- `docs/reports/LEGACY_REMOVAL_PLAN.md` — Phase 2 标记为完成
+- `docs/architecture/版本记录.md` — 新增 v0.9.0 条目
 - `CURRENT_SESSION.md` — 本文件
+- `README.md` — 新增 Docker 部署段落
+- `docs/README.md` — 新增 Docker 文件索引
 
 ## System Health
 
-- Frontend build: PASS (Next.js 15.5.18)
+- Frontend build: PASS (Next.js 15.5.18, standalone output)
 - Backend import: PASS
 - TypeScript: PASS
-- Lint: TBD
+- Seed script: PASS (idempotent)
 
-## Key Changes (v0.8.0)
+## Key Changes (v0.9.0)
 
-### Design System
-- `globals.css`: Expanded CSS custom properties — spacing, typography, radius, elevation, motion, z-index, semantic colors (dark + light)
-- `tailwind.config.ts`: Extended with CSS variable mappings — colors, borderRadius, fontSize, fontFamily, transitionDuration, boxShadow, zIndex, plugins
-- New keyframes: slide-up, slide-down, fade-in, pulse-border, typing-cursor
+### Legacy Removal
+- `/workspace-legacy` route deleted
+- No legacy links in sidebar or settings
+- Migration bridge preserved for returning users
 
-### UI Primitives (new)
-- `components/ui/button.tsx` — 5 variants, 3 sizes, loading state
-- `components/ui/card.tsx` — Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter
-- `components/ui/input.tsx` — Input, Textarea, Select
-- `components/ui/dialog.tsx` — Dialog family
-- `components/ui/dropdown-menu.tsx` — DropdownMenu family
-- `components/ui/command-palette.tsx` — Ctrl+K command palette
-- `components/ui/global-search.tsx` — Ctrl+/ global search
-- `components/ui/keyboard-shortcuts-modal.tsx` — Shortcuts reference
-- `components/ui/error-fallback.tsx` — Error boundary fallback
-- `hooks/use-keyboard-shortcuts.ts` — Centralized keyboard shortcut system
+### Docker
+- Single-command deployment: `docker-compose up -d`
+- Backend healthcheck with curl
+- Frontend depends on backend health
+- Volume mount for data persistence
 
-### Investigation UX
-- `ai-streaming-indicator.tsx`: Phase icons (Lightbulb/Play/FileText), progress bar, step count, typing cursor
-- `step-results.tsx`: Slide-up animation, collapse/expand, CheckCircle2/XCircle icons
-- `run-evaluation.tsx`: SVG confidence ring gauge, horizontal metric bars
-- `trace-timeline.tsx`: Phase grouping, collapsible sections, summary line, lucide icons
-- `ai-chart.tsx`: Loading/empty states, SVG download, fullscreen toggle, theme colors
-- `drill-down-chain.tsx`: Timeline/breadcrumb view toggle
-- `streaming-output.tsx`: StreamingSkeleton, lucide empty state icon
-- `skeleton.tsx`: New ChartSkeleton, StreamingSkeleton, AnalysisCardSkeleton
-
-### Component Migrations
-- `question-input.tsx` → Textarea, Select, Button primitives
-- `run-header.tsx` → Button, DropdownMenu (consolidated 6 buttons to 2 + dropdown)
-- `follow-up-input.tsx` → Input, Button primitives
-- `tools-panel.tsx` → Textarea, Button primitives
-- `app-shell.tsx` → Button primitives, command palette/global search mounting, keyboard shortcuts
-- `settings/page.tsx` → Card, Button with lucide icons
-- `sidebar.tsx` → 6 lucide-react icons replace inline SVGs
-- `context-panel.tsx` → ChevronRight lucide icon
-- `analysis-section.tsx` → Copy lucide icon, removed CopyIcon function
-
-### Placeholder Routes
-- `/data` → Smart empty state with feature preview cards (Upload, Table, Database)
-- `/query` → Smart empty state with feature preview cards (SQL Editor, Results, Quick Actions)
-- `/history` → Smart empty state with feature preview cards (Query History, Run History, Timeline)
-
-### Homepage
-- Onboarding: 3-step guide for new users (Upload → Ask → Explore)
-- "time ago" relative timestamps for recent analyses
-- Smart empty state when tables exist but no runs
-
-### Performance
-- `client-providers.tsx`: react-error-boundary migration, Suspense boundary
-- `analyze/page.tsx`: next/dynamic lazy loading
-- `analyze/[runId]/page.tsx`: next/dynamic lazy loading for all sub-components
-- All inline SVGs → lucide-react (already installed)
-
-### Responsive
-- `investigation-layout.tsx`: Ultra-wide centering (max-w-[1200px])
-- `app-shell.tsx`: Sidebar hidden on mobile (max-md:hidden)
-
-### Documentation
-- `docs/design/DESIGN_SYSTEM_V2.md` — Full design token reference, component catalog
-- `docs/design/PRODUCT_UX_GUIDELINES.md` — Navigation, shortcuts, workflow UX, empty states, error patterns
-- `docs/design/INTERACTION_PATTERNS.md` — Command palette, search, shortcuts, streaming, drill-down
-- `docs/design/PHASE3_CHANGELOG.md` — Complete change list, file manifest, migration notes
+### Demo Data
+- First-time users get a populated database automatically
+- `demo_sales` table: 50K rows of sales data
+- Idempotent: safe to run multiple times
 
 ## Next Steps
 
-- v0.8.6 commit
-- Lint check
-- Runtime validation (start backend + frontend, test full user journey)
+- Docker runtime validation (docker-compose build + up)
 - E2E test pass
+- Demo readiness score update

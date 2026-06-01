@@ -5,7 +5,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { useThemeStore } from "@/hooks/use-theme";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Languages, Sun, Moon, Monitor, ArrowUpRight } from "lucide-react";
+import { Languages, Sun, Moon, Monitor } from "lucide-react";
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -49,21 +49,16 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Classic View */}
+        {/* Version Info */}
         <Card>
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
               <Monitor className="w-5 h-5 text-[var(--text-muted)]" />
               <div>
-                <CardTitle className="!text-sm !normal-case !text-[var(--text-primary)] !tracking-normal !font-medium">Classic View</CardTitle>
-                <p className="text-2xs text-[var(--text-muted)]">Switch to the original 3-column layout</p>
+                <CardTitle className="!text-sm !normal-case !text-[var(--text-primary)] !tracking-normal !font-medium">Version</CardTitle>
+                <p className="text-2xs text-[var(--text-muted)]">Enterprise AI Data Agent v0.9.0</p>
               </div>
             </div>
-            <a href="/workspace-legacy">
-              <Button variant="secondary" size="md" rightIcon={<ArrowUpRight className="w-3 h-3" />}>
-                Open
-              </Button>
-            </a>
           </CardContent>
         </Card>
       </div>

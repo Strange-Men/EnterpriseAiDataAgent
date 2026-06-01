@@ -123,6 +123,32 @@ npm run dev
 
 Frontend runs at `http://localhost:3000`, proxies `/api/*` to backend `http://localhost:8000`.
 
+## Docker Deployment
+
+For a single-command deployment:
+
+```bash
+# 1. Configure environment
+cp .env.example .env
+# Edit .env and set ANTHROPIC_API_KEY
+
+# 2. Build and start
+docker-compose up -d
+
+# 3. Verify
+curl http://localhost:8000/api/health
+curl http://localhost:3000
+
+# 4. Stop
+docker-compose down
+```
+
+Services:
+- **Backend**: `http://localhost:8000` — FastAPI + DuckDB
+- **Frontend**: `http://localhost:3000` — Next.js standalone
+
+Data persists in `./data` volume. To seed demo data, set `SEED_DEMO_DATA=true` in `.env` before first startup.
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |

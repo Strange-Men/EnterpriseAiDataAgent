@@ -68,13 +68,9 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="px-3 py-3 border-t border-[var(--border-default)]">
-        <a
-          href="/workspace-legacy"
-          className="block w-full text-center px-2 py-1.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] rounded transition-colors"
-          title="Switch to legacy 3-column layout"
-        >
-          {t("nav.legacy-workspace")}
-        </a>
+        <p className="text-[10px] text-[var(--text-muted)] text-center">
+          v0.9.0
+        </p>
       </div>
     </aside>
   );

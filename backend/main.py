@@ -47,6 +47,21 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"DB warm-up failed (will retry on first request): {e}")
 
+    # Optional: seed demo data on first startup
+    if os.getenv("SEED_DEMO_DATA", "").lower() in ("true", "1", "yes"):
+        try:
+            import importlib.util
+            seed_path = os.path.join(_PROJECT_ROOT, "scripts", "seed-demo-data.py")
+            if os.path.exists(seed_path):
+                spec = importlib.util.spec_from_file_location("seed_demo_data", seed_path)
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                mod.seed_demo_data()
+            else:
+                logger.info("Seed script not found — skipping demo data")
+        except Exception as e:
+            logger.warning(f"Demo seed skipped (non-fatal): {e}")
+
     # Start scheduler background worker
     try:
         from backend.runtime.scheduler_worker import start_worker

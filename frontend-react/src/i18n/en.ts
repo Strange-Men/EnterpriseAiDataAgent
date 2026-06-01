@@ -394,7 +394,6 @@ const en = {
     "nav.analyze": "AI Analyze",
     "nav.history": "History",
     "nav.settings": "Settings",
-    "nav.legacy-workspace": "Classic View",
 
     // v0.8.1+ Investigation Workspace
     "inv.title": "Investigation Workspace",

@@ -394,7 +394,6 @@ const zh = {
     "nav.analyze": "AI 分析",
     "nav.history": "历史",
     "nav.settings": "设置",
-    "nav.legacy-workspace": "经典视图",
 
     // v0.8.1+ Investigation Workspace
     "inv.title": "调查工作区",

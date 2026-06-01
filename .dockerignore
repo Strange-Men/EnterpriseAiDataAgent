@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+frontend-react/node_modules/
+
+# Build artifacts
+.next/
+frontend-react/.next/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Git
+.git/
+.gitignore
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database files
+data/*.duckdb
+data/*.duckdb.wal
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+error_logs/
+
+# Temp
+temp/
+*.tmp
