@@ -273,6 +273,9 @@ const en = {
     "ai.diagnostics": "Diagnostics",
     "ai.improvements": "Suggested Improvements",
     "ai.quality-warnings": "Quality Warnings",
+    "ai.progress": "Progress",
+    "ai.connection-lost": "Connection lost — partial content preserved",
+    "ai.attempt": "attempt",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI Analyze",

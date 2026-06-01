@@ -273,6 +273,9 @@ const zh = {
     "ai.diagnostics": "诊断",
     "ai.improvements": "建议改进",
     "ai.quality-warnings": "质量警告",
+    "ai.progress": "进度",
+    "ai.connection-lost": "连接中断，部分内容已保留",
+    "ai.attempt": "尝试",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI 分析",

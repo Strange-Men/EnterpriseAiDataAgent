@@ -1,12 +1,15 @@
 /**
  * API Service Layer — connects to the FastAPI backend.
  *
- * All endpoints proxy through Next.js rewrites: /api/* → http://localhost:8000/api/*
+ * Non-streaming endpoints proxy through Next.js rewrites: /api/* → http://localhost:8000/api/*
+ * Streaming (SSE) endpoints connect directly to backend to avoid Next.js proxy timeout.
  */
 
 import type { TableInfo, QualityReport, AnomalyResult } from "@/types";
 
 const API_BASE = "/api";
+// Direct backend URL for SSE streaming (bypasses Next.js proxy 30s timeout)
+const DIRECT_BACKEND = "http://localhost:8000";
 
 // ── Generic fetch wrapper ──────────────────────────────────
 
@@ -33,6 +36,11 @@ async function apiFetch<T>(
 
 // ── Database ───────────────────────────────────────────────
 
+/**
+ * Fetch all table metadata from the database.
+ * @returns Array of table info objects
+ * @throws {Error} API 4xx/5xx errors
+ */
 export async function fetchTables(): Promise<TableInfo[]> {
   return apiFetch<TableInfo[]>("/tables");
 }
@@ -101,6 +109,15 @@ export interface QueryResult {
   error: string | null;
 }
 
+/**
+ * Execute a SQL query against the database.
+ * @param sql - SQL query string
+ * @param offset - Pagination offset (default 0)
+ * @param limit - Max rows to return (default 10000)
+ * @param signal - Optional AbortSignal for cancellation
+ * @returns Query result with columns, data, and metadata
+ * @throws {Error} API 4xx/5xx errors, SQL syntax errors
+ */
 export async function executeQuery(
   sql: string,
   offset: number = 0,
@@ -180,6 +197,12 @@ export async function fetchAllSchemas(): Promise<Record<string, string[]>> {
 
 // ── File Upload ────────────────────────────────────────────
 
+/**
+ * Upload a CSV or Excel file to the database.
+ * @param file - File object to upload
+ * @returns Upload result with table name, row count, and column count
+ * @throws {Error} API 4xx/5xx errors, invalid file format
+ */
 export async function uploadFile(
   file: File
 ): Promise<{ tableName: string; rowCount: number; columnCount: number }> {
@@ -251,6 +274,16 @@ export interface AIQueryResult {
   explanation_ms?: number;
 }
 
+/**
+ * Convert natural language question to SQL and optionally execute.
+ * @param question - Natural language question
+ * @param execute - Whether to execute the generated SQL (default true)
+ * @param explain - Whether to explain the results (default true)
+ * @param followUpContext - Optional context from prior conversation
+ * @param language - Language code for AI response (default "zh")
+ * @returns AI query result with SQL, data, and explanation
+ * @throws {Error} API 4xx/5xx errors, AI service errors
+ */
 export async function aiQuery(
   question: string,
   execute: boolean = true,
@@ -285,6 +318,15 @@ export async function aiExplain(
   });
 }
 
+/**
+ * Generate AI insights from query results.
+ * @param question - Original question for context
+ * @param results - Query result data rows
+ * @param language - Language code for AI response
+ * @param priorContext - Optional prior analysis context
+ * @returns Insights, trends, and suggested next steps
+ * @throws {Error} API 4xx/5xx errors, AI service errors
+ */
 export async function aiInsights(
   question: string,
   results: Record<string, unknown>[],
@@ -501,6 +543,16 @@ function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Respo
   return controller;
 }
 
+/**
+ * Stream AI explanation of query results via SSE.
+ * @param question - Original question
+ * @param sql - SQL query that produced results
+ * @param results - Query result data rows
+ * @param callbacks - Stream event callbacks (onChunk, onDone, onError)
+ * @param conversationHistory - Optional prior conversation turns
+ * @param language - Language code for AI response
+ * @returns AbortController for cancellation
+ */
 export function streamAiExplain(
   question: string,
   sql: string,
@@ -512,8 +564,9 @@ export function streamAiExplain(
   const body: Record<string, unknown> = { question, sql, results };
   if (conversationHistory) body.conversation_history = conversationHistory;
   if (language) body.language = language;
+  // Direct connection to backend for SSE streaming (bypasses Next.js proxy timeout)
   return consumeSseStream(
-    (signal) => fetch(`${API_BASE}/ai/explain/stream`, {
+    (signal) => fetch(`${DIRECT_BACKEND}/api/ai/explain/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -533,8 +586,9 @@ export function streamAiInsights(
   const body: Record<string, unknown> = { question, results };
   if (language) body.language = language;
   if (priorContext) body.prior_context = priorContext;
+  // Direct connection to backend for SSE streaming (bypasses Next.js proxy timeout)
   return consumeSseStream(
-    (signal) => fetch(`${API_BASE}/ai/insights/stream`, {
+    (signal) => fetch(`${DIRECT_BACKEND}/api/ai/insights/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -588,6 +642,15 @@ export interface DatasetSemantics {
   elapsed_ms?: number;
 }
 
+/**
+ * Analyze dataset semantics - detect KPIs, dimensions, measures, etc.
+ * @param table - Table name
+ * @param columns - Column names and types
+ * @param sampleRows - Sample data rows for context
+ * @param language - Language code for AI response
+ * @returns Semantic analysis with detected roles and business meanings
+ * @throws {Error} API 4xx/5xx errors, AI service errors
+ */
 export async function aiSemantics(
   table: string,
   columns: { name: string; dtype: string }[],
@@ -611,6 +674,15 @@ export interface SuggestedQuestion {
   reason: string;
 }
 
+/**
+ * Get AI-suggested questions for a dataset.
+ * @param table - Table name
+ * @param profile - Dataset profile with statistics
+ * @param semantics - Optional semantic analysis results
+ * @param language - Language code for AI response
+ * @returns Suggested questions with categories and reasons
+ * @throws {Error} API 4xx/5xx errors, AI service errors
+ */
 export async function aiSuggestQuestions(
   table: string,
   profile: Record<string, unknown>,
@@ -643,6 +715,16 @@ export interface AnalysisPlan {
   error?: string;
 }
 
+/**
+ * Generate an analysis plan for a question.
+ * @param question - Analysis question
+ * @param table - Table name
+ * @param columns - Column names and types
+ * @param sampleRows - Sample data rows
+ * @param language - Language code for AI response
+ * @returns Analysis plan with ordered steps
+ * @throws {Error} API 4xx/5xx errors, AI service errors
+ */
 export async function aiGeneratePlan(
   question: string,
   table: string,
@@ -732,6 +814,18 @@ export interface MultiStreamCallbacks {
   onDone: (data?: MultiStreamEvent) => void;
 }
 
+/**
+ * Stream multi-step autonomous analysis via SSE.
+ * @param question - Analysis question
+ * @param table - Table name
+ * @param columns - Column names and types
+ * @param sampleRows - Sample data rows
+ * @param callbacks - Stream event callbacks (onPlan, onStepStart, onStepResult, onSummary, onError, onDone)
+ * @param language - Language code for AI response
+ * @param maxRows - Max rows per step (default 500)
+ * @param priorFindings - Optional prior findings to avoid duplication
+ * @returns AbortController for cancellation
+ */
 export function streamAiAnalyzeMulti(
   question: string,
   table: string,
@@ -746,8 +840,9 @@ export function streamAiAnalyzeMulti(
   if (language) body.language = language;
   if (priorFindings?.length) body.prior_findings = priorFindings;
 
+  // Direct connection to backend for SSE streaming (bypasses Next.js proxy timeout)
   return consumeSseStreamGeneric(
-    (signal) => fetch(`${API_BASE}/ai/analyze-multi/stream`, {
+    (signal) => fetch(`${DIRECT_BACKEND}/api/ai/analyze-multi/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -1000,6 +1095,16 @@ export async function getScheduleResults(taskId: string): Promise<{ results: unk
 
 // ── Anomaly Detection ──────────────────────────────────────────
 
+/**
+ * Detect anomalies in query results.
+ * @param question - Original question for context
+ * @param results - Query result data rows
+ * @param columns - Optional specific columns to analyze
+ * @param method - Detection method ("auto", "iqr", "zscore", etc.)
+ * @param language - Language code for AI response
+ * @returns Anomaly detection results with interpretations
+ * @throws {Error} API 4xx/5xx errors, AI service errors
+ */
 export async function aiDetectAnomalies(
   question: string,
   results: Record<string, unknown>[],
@@ -1024,6 +1129,16 @@ export interface AnomalyStreamCallbacks {
   onError: (err: Error) => void;
 }
 
+/**
+ * Stream anomaly detection via SSE.
+ * @param question - Original question for context
+ * @param results - Query result data rows
+ * @param callbacks - Stream event callbacks (onDetection, onChunk, onDone, onError)
+ * @param columns - Optional specific columns to analyze
+ * @param method - Detection method ("auto", "iqr", "zscore", etc.)
+ * @param language - Language code for AI response
+ * @returns AbortController for cancellation
+ */
 export function streamAiDetectAnomalies(
   question: string,
   results: Record<string, unknown>[],
@@ -1036,8 +1151,9 @@ export function streamAiDetectAnomalies(
   if (columns) body.columns = columns;
   if (language) body.language = language;
 
+  // Direct connection to backend for SSE streaming (bypasses Next.js proxy timeout)
   return consumeSseStreamGeneric(
-    (signal) => fetch(`${API_BASE}/ai/anomalies/stream`, {
+    (signal) => fetch(`${DIRECT_BACKEND}/api/ai/anomalies/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

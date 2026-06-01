@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAnalysisStore, type ComparisonResult, type AnalysisRun } from "@/stores/analysis-store";
+import { useAnalysisStore, type ComparisonResult } from "@/stores/analysis-store";
 
 function MetricCard({ label, old, new: newVal, delta }: { label: string; old: number; new: number; delta: number }) {
   return (

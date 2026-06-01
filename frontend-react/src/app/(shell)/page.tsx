@@ -1,16 +1,17 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { useDataStore } from "@/stores/data-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
+import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Upload, Code, MonitorPlay, ArrowRight,
-  Database, Zap, BrainCircuit,
+  Database, Zap, BrainCircuit, Clock,
 } from "lucide-react";
 
 function timeAgo(dateStr: string): string {
@@ -39,6 +40,16 @@ export default function HomePage() {
     [allRuns]
   );
   const systemStatus = useDataStore((s) => s.systemStatus);
+  const history = useSqlHistoryStore((s) => s.history);
+  const recentQueries = useMemo(() => history.slice(0, 5), [history]);
+
+  // Fetch query history on mount
+  useEffect(() => {
+    useSqlHistoryStore.getState().fetchHistory();
+  }, []);
+
+  // Check if status is loaded
+  const isStatusLoaded = systemStatus.version !== "...";
 
   // New user onboarding
   const isNewUser = runs.length === 0 && tables.length === 0;
@@ -130,28 +141,36 @@ export default function HomePage() {
           <CardTitle>System Status</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div>
-              <span className="text-[var(--text-muted)]">API: </span>
-              <span className={systemStatus.api === "ok" ? "text-green-400" : "text-red-400"}>
-                {systemStatus.api}
-              </span>
+          {isStatusLoaded ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div>
+                <span className="text-[var(--text-muted)]">API: </span>
+                <span className={systemStatus.api === "ok" ? "text-green-400" : "text-red-400"}>
+                  {systemStatus.api}
+                </span>
+              </div>
+              <div>
+                <span className="text-[var(--text-muted)]">DB: </span>
+                <span className={systemStatus.db === "ok" ? "text-green-400" : "text-red-400"}>
+                  {systemStatus.db}
+                </span>
+              </div>
+              <div>
+                <span className="text-[var(--text-muted)]">Version: </span>
+                <span className="text-[var(--text-primary)]">{systemStatus.version}</span>
+              </div>
+              <div>
+                <span className="text-[var(--text-muted)]">Tables: </span>
+                <span className="text-[var(--text-primary)]">{tables.length}</span>
+              </div>
             </div>
-            <div>
-              <span className="text-[var(--text-muted)]">DB: </span>
-              <span className={systemStatus.db === "ok" ? "text-green-400" : "text-red-400"}>
-                {systemStatus.db}
-              </span>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-pulse">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-4 bg-[var(--bg-tertiary)] rounded w-3/4" />
+              ))}
             </div>
-            <div>
-              <span className="text-[var(--text-muted)]">Version: </span>
-              <span className="text-[var(--text-primary)]">{systemStatus.version}</span>
-            </div>
-            <div>
-              <span className="text-[var(--text-muted)]">Tables: </span>
-              <span className="text-[var(--text-primary)]">{tables.length}</span>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
@@ -177,6 +196,39 @@ export default function HomePage() {
                   </span>
                   <span className="text-[10px] text-[var(--text-muted)] shrink-0">
                     {timeAgo(run.timestamp)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent queries */}
+      {recentQueries.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[var(--text-muted)]" />
+              <CardTitle>Recent Queries</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="!p-0">
+            <div className="divide-y divide-[var(--border-default)]">
+              {recentQueries.map((entry) => (
+                <button
+                  key={entry.id}
+                  onClick={() => router.push(`/query`)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-tertiary)] transition-colors text-left"
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    entry.status === "success" ? "bg-green-400" : "bg-red-400"
+                  }`} />
+                  <span className="text-xs text-[var(--text-primary)] truncate flex-1 font-mono">
+                    {entry.sql.length > 80 ? entry.sql.slice(0, 80) + "..." : entry.sql}
+                  </span>
+                  <span className="text-[10px] text-[var(--text-muted)] shrink-0">
+                    {entry.runtimeMs}ms · {entry.rowCount} rows
                   </span>
                 </button>
               ))}

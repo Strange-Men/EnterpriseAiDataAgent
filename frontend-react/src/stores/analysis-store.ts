@@ -407,6 +407,7 @@ export const useAnalysisStore = create<AnalysisState>()(
       },
       partialize: (state) => {
         const MAX_STORAGE_BYTES = 4 * 1024 * 1024; // 4MB
+        // eslint-disable-next-line prefer-const -- runs is mutated via shift() in size guard
         let runs = state.runs.map((r) => {
           // Compress both saved and unsaved runs
           const compressRun = (run: typeof r) => ({

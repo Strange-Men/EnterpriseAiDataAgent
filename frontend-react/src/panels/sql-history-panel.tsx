@@ -12,12 +12,12 @@ import toast from "react-hot-toast";
 export function SqlHistoryPanel() {
   const { t } = useTranslation();
   const {
-    setHistory, addEntry, removeEntry, clearHistory,
+    setHistory, removeEntry, clearHistory,
     searchQuery, setSearchQuery,
     filterStatus, setFilterStatus,
     getFiltered,
   } = useSqlHistoryStore();
-  const { setExecuting, setQueryResult, addTab, updateTabSql, getActiveTab, setActiveTab } = useSqlEditorStore();
+  const { addTab, updateTabSql, getActiveTab, setActiveTab } = useSqlEditorStore();
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
 

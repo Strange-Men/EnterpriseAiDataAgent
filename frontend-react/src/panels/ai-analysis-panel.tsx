@@ -102,6 +102,7 @@ export function AIAnalysisPanel({
   const [rawData, setRawData] = useState<unknown>(null);
   const [hasRun, setHasRun] = useState(false);
   const [streamingContent, setStreamingContent] = useState<string | null>(null);
+  const [streamingError, setStreamingError] = useState<string | null>(null);
   const [chartSpecs, setChartSpecs] = useState<ChartSpec[]>([]);
   const [suggestedQuestions, setSuggestedQuestions] = useState<{ question: string; reason: string }[]>([]);
   const [multiResult, setMultiResult] = useState<MultiStepResult | null>(null);
@@ -110,12 +111,25 @@ export function AIAnalysisPanel({
   const [drillDownFindings, setDrillDownFindings] = useState<{ text: string; severity: string; index: number }[]>([]);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
 
+  // Progress tracking for autonomous analysis
+  const [progressInfo, setProgressInfo] = useState<{
+    totalSteps: number;
+    currentStep: number;
+    startTime: number;
+    stepSummaries: { step: number; purpose: string; rowCount?: number; elapsedMs?: number; status: "success" | "error" }[];
+  } | null>(null);
+
   const streamAbortRef = useRef<AbortController | null>(null);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   // Abort streaming on unmount
   useEffect(() => {
     return () => {
       streamAbortRef.current?.abort();
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+      }
     };
   }, []);
 
@@ -123,6 +137,7 @@ export function AIAnalysisPanel({
   const runAnalysis = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setStreamingError(null);
     setSections([]);
     setRawData(null);
     setStreamingContent(null);
@@ -132,6 +147,8 @@ export function AIAnalysisPanel({
     setTrace(null);
     setFollowUpQuestion(null);
     setDrillDownFindings([]);
+    setProgressInfo(null);
+    setElapsedSeconds(0);
 
     // Record in analysis store
     const runId = useAnalysisStore.getState().addRun(mode, question || tableName || "", tableName);
@@ -509,11 +526,24 @@ export function AIAnalysisPanel({
         let planSteps: PlanStep[] = [];
         const executedSteps: MultiStepExecuted[] = [];
         let execSummary = "";
+        const analysisStartTime = Date.now();
+
+        // Start elapsed time counter
+        setElapsedSeconds(0);
+        progressTimerRef.current = setInterval(() => {
+          setElapsedSeconds(Math.floor((Date.now() - analysisStartTime) / 1000));
+        }, 1000);
 
         await new Promise<void>((resolve, reject) => {
           const ctrl = streamAiAnalyzeMulti(q, tableName, cols, [], {
             onPlan: (plan) => {
               planSteps = plan;
+              setProgressInfo({
+                totalSteps: plan.length,
+                currentStep: 0,
+                startTime: analysisStartTime,
+                stepSummaries: [],
+              });
               let planMd = "";
               plan.forEach((p) => {
                 planMd += `**${t("ai.step")} ${p.step}:** ${p.purpose}\n`;
@@ -522,11 +552,12 @@ export function AIAnalysisPanel({
               setSections([{ title: t("ai.analysis-plan"), content: planMd, type: "markdown" }]);
             },
             onStepStart: (stepNum, purpose) => {
+              setProgressInfo((prev) => prev ? { ...prev, currentStep: stepNum } : null);
               setSections((prev) => [
                 ...prev.filter((s) => s.title !== t("ai.running-steps")),
                 {
                   title: t("ai.running-steps"),
-                  content: `**${t("ai.step")} ${stepNum}:** ${purpose}...`,
+                  content: `**${t("ai.step")} ${stepNum}/${planSteps.length}:** ${purpose}...`,
                   type: "markdown",
                 },
               ]);
@@ -542,6 +573,21 @@ export function AIAnalysisPanel({
                 error: event.error,
                 status: event.status || "error",
               });
+              // Update progress info with step summary
+              setProgressInfo((prev) => {
+                if (!prev) return null;
+                const newSummary = {
+                  step: event.step!,
+                  purpose: event.purpose || "",
+                  rowCount: event.row_count,
+                  elapsedMs: Date.now() - analysisStartTime,
+                  status: (event.status || "error") as "success" | "error",
+                };
+                return {
+                  ...prev,
+                  stepSummaries: [...prev.stepSummaries, newSummary],
+                };
+              });
               setMultiResult({
                 question: q,
                 plan: planSteps,
@@ -555,7 +601,7 @@ export function AIAnalysisPanel({
                 ...prev.filter((s) => s.title !== t("ai.running-steps")),
                 {
                   title: t("ai.running-steps"),
-                  content: `Step ${stepNum}: Retrying (attempt ${attempt})...`,
+                  content: `**${t("ai.step")} ${stepNum}/${planSteps.length}:** ${t("ai.retry")} (${t("ai.attempt")} ${attempt})...`,
                   type: "markdown",
                 },
               ]);
@@ -569,6 +615,11 @@ export function AIAnalysisPanel({
             },
             onError: (err) => reject(err),
             onDone: (data) => {
+              // Stop elapsed time counter
+              if (progressTimerRef.current) {
+                clearInterval(progressTimerRef.current);
+                progressTimerRef.current = null;
+              }
               // Clean up running indicator
               setSections((prev) => prev.filter((s) => s.title !== t("ai.running-steps")));
               // Extract trace from done event
@@ -641,13 +692,31 @@ export function AIAnalysisPanel({
         onComplete(tableName);
       }
     } catch (err) {
+      // Stop progress timer on error
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
       const errMsg = err instanceof Error ? err.message : t("ai.analysis-failed");
-      setError(errMsg);
+      // If we have partial streaming content, preserve it and show retry option
+      if (streamingContent !== null && streamingContent.length > 0) {
+        setStreamingError(errMsg);
+        setStreamingContent(null);
+      } else {
+        setError(errMsg);
+      }
       useAnalysisStore.getState().updateRun(runId, { status: "error", error: errMsg });
     } finally {
       setIsLoading(false);
     }
   }, [mode, sql, question, results, tableName, t, i18n.language]);
+
+  // ── Retry streaming (preserves partial content) ───────────
+  const retryStreaming = useCallback(() => {
+    setStreamingError(null);
+    setStreamingContent(null);
+    runAnalysis();
+  }, [runAnalysis]);
 
   // ── Render ────────────────────────────────────────────────
   return (
@@ -697,6 +766,50 @@ export function AIAnalysisPanel({
           </div>
         )}
 
+        {/* Progress indicator for autonomous analysis */}
+        {progressInfo && progressInfo.totalSteps > 0 && (
+          <div className="mb-4 p-3 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-[var(--accent)]">
+                  {t("ai.progress")}: {progressInfo.currentStep}/{progressInfo.totalSteps}
+                </span>
+                <span className="inline-block w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+              </div>
+              <span className="text-xs text-[var(--text-muted)]">
+                {elapsedSeconds >= 60
+                  ? `${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s`
+                  : `${elapsedSeconds}s`}
+              </span>
+            </div>
+            {/* Progress bar */}
+            <div className="h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden mb-2">
+              <div
+                className="h-full bg-[var(--accent)] rounded-full transition-all duration-300"
+                style={{ width: `${Math.round((progressInfo.currentStep / progressInfo.totalSteps) * 100)}%` }}
+              />
+            </div>
+            {/* Step summaries */}
+            {progressInfo.stepSummaries.length > 0 && (
+              <div className="space-y-1 mt-2">
+                {progressInfo.stepSummaries.map((s) => (
+                  <div key={s.step} className="flex items-center gap-2 text-[10px]">
+                    <span className={s.status === "success" ? "text-emerald-400" : "text-red-400"}>
+                      {s.status === "success" ? "✓" : "✗"}
+                    </span>
+                    <span className="text-[var(--text-secondary)]">
+                      {t("ai.step")} {s.step}: {s.purpose}
+                    </span>
+                    {s.rowCount != null && (
+                      <span className="text-[var(--text-muted)]">({s.rowCount} rows)</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Streaming content */}
         {streamingContent !== null && (
           <div className="mb-4">
@@ -709,6 +822,20 @@ export function AIAnalysisPanel({
             <div className="ai-markdown-content">
               <AnalysisSectionView section={{ title: "", content: streamingContent, type: "markdown" }} />
             </div>
+          </div>
+        )}
+
+        {/* Streaming error with retry (preserves partial content) */}
+        {streamingError && (
+          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-md">
+            <p className="text-xs font-medium text-amber-400 mb-1">{t("ai.connection-lost")}</p>
+            <p className="text-xs text-amber-300 mb-2">{streamingError}</p>
+            <button
+              onClick={retryStreaming}
+              className="px-3 py-1.5 text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded hover:bg-amber-500/30 transition-colors"
+            >
+              {t("ai.retry")}
+            </button>
           </div>
         )}
 

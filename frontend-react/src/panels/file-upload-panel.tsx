@@ -7,7 +7,7 @@ import { useInvestigationStore } from "@/stores/investigation-store";
 import { useTables } from "@/hooks/use-tables";
 import { Tooltip } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
-import { uploadFile, fetchTableData, fetchQualityReport, analyzeTable, getTableProfile } from "@/services/api";
+import { uploadFile, fetchTableData, fetchQualityReport } from "@/services/api";
 import { logger } from "@/services/logger";
 import toast from "react-hot-toast";
 import type { UploadedFile, TableInfo } from "@/types";

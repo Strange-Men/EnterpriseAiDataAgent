@@ -13,7 +13,6 @@ import { QueryExplain } from "@/components/query-explain";
 import { ExportDropdown } from "@/components/export-dropdown";
 import { executeQuery, explainQuery, cancelQuery, aiQuery } from "@/services/api";
 import type { ExplainResult } from "@/services/api";
-import { downloadBlob } from "@/utils/download";
 import { AIAnalysisPanel } from "@/panels/ai-analysis-panel";
 import type { AnalysisMode } from "@/panels/ai-analysis-panel";
 import { logger } from "@/services/logger";
@@ -246,14 +245,6 @@ export function SqlWorkspacePanel() {
     }
     setShowSavedPanel(false);
   }, [updateTabSql]);
-
-  // Export history
-  const handleExportHistory = useCallback(() => {
-    const { exportHistory } = useSqlHistoryStore.getState();
-    const json = exportHistory();
-    downloadBlob("query_history.json", json, "application/json");
-    toast.success(t("history.exported"));
-  }, [t]);
 
   // Keyboard shortcuts
   useEffect(() => {
