@@ -379,7 +379,11 @@ function consumeSseStreamGeneric(createResponse: (signal: AbortSignal) => Promis
         callbacks.onError(new Error(`API ${res.status}: ${body || res.statusText}`));
         return;
       }
-      const reader = res.body!.getReader();
+      if (!res.body) {
+        callbacks.onError(new Error("Response body is null"));
+        return;
+      }
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
       let doneReceived = false;
@@ -481,7 +485,11 @@ function consumeSseStream(createResponse: (signal: AbortSignal) => Promise<Respo
         callbacks.onError(new Error(`API ${res.status}: ${body || res.statusText}`));
         return;
       }
-      const reader = res.body!.getReader();
+      if (!res.body) {
+        callbacks.onError(new Error("Response body is null"));
+        return;
+      }
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
       let doneReceived = false;

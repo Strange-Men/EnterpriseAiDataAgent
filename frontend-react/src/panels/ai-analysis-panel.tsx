@@ -208,24 +208,31 @@ async function runAnomaliesMode(
   language: string, t: (k: string) => string,
 ): Promise<ModeResult> {
   const res = await aiDetectAnomalies(question, results, undefined, "auto", language);
+  const anomalies = res?.anomalies ?? [];
+  const summary = res?.summary ?? {};
+  const interpretations = res?.interpretations ?? [];
+  const recommendedActions = res?.recommended_actions ?? [];
   const sections: AnalysisSection[] = [];
-  if (res.anomalies.length === 0) {
+  if (anomalies.length === 0) {
     sections.push({ title: t("ai.anomaly-detection"), content: t("ai.no-anomalies"), type: "markdown" });
   } else {
-    let summaryMd = `**${res.summary.total_anomalies}** ${t("ai.anomalies-found")} `;
-    summaryMd += `(${res.summary.anomaly_rate_pct}% ${t("ai.of-rows")})\n\n`;
-    summaryMd += `**${t("ai.columns-affected")}:** ${res.summary.columns_affected.join(", ")}\n`;
+    let summaryMd = `**${summary.total_anomalies ?? 0}** ${t("ai.anomalies-found")} `;
+    summaryMd += `(${summary.anomaly_rate_pct ?? 0}% ${t("ai.of-rows")})\n\n`;
+    const affected = summary.columns_affected;
+    const affectedStr = Array.isArray(affected) ? affected.join(", ") : String(affected ?? "");
+    summaryMd += `**${t("ai.columns-affected")}:** ${affectedStr}\n`;
     sections.push({ title: t("ai.anomaly-summary"), content: summaryMd, type: "markdown" });
 
     let detailMd = `| ${t("ai.column")} | ${t("ai.value")} | ${t("ai.expected-range")} | ${t("ai.deviation")} | ${t("ai.method")} |\n|---|---|---|---|---|\n`;
-    res.anomalies.slice(0, 20).forEach((a) => {
-      detailMd += `| ${a.column} | ${a.value} | [${a.expected_range[0]}, ${a.expected_range[1]}] | ${a.deviation_score}x | ${a.method} |\n`;
+    anomalies.slice(0, 20).forEach((a) => {
+      const range = a.expected_range ?? [];
+      detailMd += `| ${a.column} | ${a.value} | [${range[0] ?? ""}, ${range[1] ?? ""}] | ${a.deviation_score}x | ${a.method} |\n`;
     });
     sections.push({ title: t("ai.anomaly-details"), content: detailMd, type: "markdown" });
 
-    if (res.interpretations.length > 0) {
+    if (interpretations.length > 0) {
       let interpMd = "";
-      res.interpretations.forEach((interp) => {
+      interpretations.forEach((interp) => {
         const sevBadge = interp.severity === "high" ? " **[HIGH]**" : interp.severity === "medium" ? " [MED]" : "";
         interpMd += `#### ${interp.column} — ${interp.anomaly_type}${sevBadge}\n`;
         interpMd += `${interp.business_meaning}\n\n`;
@@ -234,9 +241,9 @@ async function runAnomaliesMode(
       sections.push({ title: t("ai.anomaly-interpretations"), content: interpMd, type: "markdown" });
     }
 
-    if (res.recommended_actions.length > 0) {
+    if (recommendedActions.length > 0) {
       let actMd = "";
-      res.recommended_actions.forEach((a) => { actMd += `- [ ] ${a}\n`; });
+      recommendedActions.forEach((a) => { actMd += `- [ ] ${a}\n`; });
       sections.push({ title: t("ai.recommended-actions"), content: actMd, type: "markdown" });
     }
   }
@@ -244,7 +251,8 @@ async function runAnomaliesMode(
 }
 
 // ── Mode: Full Analysis ───────────────────────────────────────
-function buildProfileMd(profile: { row_count: number; column_count: number; null_pct: number; duplicate_rows: number; columns: { name: string; dtype: string; null_pct: number; unique_count: number; stats?: { mean: number; min: number; max: number }; top_values?: { value: string; count: number }[] }[] }, t: (k: string) => string): AnalysisSection[] {
+function buildProfileMd(profile: { row_count: number; column_count: number; null_pct: number; duplicate_rows: number; columns: { name: string; dtype: string; null_pct: number; unique_count: number; stats?: { mean: number; min: number; max: number }; top_values?: { value: string; count: number }[] }[] } | undefined, t: (k: string) => string): AnalysisSection[] {
+  if (!profile) return [{ title: t("ai.data-profile"), content: "No profile data available.", type: "markdown" }];
   let md = `| ${t("ai.metric")} | ${t("ai.value")} |\n|---|---|\n`;
   md += `| ${t("ai.rows")} | ${profile.row_count.toLocaleString()} |\n`;
   md += `| ${t("ai.columns")} | ${profile.column_count} |\n`;
@@ -282,6 +290,9 @@ async function runFullAnalysisMode(
   tableName: string, language: string, t: (k: string) => string,
 ): Promise<ModeResult> {
   const res = await analyzeTable(tableName, language);
+  if (!res?.profile) {
+    return { sections: [{ title: t("ai.error"), content: "No profile data returned.", type: "markdown" }] };
+  }
   const sections: AnalysisSection[] = buildProfileMd(res.profile, t);
 
   // Structured insights
@@ -390,6 +401,9 @@ async function runAutonomousMode(
   streamAbortRef: React.MutableRefObject<AbortController | null>,
 ): Promise<ModeResult> {
   const profileRes = await getTableProfile(tableName);
+  if (!profileRes?.profile?.columns) {
+    return { sections: [{ title: t("ai.error"), content: "No profile data returned.", type: "markdown" }] };
+  }
   const cols = profileRes.profile.columns.map((c) => ({ name: c.name, dtype: c.dtype }));
   const q = question || t("ai.full-analysis");
 
@@ -515,16 +529,17 @@ export function AIAnalysisPanel({
 
   const streamAbortRef = useRef<AbortController | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  // Abort streaming on unmount
+  // Abort streaming on unmount — read refs inside cleanup to capture current values
   useEffect(() => {
-    const abortCtrl = streamAbortRef.current;
-    const timer = progressTimerRef.current;
     return () => {
-      abortCtrl?.abort();
-      if (timer) {
-        clearInterval(timer);
+      mountedRef.current = false;
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentional: need latest ref value at cleanup, not captured null
+      streamAbortRef.current?.abort();
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
       }
     };
   }, []);
@@ -608,8 +623,11 @@ export function AIAnalysisPanel({
           aiEvaluate(question || tableName || "", evalSections,
             traceData ? { total_llm_calls: traceData.total_llm_calls, total_output_tokens: traceData.total_output_tokens, guardrail_violations: traceData.guardrail_violations } : undefined,
             i18n.language,
-          ).then((res) => { setEvaluation(res); useAnalysisStore.getState().updateRun(runId, { evaluation: res }); })
-            .catch(() => { /* non-fatal */ });
+          ).then((res) => {
+            if (!mountedRef.current) return;
+            setEvaluation(res);
+            useAnalysisStore.getState().updateRun(runId, { evaluation: res });
+          }).catch(() => { /* non-fatal */ });
         }
       }
 

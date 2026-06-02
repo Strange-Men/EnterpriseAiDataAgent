@@ -37,10 +37,12 @@ export function InvestigationWorkspace() {
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
       abortRef.current?.abort();
     };
   }, []);
@@ -131,6 +133,7 @@ export function InvestigationWorkspace() {
           accumulatedSummary = summary;
         },
         onError: (err) => {
+          if (!mountedRef.current) return;
           setError(err.message);
           setIsLoading(false);
           setStreamStage("");
@@ -139,6 +142,7 @@ export function InvestigationWorkspace() {
           toast.error(err.message);
         },
         onDone: (data) => {
+          if (!mountedRef.current) return;
           setIsLoading(false);
           setStreamStage("");
 

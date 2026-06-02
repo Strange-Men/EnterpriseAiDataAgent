@@ -4,54 +4,49 @@
 
 ## Current Version
 
-- **Version**: v0.9.5
-- **Phase**: v0.9.5 ESLint 清零, Test Isolation & Code Quality
+- **Version**: v0.9.6
+- **Phase**: v0.9.6 Crash Hardening
 - **Status**: Complete — build, lint, tsc, pytest all passing
 
 ## Session Goals
 
-1. ✅ ESLint 39 warnings → 0 (no-unused-vars, no-explicit-any, exhaustive-deps, no-console)
-2. ✅ ISSUE-014: QueryHistory test isolation (use_memory parameter)
-3. ✅ test_token_budget.py CJK assertion fix (v0.9.4 heuristic change)
-4. ✅ runFullAnalysisMode suggestedQuestions return fix
+1. ✅ AbortController cleanup 修复（ref 被捕获为 null）
+2. ✅ runAnomaliesMode null guard（5 处无防护）
+3. ✅ runFullAnalysisMode / buildProfileMd null guard
+4. ✅ api.ts res.body 非空断言替换为 null check
+5. ✅ aiEvaluate unmount guard
+6. ✅ investigation-workspace.tsx SSE callback unmount guard
 
-## v0.9.5 执行结果
+## v0.9.6 执行结果
 
-### ✅ ESLint 39→0 清零
+### ✅ Crash Hardening（6 个崩溃点修复）
 
-#### no-unused-vars (22处)
-- `data/page.tsx` — 删除未使用的 `useTranslation` import
-- `investigation-layout.tsx` — 删除未使用的 `cn` import 和 `ResizeHandle` 函数
-- `investigation-workspace.tsx` — 删除未使用的 `ChartSpec`、`AnomalyResult` import，删除未使用的 `investigation` 变量，未使用参数加 `_` 前缀
-- `run-evaluation.tsx` — 删除未使用的 `useMemo` import
-- `streaming-output.tsx` — 删除未使用的 `useMemo` import，`streamStep` → `_streamStep`
-- `tools-panel.tsx` — 删除未使用的 `useSqlEditorStore` import
-- `card.tsx` — 删除未使用的 `ReactNode` import
-- `data-table.tsx` — 删除未使用的 `useCallback` import
-- `dialog.tsx` — 删除未使用的 `useState` import
-- `workspace-layout.tsx` — 删除未使用的 `cn` import
-- `ai-analysis-panel.tsx` — 删除未使用的 `toast`、`FollowUpContext` import，`t` → `_t`，`suggestedQuestions` 正确返回
+#### 🔴 High — AbortController cleanup 失效
+- `ai-analysis-panel.tsx` — useEffect cleanup 中 ref 被捕获为 null，abort/clearInterval 永远不执行
+- 修复：cleanup 函数内部直接读取 ref，不提前捕获
+- 添加 `mountedRef` 防止 unmount 后 setState
 
-#### no-explicit-any (10处)
-- `VirtualDataTable.tsx` — `ColumnDef<SalesRow, any>` 改为类型推断，`catch (err: any)` → `catch (err: unknown)`，CSV `row` 使用 `Partial<SalesRow>`
-- `data-store.test.ts` — `as any` → `as unknown as Parameters<typeof fn>[0]`
-- `logger.test.ts` — `as any` → `as Record<string, unknown>`
-- `logger.ts` — `console.log` → `console.info`
+#### 🔴 High — runAnomaliesMode null guard
+- `ai-analysis-panel.tsx` — `res.anomalies.length`、`res.summary.total_anomalies` 等 5 处无 null guard
+- 修复：`const anomalies = res?.anomalies ?? []` + 所有属性用可选链 + 默认值
+- `columns_affected` 增加 `Array.isArray` 防护
 
-#### exhaustive-deps (5处)
-- `follow-up-input.tsx` — `setQuestion` 包装为 `useCallback`
-- `VirtualDataTable.tsx` — 移除 deps 中的 `rowVirtualizer.getVirtualItems()` 调用
-- `data-table.tsx` — 添加 `rowVirtualizer` 到 deps
-- `ai-analysis-panel.tsx` — effect cleanup 中 ref 副本防护
-- `sql-workspace-panel.tsx` — 添加 `i18n.language` 和 `t` 到 deps
+#### 🟡 Medium — profile null guard
+- `buildProfileMd` — 参数类型改为 `| undefined`，入口加 null guard 返回 fallback
+- `runFullAnalysisMode` — `res.profile` 为空时提前 return 错误 section
+- `runAutonomousMode` — `profileRes.profile.columns` 为空时提前 return
 
-### ✅ 测试隔离 (ISSUE-014)
-- `backend/services/query_history.py` — 新增 `use_memory=True` 参数
-- `tests/test_query_history.py` — 所有测试使用 `use_memory=True` 隔离
+#### 🟡 Medium — res.body 非空断言
+- `api.ts` — `res.body!.getReader()` 两处替换为 null check + onError 回调
+- `consumeSseStreamGeneric` 和 `consumeSseStream` 均已修复
 
-### ✅ Bug 修复
-- `test_token_budget.py` — CJK 断言修正为 2（v0.9.4 heuristic: 1.5 char/token）
-- `runFullAnalysisMode` — `suggestedQuestions` 正确包含在返回值中
+#### 🟡 Medium — aiEvaluate unmount guard
+- `ai-analysis-panel.tsx` — `aiEvaluate(...).then(...)` fire-and-forget 无 unmount 守卫
+- 修复：复用 `mountedRef`，回调中检查 `if (!mountedRef.current) return`
+
+#### 🟢 Low — SSE callback unmount guard
+- `investigation-workspace.tsx` — `onError`/`onDone` 回调设置 state 无 unmount 守卫
+- 修复：添加 `mountedRef`，回调开头检查
 
 ## System Health
 
@@ -61,10 +56,11 @@
 - ESLint: PASS (0 errors, 0 warnings)
 - Backend tests: PASS (403 passed)
 
-## Key Changes (v0.9.5)
+## Key Changes (v0.9.6)
 
-### Code Quality
-- ESLint 39 warnings → 0（严格 --max-warnings=0）
-- 所有 `any` 类型替换为安全类型
-- React hooks 依赖数组完整
-- 测试隔离：QueryHistory 不再共享 DB 状态
+### Crash Hardening
+- 修复 6 个异常路径崩溃点（白屏/内存泄漏/流泄漏）
+- 所有 useEffect cleanup 正确读取 ref 最新值
+- 所有 async 回调添加 unmount 守卫
+- 所有后端响应访问添加 null guard + 默认值
+- SSE 流读取前检查 `res.body` 非空
