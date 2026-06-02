@@ -12,6 +12,8 @@ import { GlobalSearch } from "@/components/ui/global-search";
 import { KeyboardShortcutsModal } from "@/components/ui/keyboard-shortcuts-modal";
 import { useKeyboardShortcuts, type Shortcut, formatShortcutKey } from "@/hooks/use-keyboard-shortcuts";
 import { useDataStore } from "@/stores/data-store";
+import { useOnboardingStore } from "@/stores/onboarding-store";
+import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 import { useSystemStatus } from "@/hooks/use-system-status";
 import {
   Sun, Moon, Languages, Search, Keyboard,
@@ -41,6 +43,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const basePath = "/" + (pathname.split("/")[1] || "");
   const pageTitleKey = PAGE_TITLES[basePath] || PAGE_TITLES["/"];
   const isInvestigation = pathname.startsWith("/analyze");
+
+  // Onboarding state
+  const onboardingActive = useOnboardingStore((s) => s.isActive);
 
   // Command palette & global search state
   const [commandOpen, setCommandOpen] = useState(false);
@@ -136,6 +141,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* Onboarding Wizard — fixed position, global across all pages */}
+      {onboardingActive && <OnboardingWizard />}
 
       {/* Overlays */}
       <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />

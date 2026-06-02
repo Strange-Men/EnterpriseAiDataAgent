@@ -9,6 +9,7 @@ import re
 import time
 
 import anthropic
+import httpx
 
 from backend.config import (
     ANTHROPIC_API_KEY,
@@ -510,6 +511,8 @@ def _call_llm_stream(
     last_error = None
 
     # Retry only on stream establishment (before any chunks yielded)
+    # Use explicit read timeout to prevent hanging when proxy stops sending data
+    stream_timeout = httpx.Timeout(timeout=180.0, connect=15.0, read=45.0, write=15.0, pool=15.0)
     for attempt in range(MAX_RETRIES + 1):
         try:
             with client.messages.stream(
@@ -518,7 +521,7 @@ def _call_llm_stream(
                 temperature=TEMPERATURE,
                 system=apply_language(system, language),
                 messages=[{"role": "user", "content": user_message}],
-                timeout=60.0,
+                timeout=stream_timeout,
             ) as stream:
                 for chunk in stream.text_stream:
                     output_text += chunk
@@ -752,7 +755,7 @@ def generate_insights(
             operation="insights",
             trace=trace, phase="insights", prompt_name="insights",
         )
-        insights = json.loads(raw)
+        insights = _parse_llm_json(raw)
         # Score and filter insights
         raw_insights = insights.get("insights", [])
         scored_insights, filtered_count = _score_and_filter_insights(raw_insights)
@@ -828,7 +831,7 @@ def suggest_charts(
             operation="chart_suggest",
             trace=trace, phase="chart_suggest", prompt_name="chart_suggest",
         )
-        charts = json.loads(raw)
+        charts = _parse_llm_json(raw)
         return {
             **charts,
             "status": "success",
@@ -867,7 +870,7 @@ def generate_semantics(
             operation="semantics",
             trace=trace, phase="semantics", prompt_name="semantics",
         )
-        result = json.loads(raw)
+        result = _parse_llm_json(raw)
         return {
             **result,
             "status": "success",
@@ -918,7 +921,7 @@ def suggest_questions(
             operation="suggest_questions",
             trace=trace, phase="suggest_questions", prompt_name="suggest_questions",
         )
-        result = json.loads(raw)
+        result = _parse_llm_json(raw)
         return {
             **result,
             "status": "success",
@@ -962,7 +965,7 @@ def generate_analysis_plan(
             operation="analysis_plan",
             trace=trace, phase=phase, prompt_name="analysis_plan",
         )
-        result = json.loads(raw)
+        result = _parse_llm_json(raw)
         if "plan" in result:
             result["plan"] = result["plan"][:6]
         return {

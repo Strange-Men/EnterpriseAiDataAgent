@@ -81,6 +81,32 @@ export function SqlWorkspacePanel() {
   // Workflow: AI SQL generation state
   const [generatingSql, setGeneratingSql] = useState(false);
 
+  // Standalone AI SQL generation
+  const [showAiSqlInput, setShowAiSqlInput] = useState(false);
+  const [aiSqlQuestion, setAiSqlQuestion] = useState("");
+  const [aiSqlLoading, setAiSqlLoading] = useState(false);
+
+  // Standalone AI SQL generation handler
+  const handleAiSqlGenerate = useCallback(async () => {
+    if (!aiSqlQuestion.trim() || aiSqlLoading) return;
+    setAiSqlLoading(true);
+    try {
+      const res = await aiQuery(aiSqlQuestion.trim(), false, false, undefined, i18n.language);
+      if (res.sql && activeTab) {
+        updateTabSql(activeTab.id, res.sql);
+        toast.success(t("ai.ready"));
+        setShowAiSqlInput(false);
+        setAiSqlQuestion("");
+      } else {
+        toast.error(res.error || "AI could not generate SQL");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "AI SQL generation failed");
+    } finally {
+      if (mountedRef.current) setAiSqlLoading(false);
+    }
+  }, [aiSqlQuestion, aiSqlLoading, activeTab, updateTabSql, t, i18n.language]);
+
   const handleAiAction = useCallback((mode: AnalysisMode) => {
     setAiMode(mode);
     setShowAiPanel(true);
@@ -390,6 +416,19 @@ export function SqlWorkspacePanel() {
           {t("explain.button")}
         </button>
 
+        {/* AI Generate SQL — standalone natural language to SQL */}
+        <button
+          onClick={() => setShowAiSqlInput(!showAiSqlInput)}
+          className={`px-3 py-1.5 text-xs border rounded-md transition-colors ${
+            showAiSqlInput
+              ? "border-purple-500/50 text-purple-400 bg-purple-500/10"
+              : "border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50"
+          }`}
+          title={t("ai.generate-sql")}
+        >
+          {t("ai.generate-sql")}
+        </button>
+
         {/* AI buttons — visible when query has results */}
         {queryResult?.status === "success" && queryResult.data.length > 0 && (
           <>
@@ -465,6 +504,38 @@ export function SqlWorkspacePanel() {
 
         <ExportDropdown sql={currentSql} disabled={isExecuting} />
       </div>
+
+      {/* ── AI SQL Generation Input ──────────────────────────── */}
+      {showAiSqlInput && (
+        <div className="flex items-center gap-2 px-3 py-2 mb-2 bg-purple-500/5 border border-purple-500/20 rounded-md">
+          <input
+            value={aiSqlQuestion}
+            onChange={(e) => setAiSqlQuestion(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAiSqlGenerate(); if (e.key === "Escape") { setShowAiSqlInput(false); setAiSqlQuestion(""); } }}
+            placeholder={t("ai.sql-placeholder")}
+            className="flex-1 px-2 py-1 text-xs bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-md focus:border-purple-500/50 focus:outline-none"
+            autoFocus
+          />
+          <button
+            onClick={handleAiSqlGenerate}
+            disabled={aiSqlLoading || !aiSqlQuestion.trim()}
+            className="px-3 py-1 text-xs bg-purple-500/10 text-purple-400 rounded-md hover:bg-purple-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {aiSqlLoading ? (
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                {t("ai.generating")}
+              </span>
+            ) : t("ai.generate")}
+          </button>
+          <button
+            onClick={() => { setShowAiSqlInput(false); setAiSqlQuestion(""); }}
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* ── Workflow Banner ─────────────────────────────────── */}
       {wfStage !== "idle" && wfStage !== "done" && (
