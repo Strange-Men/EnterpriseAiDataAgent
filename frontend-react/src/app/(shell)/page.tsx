@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useDataStore } from "@/stores/data-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
+import { useOnboardingStore } from "@/stores/onboarding-store";
+import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -42,6 +44,7 @@ export default function HomePage() {
   const systemStatus = useDataStore((s) => s.systemStatus);
   const history = useSqlHistoryStore((s) => s.history);
   const recentQueries = useMemo(() => history.slice(0, 5), [history]);
+  const onboardingActive = useOnboardingStore((s) => s.isActive);
 
   // Fetch query history on mount
   useEffect(() => {
@@ -65,6 +68,9 @@ export default function HomePage() {
           {t("app.subtitle")}
         </p>
       </div>
+
+      {/* Onboarding Wizard — fixed position, rendered outside flow */}
+      {onboardingActive && <OnboardingWizard />}
 
       {/* Onboarding for new users */}
       {isNewUser && (

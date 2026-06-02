@@ -10,9 +10,9 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v0.9.3 (Bug fixes — version unification, shortcuts, AI timeouts, performance)
-- **Phase**: v0.9.x Product Readiness & Security
-- **Next**: v0.9.4 (待定)
+- **Current**: v0.9.8 (Onboarding tutorial, version unification, code cleanup)
+- **Phase**: v0.9.x Security & Stability
+- **Next**: v1.0.0 (待定)
 
 ## Scope Rules
 

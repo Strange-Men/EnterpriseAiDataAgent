@@ -45,6 +45,21 @@ EnterpriseAiDataAgent is an enterprise-grade AI data analysis platform with inte
 - **Scheduled Analysis**: Background scheduled autonomous analysis
 - **System Health**: `/api/health/system` diagnostics endpoint
 
+### Product Readiness (v0.8.x)
+- **Shell Pages**: Next.js App Router shell layout with sidebar navigation
+- **Docker**: Containerized deployment (backend + frontend + docker-compose)
+- **Design System V2**: Tailwind CSS variables, Card/Button/EmptyState primitives
+- **State Refactor**: 6 Zustand stores with persist, merge resilience, SSR safety
+- **Demo Seed Data**: Idempotent seed script for 50K-row demo dataset
+
+### Security & Stability (v0.9.x)
+- **Security Hardening**: SQL injection prevention, error sanitization, API key purge
+- **React Fixes**: Infinite render loop fix, unmount guards, null assertions
+- **Crash Hardening**: AbortController cleanup, null guards, SSR safety
+- **Code Quality**: ESLint 39→0, TypeScript strict, unused import cleanup
+- **Documentation**: Restructured docs/, archived stale files, version unification
+- **Onboarding**: Game-style 5-step tutorial for new users
+
 ### Workspace
 - 3-panel resizable layout, dark/light theme, i18n (en/zh)
 
@@ -255,9 +270,10 @@ EnterpriseAiDataAgent/
 |---------|---------|--------|
 | v0.3.x | Enterprise Data Platform (SQL Workspace, DuckDB, Quality) | Done |
 | v0.5.x | AI Data Analyst MVP (Streaming, Semantics, Planning, Guardrails) | Done |
-| v0.6.x | Meta Governance & Autonomous QA | Done |
+| v0.6.x | Meta Governance & Autonomous QA (Language, Templates, Reports, Scheduler) | Done |
 | v0.7.x | AI Analyst Intelligence Layer (Anomaly Detection, Quality Gates, Stability) | Done |
-| v0.8.x | Product Readiness Consolidation (Design System, UX Polish, Doc Governance) | Current |
+| v0.8.x | Product Readiness (Shell Pages, Docker, Design System V2, State Refactor) | Done |
+| v0.9.x | Security & Stability (Git Cleanup, React Fix, Docs Restructure, Onboarding) | Current |
 
 ## License
 

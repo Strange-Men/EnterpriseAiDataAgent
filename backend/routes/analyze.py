@@ -31,7 +31,7 @@ async def analyze_table(table_name: str, language: str = "zh"):
         profile = build_profile(df, table_name)
         quality = data_service.get_quality_report(table_name)
 
-        sample_data = data_service._sanitize_for_json(df.head(20).to_dict(orient="records"))
+        sample_data = normalize_for_response(df.head(20).to_dict(orient="records"))
 
         ai_insights = {}
         try:

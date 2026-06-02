@@ -184,20 +184,11 @@ def upload_file(filename: str, content: bytes) -> dict:
     }
 
 
-def _sanitize_for_json(data: list[dict]) -> list[dict]:
-    """Normalize a list of row dicts to JSON-safe native Python types.
-
-    Delegates to normalize_for_response for comprehensive type handling.
-    Kept for backward compatibility with existing imports.
-    """
-    return normalize_for_response(data)
-
-
 def get_table_preview(table_name: str, limit: int = 100) -> dict:
     result = get_executor().preview_table(table_name, limit)
     return {
         "columns": result["columns"],
-        "data": _sanitize_for_json(result["data"]),
+        "data": normalize_for_response(result["data"]),
         "rowCount": result["row_count"],
     }
 

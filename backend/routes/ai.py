@@ -14,7 +14,6 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import json
-import re
 from backend.config import ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL
 
 logger = logging.getLogger("enterprise_ai.routes.ai")

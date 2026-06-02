@@ -990,12 +990,11 @@ def evaluate_analysis(
     """AI 对分析结果做自我评估。"""
     from backend.prompts.self_evaluation import CONTRACT, build_user_message
 
-    system = apply_language(CONTRACT.SYSTEM_PROMPT, language)
     user_msg = build_user_message(question, sections, trace)
 
     try:
         raw = _call_llm(
-            system=system,
+            system=CONTRACT.SYSTEM_PROMPT,
             user_message=user_msg,
             max_tokens=CONTRACT.max_output_tokens,
             language=language,

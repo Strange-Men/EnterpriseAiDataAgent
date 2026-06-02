@@ -8,7 +8,8 @@ from backend.services.ai_analyst import (
     generate_analysis_plan,
     _call_llm,
 )
-from backend.services.data_service import get_executor, _sanitize_for_json, list_tables
+from backend.services.data_service import get_executor, list_tables
+from backend.utils.json_safe import normalize_for_response
 from backend.prompts.summarizer import (
     CONTRACT as SUMMARIZER_CONTRACT,
     SYSTEM_PROMPT as SUMMARIZER_SYSTEM,
@@ -277,7 +278,7 @@ def run_ai_query(
             response["status"] = "sql_error"
             return response
 
-        data = _sanitize_for_json(exec_result["data"][:max_rows])
+        data = normalize_for_response(exec_result["data"][:max_rows])
         response["columns"] = exec_result["columns"]
         response["data"] = data
         response["rowCount"] = exec_result["row_count"]
@@ -300,7 +301,7 @@ def _execute_step_sql(sql: str, max_rows: int = 500) -> dict:
     exec_result = get_executor().execute(sql)
     if exec_result["status"] == "error":
         return {"columns": [], "data": [], "error": exec_result["error"], "status": "error"}
-    data = _sanitize_for_json(exec_result["data"][:max_rows])
+    data = normalize_for_response(exec_result["data"][:max_rows])
     return {
         "columns": exec_result["columns"],
         "data": data,

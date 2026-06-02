@@ -4,39 +4,43 @@
 
 ## Current Version
 
-- **Version**: v0.9.7
-- **Phase**: v0.9.7 Legacy Cleanup
-- **Status**: Complete — build, lint, tsc all passing
+- **Version**: v0.9.8
+- **Phase**: v0.9.8 Onboarding & Code Cleanup
+- **Status**: Complete — build passing
 
 ## Session Goals
 
-1. ✅ apply-template-dialog.tsx 非空断言修复（selectedTemplate! → 局部变量收窄）
-2. ✅ 所有未提交改动作为 v0.9.7 提交
+1. ✅ 版本统一到 0.9.8（VERSION、CLAUDE.md、README.md、版本记录.md）
+2. ✅ 代码清理（unused imports、apply_language 双重调用、_sanitize_for_json 冗余包装）
+3. ✅ 新手引导系统（onboarding store + wizard + feature tooltip + i18n）
+4. ✅ 文档更新（KNOWN_ISSUES ISSUE-005、README 特性补充）
 
-## v0.9.7 执行结果
+## v0.9.8 执行结果
 
-### ✅ 历史遗留清理（20 个文件，+120/-43 行）
+### ✅ 版本统一
+- `backend/VERSION` → 0.9.8
+- `CLAUDE.md` 头部同步
+- `README.md` 版本路线图更新（v0.8.x Done, v0.9.x Current）
 
-#### 🔴 Critical（2 个文件）
-- `apply-template-dialog.tsx` — `selectedTemplate!` 非空断言 → 局部变量 `tpl` 收窄
-- `download.ts` — SSR 安全（`window` / `document` 检查）
+### ✅ 代码清理（6 个文件）
+- `backend/routes/tables.py`：删除 `import csv` 和 `sanitize_error`
+- `backend/routes/ai.py`：删除 `import re`
+- `backend/services/ai_analyst.py`：`evaluate_analysis` 去除 `apply_language` 双重调用
+- `backend/services/data_service.py`：删除 `_sanitize_for_json`，改用 `normalize_for_response`
+- `backend/routes/query.py`、`backend/routes/analyze.py`、`backend/services/ai_pipeline.py`：同步迁移
 
-#### 🟡 High（11 个文件）
-- 11 个组件添加 `mountedRef` unmount 保护，覆盖约 35 处 async setState
+### ✅ 新手引导系统
+- `onboarding-store.ts`：Zustand persist，5 步流程
+- `onboarding-wizard.tsx`：Dashboard 引导卡片
+- `feature-tooltip.tsx`：Popover 样式提示框
+- 页面集成：Dashboard、Data、Query、Analyze、AnalysisDetail
+- i18n：zh.ts + en.ts 新增 ~15 个 key
 
-#### 🟢 Medium（4 个文件）
-- 4 处非空断言替换为安全访问模式
-
-#### 🟢 Low（4 个文件）
-- 重复 `API_BASE` 常量提取
-- `logger.ts` 生产环境守卫
-- 空 `catch` 块添加错误处理
-- `any` 类型清理
+### ✅ 文档更新
+- `KNOWN_ISSUES.md`：ISSUE-005 标注为将在本次修复
+- `docs/architecture/版本记录.md`：新增 v0.9.8 条目
 
 ## System Health
 
-- Frontend build: PASS (Next.js 15.5.18, standalone output)
+- Frontend build: PASS
 - Backend import: PASS
-- TypeScript: PASS (0 errors)
-- ESLint: PASS (0 errors, 0 warnings)
-- Backend tests: PASS (403 passed)

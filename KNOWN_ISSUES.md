@@ -20,7 +20,7 @@ Track all open issues, bugs, and improvements here.
 |----|-------|----------|-------------|--------|-------|------------|
 | ISSUE-001 | Monaco Editor loads large workers (~2MB) on first load | Medium | Yes | Open | Claude | Acceptable for enterprise use |
 | ISSUE-002 | Query history lost on server restart (in-memory deque) | Medium | Yes | Fixed | Claude | v0.6.4: Added DuckDB persistence, loads on startup |
-| ISSUE-005 | `docs/frontend_rules/` files reference Vue/Element Plus (different project) | Low | Yes | Open | Claude | Keep as reference pattern; not directly applicable |
+| ISSUE-005 | `docs/frontend_rules/` files reference Vue/Element Plus (different project) | Low | Yes | Fixed | Claude | v0.9.8: Directory already archived in v0.6.0; docs now reference Next.js/React/Tailwind |
 | ISSUE-006 | SQL query API returns all data in one response (no pagination) | Medium | Yes | Fixed | Claude | v0.6.4: Added server-side OFFSET/LIMIT pagination, infinite scroll |
 | ISSUE-013 | CSV export writes "nan" string for NaN values instead of empty | Low | Yes | Fixed | Claude | v0.9.4: Changed to df.to_csv() which handles NaN correctly |
 | ISSUE-014 | Test isolation: QueryHistory shares DuckDB between tests | Low | Yes | Fixed | Claude | v0.9.5: Added `use_memory=True` parameter |

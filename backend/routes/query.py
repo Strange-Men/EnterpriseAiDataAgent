@@ -6,7 +6,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from backend.services.data_service import get_readonly_executor, _sanitize_for_json
+from backend.services.data_service import get_readonly_executor
 from backend.services.query_history import query_history
 from backend.services.export_service import export_as_csv, export_as_json, export_as_excel
 from backend.utils.json_safe import normalize_for_response
@@ -91,7 +91,7 @@ async def execute_query(req: QueryRequest):
                 "error": result["error"],
             })
 
-        data = _sanitize_for_json(result["data"])
+        data = normalize_for_response(result["data"])
         query_history.add(sql, "success", runtime_ms, result["total_rows"])
 
         return normalize_for_response({
@@ -157,7 +157,7 @@ async def export_query(req: ExportRequest):
         logger.error(f"Export query error: {result['error']}")
         raise HTTPException(status_code=400, detail="Export query failed")
 
-    data = _sanitize_for_json(result["data"][:req.limit])
+    data = normalize_for_response(result["data"][:req.limit])
     columns = result["columns"]
 
     exporters = {

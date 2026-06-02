@@ -1,14 +1,13 @@
 """Table endpoints — CRUD, rename, export, paginated data."""
 
 import io
-import csv
 import logging
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from backend.services.data_service import get_db, list_tables, get_table_preview, get_table_schema, delete_table, _sanitize_for_json
+from backend.services.data_service import get_db, list_tables, get_table_preview, get_table_schema, delete_table
 from backend.utils.json_safe import normalize_for_response
-from backend.utils.validation import validate_table_name, sanitize_error
+from backend.utils.validation import validate_table_name
 
 logger = logging.getLogger("enterprise_ai.tables")
 
@@ -94,7 +93,7 @@ async def get_table_data_paginated(
         total_rows = count_row[0] if count_row else 0
         rows = conn.execute(f'SELECT * FROM "{table_name}" LIMIT {page_size} OFFSET {offset}').fetchdf()
         columns = list(rows.columns)
-        data = _sanitize_for_json(rows.to_dict(orient="records"))
+        data = normalize_for_response(rows.to_dict(orient="records"))
         return normalize_for_response({
             "columns": columns,
             "data": data,
