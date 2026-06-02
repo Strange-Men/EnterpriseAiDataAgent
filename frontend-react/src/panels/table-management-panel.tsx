@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
@@ -29,6 +29,11 @@ export function TableManagementPanel() {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const handleSelect = async (table: TableInfo) => {
     setInvestigationContext({ table: table.name });
@@ -64,7 +69,7 @@ export function TableManagementPanel() {
       toast.error(msg);
       logger.error("store", `Delete failed: ${tableName}`, err);
     }
-    setLoading(false);
+    if (mountedRef.current) setLoading(false);
   };
 
   const handleRename = async (tableName: string) => {
@@ -74,6 +79,7 @@ export function TableManagementPanel() {
       await apiRenameTable(tableName, newName.trim());
       toast.success(`Renamed to "${newName.trim()}"`);
       logger.info("store", `Renamed: ${tableName} → ${newName.trim()}`);
+      if (!mountedRef.current) return;
       setRenaming(null);
       setNewName("");
       await loadTables();
@@ -82,7 +88,7 @@ export function TableManagementPanel() {
       toast.error(msg);
       logger.error("store", `Rename failed: ${tableName}`, err);
     }
-    setLoading(false);
+    if (mountedRef.current) setLoading(false);
   };
 
   const handleExport = (tableName: string) => {

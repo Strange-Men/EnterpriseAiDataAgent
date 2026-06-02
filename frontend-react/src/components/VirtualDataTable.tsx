@@ -10,6 +10,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { DIRECT_BACKEND } from "@/services/api";
 
 // ─── Types ───────────────────────────────────────────────────────────
 interface SalesRow {
@@ -37,8 +38,6 @@ interface FetchState {
 const PAGE_SIZE = 200;
 const OVERSCAN = 15;
 const ROW_HEIGHT = 36;
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 function fmtNum(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
@@ -178,6 +177,11 @@ export default function VirtualDataTable({
 }) {
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // ── State ──────────────────────────────────────────────────────────
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -199,10 +203,11 @@ export default function VirtualDataTable({
     async (page: number) => {
       setFetchState((s) => ({ ...s, loading: true, error: null }));
       try {
-        const url = `${API_BASE}/api/tables/${tableName}/data?page=${page}&page_size=${PAGE_SIZE}`;
+        const url = `${DIRECT_BACKEND}/api/tables/${tableName}/data?page=${page}&page_size=${PAGE_SIZE}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
+        if (!mountedRef.current) return;
         setFetchState((s) => ({
           data: page === 0 ? json.data : [...s.data, ...json.data],
           totalRows: json.totalRows,
@@ -212,6 +217,7 @@ export default function VirtualDataTable({
           error: null,
         }));
       } catch (err: unknown) {
+        if (!mountedRef.current) return;
         setFetchState((s) => ({
           ...s,
           loading: false,
@@ -227,7 +233,7 @@ export default function VirtualDataTable({
     setFetchState((s) => ({ ...s, loading: true, error: null }));
     try {
       const res = await fetch(
-        `${API_BASE}/api/table/${tableName}/export`
+        `${DIRECT_BACKEND}/api/table/${tableName}/export`
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
@@ -255,6 +261,7 @@ export default function VirtualDataTable({
         });
         data.push(row as SalesRow);
       }
+      if (!mountedRef.current) return;
       setFetchState({
         data,
         totalRows: data.length,
@@ -264,6 +271,7 @@ export default function VirtualDataTable({
         error: null,
       });
     } catch (err: unknown) {
+      if (!mountedRef.current) return;
       setFetchState((s) => ({ ...s, loading: false, error: err instanceof Error ? err.message : String(err) }));
     }
   }, [tableName]);

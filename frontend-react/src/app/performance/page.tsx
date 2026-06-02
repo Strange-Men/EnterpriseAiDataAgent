@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { ClientProviders } from "@/components/client-providers";
 import { useTranslation } from "react-i18next";
 import Link from "next/link";
@@ -74,6 +74,11 @@ function PerformanceContent() {
   const [metrics, setMetrics] = useState<PerfMetrics | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [history, setHistory] = useState<BenchmarkResult[]>([]);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // ── Collect current metrics ───────────────────────────────
   const collectMetrics = useCallback((): PerfMetrics => {
@@ -126,6 +131,7 @@ function PerformanceContent() {
     setIsRunning(true);
     // Small delay to let any pending renders complete
     await new Promise((r) => setTimeout(r, 500));
+    if (!mountedRef.current) return;
     const m = collectMetrics();
     setMetrics(m);
     const result: BenchmarkResult = {

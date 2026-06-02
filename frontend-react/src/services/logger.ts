@@ -31,6 +31,8 @@ function push(entry: LogEntry) {
   logs.push(entry);
   if (logs.length > MAX_LOGS) logs.shift();
 
+  if (process.env.NODE_ENV === "production") return;
+
   const prefix = `[${entry.level.toUpperCase()}][${entry.category}]`;
   const fn =
     entry.level === "error"

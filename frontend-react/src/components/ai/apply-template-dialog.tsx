@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useTemplateStore, type AnalysisTemplate, type TemplateStep } from "@/stores/template-store";
 import { useDataStore } from "@/stores/data-store";
@@ -31,6 +31,11 @@ export function ApplyTemplateDialog({
   const [adaptedQuestions, setAdaptedQuestions] = useState<AdaptedQuestion[]>([]);
   const [adapting, setAdapting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const handleAdapt = async () => {
     if (!selectedTemplate || !selectedTable) return;
@@ -50,20 +55,24 @@ export function ApplyTemplateDialog({
         selectedTable,
         targetColumns
       );
+      if (!mountedRef.current) return;
       setAdaptedQuestions(result.adapted_questions);
     } catch (e: unknown) {
+      if (!mountedRef.current) return;
       setError(e instanceof Error ? e.message : "Adaptation failed");
     }
+    if (!mountedRef.current) return;
     setAdapting(false);
   };
 
   const handleApply = () => {
-    if (!selectedTable) return;
+    if (!selectedTable || !selectedTemplate) return;
+    const tpl = selectedTemplate;
     const steps: TemplateStep[] = adaptedQuestions
       .filter((q) => q.status === "ok")
       .map((q) => ({
         question: q.question,
-        mode: selectedTemplate!.steps.find((s) => s.order === q.order)?.mode ?? "explain",
+        mode: tpl.steps.find((s) => s.order === q.order)?.mode ?? "explain",
         order: q.order,
       }));
     if (steps.length === 0) return;

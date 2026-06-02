@@ -35,11 +35,13 @@ export function SqlWorkspacePanel() {
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const startTimeRef = useRef<number>(0);
+  const mountedRef = useRef(true);
   const activeTab = getActiveTab();
 
   // Cleanup: abort any in-flight query on unmount
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
@@ -99,7 +101,7 @@ export function SqlWorkspacePanel() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "AI SQL generation failed");
     } finally {
-      setGeneratingSql(false);
+      if (mountedRef.current) setGeneratingSql(false);
     }
   }, [wfTable, generatingSql, activeTab, updateTabSql, wfAdvance, t, i18n.language]);
 
@@ -190,15 +192,17 @@ export function SqlWorkspacePanel() {
 
     try {
       const result = await explainQuery(sql);
+      if (!mountedRef.current) return;
       if (result.status === "error") {
         setExplainError(result.error || "Explain failed");
       } else {
         setExplainResult(result);
       }
     } catch (err) {
+      if (!mountedRef.current) return;
       setExplainError(err instanceof Error ? err.message : "Explain failed");
     } finally {
-      setExplainLoading(false);
+      if (mountedRef.current) setExplainLoading(false);
     }
   }, [currentSql]);
 

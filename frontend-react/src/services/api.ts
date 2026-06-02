@@ -9,7 +9,7 @@ import type { TableInfo, QualityReport, AnomalyResult } from "@/types";
 
 const API_BASE = "/api";
 // Direct backend URL for SSE streaming (bypasses Next.js proxy 30s timeout)
-const DIRECT_BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const DIRECT_BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // ── Generic fetch wrapper ──────────────────────────────────
 

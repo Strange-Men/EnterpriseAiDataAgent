@@ -14,8 +14,12 @@ export function KeyboardShortcutsModal({ open, onClose, shortcuts }: KeyboardSho
   const groups = new Map<string, typeof shortcuts>();
   shortcuts.forEach((s) => {
     const group = s.description.split(" ")[0];
-    if (!groups.has(group)) groups.set(group, []);
-    groups.get(group)!.push(s);
+    const arr = groups.get(group);
+    if (arr) {
+      arr.push(s);
+    } else {
+      groups.set(group, [s]);
+    }
   });
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { useInvestigationStore } from "@/stores/investigation-store";
@@ -26,6 +26,11 @@ export function ToolsPanel() {
   );
   const [sqlResult, setSqlResult] = useState<string | null>(null);
   const [sqlLoading, setSqlLoading] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const handleRunSql = useCallback(async () => {
     if (!sql.trim() || sqlLoading) return;
@@ -33,11 +38,13 @@ export function ToolsPanel() {
     setSqlResult(null);
     try {
       const result = await executeQuery(sql);
+      if (!mountedRef.current) return;
       setSqlResult(`${result.data.length} rows · ${result.columns.length} cols`);
     } catch (err) {
+      if (!mountedRef.current) return;
       setSqlResult(err instanceof Error ? err.message : "Query failed");
     } finally {
-      setSqlLoading(false);
+      if (mountedRef.current) setSqlLoading(false);
     }
   }, [sql, sqlLoading]);
 

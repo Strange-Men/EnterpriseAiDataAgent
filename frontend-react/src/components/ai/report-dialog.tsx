@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAnalysisStore, type AnalysisRun } from "@/stores/analysis-store";
 import { generateReport } from "@/services/api";
@@ -19,6 +19,11 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const savedRuns = [...runs].filter((r) => r.saved).reverse();
   const completedRuns = [...runs].filter((r) => r.status === "success" && !r.saved).reverse();
@@ -43,11 +48,13 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
         includeTrace,
         includeDataSamples: includeSamples,
       });
+      if (!mountedRef.current) return;
       setMarkdown(result.markdown);
     } catch (e: unknown) {
+      if (!mountedRef.current) return;
       setError(e instanceof Error ? e.message : "Report generation failed");
     }
-    setGenerating(false);
+    if (mountedRef.current) setGenerating(false);
   };
 
   const handleDownload = () => {

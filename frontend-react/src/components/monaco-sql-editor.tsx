@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useEffect } from "react";
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
-import type { editor } from "monaco-editor";
+import type { editor, languages, Position } from "monaco-editor";
 import { useThemeStore } from "@/hooks/use-theme";
 import { fetchAllSchemas } from "@/services/api";
 
@@ -110,8 +110,7 @@ export function MonacoSqlEditor({
 
       completionDisposableRef.current = monaco.languages.registerCompletionItemProvider("sql", {
         triggerCharacters: [".", " ", "("],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        provideCompletionItems: (model: any, position: any) => {
+        provideCompletionItems: (model: editor.ITextModel, position: Position) => {
           const word = model.getWordUntilPosition(position);
           const range = {
             startLineNumber: position.lineNumber,
@@ -129,8 +128,7 @@ export function MonacoSqlEditor({
 
           // Check if we're after a dot (table.column completion)
           const dotMatch = textBeforeCursor.match(/(\w+)\.\w*$/);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const suggestions: any[] = [];
+          const suggestions: languages.CompletionItem[] = [];
 
           if (dotMatch) {
             const tableName = dotMatch[1].toLowerCase();

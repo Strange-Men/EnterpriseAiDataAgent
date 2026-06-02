@@ -104,7 +104,7 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
                         <tbody>
                           {step.data.slice(0, 5).map((row, ri) => (
                             <tr key={ri}>
-                              {step.columns!.map((c) => (
+                              {step.columns.map((c) => (
                                 <td key={c} className="px-2 py-0.5 text-[var(--text-secondary)] border-b border-[var(--border-default)]/50 truncate max-w-[120px]">
                                   {String(row[c] ?? "")}
                                 </td>

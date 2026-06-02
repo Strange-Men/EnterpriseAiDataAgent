@@ -276,12 +276,12 @@ export const useAnalysisStore = create<AnalysisState>()(
         const titlesB = new Map(runB.sections.map((s) => [s.title, s]));
         const allTitles = [...new Set([...titlesA.keys(), ...titlesB.keys()])];
         const sections_diff: ComparisonResult["sections_diff"] = allTitles.map((title) => {
-          const inA = titlesA.has(title);
-          const inB = titlesB.has(title);
-          if (inA && !inB) return { title, change: "removed" as const, old_content: titlesA.get(title)!.content.slice(0, 500), new_content: null };
-          if (!inA && inB) return { title, change: "added" as const, old_content: null, new_content: titlesB.get(title)!.content.slice(0, 500) };
-          const oldC = titlesA.get(title)!.content.slice(0, 500);
-          const newC = titlesB.get(title)!.content.slice(0, 500);
+          const secA = titlesA.get(title);
+          const secB = titlesB.get(title);
+          if (secA && !secB) return { title, change: "removed" as const, old_content: secA.content.slice(0, 500), new_content: null };
+          if (!secA && secB) return { title, change: "added" as const, old_content: null, new_content: secB.content.slice(0, 500) };
+          const oldC = secA?.content.slice(0, 500) ?? "";
+          const newC = secB?.content.slice(0, 500) ?? "";
           return { title, change: oldC === newC ? "unchanged" as const : "changed" as const, old_content: oldC, new_content: newC };
         });
 

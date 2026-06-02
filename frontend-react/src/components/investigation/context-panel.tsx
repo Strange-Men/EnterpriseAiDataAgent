@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight } from "lucide-react";
 import { useDataStore } from "@/stores/data-store";
@@ -20,6 +20,11 @@ export function ContextPanel({ onTableSelect }: ContextPanelProps) {
   const [expandedTable, setExpandedTable] = useState<string | null>(null);
   const [schemaColumns, setSchemaColumns] = useState<{ name: string; dtype: string }[]>([]);
   const [loadingSchema, setLoadingSchema] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const loadSchema = useCallback(async (tableName: string) => {
     if (expandedTable === tableName) {
@@ -30,13 +35,15 @@ export function ContextPanel({ onTableSelect }: ContextPanelProps) {
     setLoadingSchema(true);
     try {
       const { columns } = await fetchTableData(tableName, 1);
+      if (!mountedRef.current) return;
       const tbl = tables.find((t) => t.name === tableName);
       const dtypes = tbl?.columns?.map((c) => ({ name: c.name, dtype: c.dtype })) ?? columns.map((c) => ({ name: c, dtype: "VARCHAR" }));
       setSchemaColumns(dtypes);
     } catch {
+      if (!mountedRef.current) return;
       setSchemaColumns([]);
     } finally {
-      setLoadingSchema(false);
+      if (mountedRef.current) setLoadingSchema(false);
     }
   }, [expandedTable, tables]);
 

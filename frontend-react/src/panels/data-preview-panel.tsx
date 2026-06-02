@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
@@ -23,6 +23,11 @@ export function DataPreviewPanel() {
   const activeTable = useInvestigationStore((s) => s.activeTable);
   const [schema, setSchema] = useState<SchemaCol[]>([]);
   const [schemaLoading, setSchemaLoading] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (!activeTable) {
@@ -31,9 +36,9 @@ export function DataPreviewPanel() {
     }
     setSchemaLoading(true);
     fetchTableSchema(activeTable)
-      .then(setSchema)
-      .catch(() => setSchema([]))
-      .finally(() => setSchemaLoading(false));
+      .then((data) => { if (mountedRef.current) setSchema(data); })
+      .catch(() => { if (mountedRef.current) setSchema([]); })
+      .finally(() => { if (mountedRef.current) setSchemaLoading(false); });
   }, [activeTable]);
 
   if (!activeTable) {

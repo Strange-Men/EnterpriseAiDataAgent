@@ -29,8 +29,12 @@ export function TraceTimeline({ trace }: TraceTimelineProps) {
     const map = new Map<string, TraceSnapshot["events"]>();
     trace.events.forEach((e) => {
       const phase = e.phase ?? "other";
-      if (!map.has(phase)) map.set(phase, []);
-      map.get(phase)!.push(e);
+      const arr = map.get(phase);
+      if (arr) {
+        arr.push(e);
+      } else {
+        map.set(phase, [e]);
+      }
     });
     return Array.from(map.entries()).map(([phase, events]) => ({ phase, events }));
   }, [trace.events]);

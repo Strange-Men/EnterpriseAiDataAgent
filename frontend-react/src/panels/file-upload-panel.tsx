@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useDataStore } from "@/stores/data-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
@@ -25,6 +25,11 @@ export function FileUploadPanel() {
   const [uploading, setUploading] = useState(false);
   const [analyzingTable, setAnalyzingTable] = useState<string | null>(null);
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -65,7 +70,7 @@ export function FileUploadPanel() {
     }
 
     setUploadedFiles([...newFiles]);
-    setUploading(false);
+    if (mountedRef.current) setUploading(false);
     await loadTables();
 
     // Advance workflow: last successfully uploaded table

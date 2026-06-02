@@ -24,7 +24,7 @@ export function SqlHistoryPanel() {
   useEffect(() => {
     fetchQueryHistory()
       .then(setHistory)
-      .catch(() => {});
+      .catch((e) => console.warn("Failed to load history:", e));
   }, [setHistory]);
 
   const filtered = getFiltered();

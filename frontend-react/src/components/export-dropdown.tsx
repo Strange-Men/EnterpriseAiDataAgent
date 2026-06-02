@@ -16,6 +16,11 @@ export function ExportDropdown({ sql, disabled }: ExportDropdownProps) {
   const [open, setOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // Close on outside click
   useEffect(() => {
@@ -41,7 +46,7 @@ export function ExportDropdown({ sql, disabled }: ExportDropdownProps) {
       const msg = err instanceof Error ? err.message : "Export failed";
       toast.error(msg);
     } finally {
-      setExporting(false);
+      if (mountedRef.current) setExporting(false);
     }
   };
 
