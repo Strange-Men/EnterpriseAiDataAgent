@@ -1,14 +1,11 @@
 "use client";
 
-import { useTranslation } from "react-i18next";
 import { FileUploadPanel } from "@/panels/file-upload-panel";
 import { TableManagementPanel } from "@/panels/table-management-panel";
 import { DataPreviewPanel } from "@/panels/data-preview-panel";
 import { StatusPanel } from "@/panels/status-panel";
 
 export default function DataPage() {
-  const { t } = useTranslation();
-
   return (
     <div className="flex h-full">
       {/* Left sidebar: upload + tables + status */}

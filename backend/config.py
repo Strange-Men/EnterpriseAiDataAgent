@@ -12,8 +12,26 @@ load_dotenv()
 
 logger = logging.getLogger("enterprise_ai.config")
 
+
+class ConfigurationError(Exception):
+    """Raised when a required configuration value is invalid."""
+
+
 # ── Database ─────────────────────────────────────────────────────
 DUCKDB_PATH: str = os.getenv("DUCKDB_PATH", "data/enterprise.duckdb")
+
+if not DUCKDB_PATH or not DUCKDB_PATH.strip():
+    raise ConfigurationError(
+        "DUCKDB_PATH is empty. Set the DUCKDB_PATH environment variable or use the default 'data/enterprise.duckdb'."
+    )
+
+_duckdb_parent = Path(DUCKDB_PATH).parent
+try:
+    _duckdb_parent.mkdir(parents=True, exist_ok=True)
+except OSError as e:
+    raise ConfigurationError(
+        f"DUCKDB_PATH parent directory '{_duckdb_parent}' cannot be created: {e}"
+    )
 
 # ── AI / LLM ─────────────────────────────────────────────────────
 ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")

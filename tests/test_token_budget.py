@@ -30,9 +30,9 @@ class TestEstimateTokens:
         assert estimate_tokens(text) == 100
 
     def test_cjk_characters(self):
-        # CJK chars are same length as ASCII in this heuristic
-        text = "你好世界"  # 4 chars => 1
-        assert estimate_tokens(text) == 1
+        # CJK ~1.5 chars/token (v0.9.4 heuristic)
+        text = "你好世界"  # 4 CJK chars / 1.5 ≈ 2 tokens
+        assert estimate_tokens(text) == 2
 
 
 class TestTruncateText:

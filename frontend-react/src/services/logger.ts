@@ -37,7 +37,7 @@ function push(entry: LogEntry) {
       ? console.error
       : entry.level === "warn"
       ? console.warn
-      : console.log;
+      : console.info;
 
   if (entry.data !== undefined) {
     fn(prefix, entry.message, entry.data);

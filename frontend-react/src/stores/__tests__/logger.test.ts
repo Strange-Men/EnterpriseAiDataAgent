@@ -101,6 +101,7 @@ describe("logger", () => {
     const longSql = "SELECT ".repeat(50);
     logger.query(longSql, 1, 5);
     const logs = logger.getRecent();
-    expect((logs[0].data as any).sql.length).toBeLessThanOrEqual(200);
+    const data = logs[0].data as Record<string, unknown>;
+    expect((data.sql as string).length).toBeLessThanOrEqual(200);
   });
 });

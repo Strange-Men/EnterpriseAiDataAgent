@@ -478,6 +478,22 @@ const en = {
     "inv.quick-sql": "Quick SQL",
     "inv.quick-sql-placeholder": "SELECT * FROM {{table}} LIMIT 10;",
     "inv.run-sql": "Run",
+
+    // Command Palette
+    "cmd.search-placeholder": "Type a command or search...",
+    "cmd.no-results": "No results found",
+    "cmd.group-navigation": "Navigation",
+    "cmd.group-actions": "Actions",
+    "cmd.group-recent": "Recent",
+    "cmd.go-home": "Go Home",
+    "cmd.go-data": "Go to Data",
+    "cmd.go-query": "Go to Query",
+    "cmd.go-analyze": "Go to Analyze",
+    "cmd.go-history": "Go to History",
+    "cmd.go-settings": "Go to Settings",
+    "cmd.new-investigation": "New Investigation",
+    "cmd.toggle-theme": "Toggle Theme ({{theme}})",
+    "cmd.switch-language": "Switch Language ({{language}})",
   },
 };
 

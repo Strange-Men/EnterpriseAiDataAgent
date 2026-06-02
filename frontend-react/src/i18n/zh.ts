@@ -478,6 +478,22 @@ const zh = {
     "inv.quick-sql": "快速 SQL",
     "inv.quick-sql-placeholder": "SELECT * FROM {{table}} LIMIT 10;",
     "inv.run-sql": "执行",
+
+    // Command Palette
+    "cmd.search-placeholder": "输入命令或搜索...",
+    "cmd.no-results": "未找到结果",
+    "cmd.group-navigation": "导航",
+    "cmd.group-actions": "操作",
+    "cmd.group-recent": "最近",
+    "cmd.go-home": "回到首页",
+    "cmd.go-data": "前往数据",
+    "cmd.go-query": "前往查询",
+    "cmd.go-analyze": "前往分析",
+    "cmd.go-history": "前往历史",
+    "cmd.go-settings": "前往设置",
+    "cmd.new-investigation": "新建调查",
+    "cmd.toggle-theme": "切换主题 ({{theme}})",
+    "cmd.switch-language": "切换语言 ({{language}})",
   },
 };
 

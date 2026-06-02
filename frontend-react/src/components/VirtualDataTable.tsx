@@ -8,7 +8,6 @@ import {
   flexRender,
   createColumnHelper,
   type SortingState,
-  type ColumnDef,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
@@ -104,7 +103,7 @@ function cellClass(value: unknown): string {
   return "";
 }
 
-const COLUMNS: ColumnDef<SalesRow, any>[] = [
+const COLUMNS = [
   columnHelper.accessor("order_date", {
     header: "Order Date",
     size: 120,
@@ -212,11 +211,11 @@ export default function VirtualDataTable({
           loading: false,
           error: null,
         }));
-      } catch (err: any) {
+      } catch (err: unknown) {
         setFetchState((s) => ({
           ...s,
           loading: false,
-          error: err.message,
+          error: err instanceof Error ? err.message : String(err),
         }));
       }
     },
@@ -237,23 +236,24 @@ export default function VirtualDataTable({
       const data: SalesRow[] = [];
       for (let i = 1; i < lines.length; i++) {
         const vals = lines[i].split(",");
-        const row: any = {};
+        const row: Partial<SalesRow> = {};
         headers.forEach((h, j) => {
           const v = vals[j]?.trim() ?? "";
+          const key = h as keyof SalesRow;
           if (v === "") {
-            row[h] = null;
+            (row as Record<string, unknown>)[key] = null;
           } else if (
             h === "sales_amount" ||
             h === "discount"
           ) {
-            row[h] = parseFloat(v);
+            (row as Record<string, unknown>)[key] = parseFloat(v);
           } else if (h === "quantity" || h === "is_returned") {
-            row[h] = parseInt(v, 10);
+            (row as Record<string, unknown>)[key] = parseInt(v, 10);
           } else {
-            row[h] = v;
+            (row as Record<string, unknown>)[key] = v;
           }
         });
-        data.push(row);
+        data.push(row as SalesRow);
       }
       setFetchState({
         data,
@@ -263,8 +263,8 @@ export default function VirtualDataTable({
         loading: false,
         error: null,
       });
-    } catch (err: any) {
-      setFetchState((s) => ({ ...s, loading: false, error: err.message }));
+    } catch (err: unknown) {
+      setFetchState((s) => ({ ...s, loading: false, error: err instanceof Error ? err.message : String(err) }));
     }
   }, [tableName]);
 
@@ -282,9 +282,9 @@ export default function VirtualDataTable({
     if (sorting.length === 0 || mode === "api") return fetchState.data;
     const sorted = [...fetchState.data];
     const { id, desc } = sorting[0];
-    sorted.sort((a: any, b: any) => {
-      const av = a[id];
-      const bv = b[id];
+    sorted.sort((a, b) => {
+      const av = a[id as keyof SalesRow];
+      const bv = b[id as keyof SalesRow];
       if (av === null || av === undefined) return 1;
       if (bv === null || bv === undefined) return -1;
       if (typeof av === "number" && typeof bv === "number") {
@@ -330,7 +330,6 @@ export default function VirtualDataTable({
       fetchPage(nextPage);
     }
   }, [
-    rowVirtualizer.getVirtualItems(),
     fetchState.hasMore,
     fetchState.loading,
     rows.length,

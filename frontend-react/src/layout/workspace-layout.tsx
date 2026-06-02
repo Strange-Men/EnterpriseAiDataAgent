@@ -2,7 +2,6 @@
 
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useWorkspaceStore } from "@/stores/workspace-store";
-import { cn } from "@/utils/cn";
 import type { ReactNode } from "react";
 
 interface WorkspaceLayoutProps {

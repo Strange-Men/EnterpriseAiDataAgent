@@ -20,9 +20,13 @@ export function FollowUpInput({ results, onSqlGenerated, question: controlledQue
   const { t, i18n } = useTranslation();
   const [internalQuestion, setInternalQuestion] = useState("");
   const question = controlledQuestion !== undefined ? controlledQuestion : internalQuestion;
-  const setQuestion = controlledQuestion !== undefined
-    ? (val: string) => onQuestionChange?.(val)
-    : setInternalQuestion;
+  const setQuestion = useCallback((val: string) => {
+    if (controlledQuestion !== undefined) {
+      onQuestionChange?.(val);
+    } else {
+      setInternalQuestion(val);
+    }
+  }, [controlledQuestion, onQuestionChange]);
   const [loading, setLoading] = useState(false);
   const mountedRef = useRef(true);
 
@@ -77,7 +81,7 @@ export function FollowUpInput({ results, onSqlGenerated, question: controlledQue
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [question, loading, results, onSqlGenerated, t, i18n.language]);
+  }, [question, loading, results, onSqlGenerated, t, i18n.language, setQuestion]);
 
   if (!onSqlGenerated) return null;
 

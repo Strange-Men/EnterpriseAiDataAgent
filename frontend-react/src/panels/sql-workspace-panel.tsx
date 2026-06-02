@@ -101,7 +101,7 @@ export function SqlWorkspacePanel() {
     } finally {
       setGeneratingSql(false);
     }
-  }, [wfTable, generatingSql, activeTab, updateTabSql, wfAdvance, t]);
+  }, [wfTable, generatingSql, activeTab, updateTabSql, wfAdvance, t, i18n.language]);
 
   const handleExecute = useCallback(async () => {
     const sql = currentSql.trim();
@@ -176,7 +176,7 @@ export function SqlWorkspacePanel() {
       setExecuting(false);
       abortControllerRef.current = null;
     }
-  }, [currentSql, setExecuting, setQueryResult, addEntry, wfStage, wfAdvance]);
+  }, [currentSql, setExecuting, setQueryResult, addEntry, wfStage, wfAdvance, t]);
 
   // EXPLAIN handler
   const handleExplain = useCallback(async () => {

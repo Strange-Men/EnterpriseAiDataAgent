@@ -19,8 +19,6 @@ import { ToolsPanel } from "./tools-panel";
 import { QuestionInput } from "./question-input";
 import { StreamingOutput, type InvestigationResult } from "./streaming-output";
 import { StreamingIndicator } from "./ai-streaming-indicator";
-import type { ChartSpec } from "@/types";
-import type { AnomalyResult } from "@/types";
 
 export function InvestigationWorkspace() {
   const { t, i18n } = useTranslation();
@@ -30,9 +28,6 @@ export function InvestigationWorkspace() {
   const activeRunId = useAnalysisStore((s) => s.activeRunId);
   // Subscribe to specific fields to avoid unnecessary re-renders
   const keyFindings = useInvestigationStore((s) => s.keyFindings);
-  // Get stable action references (Zustand actions are stable by default)
-  const investigation = useInvestigationStore;
-
   const [isLoading, setIsLoading] = useState(false);
   const [streamStage, setStreamStage] = useState("");
   const [streamStep, setStreamStep] = useState<number | undefined>();
@@ -107,11 +102,11 @@ export function InvestigationWorkspace() {
           accumulatedPlan = plan;
           setStreamEvent({ type: "plan", plan });
         },
-        onStepStart: (step, purpose) => {
+        onStepStart: (step, _purpose) => {
           setStreamStage("step");
           setStreamStep(step);
         },
-        onStepRetry: (step, attempt, errMsg) => {
+        onStepRetry: (_step, _attempt, _errMsg) => {
           // Update the step to show retry
         },
         onStepResult: (event) => {

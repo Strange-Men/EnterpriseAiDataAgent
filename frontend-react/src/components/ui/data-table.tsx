@@ -10,7 +10,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { cn } from "@/utils/cn";
 
 interface DataTableProps {
@@ -102,6 +102,7 @@ export function DataTable({
     onLoadMore,
     hasMore,
     isLoading,
+    rowVirtualizer,
   ]);
 
   if (!data.length) {

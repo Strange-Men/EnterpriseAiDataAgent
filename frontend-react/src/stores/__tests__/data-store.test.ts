@@ -44,7 +44,7 @@ describe("data-store", () => {
       { name: "users", rowCount: 100, columnCount: 5 },
       { name: "orders", rowCount: 500, columnCount: 8 },
     ];
-    setTables(tables as any);
+    setTables(tables as unknown as Parameters<typeof setTables>[0]);
     expect(useDataStore.getState().tables).toEqual(tables);
   });
 
@@ -66,7 +66,7 @@ describe("data-store", () => {
 
   it("should set quality report", () => {
     const { setQualityReport } = useDataStore.getState();
-    const report = { overallScore: 85, warnings: [] } as any;
+    const report = { overallScore: 85, warnings: [] } as unknown as Parameters<typeof setQualityReport>[0];
     setQualityReport(report);
     expect(useDataStore.getState().qualityReport).toEqual(report);
 
@@ -77,7 +77,7 @@ describe("data-store", () => {
   it("should set uploaded files", () => {
     const { setUploadedFiles } = useDataStore.getState();
     const files = [{ name: "data.csv", size: "1KB", type: "csv", uploadedAt: "now", rowCount: 10, columnCount: 3, status: "success" }];
-    setUploadedFiles(files as any);
+    setUploadedFiles(files as unknown as Parameters<typeof setUploadedFiles>[0]);
     expect(useDataStore.getState().uploadedFiles).toEqual(files);
   });
 

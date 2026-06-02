@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { cn } from "@/utils/cn";
 
 interface InvestigationLayoutProps {
   context: ReactNode;
@@ -101,8 +100,3 @@ export function InvestigationLayout({ context, main, tools }: InvestigationLayou
   );
 }
 
-function ResizeHandle() {
-  return (
-    <PanelResizeHandle className="w-1 bg-[var(--border-default)] hover:bg-[var(--accent)] transition-colors cursor-col-resize" />
-  );
-}

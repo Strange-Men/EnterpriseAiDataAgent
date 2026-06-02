@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import {
   Search, Home, Database, Code, MonitorPlay, Clock,
   Settings, FileText, Plus, Sun, Moon,
@@ -31,6 +32,7 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const allRuns = useAnalysisStore((s) => s.runs);
   const runs = useMemo(() => allRuns.slice(-8).reverse(), [allRuns]);
   const { theme, toggleTheme } = useThemeStore();
@@ -42,18 +44,18 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
   const groups = useMemo<CommandGroup[]>(() => {
     const navItems: CommandItem[] = [
-      { id: "home", label: "Go Home", icon: <Home className="w-4 h-4" />, action: () => router.push("/") },
-      { id: "data", label: "Go to Data", icon: <Database className="w-4 h-4" />, action: () => router.push("/data") },
-      { id: "query", label: "Go to Query", icon: <Code className="w-4 h-4" />, action: () => router.push("/query") },
-      { id: "analyze", label: "Go to Analyze", icon: <MonitorPlay className="w-4 h-4" />, action: () => router.push("/analyze") },
-      { id: "history", label: "Go to History", icon: <Clock className="w-4 h-4" />, action: () => router.push("/history") },
-      { id: "settings", label: "Go to Settings", icon: <Settings className="w-4 h-4" />, action: () => router.push("/settings") },
+      { id: "home", label: t("cmd.go-home"), icon: <Home className="w-4 h-4" />, action: () => router.push("/") },
+      { id: "data", label: t("cmd.go-data"), icon: <Database className="w-4 h-4" />, action: () => router.push("/data") },
+      { id: "query", label: t("cmd.go-query"), icon: <Code className="w-4 h-4" />, action: () => router.push("/query") },
+      { id: "analyze", label: t("cmd.go-analyze"), icon: <MonitorPlay className="w-4 h-4" />, action: () => router.push("/analyze") },
+      { id: "history", label: t("cmd.go-history"), icon: <Clock className="w-4 h-4" />, action: () => router.push("/history") },
+      { id: "settings", label: t("cmd.go-settings"), icon: <Settings className="w-4 h-4" />, action: () => router.push("/settings") },
     ];
 
     const actionItems: CommandItem[] = [
-      { id: "new-investigation", label: "New Investigation", icon: <Plus className="w-4 h-4" />, action: () => router.push("/analyze") },
-      { id: "toggle-theme", label: `Toggle Theme (${theme})`, icon: theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />, action: toggleTheme },
-      { id: "toggle-language", label: `Switch Language (${language === "zh" ? "en" : "zh"})`, icon: <FileText className="w-4 h-4" />, action: toggleLanguage },
+      { id: "new-investigation", label: t("cmd.new-investigation"), icon: <Plus className="w-4 h-4" />, action: () => router.push("/analyze") },
+      { id: "toggle-theme", label: t("cmd.toggle-theme", { theme }), icon: theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />, action: toggleTheme },
+      { id: "toggle-language", label: t("cmd.switch-language", { language: language === "zh" ? "en" : "zh" }), icon: <FileText className="w-4 h-4" />, action: toggleLanguage },
     ];
 
     const recentItems: CommandItem[] = runs.map((run) => ({
@@ -65,11 +67,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     }));
 
     return [
-      { label: "Navigation", items: navItems },
-      { label: "Actions", items: actionItems },
-      ...(recentItems.length > 0 ? [{ label: "Recent", items: recentItems }] : []),
+      { label: t("cmd.group-navigation"), items: navItems },
+      { label: t("cmd.group-actions"), items: actionItems },
+      ...(recentItems.length > 0 ? [{ label: t("cmd.group-recent"), items: recentItems }] : []),
     ];
-  }, [router, runs, theme, language, toggleTheme, toggleLanguage]);
+  }, [router, runs, theme, language, toggleTheme, toggleLanguage, t]);
 
   // Filter groups by query
   const filteredGroups = useMemo(() => {
@@ -151,7 +153,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            placeholder="Type a command or search..."
+            placeholder={t("cmd.search-placeholder")}
             className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none"
           />
           <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded text-[var(--text-muted)]">
@@ -163,7 +165,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         <div className="max-h-80 overflow-y-auto p-2">
           {filteredGroups.length === 0 ? (
             <div className="py-8 text-center text-xs text-[var(--text-muted)]">
-              No results found
+              {t("cmd.no-results")}
             </div>
           ) : (
             filteredGroups.map((group) => (

@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MonitorPlay } from "lucide-react";
 import { AnalysisSectionView } from "@/components/ai/analysis-section";
@@ -32,7 +31,7 @@ interface StreamingOutputProps {
 }
 
 export function StreamingOutput({
-  result, streamEvent, isStreaming, streamStage, streamStep, error,
+  result, streamEvent, isStreaming, streamStage, streamStep: _streamStep, error,
 }: StreamingOutputProps) {
   const { t } = useTranslation();
 

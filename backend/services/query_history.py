@@ -16,19 +16,26 @@ class QueryHistory:
 
     Lazy initialisation: the DuckDB connection and table are created
     on the first call to add() or get_all(), not in __init__.
+
+    Args:
+        max_size: Maximum number of entries in the ring buffer.
+        use_memory: If True, skip DuckDB persistence entirely (for testing).
     """
 
-    def __init__(self, max_size: int = 200):
+    def __init__(self, max_size: int = 200, use_memory: bool = False):
         self._history: deque[dict] = deque(maxlen=max_size)
         self._db = None
         self._table_name = "query_history"
         self._initialised = False
+        self._use_memory = use_memory
 
     def _ensure_init(self):
         """Lazily create the DuckDB table and load existing history."""
         if self._initialised:
             return
         self._initialised = True
+        if self._use_memory:
+            return
         try:
             from database.db_manager import DatabaseManager
             self._db = DatabaseManager()

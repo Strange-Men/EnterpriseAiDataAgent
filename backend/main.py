@@ -149,9 +149,14 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Observability middleware (must be added before CORS for proper timing)
 app.add_middleware(ObservabilityMiddleware)
 
+# CORS: read allowed origins from env var (comma-separated), default to "*" for local dev.
+# PRODUCTION: set CORS_ORIGINS=https://your-frontend.example.com to restrict access.
+_cors_origins_str = os.getenv("CORS_ORIGINS", "*")
+_cors_origins = [o.strip() for o in _cors_origins_str.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

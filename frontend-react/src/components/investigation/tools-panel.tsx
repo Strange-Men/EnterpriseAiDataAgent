@@ -3,7 +3,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
-import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { executeQuery } from "@/services/api";
