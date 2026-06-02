@@ -5,12 +5,15 @@ Endpoints:
 - GET  /api/analyze/{table_name}/profile — Get data profile only
 """
 
+import logging
 import time
 from fastapi import APIRouter, HTTPException
 from backend.services import data_service
 from backend.services.profiler import build_profile
 from backend.services.ai_analyst import generate_insights, suggest_charts
 from backend.utils.json_safe import normalize_for_response
+
+logger = logging.getLogger("enterprise_ai.analyze")
 
 router = APIRouter()
 
@@ -81,7 +84,8 @@ async def analyze_table(table_name: str, language: str = "zh"):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"analyze_table failed: {type(e).__name__}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Analysis failed")
 
 
 @router.get("/analyze/{table_name}/profile")
@@ -96,4 +100,5 @@ async def get_profile(table_name: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"get_profile failed: {type(e).__name__}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to get profile")

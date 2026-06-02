@@ -209,7 +209,8 @@ async def ai_anomalies_stream(req: AnomalyDetectRequest):
             ):
                 yield _sse_event(json.loads(event))
         except Exception as e:
-            yield _sse_event({"type": "error", "error": str(e)})
+            logger.error(f"anomaly stream failed: {type(e).__name__}: {e}", exc_info=True)
+            yield _sse_event({"type": "error", "error": "Anomaly detection failed"})
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={
         "Cache-Control": "no-cache",
@@ -234,7 +235,8 @@ async def ai_explain_stream(req: ExplainRequest):
                 yield _sse_event({"type": "text", "content": chunk})
             yield _sse_event({"type": "done"})
         except Exception as e:
-            yield _sse_event({"type": "error", "error": str(e)})
+            logger.error(f"explain stream failed: {type(e).__name__}: {e}", exc_info=True)
+            yield _sse_event({"type": "error", "error": "Explanation failed"})
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={
         "Cache-Control": "no-cache",
@@ -252,7 +254,8 @@ async def ai_insights_stream(req: InsightsRequest):
                 yield _sse_event({"type": "text", "content": chunk})
             yield _sse_event({"type": "done"})
         except Exception as e:
-            yield _sse_event({"type": "error", "error": str(e)})
+            logger.error(f"insights stream failed: {type(e).__name__}: {e}", exc_info=True)
+            yield _sse_event({"type": "error", "error": "Insights generation failed"})
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={
         "Cache-Control": "no-cache",
@@ -354,7 +357,8 @@ async def ai_analyze_multi_stream(req: MultiAnalyzeRequest):
             ):
                 yield _sse_event(event)
         except Exception as e:
-            yield _sse_event({"type": "error", "error": str(e)})
+            logger.error(f"multi-analysis stream failed: {type(e).__name__}: {e}", exc_info=True)
+            yield _sse_event({"type": "error", "error": "Multi-step analysis failed"})
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={
         "Cache-Control": "no-cache",

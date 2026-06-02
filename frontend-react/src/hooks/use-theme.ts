@@ -19,7 +19,17 @@ export const useThemeStore = create<ThemeState>()(
         set((s) => ({ theme: s.theme === "dark" ? "light" : "dark" })),
       setTheme: (theme) => set({ theme }),
     }),
-    { name: "workspace-theme", storage: createJSONStorage(() => localStorage) }
+    {
+      name: "workspace-theme",
+      storage: createJSONStorage(() => localStorage),
+      version: 1,
+      migrate: (persisted: unknown, _version: number) => {
+        if (!persisted || typeof persisted !== "object") return { theme: "dark" };
+        const p = persisted as Record<string, unknown>;
+        const validTheme = p.theme === "light" || p.theme === "dark";
+        return { theme: validTheme ? p.theme : "dark" };
+      },
+    }
   )
 );
 

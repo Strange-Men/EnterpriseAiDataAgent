@@ -287,6 +287,12 @@ export const useSqlEditorStore = create<SqlEditorState>()(
         activeTabId: state.activeTabId,
         activePanelTab: state.activePanelTab,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Clear stale execution state from previous session
+        if (state?.isExecuting) {
+          state.isExecuting = false;
+        }
+      },
     }
   )
 );
