@@ -10,7 +10,7 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v1.0.1 (Architecture split, AI quality gates, performance hardening)
+- **Current**: v1.0.2 (Audit remediation, security, runtime hardening)
 - **Phase**: v1.0.x Architecture & Product Hardening
 - **Next**: v1.0.x backend data access facade and contract hardening
 
@@ -123,13 +123,17 @@ uvicorn backend.main:app --reload --port 8000   # Dev server
 
 ## State Management
 
-6 Zustand stores (all in `frontend-react/src/stores/`):
-- `data-store.ts` — global data state (tables, uploads, quality)
-- `workspace-store.ts` — layout, language, panel visibility (persisted)
-- `sql-workspace-store.ts` — current SQL, execution state, query result
+React Query owns server state. Zustand owns local workspace state (all in `frontend-react/src/stores/`):
+- `data-store.ts` — local table selection, uploads, and quality report cache
+- `workspace-store.ts` — layout, language, panel visibility, active page (persisted)
+- `sql-editor-store.ts` — current SQL, multi-tab editor, execution state, pagination
 - `sql-history-store.ts` — query history with search/filter (persisted)
-- `query-tabs-store.ts` — multi-tab query system (persisted)
 - `saved-queries-store.ts` — saved/favorite queries (persisted)
+- `analysis-store.ts` — AI analysis runs, key findings, streaming state
+- `investigation-store.ts` — investigation workspace and selected analysis context
+- `schedule-store.ts` — scheduled analysis task UI state (persisted)
+- `template-store.ts` — reusable analysis templates (persisted)
+- `onboarding-store.ts` — onboarding/tutorial progress (persisted)
 
 ## API Endpoints
 
@@ -144,9 +148,17 @@ Data API:
 - `/query/history` (GET) — query history
 - `/tables` (GET) — list tables
 - `/tables/{name}` (GET/DELETE) — table data / delete
+- `/tables/{name}/schema` (GET) — table schema
+- `/tables/{name}/data` (GET) — paginated table rows
+- `/tables/{name}/rename` (PUT) — rename table
+- `/tables/{name}/export` (GET) — export table
 - `/upload` (POST) — upload CSV/Excel
 - `/quality/{name}` (GET) — quality report
 - `/status` (GET) — system status
+- `/health` (GET) — basic health check
+- `/health/system` (GET) — full system diagnostics
+- `/analyze/{name}` (POST) — deterministic table analysis
+- `/analyze/{name}/profile` (GET) — table profile
 
 AI API:
 - `/ai/status` (GET) — AI service config & health
@@ -163,3 +175,12 @@ AI API:
 - `/ai/analyze-multi/stream` (POST) — streaming multi-step analysis (SSE)
 - `/ai/anomalies` (POST) — detect and interpret data anomalies
 - `/ai/anomalies/stream` (POST) — streaming anomaly detection (SSE)
+- `/ai/adapt-template` (POST) — adapt saved analysis template
+- `/ai/generate-report` (POST) — generate markdown analysis report
+- `/ai/compare` (POST) — compare analysis runs
+- `/ai/bundle/export` (POST) — export analysis bundle
+- `/ai/bundle/import` (POST) — import analysis bundle
+- `/ai/evaluate` (POST) — evaluate AI output quality
+- `/ai/schedule` (GET/POST) — list/create scheduled analysis tasks
+- `/ai/schedule/{task_id}` (PATCH/DELETE) — update/delete scheduled task
+- `/ai/schedule/{task_id}/results` (GET) — scheduled task results

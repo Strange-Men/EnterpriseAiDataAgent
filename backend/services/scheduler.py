@@ -7,6 +7,8 @@ import json
 import os
 import time
 import uuid
+import tempfile
+import threading
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 
@@ -77,6 +79,7 @@ class SchedulerManager:
     def __init__(self):
         self._tasks: dict[str, ScheduledTask] = {}
         self._results: list[ScheduleResult] = []
+        self._lock = threading.RLock()
         self.load()
 
     def add_task(self, name: str, question: str, table: str,
@@ -146,13 +149,23 @@ class SchedulerManager:
         return [r.to_dict() for r in self._results if r.task_id == task_id]
 
     def save(self):
-        os.makedirs(DATA_DIR, exist_ok=True)
-        data = {
-            "tasks": {tid: t.to_dict() for tid, t in self._tasks.items()},
-            "results": [r.to_dict() for r in self._results],
-        }
-        with open(TASKS_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        with self._lock:
+            os.makedirs(DATA_DIR, exist_ok=True)
+            data = {
+                "tasks": {tid: t.to_dict() for tid, t in self._tasks.items()},
+                "results": [r.to_dict() for r in self._results],
+            }
+            tmp_name = ""
+            try:
+                with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=DATA_DIR, delete=False) as f:
+                    tmp_name = f.name
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.replace(tmp_name, TASKS_FILE)
+            finally:
+                if tmp_name and os.path.exists(tmp_name):
+                    os.unlink(tmp_name)
 
     def load(self):
         if not os.path.exists(TASKS_FILE):

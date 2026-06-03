@@ -225,7 +225,7 @@ def get_table_schema(table_name: str) -> list[dict]:
 
 
 def get_quality_report(table_name: str) -> dict:
-    df = get_db().get_sample_data(table_name, limit=100000)
+    df = get_db().get_sample_data(table_name, limit=10000)
     report = analyze_dataframe(df)
 
     field_health = []

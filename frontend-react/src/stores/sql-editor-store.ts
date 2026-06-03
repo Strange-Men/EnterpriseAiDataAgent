@@ -201,8 +201,21 @@ export const useSqlEditorStore = create<SqlEditorState>()(
           if (resultSize > MAX_RESULT_SIZE) {
             console.warn(
               `[sql-editor-store] Query result size ${(resultSize / 1024 / 1024).toFixed(1)}MB exceeds 50MB. ` +
-              `Consider using server-side pagination (offset/limit) for large datasets.`
+              `Result rows were omitted from local state; use server-side pagination (offset/limit) for large datasets.`
             );
+            set({
+              queryResult: {
+                ...queryResult,
+                data: [],
+                rowCount: 0,
+                truncated: true,
+                error: queryResult.error ?? "Result data omitted because it exceeds the 50MB client storage limit.",
+              },
+              offset: queryResult.offset ?? 0,
+              totalRows: queryResult.totalRows ?? 0,
+              hasMore: queryResult.hasMore ?? false,
+            });
+            return;
           }
         }
         set({

@@ -3,6 +3,7 @@
 import time
 import threading
 import logging
+import uuid
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -28,7 +29,7 @@ class ExplainRequest(BaseModel):
 
 
 class CancelRequest(BaseModel):
-    query_id: int
+    query_id: str
 
 
 class ExportRequest(BaseModel):
@@ -37,17 +38,48 @@ class ExportRequest(BaseModel):
     limit: int = 50000
 
 
+class QueryResponse(BaseModel):
+    queryId: str
+    sql: str
+    columns: list[str]
+    data: list[dict]
+    rowCount: int
+    totalRows: int
+    offset: int
+    hasMore: bool
+    runtimeMs: int
+    status: str
+    error: str | None = None
+
+
+class QueryHistoryItem(BaseModel):
+    id: str
+    sql: str
+    status: str
+    runtimeMs: int
+    rowCount: int
+    error: str | None = None
+    timestamp: str
+
+
+class ExplainResponse(BaseModel):
+    sql: str
+    plan: list
+    status: str
+    error: str | None = None
+
+
 # Track running queries for cancellation using threading.Event
-_active_queries: dict[int, threading.Event] = {}
+_active_queries: dict[str, threading.Event] = {}
 
 
-@router.post("/query")
+@router.post("/query", response_model=QueryResponse)
 async def execute_query(req: QueryRequest):
     sql = req.sql.strip()
     if not sql:
         raise HTTPException(status_code=400, detail="Empty SQL query")
 
-    query_id = int(time.time() * 1000)
+    query_id = str(uuid.uuid4())
     cancel_event = threading.Event()
     _active_queries[query_id] = cancel_event
 
@@ -116,12 +148,12 @@ async def execute_query(req: QueryRequest):
         _active_queries.pop(query_id, None)
 
 
-@router.get("/query/history")
+@router.get("/query/history", response_model=list[QueryHistoryItem])
 async def get_history(limit: int = 50):
     return normalize_for_response(query_history.get_all(limit))
 
 
-@router.post("/query/explain")
+@router.post("/query/explain", response_model=ExplainResponse)
 async def explain_query(req: ExplainRequest):
     sql = req.sql.strip()
     if not sql:

@@ -52,6 +52,14 @@ class TestUploadRoute:
         res = client.post("/api/upload")
         assert res.status_code == 422
 
+    def test_upload_rejects_oversized_file(self, client, monkeypatch):
+        from backend.routes import upload as upload_route
+
+        monkeypatch.setattr(upload_route, "MAX_UPLOAD_BYTES", 8)
+        files = {"file": ("too_large.csv", io.BytesIO(b"id,name\n1,Alice\n"), "text/csv")}
+        res = client.post("/api/upload", files=files)
+        assert res.status_code == 413
+
 
 class TestQualityRoute:
     def test_quality_nonexistent_table(self, client):

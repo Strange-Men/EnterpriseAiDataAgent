@@ -22,10 +22,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from backend.config import API_VERSION
+from backend.config import (
+    API_KEY,
+    API_VERSION,
+    RATE_LIMIT_ENABLED,
+    RATE_LIMIT_REQUESTS,
+    RATE_LIMIT_WINDOW_SECONDS,
+)
 from backend.routes import upload, tables, quality, query, ai, analyze
 from backend.services.data_service import check_db_connection, get_uptime, get_db, get_system_health
+from backend.middleware.auth import APIKeyAuthMiddleware
 from backend.middleware.observability import ObservabilityMiddleware
+from backend.middleware.rate_limit import RateLimitMiddleware
 
 # Configure root logger for full traceback visibility
 logging.basicConfig(
@@ -148,16 +156,24 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Observability middleware (must be added before CORS for proper timing)
 app.add_middleware(ObservabilityMiddleware)
+app.add_middleware(APIKeyAuthMiddleware, api_key=API_KEY)
+app.add_middleware(
+    RateLimitMiddleware,
+    enabled=RATE_LIMIT_ENABLED,
+    max_requests=RATE_LIMIT_REQUESTS,
+    window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+)
 
-# CORS: read allowed origins from env var (comma-separated), default to "*" for local dev.
-# PRODUCTION: set CORS_ORIGINS=https://your-frontend.example.com to restrict access.
-_cors_origins_str = os.getenv("CORS_ORIGINS", "*")
+# CORS: read allowed origins from env var (comma-separated).
+# Use explicit localhost origins by default because credentials and "*" are not a valid production-grade pair.
+_cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
 _cors_origins = [o.strip() for o in _cors_origins_str.split(",") if o.strip()]
+_allow_credentials = "*" not in _cors_origins
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
-    allow_credentials=True,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

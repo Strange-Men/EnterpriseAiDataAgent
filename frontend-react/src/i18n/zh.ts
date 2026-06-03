@@ -301,6 +301,7 @@ const zh = {
     "perf.actual": "实际值",
     "perf.status": "状态",
     "perf.pass": "通过",
+    "perf.warn": "警告",
     "perf.fail": "失败",
     "perf.run-benchmarks": "运行基准测试",
     "perf.running": "运行中...",
@@ -382,6 +383,7 @@ const zh = {
     "schedule.add": "添加定时任务",
     "schedule.name": "名称",
     "schedule.question": "问题",
+    "schedule.table": "表名",
     "schedule.interval": "频率",
     "schedule.hourly": "每小时",
     "schedule.daily": "每天",
@@ -389,6 +391,7 @@ const zh = {
     "schedule.enabled": "已启用",
     "schedule.disabled": "已禁用",
     "schedule.no-tasks": "暂无定时任务。",
+    "schedule.running": "保存中...",
     "schedule.last-run": "上次执行",
     "schedule.next-run": "下次执行",
 

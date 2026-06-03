@@ -21,10 +21,13 @@ export function ModeSelector({ value, onChange }: ModeSelectorProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="Analysis mode">
       {MODES.map(({ mode, key }) => (
         <button
           key={mode}
+          type="button"
+          role="radio"
+          aria-checked={value === mode}
           onClick={() => onChange(mode)}
           className={`px-2 py-1 text-[10px] rounded-md border transition-colors ${
             value === mode

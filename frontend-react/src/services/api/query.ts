@@ -1,7 +1,7 @@
 import { API_BASE, apiFetch } from "@/services/api/http-client";
 
 export interface QueryResult {
-  queryId: number;
+  queryId: string;
   sql: string;
   columns: string[];
   data: Record<string, unknown>[];
@@ -16,7 +16,7 @@ export interface QueryResult {
 }
 
 export interface QueryHistoryItem {
-  id: number;
+  id: string;
   sql: string;
   status: "success" | "error";
   runtimeMs: number;
@@ -63,7 +63,7 @@ export async function explainQuery(sql: string): Promise<ExplainResult> {
   });
 }
 
-export async function cancelQuery(queryId: number): Promise<{ cancelled: boolean; queryId: number }> {
+export async function cancelQuery(queryId: string): Promise<{ cancelled: boolean; queryId: string }> {
   return apiFetch("/query/cancel", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -49,7 +49,7 @@ EnterpriseAiDataAgent is an enterprise-grade AI data analysis platform with inte
 - **Shell Pages**: Next.js App Router shell layout with sidebar navigation
 - **Docker**: Containerized deployment (backend + frontend + docker-compose)
 - **Design System V2**: Tailwind CSS variables, Card/Button/EmptyState primitives
-- **State Refactor**: 6 Zustand stores with persist, merge resilience, SSR safety
+- **State Refactor**: Zustand workspace stores with persist, merge resilience, SSR safety
 - **Demo Seed Data**: Idempotent seed script for 50K-row demo dataset
 
 ### Security & Stability (v0.9.x)
@@ -117,6 +117,9 @@ Key environment variables:
 - `ANTHROPIC_BASE_URL` — API endpoint (default: `https://api.anthropic.com`)
 - `DEFAULT_LLM_MODEL` — Model to use (default: `claude-sonnet-4-5-20250929`)
 - `DUCKDB_PATH` — Database file path (default: `data/enterprise.duckdb`)
+- `API_KEY` — Backend API bearer token. Leave empty for local development; set in deployed environments.
+- `MAX_UPLOAD_BYTES` — Maximum upload size in bytes (default: `52428800`, 50MB)
+- `RATE_LIMIT_ENABLED` / `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS` — In-process API rate limiting controls
 - `APP_DEBUG` — Debug mode (default: `true`)
 - `LOG_LEVEL` — Logging level (default: `INFO`)
 
@@ -203,8 +206,14 @@ Data persists in `./data` volume. To seed demo data, set `SEED_DEMO_DATA=true` i
 | GET | `/api/query/history` | Query history |
 | GET | `/api/tables` | List all tables |
 | GET | `/api/tables/{name}` | Table data preview |
+| GET | `/api/tables/{name}/schema` | Table schema |
+| GET | `/api/tables/{name}/data` | Paginated table rows |
+| PUT | `/api/tables/{name}/rename` | Rename table |
+| GET | `/api/tables/{name}/export` | Export table |
 | DELETE | `/api/tables/{name}` | Delete table |
 | GET | `/api/quality/{name}` | Data quality report |
+| POST | `/api/analyze/{name}` | Deterministic table analysis |
+| GET | `/api/analyze/{name}/profile` | Table profile |
 
 ### AI API
 
@@ -224,7 +233,15 @@ Data persists in `./data` volume. To seed demo data, set `SEED_DEMO_DATA=true` i
 | POST | `/api/ai/analyze-multi/stream` | Streaming multi-step analysis (SSE) |
 | POST | `/api/ai/anomalies` | Detect and interpret anomalies |
 | POST | `/api/ai/anomalies/stream` | Streaming anomaly detection (SSE) |
+| POST | `/api/ai/adapt-template` | Adapt saved analysis template |
+| POST | `/api/ai/generate-report` | Generate markdown analysis report |
+| POST | `/api/ai/compare` | Compare analysis runs |
+| POST | `/api/ai/bundle/export` | Export analysis bundle |
+| POST | `/api/ai/bundle/import` | Import analysis bundle |
 | POST | `/api/ai/evaluate` | Self-evaluate analysis quality |
+| GET/POST | `/api/ai/schedule` | List/create scheduled analysis tasks |
+| PATCH/DELETE | `/api/ai/schedule/{task_id}` | Update/delete scheduled task |
+| GET | `/api/ai/schedule/{task_id}/results` | Scheduled task results |
 
 ## Architecture
 
@@ -286,7 +303,9 @@ EnterpriseAiDataAgent/
 | v0.7.x | AI Analyst Intelligence Layer (Anomaly Detection, Quality Gates, Stability) | Done |
 | v0.8.x | Product Readiness (Shell Pages, Docker, Design System V2, State Refactor) | Done |
 | v0.9.x | Security & Stability (Git Cleanup, React Fix, Docs Restructure, Onboarding) | Done |
-| v1.0.0 | Architecture Foundation (server-state cache, parser hardening, product baseline) | Current |
+| v1.0.0 | Architecture Foundation (server-state cache, parser hardening, product baseline) | Done |
+| v1.0.1 | Architecture split, AI quality gates, performance hardening | Done |
+| v1.0.2 | Audit remediation, security, runtime hardening | Current |
 
 ## License
 

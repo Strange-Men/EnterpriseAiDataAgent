@@ -1,16 +1,12 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  aiEvaluate,
-  type MultiStepResult,
-  type EvaluationResult,
-} from "@/services/api";
+import { aiEvaluate } from "@/services/api";
 import { useInvestigationStore } from "@/stores/investigation-store";
-import { useAnalysisStore, type AnalysisSection, type AnalysisMode, type TraceSnapshot } from "@/stores/analysis-store";
+import { useAnalysisStore, type AnalysisMode, type TraceSnapshot } from "@/stores/analysis-store";
 import { AiChart } from "@/components/ui/ai-chart";
-import type { ChartSpec, AnomalyResult } from "@/types";
+import type { AnomalyResult } from "@/types";
 import { AnalysisHeader } from "@/components/ai/analysis-header";
 import { AnalysisSectionView } from "@/components/ai/analysis-section";
 import { StepResults } from "@/components/ai/step-results";
@@ -28,6 +24,7 @@ import {
   runFullAnalysisMode,
   runInsightsMode,
 } from "@/panels/ai-analysis-modes";
+import { useAiAnalysisPanelState } from "@/hooks/use-ai-analysis-panel-state";
 // Re-export for consumers
 export type { AnalysisSection, AnalysisMode } from "@/stores/analysis-store";
 
@@ -49,33 +46,28 @@ export function AIAnalysisPanel({
 }: AIAnalysisPanelProps) {
   const { t, i18n } = useTranslation();
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sections, setSections] = useState<AnalysisSection[]>([]);
-  const [rawData, setRawData] = useState<unknown>(null);
-  const [hasRun, setHasRun] = useState(false);
-  const [streamingContent, setStreamingContent] = useState<string | null>(null);
-  const [streamingError, setStreamingError] = useState<string | null>(null);
-  const [chartSpecs, setChartSpecs] = useState<ChartSpec[]>([]);
-  const [suggestedQuestions, setSuggestedQuestions] = useState<{ question: string; reason: string }[]>([]);
-  const [multiResult, setMultiResult] = useState<MultiStepResult | null>(null);
-  const [trace, setTrace] = useState<TraceSnapshot | null>(null);
-  const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
-  const [drillDownFindings, setDrillDownFindings] = useState<{ text: string; severity: string; index: number }[]>([]);
-  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
-
-  // Progress tracking for autonomous analysis
-  const [progressInfo, setProgressInfo] = useState<{
-    totalSteps: number;
-    currentStep: number;
-    startTime: number;
-    stepSummaries: { step: number; purpose: string; rowCount?: number; elapsedMs?: number; status: "success" | "error" }[];
-  } | null>(null);
+  const {
+    isLoading, setIsLoading,
+    error, setError,
+    sections, setSections,
+    rawData, setRawData,
+    hasRun, setHasRun,
+    streamingContent, setStreamingContent,
+    streamingError, setStreamingError,
+    chartSpecs, setChartSpecs,
+    suggestedQuestions, setSuggestedQuestions,
+    multiResult, setMultiResult,
+    trace, setTrace,
+    followUpQuestion, setFollowUpQuestion,
+    drillDownFindings, setDrillDownFindings,
+    evaluation, setEvaluation,
+    progressInfo, setProgressInfo,
+    elapsedSeconds, setElapsedSeconds,
+  } = useAiAnalysisPanelState();
 
   const streamAbortRef = useRef<AbortController | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   // Abort streaming on unmount — read refs inside cleanup to capture current values
   useEffect(() => {
@@ -188,14 +180,20 @@ export function AIAnalysisPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [mode, sql, question, results, tableName, t, i18n.language, streamingContent, onComplete]);
+  }, [
+    mode, sql, question, results, tableName, t, i18n.language, streamingContent, onComplete,
+    setChartSpecs, setDrillDownFindings, setElapsedSeconds, setError, setEvaluation,
+    setFollowUpQuestion, setHasRun, setIsLoading, setMultiResult, setProgressInfo,
+    setRawData, setSections, setStreamingContent, setStreamingError, setSuggestedQuestions,
+    setTrace,
+  ]);
 
   // ── Retry streaming (preserves partial content) ───────────
   const retryStreaming = useCallback(() => {
     setStreamingError(null);
     setStreamingContent(null);
     runAnalysis();
-  }, [runAnalysis]);
+  }, [runAnalysis, setStreamingContent, setStreamingError]);
 
   // ── Render ────────────────────────────────────────────────
   return (

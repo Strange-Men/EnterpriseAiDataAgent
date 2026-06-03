@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { ClientProviders } from "@/components/client-providers";
 import { useTranslation } from "react-i18next";
 import Link from "next/link";
 
@@ -25,7 +24,7 @@ function MetricCard({
 
   const statusLabel = {
     pass: t("perf.pass"),
-    warn: "Warning",
+    warn: t("perf.warn"),
     fail: t("perf.fail"),
     idle: "—",
   }[status];
@@ -334,9 +333,5 @@ function PerformanceContent() {
 }
 
 export default function PerformancePage() {
-  return (
-    <ClientProviders>
-      <PerformanceContent />
-    </ClientProviders>
-  );
+  return <PerformanceContent />;
 }

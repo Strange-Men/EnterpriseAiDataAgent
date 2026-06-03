@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useScheduleStore, type ScheduledTask } from "@/stores/schedule-store";
 
-function ScheduleForm({ onSubmit }: { onSubmit: (data: { name: string; question: string; table: string; interval: string }) => void }) {
+function ScheduleForm({ onSubmit, isLoading }: {
+  onSubmit: (data: { name: string; question: string; table: string; interval: string }) => void;
+  isLoading: boolean;
+}) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [question, setQuestion] = useState("");
@@ -12,7 +15,7 @@ function ScheduleForm({ onSubmit }: { onSubmit: (data: { name: string; question:
   const [interval, setInterval] = useState("daily");
 
   const handleSubmit = () => {
-    if (!name.trim() || !question.trim()) return;
+    if (!name.trim() || !question.trim() || !table.trim()) return;
     onSubmit({ name: name.trim(), question: question.trim(), table: table.trim(), interval });
     setName("");
     setQuestion("");
@@ -35,7 +38,7 @@ function ScheduleForm({ onSubmit }: { onSubmit: (data: { name: string; question:
       />
       <input
         className="w-full px-2 py-1 text-xs bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
-        placeholder={t("schedule.table") || "Table (optional)"}
+        placeholder={t("schedule.table")}
         value={table}
         onChange={(e) => setTable(e.target.value)}
       />
@@ -50,10 +53,10 @@ function ScheduleForm({ onSubmit }: { onSubmit: (data: { name: string; question:
       </select>
       <button
         onClick={handleSubmit}
-        disabled={!name.trim() || !question.trim()}
+        disabled={isLoading || !name.trim() || !question.trim() || !table.trim()}
         className="w-full px-3 py-1.5 text-xs rounded bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 disabled:opacity-30 transition-colors"
       >
-        {t("schedule.add")}
+        {isLoading ? t("schedule.running") : t("schedule.add")}
       </button>
     </div>
   );
@@ -70,6 +73,9 @@ function ScheduleItem({ task, onToggle, onRemove }: {
     <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--bg-primary)] border border-[var(--border-default)]">
       <button
         onClick={onToggle}
+        type="button"
+        aria-pressed={task.enabled}
+        aria-label={task.enabled ? t("schedule.enabled") : t("schedule.disabled")}
         className={`w-2 h-2 rounded-full shrink-0 ${task.enabled ? "bg-green-500" : "bg-[var(--bg-tertiary)]"}`}
         title={task.enabled ? t("schedule.enabled") : t("schedule.disabled")}
       />
@@ -87,6 +93,8 @@ function ScheduleItem({ task, onToggle, onRemove }: {
       </div>
       <button
         onClick={onRemove}
+        type="button"
+        aria-label="Remove scheduled task"
         className="text-[10px] text-[var(--text-muted)] hover:text-red-400 transition-colors shrink-0"
       >
         ✕
@@ -97,11 +105,15 @@ function ScheduleItem({ task, onToggle, onRemove }: {
 
 export function SchedulePanel() {
   const { t } = useTranslation();
-  const { tasks, addTask, removeTask, toggleTask } = useScheduleStore();
+  const { tasks, isLoading, error, addTask, removeTask, toggleTask, refreshTasks } = useScheduleStore();
   const [showForm, setShowForm] = useState(false);
 
-  const handleAdd = (data: { name: string; question: string; table: string; interval: string }) => {
-    addTask({
+  useEffect(() => {
+    refreshTasks();
+  }, [refreshTasks]);
+
+  const handleAdd = async (data: { name: string; question: string; table: string; interval: string }) => {
+    await addTask({
       name: data.name,
       question: data.question,
       table: data.table,
@@ -118,7 +130,9 @@ export function SchedulePanel() {
           {t("schedule.title")}
         </p>
         <button
+          type="button"
           onClick={() => setShowForm(!showForm)}
+          aria-expanded={showForm}
           className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
             showForm ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--accent)]"
           }`}
@@ -127,7 +141,11 @@ export function SchedulePanel() {
         </button>
       </div>
 
-      {showForm && <ScheduleForm onSubmit={handleAdd} />}
+      {showForm && <ScheduleForm onSubmit={(data) => void handleAdd(data)} isLoading={isLoading} />}
+
+      {error && (
+        <p className="text-[10px] text-red-400">{error}</p>
+      )}
 
       {tasks.length === 0 && !showForm ? (
         <p className="text-xs text-[var(--text-muted)] text-center py-2">{t("schedule.no-tasks")}</p>
@@ -137,8 +155,8 @@ export function SchedulePanel() {
             <ScheduleItem
               key={task.id}
               task={task}
-              onToggle={() => toggleTask(task.id)}
-              onRemove={() => removeTask(task.id)}
+              onToggle={() => void toggleTask(task.id)}
+              onRemove={() => void removeTask(task.id)}
             />
           ))}
         </div>

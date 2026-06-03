@@ -10,6 +10,7 @@ Endpoints:
 
 import asyncio
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -37,6 +38,7 @@ from backend.services.guardrails import AnalysisGuardrails
 from backend.utils.json_safe import json_safe_encoder, normalize_for_response
 
 router = APIRouter()
+AI_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ai-route")
 
 
 def _parse_guardrails(config: dict | None) -> AnalysisGuardrails | None:
@@ -124,8 +126,8 @@ async def ai_query(req: AIQueryRequest):
     ctx = req.follow_up_context.model_dump() if req.follow_up_context else None
     try:
         return await asyncio.wait_for(
-            asyncio.get_event_loop().run_in_executor(
-                None, lambda: run_ai_query(req.question, req.execute, req.explain, req.max_rows, ctx, req.language)
+            asyncio.get_running_loop().run_in_executor(
+                AI_EXECUTOR, lambda: run_ai_query(req.question, req.execute, req.explain, req.max_rows, ctx, req.language)
             ),
             timeout=60.0,
         )
@@ -138,8 +140,8 @@ async def ai_explain(req: ExplainRequest):
     """Explain existing query results."""
     try:
         result = await asyncio.wait_for(
-            asyncio.get_event_loop().run_in_executor(
-                None, lambda: explain_results(req.question, req.sql, req.results, req.conversation_history, req.language)
+            asyncio.get_running_loop().run_in_executor(
+                AI_EXECUTOR, lambda: explain_results(req.question, req.sql, req.results, req.conversation_history, req.language)
             ),
             timeout=60.0,
         )
@@ -155,8 +157,8 @@ async def ai_insights(req: InsightsRequest):
     """Generate structured insights from results."""
     try:
         result = await asyncio.wait_for(
-            asyncio.get_event_loop().run_in_executor(
-                None, lambda: generate_insights(req.question, req.results, req.language, prior_context=req.prior_context)
+            asyncio.get_running_loop().run_in_executor(
+                AI_EXECUTOR, lambda: generate_insights(req.question, req.results, req.language, prior_context=req.prior_context)
             ),
             timeout=60.0,
         )
@@ -331,8 +333,8 @@ async def ai_analyze_multi(req: MultiAnalyzeRequest):
     gr = _parse_guardrails(req.guardrails)
     try:
         result = await asyncio.wait_for(
-            asyncio.get_event_loop().run_in_executor(
-                None, lambda: run_autonomous_analysis(
+            asyncio.get_running_loop().run_in_executor(
+                AI_EXECUTOR, lambda: run_autonomous_analysis(
                     req.question, req.table, req.columns, req.sample_rows,
                     req.language, req.max_rows, gr, prior_findings=req.prior_findings,
                 )

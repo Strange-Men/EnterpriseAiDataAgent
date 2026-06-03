@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { fetchQueryHistory } from "@/services/api";
 
 export interface SqlHistoryEntry {
-  id: number;
+  id: string;
   sql: string;
   status: "success" | "error";
   runtimeMs: number;
@@ -20,7 +20,7 @@ interface SqlHistoryState {
 
   setHistory: (history: SqlHistoryEntry[]) => void;
   addEntry: (entry: SqlHistoryEntry) => void;
-  removeEntry: (id: number) => void;
+  removeEntry: (id: string) => void;
   clearHistory: () => void;
   setSearchQuery: (query: string) => void;
   setFilterStatus: (status: "all" | "success" | "error") => void;

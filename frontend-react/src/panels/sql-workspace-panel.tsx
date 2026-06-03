@@ -20,6 +20,7 @@ import { QueryTabsBar } from "@/components/sql-workspace/query-tabs-bar";
 import { QueryStatsBar } from "@/components/sql-workspace/query-stats-bar";
 import { WorkflowBanner } from "@/components/sql-workspace/workflow-banner";
 import { logger } from "@/services/logger";
+import { generateId } from "@/utils/id";
 import toast from "react-hot-toast";
 import { format } from "sql-formatter";
 
@@ -59,7 +60,7 @@ export function SqlWorkspacePanel() {
   }, [fetchHistory]);
 
   // Query state — use ref (not useState) so handleCancel always reads current value
-  const queryIdRef = useRef<number | null>(null);
+  const queryIdRef = useRef<string | null>(null);
 
   // Explain state
   const [explainResult, setExplainResult] = useState<ExplainResult | null>(null);
@@ -162,7 +163,7 @@ export function SqlWorkspacePanel() {
       queryIdRef.current = result.queryId;
       setQueryResult(result);
       addEntry({
-        id: Date.now(),
+        id: generateId(),
         sql,
         status: result.status,
         runtimeMs: result.runtimeMs,
@@ -187,7 +188,7 @@ export function SqlWorkspacePanel() {
       const msg = err instanceof Error ? err.message : "Query failed";
       const ms = Date.now() - startTimeRef.current;
       setQueryResult({
-        queryId: 0,
+        queryId: "",
         sql,
         columns: [],
         data: [],
@@ -197,7 +198,7 @@ export function SqlWorkspacePanel() {
         error: msg,
       });
       addEntry({
-        id: Date.now(),
+        id: generateId(),
         sql,
         status: "error",
         runtimeMs: ms,

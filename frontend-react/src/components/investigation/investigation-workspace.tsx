@@ -26,8 +26,6 @@ export function InvestigationWorkspace() {
   const addRun = useAnalysisStore((s) => s.addRun);
   const updateRun = useAnalysisStore((s) => s.updateRun);
   const activeRunId = useAnalysisStore((s) => s.activeRunId);
-  // Subscribe to specific fields to avoid unnecessary re-renders
-  const keyFindings = useInvestigationStore((s) => s.keyFindings);
   const [isLoading, setIsLoading] = useState(false);
   const [streamStage, setStreamStage] = useState("");
   const [streamStep, setStreamStep] = useState<number | undefined>();
@@ -93,6 +91,7 @@ export function InvestigationWorkspace() {
     let accumulatedSummary = "";
     let accumulatedTrace: Record<string, unknown> | undefined;
 
+    const latestKeyFindings = useInvestigationStore.getState().keyFindings;
     const abort = streamAiAnalyzeMulti(
       question,
       table,
@@ -197,11 +196,11 @@ export function InvestigationWorkspace() {
       },
       i18n.language,
       500,
-      keyFindings.length > 0 ? keyFindings.slice(0, 5) : undefined
+      latestKeyFindings.length > 0 ? latestKeyFindings.slice(0, 5) : undefined
     );
 
     abortRef.current = abort;
-  }, [addRun, updateRun, keyFindings, i18n.language, t]);
+  }, [addRun, updateRun, i18n.language, t]);
 
   const handleTableSelect = useCallback((table: string) => {
     useInvestigationStore.getState().advance("profiling", { table });

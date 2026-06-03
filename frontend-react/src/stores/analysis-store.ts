@@ -443,12 +443,13 @@ export const useAnalysisStore = create<AnalysisState>()(
         });
 
         // Size guard: drop oldest runs if over limit
-        const jsonSize = JSON.stringify({ ...state, runs }).length;
+        let jsonSize = JSON.stringify({ ...state, runs }).length;
         if (jsonSize > MAX_STORAGE_BYTES) {
           console.warn(`[analysis-store] Persisted size ${(jsonSize / 1024 / 1024).toFixed(1)}MB exceeds 4MB limit, trimming oldest runs`);
           // Drop oldest runs first, regardless of saved status
-          while (runs.length > 5 && JSON.stringify({ ...state, runs }).length > MAX_STORAGE_BYTES) {
-            runs.shift(); // drop oldest
+          while (runs.length > 5 && jsonSize > MAX_STORAGE_BYTES) {
+            const removed = runs.shift();
+            jsonSize -= removed ? JSON.stringify(removed).length : 0;
           }
         }
         return { ...state, runs };

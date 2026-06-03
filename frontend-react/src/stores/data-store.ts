@@ -80,7 +80,7 @@ export const useDataStore = create<DataState>((set, get) => ({
       const sorted = [...tableRuns].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
       lastAnalyzedAt = sorted[0].timestamp;
     }
-    const qualityScore = get().qualityReport?.overallScore ?? null;
+    const qualityScore = get().qualityReports[table]?.overallScore ?? null;
     return { table, uploadTime: null, analysisCount, lastAnalyzedAt, qualityScore };
   },
 }));

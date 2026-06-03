@@ -3,7 +3,7 @@ import { useSqlHistoryStore } from "../sql-history-store";
 
 describe("sql-history-store", () => {
   const makeEntry = (id: number, sql: string, status: "success" | "error" = "success") => ({
-    id,
+    id: String(id),
     sql,
     status,
     runtimeMs: 10,
@@ -47,9 +47,9 @@ describe("sql-history-store", () => {
     const { addEntry, removeEntry } = useSqlHistoryStore.getState();
     addEntry(makeEntry(1, "SELECT 1"));
     addEntry(makeEntry(2, "SELECT 2"));
-    removeEntry(2);
+    removeEntry("2");
     expect(useSqlHistoryStore.getState().history).toHaveLength(1);
-    expect(useSqlHistoryStore.getState().history[0].id).toBe(1);
+    expect(useSqlHistoryStore.getState().history[0].id).toBe("1");
   });
 
   it("should clear history", () => {

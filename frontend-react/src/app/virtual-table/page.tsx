@@ -12,18 +12,18 @@ const VirtualDataTable = dynamic(
 export default function VirtualTablePage() {
   return (
     <ErrorBoundary>
-      <div className="h-screen flex flex-col bg-[#0E1117]">
+      <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
         {/* Header */}
-        <header className="shrink-0 px-6 py-3 bg-zinc-900 border-b border-zinc-700 flex items-center gap-4">
-          <h1 className="text-lg font-bold text-zinc-100">
+        <header className="shrink-0 px-6 py-3 bg-[var(--bg-secondary)] border-b border-[var(--border-default)] flex items-center gap-4">
+          <h1 className="text-lg font-bold text-[var(--text-primary)]">
             Virtual Table Performance Demo
           </h1>
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-[var(--text-muted)]">
             TanStack Table + TanStack Virtual — 50K rows
           </span>
           <Link
             href="/"
-            className="ml-auto text-xs text-blue-400 hover:text-blue-300"
+            className="ml-auto text-xs text-[var(--accent)] hover:opacity-80"
           >
             ← Back to Workspace
           </Link>

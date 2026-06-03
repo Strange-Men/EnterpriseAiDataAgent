@@ -1,6 +1,6 @@
 # Documentation Index — Enterprise AI Data Agent
 
-> Last updated: 2026-06-01 (v0.9.2)
+> Last updated: 2026-06-03 (v1.0.2)
 
 ## Recommended Reading Order (for new sessions)
 
@@ -92,6 +92,8 @@ Version deliverable reports. Named: `v{version}-{type}.md`
 | [PROJECT_MATURITY_REPORT.md](reports/PROJECT_MATURITY_REPORT.md) | Project maturity assessment |
 | [NEXT_90_DAYS_PLAN.md](reports/NEXT_90_DAYS_PLAN.md) | 90-day execution plan |
 | [ROOT_CAUSE_ANALYSIS.md](reports/ROOT_CAUSE_ANALYSIS.md) | Root cause analysis |
+| [v1.0.0-architecture-optimization-plan.md](reports/v1.0.0-architecture-optimization-plan.md) | v1.0.0 architecture optimization blueprint |
+| [v1.0.1-release-notes.md](reports/v1.0.1-release-notes.md) | v1.0.1 release notes |
 
 ### v0.8.x Reports (`docs/reports/v0.8/`)
 

@@ -301,6 +301,7 @@ const en = {
     "perf.actual": "Actual",
     "perf.status": "Status",
     "perf.pass": "Pass",
+    "perf.warn": "Warning",
     "perf.fail": "Fail",
     "perf.run-benchmarks": "Run Benchmarks",
     "perf.running": "Running...",
@@ -382,6 +383,7 @@ const en = {
     "schedule.add": "Add Schedule",
     "schedule.name": "Name",
     "schedule.question": "Question",
+    "schedule.table": "Table",
     "schedule.interval": "Interval",
     "schedule.hourly": "Hourly",
     "schedule.daily": "Daily",
@@ -389,6 +391,7 @@ const en = {
     "schedule.enabled": "Enabled",
     "schedule.disabled": "Disabled",
     "schedule.no-tasks": "No scheduled tasks.",
+    "schedule.running": "Saving...",
     "schedule.last-run": "Last run",
     "schedule.next-run": "Next run",
 

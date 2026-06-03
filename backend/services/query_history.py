@@ -8,6 +8,7 @@ not at import time — safe under uvicorn --reload.
 """
 
 import time
+import uuid
 from collections import deque
 
 
@@ -52,7 +53,7 @@ class QueryHistory:
         conn = self._db.connect()
         conn.execute(f"""
             CREATE TABLE IF NOT EXISTS "{self._table_name}" (
-                id BIGINT PRIMARY KEY,
+                id VARCHAR PRIMARY KEY,
                 sql TEXT NOT NULL,
                 status VARCHAR(10) NOT NULL,
                 runtime_ms INTEGER NOT NULL,
@@ -61,6 +62,37 @@ class QueryHistory:
                 timestamp VARCHAR(25) NOT NULL
             );
         """)
+        self._migrate_id_to_varchar(conn)
+
+    def _migrate_id_to_varchar(self, conn):
+        """Migrate legacy BIGINT history IDs to UUID-compatible VARCHAR IDs."""
+        try:
+            info = conn.execute(f'PRAGMA table_info("{self._table_name}")').fetchall()
+            id_type = next((str(row[2]).upper() for row in info if row[1] == "id"), "")
+            if "VARCHAR" in id_type or "TEXT" in id_type:
+                return
+
+            tmp_table = f"{self._table_name}_{uuid.uuid4().hex[:8]}_new"
+            conn.execute(f"""
+                CREATE TABLE "{tmp_table}" (
+                    id VARCHAR PRIMARY KEY,
+                    sql TEXT NOT NULL,
+                    status VARCHAR(10) NOT NULL,
+                    runtime_ms INTEGER NOT NULL,
+                    row_count INTEGER DEFAULT 0,
+                    error TEXT,
+                    timestamp VARCHAR(25) NOT NULL
+                );
+            """)
+            conn.execute(f"""
+                INSERT INTO "{tmp_table}" (id, sql, status, runtime_ms, row_count, error, timestamp)
+                SELECT CAST(id AS VARCHAR), sql, status, runtime_ms, row_count, error, timestamp
+                FROM "{self._table_name}";
+            """)
+            conn.execute(f'DROP TABLE "{self._table_name}";')
+            conn.execute(f'ALTER TABLE "{tmp_table}" RENAME TO "{self._table_name}";')
+        except Exception:
+            pass
 
     def _load_from_db(self):
         """Load existing history from DuckDB into memory."""
@@ -92,7 +124,7 @@ class QueryHistory:
         self._ensure_init()
 
         entry = {
-            "id": int(time.time() * 1000),
+            "id": str(uuid.uuid4()),
             "sql": sql.strip(),
             "status": status,
             "runtimeMs": runtime_ms,

@@ -53,7 +53,7 @@ class TestQueryEndpoints:
         assert res.status_code == 400
 
     def test_cancel(self, client):
-        res = client.post("/api/query/cancel", json={"query_id": 999})
+        res = client.post("/api/query/cancel", json={"query_id": "not-running"})
         assert res.status_code == 200
         assert res.json()["cancelled"] is True
 

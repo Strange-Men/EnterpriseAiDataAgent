@@ -38,6 +38,7 @@ interface FetchState {
 const PAGE_SIZE = 200;
 const OVERSCAN = 15;
 const ROW_HEIGHT = 36;
+const ENABLE_RUNTIME_MONITORS = process.env.NODE_ENV !== "production";
 
 function fmtNum(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
@@ -45,13 +46,40 @@ function fmtNum(n: number): string {
   return String(n);
 }
 
+function parseCsvLine(line: string): string[] {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const next = line[i + 1];
+    if (char === "\"") {
+      if (inQuotes && next === "\"") {
+        current += "\"";
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      values.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  values.push(current);
+  return values;
+}
+
 // ─── FPS Monitor ─────────────────────────────────────────────────────
 function useFpsMonitor() {
-  const [fps, setFps] = useState(60);
+  const [fps, setFps] = useState(ENABLE_RUNTIME_MONITORS ? 60 : 0);
   const frames = useRef<number[]>([]);
   const rafId = useRef<number>(0);
 
   useEffect(() => {
+    if (!ENABLE_RUNTIME_MONITORS) return;
     let running = true;
     const tick = () => {
       if (!running) return;
@@ -79,6 +107,7 @@ function useDomCount(ref: React.RefObject<HTMLElement | null>) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
+    if (!ENABLE_RUNTIME_MONITORS) return;
     const id = setInterval(() => {
       if (ref.current) {
         setCount(ref.current.querySelectorAll("*").length);
@@ -238,10 +267,10 @@ export default function VirtualDataTable({
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
       const lines = text.trim().split("\n");
-      const headers = lines[0].split(",");
+      const headers = parseCsvLine(lines[0]).map((h) => h.trim());
       const data: SalesRow[] = [];
       for (let i = 1; i < lines.length; i++) {
-        const vals = lines[i].split(",");
+        const vals = parseCsvLine(lines[i]);
         const row: Partial<SalesRow> = {};
         headers.forEach((h, j) => {
           const v = vals[j]?.trim() ?? "";
@@ -365,28 +394,32 @@ export default function VirtualDataTable({
         <span className="text-zinc-200 font-mono">
           {fmtNum(fetchState.totalRows)}
         </span>
-        <span className="text-zinc-500">|</span>
-        <span className="text-zinc-400">DOM:</span>
-        <span
-          className={`font-mono ${
-            domCount < 500 ? "text-emerald-400" : "text-yellow-400"
-          }`}
-        >
-          {domCount}
-        </span>
-        <span className="text-zinc-500">|</span>
-        <span className="text-zinc-400">FPS:</span>
-        <span
-          className={`font-mono ${
-            fps >= 50
-              ? "text-emerald-400"
-              : fps >= 30
-              ? "text-yellow-400"
-              : "text-red-400"
-          }`}
-        >
-          {fps}
-        </span>
+        {ENABLE_RUNTIME_MONITORS && (
+          <>
+            <span className="text-zinc-500">|</span>
+            <span className="text-zinc-400">DOM:</span>
+            <span
+              className={`font-mono ${
+                domCount < 500 ? "text-emerald-400" : "text-yellow-400"
+              }`}
+            >
+              {domCount}
+            </span>
+            <span className="text-zinc-500">|</span>
+            <span className="text-zinc-400">FPS:</span>
+            <span
+              className={`font-mono ${
+                fps >= 50
+                  ? "text-emerald-400"
+                  : fps >= 30
+                  ? "text-yellow-400"
+                  : "text-red-400"
+              }`}
+            >
+              {fps}
+            </span>
+          </>
+        )}
         <span className="text-zinc-500">|</span>
         <span className="text-zinc-400">Virtual:</span>
         <span className="text-emerald-400 font-mono">
@@ -520,16 +553,18 @@ export default function VirtualDataTable({
         <span>
           Rows: {fmtNum(rows.length)} / {fmtNum(fetchState.totalRows)}
         </span>
-        <span>Rendered DOM nodes: {domCount}</span>
+        {ENABLE_RUNTIME_MONITORS && <span>Rendered DOM nodes: {domCount}</span>}
         <span>
           Virtual items: {virtualItems.length} / {fmtNum(rows.length)}
         </span>
         <span>Overscan: {OVERSCAN}</span>
         <span>Page size: {PAGE_SIZE}</span>
-        <span className="ml-auto">
-          Expected DOM: ~{OVERSCAN * 2 + Math.ceil(800 / ROW_HEIGHT)} rows ×
-          9 cols ≈ {((OVERSCAN * 2 + Math.ceil(800 / ROW_HEIGHT)) * 9)} nodes
-        </span>
+        {ENABLE_RUNTIME_MONITORS && (
+          <span className="ml-auto">
+            Expected DOM: ~{OVERSCAN * 2 + Math.ceil(800 / ROW_HEIGHT)} rows ×
+            9 cols ≈ {((OVERSCAN * 2 + Math.ceil(800 / ROW_HEIGHT)) * 9)} nodes
+          </span>
+        )}
       </div>
     </div>
   );

@@ -117,7 +117,7 @@ describe("api service", () => {
 
   describe("executeQuery", () => {
     it("should execute SQL query", async () => {
-      const result = { queryId: 1, sql: "SELECT 1", columns: ["val"], data: [{ val: 1 }], rowCount: 1, runtimeMs: 5, status: "success", error: null };
+      const result = { queryId: "query-1", sql: "SELECT 1", columns: ["val"], data: [{ val: 1 }], rowCount: 1, runtimeMs: 5, status: "success", error: null };
       mockFetch.mockResolvedValueOnce(mockJsonResponse(result));
 
       const res = await executeQuery("SELECT 1");
@@ -159,10 +159,10 @@ describe("api service", () => {
 
   describe("cancelQuery", () => {
     it("should send cancel request", async () => {
-      mockFetch.mockResolvedValueOnce(mockJsonResponse({ cancelled: true, queryId: 5 }));
-      const res = await cancelQuery(5);
+      mockFetch.mockResolvedValueOnce(mockJsonResponse({ cancelled: true, queryId: "query-5" }));
+      const res = await cancelQuery("query-5");
       expect(res.cancelled).toBe(true);
-      expect(res.queryId).toBe(5);
+      expect(res.queryId).toBe("query-5");
     });
   });
 

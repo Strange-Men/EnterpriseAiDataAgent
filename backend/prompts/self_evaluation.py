@@ -1,6 +1,7 @@
 """Self-Evaluation Prompt — AI 对分析结果做自我评估。"""
 
 from backend.prompts.contracts import PromptContract
+from backend.services.shared_utils import truncate as _truncate
 
 CONTRACT = PromptContract(
     name="self_evaluation",
@@ -59,9 +60,3 @@ def build_user_message(
     )
 
     return f"Analysis question: {question}\n\nSections:\n{sections_text}{trace_text}"
-
-
-def _truncate(text: str, max_len: int) -> str:
-    if len(text) <= max_len:
-        return text
-    return text[: max_len - 3] + "..."

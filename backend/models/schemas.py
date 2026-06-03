@@ -1,6 +1,6 @@
 """Pydantic response models for the API."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
@@ -15,7 +15,7 @@ class TableInfo(BaseModel):
     name: str
     rowCount: int
     columnCount: int
-    columns: list[ColumnMeta] = []
+    columns: list[ColumnMeta] = Field(default_factory=list)
 
 
 class UploadResult(BaseModel):

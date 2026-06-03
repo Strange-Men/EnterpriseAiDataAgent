@@ -8,7 +8,7 @@ from backend.services.ai_analyst import (
     generate_analysis_plan,
     _call_llm,
 )
-from backend.services.data_service import get_executor, list_tables
+from backend.services.data_service import get_readonly_executor, list_tables
 from backend.utils.json_safe import normalize_for_response
 from backend.prompts.summarizer import (
     CONTRACT as SUMMARIZER_CONTRACT,
@@ -275,7 +275,7 @@ def run_ai_query(
 
     # 3. Execute SQL (if requested)
     if execute:
-        exec_result = get_executor().execute(sql)
+        exec_result = get_readonly_executor().execute(sql)
         if exec_result["status"] == "error":
             response["execution_error"] = exec_result["error"]
             response["status"] = "sql_error"
@@ -301,7 +301,7 @@ def run_ai_query(
 
 def _execute_step_sql(sql: str, max_rows: int = 500) -> dict:
     """Execute a single step's SQL and return sanitized results."""
-    exec_result = get_executor().execute(sql)
+    exec_result = get_readonly_executor().execute(sql)
     if exec_result["status"] == "error":
         return {"columns": [], "data": [], "error": exec_result["error"], "status": "error"}
     data = normalize_for_response(exec_result["data"][:max_rows])

@@ -48,6 +48,27 @@ except ValueError:
 # ── App ──────────────────────────────────────────────────────────
 _version_path = Path(__file__).parent.joinpath("VERSION")
 API_VERSION: str = _version_path.read_text().strip() if _version_path.exists() else "unknown"
+API_KEY: str = os.getenv("API_KEY", "")
+
+try:
+    MAX_UPLOAD_BYTES: int = int(os.getenv("MAX_UPLOAD_BYTES", str(50 * 1024 * 1024)))
+except ValueError:
+    logger.warning("Invalid MAX_UPLOAD_BYTES value, using default 50MB")
+    MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+
+try:
+    RATE_LIMIT_REQUESTS: int = int(os.getenv("RATE_LIMIT_REQUESTS", "600"))
+except ValueError:
+    logger.warning("Invalid RATE_LIMIT_REQUESTS value, using default 600")
+    RATE_LIMIT_REQUESTS = 600
+
+try:
+    RATE_LIMIT_WINDOW_SECONDS: int = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
+except ValueError:
+    logger.warning("Invalid RATE_LIMIT_WINDOW_SECONDS value, using default 60")
+    RATE_LIMIT_WINDOW_SECONDS = 60
+
+RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() not in ("false", "0", "no")
 
 # Warn on missing API key (non-blocking for dev environments)
 if not ANTHROPIC_API_KEY:
