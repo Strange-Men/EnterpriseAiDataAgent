@@ -1,25 +1,24 @@
-/** Shared hook for loading database tables. Eliminates duplicated loadTables across panels. */
+/** Shared hook for cached database table metadata. */
 
 import { useCallback, useEffect } from "react";
 import { useDataStore } from "@/stores/data-store";
-import { fetchTables } from "@/services/api";
+import { useTablesQuery } from "@/hooks/use-server-state";
 
 export function useTables() {
   const { tables, setTables, setDbStatus } = useDataStore();
-
-  const loadTables = useCallback(async () => {
-    try {
-      const tbls = await fetchTables();
-      setTables(tbls);
-      setDbStatus("connected");
-    } catch {
-      setDbStatus("error");
-    }
-  }, [setTables, setDbStatus]);
+  const query = useTablesQuery();
+  const { refetch } = query;
+  const reload = useCallback(() => refetch(), [refetch]);
 
   useEffect(() => {
-    loadTables();
-  }, [loadTables]);
+    if (!query.data) return;
+    setTables(query.data);
+    setDbStatus("connected");
+  }, [query.data, setTables, setDbStatus]);
 
-  return { tables, reload: loadTables };
+  useEffect(() => {
+    if (query.isError) setDbStatus("error");
+  }, [query.isError, setDbStatus]);
+
+  return { tables: query.data ?? tables, reload };
 }

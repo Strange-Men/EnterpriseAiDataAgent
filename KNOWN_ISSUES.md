@@ -26,6 +26,12 @@ Track all open issues, bugs, and improvements here.
 | ISSUE-014 | Test isolation: QueryHistory shares DuckDB between tests | Low | Yes | Fixed | Claude | v0.9.5: Added `use_memory=True` parameter |
 | ISSUE-016 | ai-analysis-panel.tsx 575-line runAnalysis callback | Medium | Yes | Open | Claude | P2-5 deferred: split into per-mode handlers |
 | ISSUE-017 | Command Palette i18n (hardcoded English labels) | Low | Yes | Open | Claude | P2-2 deferred: add i18n keys for command labels |
+| ISSUE-018 | Version metadata drift across session docs, backend, package, and lockfile | High | Yes | Fixed | Codex | v1.0.0: synchronized VERSION, package metadata, README, AGENTS, CLAUDE, CURRENT_SESSION |
+| ISSUE-019 | React Query installed but server state still managed by manual effects/Zustand | Medium | Yes | In Progress | Codex | v1.0.0: status/tables/AI status migrated first; API feature hooks still pending |
+| ISSUE-020 | api.ts, SQL panel, AI panel have oversized controller files | High | Yes | Open | Codex | v1.0.x: split by feature slice and mode handlers |
+| ISSUE-021 | Local generated artifacts and backend/data DuckDB path violate filesystem rules | Medium | Yes | Open | Codex | Do not delete user data; add migration/cleanup workflow |
+| ISSUE-022 | AI analysis lacks unified result envelope for partial/fallback/quality-gate states | High | Yes | Open | Codex | v1.0.x: standardize AI response contract and UI rendering |
+| ISSUE-023 | `next lint` is deprecated and will be removed in Next.js 16 | Low | Yes | Open | Codex | Migrate lint script to ESLint CLI in v1.0.x |
 
 ## Closed Issues
 

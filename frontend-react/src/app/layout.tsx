@@ -3,7 +3,7 @@ import "@/styles/globals.css";
 
 export const metadata: Metadata = {
   title: "Enterprise AI Data Agent",
-  description: "Multi-Agent Data Analysis Platform",
+  description: "Enterprise SQL Workspace and AI Data Analyst Platform",
 };
 
 export default function RootLayout({

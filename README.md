@@ -60,6 +60,14 @@ EnterpriseAiDataAgent is an enterprise-grade AI data analysis platform with inte
 - **Documentation**: Restructured docs/, archived stale files, version unification
 - **Onboarding**: Game-style 5-step tutorial for new users
 
+### Architecture Foundation (v1.0.0)
+- **Version Baseline**: Backend, frontend package metadata, session docs, and roadmap aligned to v1.0.0
+- **Server-State Cache**: React Query now drives system status, table metadata, and AI status polling
+- **API Module Split**: Shared HTTP client plus status/table feature modules, with the legacy API entry kept compatible
+- **AI JSON Parser**: Shared LLM JSON parser with regression tests for markdown-wrapped and embedded JSON
+- **Product Positioning**: Metadata aligned to current SQL Workspace + AI Analyst capabilities
+- **Optimization Blueprint**: v1.0.0 architecture report added under `docs/reports/`
+
 ### Workspace
 - 3-panel resizable layout, dark/light theme, i18n (en/zh)
 
@@ -72,7 +80,7 @@ EnterpriseAiDataAgent is an enterprise-grade AI data analysis platform with inte
 | Backend API | FastAPI, Uvicorn |
 | Database | DuckDB |
 | Data Processing | Pandas, NumPy |
-| State Management | Zustand (6 stores, persist) |
+| State Management | React Query for server state, Zustand for local workspace state |
 | Table Components | TanStack Table + Virtual |
 | Export | csv, json, xlsx (openpyxl) |
 | Layout | react-resizable-panels |
@@ -103,7 +111,7 @@ cp .env.example .env
 Key environment variables:
 - `ANTHROPIC_API_KEY` — Your Anthropic API key (required for AI features)
 - `ANTHROPIC_BASE_URL` — API endpoint (default: `https://api.anthropic.com`)
-- `DEFAULT_LLM_MODEL` — Model to use (default: `claude-sonnet-4-6`)
+- `DEFAULT_LLM_MODEL` — Model to use (default: `claude-sonnet-4-5-20250929`)
 - `DUCKDB_PATH` — Database file path (default: `data/enterprise.duckdb`)
 - `APP_DEBUG` — Debug mode (default: `true`)
 - `LOG_LEVEL` — Logging level (default: `INFO`)
@@ -273,7 +281,8 @@ EnterpriseAiDataAgent/
 | v0.6.x | Meta Governance & Autonomous QA (Language, Templates, Reports, Scheduler) | Done |
 | v0.7.x | AI Analyst Intelligence Layer (Anomaly Detection, Quality Gates, Stability) | Done |
 | v0.8.x | Product Readiness (Shell Pages, Docker, Design System V2, State Refactor) | Done |
-| v0.9.x | Security & Stability (Git Cleanup, React Fix, Docs Restructure, Onboarding) | Current |
+| v0.9.x | Security & Stability (Git Cleanup, React Fix, Docs Restructure, Onboarding) | Done |
+| v1.0.0 | Architecture Foundation (server-state cache, parser hardening, product baseline) | Current |
 
 ## License
 

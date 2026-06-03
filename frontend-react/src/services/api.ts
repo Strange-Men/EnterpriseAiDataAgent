@@ -5,34 +5,24 @@
  * Streaming (SSE) endpoints connect directly to backend to avoid Next.js proxy timeout.
  */
 
-import type { TableInfo, QualityReport, AnomalyResult } from "@/types";
+import type { QualityReport, AnomalyResult } from "@/types";
+import { API_BASE, apiFetch } from "@/services/api/http-client";
+export type { AIStatus, SystemStatusResponse } from "@/services/api/status";
+export { fetchAIStatus, fetchStatus } from "@/services/api/status";
+export type { PaginatedData } from "@/services/api/tables";
+export {
+  deleteTable,
+  fetchTableData,
+  fetchTableDataPaginated,
+  fetchTableSchema,
+  fetchTables,
+  renameTable,
+} from "@/services/api/tables";
 
-const API_BASE = "/api";
 // Direct backend URL for SSE streaming (bypasses Next.js proxy 30s timeout)
 export const DIRECT_BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // ── Generic fetch wrapper ──────────────────────────────────
-
-async function apiFetch<T>(
-  path: string,
-  options?: RequestInit & { signal?: AbortSignal }
-): Promise<T> {
-  const signal = options?.signal ?? AbortSignal.timeout(60_000);
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    signal,
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`API ${res.status}: ${body || res.statusText}`);
-  }
-  try {
-    return await res.json();
-  } catch {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Invalid JSON response: ${text.slice(0, 200)}`);
-  }
-}
 
 // ── Database ───────────────────────────────────────────────
 
@@ -41,57 +31,6 @@ async function apiFetch<T>(
  * @returns Array of table info objects
  * @throws {Error} API 4xx/5xx errors
  */
-export async function fetchTables(): Promise<TableInfo[]> {
-  return apiFetch<TableInfo[]>("/tables");
-}
-
-export async function fetchTableData(
-  tableName: string,
-  limit: number = 100
-): Promise<{ columns: string[]; data: Record<string, unknown>[] }> {
-  const res = await apiFetch<{ columns: string[]; data: Record<string, unknown>[]; rowCount: number }>(
-    `/tables/${encodeURIComponent(tableName)}?limit=${limit}`
-  );
-  return { columns: res.columns, data: res.data };
-}
-
-export interface PaginatedData {
-  columns: string[];
-  data: Record<string, unknown>[];
-  page: number;
-  pageSize: number;
-  totalRows: number;
-  hasMore: boolean;
-}
-
-export async function fetchTableDataPaginated(
-  tableName: string,
-  page: number = 0,
-  pageSize: number = 200
-): Promise<PaginatedData> {
-  return apiFetch<PaginatedData>(
-    `/tables/${encodeURIComponent(tableName)}/data?page=${page}&page_size=${pageSize}`
-  );
-}
-
-export async function fetchTableSchema(
-  tableName: string
-): Promise<{ name: string; dtype: string; nullable: boolean; uniqueCount: number }[]> {
-  return apiFetch(`/tables/${encodeURIComponent(tableName)}/schema`);
-}
-
-export async function deleteTable(tableName: string): Promise<void> {
-  await apiFetch(`/tables/${encodeURIComponent(tableName)}`, { method: "DELETE" });
-}
-
-export async function renameTable(tableName: string, newName: string): Promise<void> {
-  await apiFetch(`/table/${encodeURIComponent(tableName)}/rename`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ new_name: newName }),
-  });
-}
-
 // ── SQL Query ──────────────────────────────────────────────
 
 export interface QueryResult {
@@ -225,28 +164,7 @@ export async function fetchQualityReport(
 
 // ── Status ─────────────────────────────────────────────────
 
-export async function fetchStatus(): Promise<{
-  api: string;
-  db: string;
-  version: string;
-  uptime: string;
-}> {
-  return apiFetch("/status");
-}
-
 // ── AI Status ───────────────────────────────────────────────────
-
-export interface AIStatus {
-  configured: boolean;
-  connection: "ok" | "error" | "not_configured";
-  model: string;
-  temperature: number;
-  base_url: string;
-}
-
-export async function fetchAIStatus(): Promise<AIStatus> {
-  return apiFetch<AIStatus>("/ai/status");
-}
 
 // ── AI Analysis ─────────────────────────────────────────────────
 

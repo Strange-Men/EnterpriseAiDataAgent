@@ -5,7 +5,6 @@
 """
 
 import json
-import re
 import time
 
 import anthropic
@@ -73,40 +72,14 @@ from backend.runtime.token_budget import (
 
 # Trace 导入
 from backend.services.trace import TraceRecorder
+from backend.utils.llm_json import parse_llm_json
 
 
 # ── JSON Parsing Helper ──────────────────────────────────────────
 
 def _parse_llm_json(raw: str) -> dict:
-    """Parse LLM JSON output with markdown-wrapped fallback.
-
-    Handles cases where LLM returns ```json ... ``` wrapped JSON.
-    """
-    # Try direct parse first
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        pass
-
-    # Try extracting from markdown code block
-    match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
-    if match:
-        try:
-            return json.loads(match.group(1).strip())
-        except json.JSONDecodeError:
-            pass
-
-    # Try finding JSON object/array in the raw text
-    for start_char, end_char in [('{', '}'), ('[', ']')]:
-        start_idx = raw.find(start_char)
-        end_idx = raw.rfind(end_char)
-        if start_idx != -1 and end_idx > start_idx:
-            try:
-                return json.loads(raw[start_idx:end_idx + 1])
-            except json.JSONDecodeError:
-                pass
-
-    raise json.JSONDecodeError("Failed to parse LLM response as JSON", raw, 0)
+    """Backward-compatible wrapper for the shared LLM JSON parser."""
+    return parse_llm_json(raw)
 
 
 # ── Anomaly Detection ──────────────────────────────────────────

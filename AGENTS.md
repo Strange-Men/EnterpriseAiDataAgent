@@ -1,6 +1,6 @@
-# CLAUDE.md — Enterprise AI Data Agent
+# AGENTS.md — Enterprise AI Data Agent
 
-This file provides guidance to Claude Code when working with this codebase.
+This file provides guidance to Codex when working with this codebase.
 
 ## Project Overview
 
@@ -21,7 +21,7 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 **v0.7.x completed scope**: AI Analyst Intelligence Layer (anomaly detection, multi-turn, E2E tests, health diagnostics).
 **v0.8.x completed scope**: Product Readiness (shell pages, Docker, design system V2, state refactor, stabilization).
 **v0.9.x completed scope**: Security & Stability (git history cleanup, React infinite render fix, docs restructure).
-Claude must NOT:
+Codex must NOT:
 - Proactively add LangGraph, Multi-Agent, or RAG features
 - Suggest implementing multi-agent capabilities
 - Add features beyond current version scope without user approval
@@ -77,7 +77,7 @@ Claude must NOT:
 ### Documentation Rules
 - Update README.md for every major version
 - Update docs/architecture/版本记录.md for every version
-- Update CLAUDE.md if development rules change
+- Update AGENTS.md if development rules change
 - Follow documentation lifecycle: active → stable → archived
 - Skills live in `skills/active/` — never in `docs/skills/`
 - Check `skills/SKILL_REGISTRY.md` before creating new workflows
