@@ -60,11 +60,15 @@ EnterpriseAiDataAgent is an enterprise-grade AI data analysis platform with inte
 - **Documentation**: Restructured docs/, archived stale files, version unification
 - **Onboarding**: Game-style 5-step tutorial for new users
 
-### Architecture Foundation (v1.0.0)
+### Architecture Foundation (v1.0.x)
 - **Version Baseline**: Backend, frontend package metadata, session docs, and roadmap aligned to v1.0.0
 - **Server-State Cache**: React Query now drives system status, table metadata, and AI status polling
-- **API Module Split**: Shared HTTP client plus status/table feature modules, with the legacy API entry kept compatible
-- **AI JSON Parser**: Shared LLM JSON parser with regression tests for markdown-wrapped and embedded JSON
+- **API Module Split**: Shared HTTP client plus status/table/query/data/AI/stream feature modules, with the legacy API entry kept compatible
+- **Panel Split**: AI Analysis and SQL Workspace shells now delegate mode handlers and repeated UI to feature components
+- **AI Parser Hardening**: Shared LLM JSON and SQL output normalization with regression coverage
+- **AI Quality Gates**: SQL generation responses expose deterministic quality gates in backend responses and frontend UI
+- **Performance Hardening**: SQL result pagination defaults to smaller pages, table filtering defers expensive updates, and streaming UI batches frame updates
+- **Data Governance**: Non-destructive DuckDB path migration and repository health-check scripts added
 - **Product Positioning**: Metadata aligned to current SQL Workspace + AI Analyst capabilities
 - **Optimization Blueprint**: v1.0.0 architecture report added under `docs/reports/`
 

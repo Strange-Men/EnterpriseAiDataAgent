@@ -10,7 +10,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useDeferredValue, useState, useMemo, useRef, useEffect } from "react";
 import { cn } from "@/utils/cn";
 
 interface DataTableProps {
@@ -45,6 +45,7 @@ export function DataTable({
 }: DataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const deferredGlobalFilter = useDeferredValue(globalFilter);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const tableColumns = useMemo<ColumnDef<Record<string, unknown>>[]>(
@@ -69,7 +70,7 @@ export function DataTable({
   const table = useReactTable({
     data,
     columns: tableColumns,
-    state: { sorting, globalFilter },
+    state: { sorting, globalFilter: deferredGlobalFilter },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),

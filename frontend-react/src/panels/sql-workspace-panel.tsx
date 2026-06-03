@@ -12,9 +12,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { QueryExplain } from "@/components/query-explain";
 import { ExportDropdown } from "@/components/export-dropdown";
 import { executeQuery, explainQuery, cancelQuery, aiQuery } from "@/services/api";
-import type { ExplainResult } from "@/services/api";
+import type { AiQualityGate, ExplainResult } from "@/services/api";
 import { AIAnalysisPanel } from "@/panels/ai-analysis-panel";
 import type { AnalysisMode } from "@/panels/ai-analysis-panel";
+import { AiSqlInput } from "@/components/sql-workspace/ai-sql-input";
+import { QueryTabsBar } from "@/components/sql-workspace/query-tabs-bar";
+import { QueryStatsBar } from "@/components/sql-workspace/query-stats-bar";
+import { WorkflowBanner } from "@/components/sql-workspace/workflow-banner";
 import { logger } from "@/services/logger";
 import toast from "react-hot-toast";
 import { format } from "sql-formatter";
@@ -25,7 +29,7 @@ export function SqlWorkspacePanel() {
     isExecuting, setExecuting,
     queryResult, setQueryResult,
     currentSql,
-    hasMore, isLoadingMore, loadMore,
+    hasMore, isLoadingMore, limit, loadMore,
     tabs, activeTabId, addTab, removeTab, renameTab,
     setActiveTab, updateTabSql, getActiveTab,
   } = useSqlEditorStore();
@@ -85,17 +89,19 @@ export function SqlWorkspacePanel() {
   const [showAiSqlInput, setShowAiSqlInput] = useState(false);
   const [aiSqlQuestion, setAiSqlQuestion] = useState("");
   const [aiSqlLoading, setAiSqlLoading] = useState(false);
+  const [aiSqlQualityGates, setAiSqlQualityGates] = useState<AiQualityGate[]>([]);
 
   // Standalone AI SQL generation handler
   const handleAiSqlGenerate = useCallback(async () => {
     if (!aiSqlQuestion.trim() || aiSqlLoading) return;
     setAiSqlLoading(true);
+    setAiSqlQualityGates([]);
     try {
       const res = await aiQuery(aiSqlQuestion.trim(), false, false, undefined, i18n.language);
+      setAiSqlQualityGates(res.quality_gates ?? []);
       if (res.sql && activeTab) {
         updateTabSql(activeTab.id, res.sql);
         toast.success(t("ai.ready"));
-        setShowAiSqlInput(false);
         setAiSqlQuestion("");
       } else {
         toast.error(res.error || "AI could not generate SQL");
@@ -152,7 +158,7 @@ export function SqlWorkspacePanel() {
     abortControllerRef.current = controller;
 
     try {
-      const result = await executeQuery(sql, 0, 10000, controller.signal);
+      const result = await executeQuery(sql, 0, limit, controller.signal);
       queryIdRef.current = result.queryId;
       setQueryResult(result);
       addEntry({
@@ -204,7 +210,7 @@ export function SqlWorkspacePanel() {
       setExecuting(false);
       abortControllerRef.current = null;
     }
-  }, [currentSql, setExecuting, setQueryResult, addEntry, wfStage, wfAdvance, t]);
+  }, [currentSql, limit, setExecuting, setQueryResult, addEntry, wfStage, wfAdvance, t]);
 
   // EXPLAIN handler
   const handleExplain = useCallback(async () => {
@@ -308,75 +314,23 @@ export function SqlWorkspacePanel() {
   }, [renameValue, renameTab]);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* ── Tabs Bar ──────────────────────────────────────── */}
-      <div className="flex items-center gap-1 pb-2 mb-2 border-b border-[var(--border-default)] overflow-x-auto">
-        {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            className={`group flex items-center gap-1 px-2.5 py-1 rounded-md text-xs cursor-pointer transition-colors flex-shrink-0 ${
-              tab.id === activeTabId
-                ? "bg-[var(--accent)] text-[var(--bg-primary)] font-medium"
-                : "bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
-            }`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {renamingTabId === tab.id ? (
-              <input
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onBlur={() => handleTabRename(tab.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleTabRename(tab.id);
-                  if (e.key === "Escape") { setRenamingTabId(null); }
-                }}
-                className="w-20 px-1 py-0 text-xs bg-[var(--bg-primary)] border border-[var(--accent)] rounded outline-none"
-                autoFocus
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <span
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  setRenamingTabId(tab.id);
-                  setRenameValue(tab.name);
-                }}
-                className="truncate max-w-[100px]"
-              >
-                {tab.name}
-              </span>
-            )}
-            {tabs.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeTab(tab.id);
-                }}
-                className={`ml-1 rounded-full p-0.5 transition-colors ${
-                  tab.id === activeTabId
-                    ? "hover:bg-[var(--bg-primary)]/20 text-[var(--bg-primary)]"
-                    : "hover:bg-[var(--bg-primary)] text-[var(--text-muted)]"
-                }`}
-              >
-                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-        ))}
-        <button
-          onClick={() => addTab()}
-          className="px-2 py-1 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors flex-shrink-0"
-          title={t("tabs.add")}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-      </div>
+        <div className="flex flex-col h-full">
+      <QueryTabsBar
+        tabs={tabs}
+        activeTabId={activeTabId}
+        renamingTabId={renamingTabId}
+        renameValue={renameValue}
+        addLabel={t("tabs.add")}
+        onActivate={setActiveTab}
+        onAdd={addTab}
+        onRemove={removeTab}
+        onStartRename={(tabId, name) => { setRenamingTabId(tabId); setRenameValue(name); }}
+        onRenameValueChange={setRenameValue}
+        onRenameCommit={handleTabRename}
+        onRenameCancel={() => setRenamingTabId(null)}
+      />
 
-      {/* ── Toolbar ──────────────────────────────────────── */}
+      {/* -- Toolbar ---------------------------------------- */}
       <div className="flex items-center flex-wrap gap-2 mb-2">
         <button
           onClick={handleExecute}
@@ -505,80 +459,27 @@ export function SqlWorkspacePanel() {
         <ExportDropdown sql={currentSql} disabled={isExecuting} />
       </div>
 
-      {/* ── AI SQL Generation Input ──────────────────────────── */}
-      {showAiSqlInput && (
-        <div className="flex items-center gap-2 px-3 py-2 mb-2 bg-purple-500/5 border border-purple-500/20 rounded-md">
-          <input
-            value={aiSqlQuestion}
-            onChange={(e) => setAiSqlQuestion(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleAiSqlGenerate(); if (e.key === "Escape") { setShowAiSqlInput(false); setAiSqlQuestion(""); } }}
-            placeholder={t("ai.sql-placeholder")}
-            className="flex-1 px-2 py-1 text-xs bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-md focus:border-purple-500/50 focus:outline-none"
-            autoFocus
-          />
-          <button
-            onClick={handleAiSqlGenerate}
-            disabled={aiSqlLoading || !aiSqlQuestion.trim()}
-            className="px-3 py-1 text-xs bg-purple-500/10 text-purple-400 rounded-md hover:bg-purple-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {aiSqlLoading ? (
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                {t("ai.generating")}
-              </span>
-            ) : t("ai.generate")}
-          </button>
-          <button
-            onClick={() => { setShowAiSqlInput(false); setAiSqlQuestion(""); }}
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            ×
-          </button>
-        </div>
+      {/* ── AI SQL Generation Input ──────────────────────────── */}      {showAiSqlInput && (
+        <AiSqlInput
+          value={aiSqlQuestion}
+          isLoading={aiSqlLoading}
+          placeholder={t("ai.sql-placeholder")}
+          generateLabel={t("ai.generate")}
+          generatingLabel={t("ai.generating")}
+          qualityGates={aiSqlQualityGates}
+          onChange={setAiSqlQuestion}
+          onGenerate={handleAiSqlGenerate}
+          onClose={() => { setShowAiSqlInput(false); setAiSqlQuestion(""); setAiSqlQualityGates([]); }}
+        />
       )}
 
-      {/* ── Workflow Banner ─────────────────────────────────── */}
-      {wfStage !== "idle" && wfStage !== "done" && (
-        <div className="flex items-center gap-2 px-3 py-1.5 mb-2 bg-purple-500/5 border border-purple-500/20 rounded-md text-xs">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-          <span className="text-purple-400 font-medium">
-            {wfStage === "uploading" ? "Uploading..." :
-             wfStage === "profiling" ? `Table ready: ${wfTable}` :
-             wfStage === "analyzing" ? `Analyzing ${wfTable}...` :
-             wfStage === "sql-ready" ? `Analysis complete: ${wfTable}` :
-             wfStage === "executing" ? "Executing..." : ""}
-          </span>
-          {wfStage === "sql-ready" && wfTable && (
-            <button
-              onClick={handleGenerateAiSql}
-              disabled={generatingSql}
-              className="ml-auto px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded hover:bg-purple-500/20 transition-colors disabled:opacity-50"
-            >
-              {generatingSql ? "Generating..." : "Generate SQL"}
-            </button>
-          )}
-          <button
-            onClick={wfReset}
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] ml-1"
-            title="Dismiss"
-          >
-            ×
-          </button>
-        </div>
-      )}
-      {wfStage === "done" && (
-        <div className="flex items-center gap-2 px-3 py-1.5 mb-2 bg-green-500/5 border border-green-500/20 rounded-md text-xs">
-          <span className="text-green-400">Done: {wfTable}</span>
-          <button
-            onClick={wfReset}
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] ml-auto"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {/* ── Save Query Dialog ────────────────────────────── */}
+      <WorkflowBanner
+        stage={wfStage}
+        table={wfTable}
+        isGeneratingSql={generatingSql}
+        onGenerateSql={handleGenerateAiSql}
+        onReset={wfReset}
+      />
       {showSaveDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={(e) => { if (e.target === e.currentTarget) setShowSaveDialog(false); }}>
           <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg p-4 w-80 shadow-xl">
@@ -673,46 +574,8 @@ export function SqlWorkspacePanel() {
       </div>
 
       {/* ── Query Statistics ─────────────────────────────── */}
-      {queryResult && (
-        <div className="flex items-center flex-wrap gap-3 px-3 py-2 mb-2 bg-[var(--bg-tertiary)] rounded-md border border-[var(--border-default)] text-xs">
-          <div className="flex items-center gap-1">
-            <span className={`w-2 h-2 rounded-full ${queryResult.status === "success" ? "bg-green-400" : "bg-red-400"}`} />
-            <span className="text-[var(--text-muted)]">
-              {queryResult.status === "success" ? t("stats.success") : t("stats.error")}
-            </span>
-          </div>
-          <div className="flex items-center gap-1 text-[var(--text-muted)]">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-            </svg>
-            <span className="tabular-nums">{queryResult.rowCount.toLocaleString()}</span>
-            <span>{t("stats.rows")}</span>
-            {queryResult.truncated && queryResult.totalRows && (
-              <span className="text-yellow-500 ml-1">
-                (of {queryResult.totalRows.toLocaleString()} total — use EXPORT for full data)
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1 text-[var(--text-muted)]">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="tabular-nums">{queryResult.runtimeMs}</span>
-            <span>{t("stats.ms")}</span>
-          </div>
-          {queryResult.columns.length > 0 && (
-            <div className="flex items-center gap-1 text-[var(--text-muted)]">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" />
-              </svg>
-              <span className="tabular-nums">{queryResult.columns.length}</span>
-              <span>{t("stats.columns")}</span>
-            </div>
-          )}
-        </div>
-      )}
+      {queryResult && <QueryStatsBar result={queryResult} t={t} />}
 
-      {/* ── Query Explain ────────────────────────────────── */}
       {showExplain && (
         <div className="mb-2">
           <QueryExplain
@@ -774,3 +637,6 @@ export function SqlWorkspacePanel() {
     </div>
   );
 }
+
+
+

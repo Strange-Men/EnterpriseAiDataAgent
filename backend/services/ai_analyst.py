@@ -73,6 +73,11 @@ from backend.runtime.token_budget import (
 # Trace 导入
 from backend.services.trace import TraceRecorder
 from backend.utils.llm_json import parse_llm_json
+from backend.utils.llm_sql import (
+    build_sql_quality_gates,
+    extract_sql_from_llm_output,
+    validate_generated_sql,
+)
 
 
 # ── JSON Parsing Helper ──────────────────────────────────────────
@@ -580,7 +585,7 @@ def generate_sql(
     user_msg = build_sql_user_message(schema_context, question, follow_up_context)
     budget = get_budget("sql_generation")
     try:
-        sql = _call_llm(
+        raw_sql = _call_llm(
             SQL_GEN_SYSTEM, user_msg,
             max_tokens=budget.max_output_tokens,
             language=language,
@@ -588,22 +593,34 @@ def generate_sql(
             operation="sql_generation",
             trace=trace, phase=phase, prompt_name="sql_generation", step=step,
         )
-        sql = sql.strip()
-        if sql.startswith("```"):
-            lines = sql.split("\n")
-            sql = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+        sql = extract_sql_from_llm_output(raw_sql)
+        is_valid, validation_error = validate_generated_sql(sql)
+        quality_gates = build_sql_quality_gates(sql, validation_error)
         elapsed = (time.time() - start) * 1000
+        if not is_valid:
+            return {
+                "sql": "",
+                "raw_sql": raw_sql.strip(),
+                "error": validation_error,
+                "model": MODEL,
+                "elapsed_ms": round(elapsed, 2),
+                "status": "error",
+                "quality_gates": quality_gates,
+            }
         return {
             "sql": sql.strip(),
+            "raw_sql": raw_sql.strip(),
             "model": MODEL,
             "elapsed_ms": round(elapsed, 2),
             "status": "success",
+            "quality_gates": quality_gates,
         }
     except Exception as e:
         return {
             "sql": "",
             "error": str(e),
             "status": "error",
+            "quality_gates": build_sql_quality_gates("", str(e)),
             "elapsed_ms": round((time.time() - start) * 1000, 2),
         }
 

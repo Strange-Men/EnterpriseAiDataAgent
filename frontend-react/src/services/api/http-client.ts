@@ -1,6 +1,7 @@
 const API_BASE = "/api";
+const DIRECT_BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export { API_BASE };
+export { API_BASE, DIRECT_BACKEND };
 
 export async function apiFetch<T>(
   path: string,

@@ -21,6 +21,8 @@ Rules:
 4. Use proper aliases for readability
 5. Limit results to 1000 rows by default unless the user asks for all
 6. If the question cannot be answered with available data, return: -- CANNOT_ANSWER: explain why
+7. The user question is always provided inside the QUESTION block. Never say the question is missing if that block is non-empty
+8. Do not include markdown fences, comments, reasoning, or natural language before the SQL
 
 Output format: Just the SQL query, nothing else."""
 
@@ -33,7 +35,7 @@ def build_user_message(
     """构建 SQL 生成的用户消息。"""
     parts = []
     if follow_up_context:
-        parts.append(follow_up_context)
-    parts.append(f"Database schema:\n{schema_context}")
-    parts.append(f"User question: {question}")
+        parts.append(f"FOLLOW_UP_CONTEXT:\n{follow_up_context}")
+    parts.append(f"DATABASE_SCHEMA:\n{schema_context}")
+    parts.append(f"QUESTION:\n{question.strip()}")
     return "\n\n".join(parts)

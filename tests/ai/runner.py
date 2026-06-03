@@ -148,3 +148,59 @@ def format_report(summary: EvalSummary) -> str:
 
     lines.append("=" * 60)
     return "\n".join(lines)
+
+
+def format_markdown_report(summary: EvalSummary) -> str:
+    """Format evaluation summary as a Markdown report for release artifacts."""
+    lines = [
+        "# AI SQL Golden Evaluation Report",
+        "",
+        "## Summary",
+        "",
+        f"- Total: {summary.total}",
+        f"- Passed: {summary.passed}",
+        f"- Failed: {summary.failed}",
+        f"- Pass rate: {summary.pass_rate * 100:.0f}%",
+        f"- Hallucinations: {summary.hallucination_count}",
+        f"- Average latency: {summary.avg_latency_ms:.0f}ms",
+        "",
+        "## By Category",
+        "",
+        "| Category | Passed | Total | Pass Rate |",
+        "|---|---:|---:|---:|",
+    ]
+    for category, stats in sorted(summary.by_category.items()):
+        total = max(stats["total"], 1)
+        lines.append(
+            f"| {category} | {stats['passed']} | {stats['total']} | {stats['passed'] / total * 100:.0f}% |"
+        )
+
+    lines.extend([
+        "",
+        "## Questions",
+        "",
+        "| Question ID | Status | Latency | Notes |",
+        "|---|---|---:|---|",
+    ])
+    for result in summary.results:
+        status = "PASS" if result.passed else "FAIL"
+        notes = (result.notes or "").replace("|", "\\|").replace("\n", " ")
+        lines.append(f"| {result.question_id} | {status} | {result.latency_ms:.0f}ms | {notes} |")
+
+    failed_results = [r for r in summary.results if not r.passed]
+    if failed_results:
+        lines.extend(["", "## Failed SQL", ""])
+        for result in failed_results:
+            lines.extend([
+                f"### {result.question_id}",
+                "",
+                f"- Notes: {result.notes}",
+                f"- Execution error: {result.execution_error or 'None'}",
+                "",
+                "```sql",
+                result.sql_generated or "-- No SQL generated",
+                "```",
+                "",
+            ])
+
+    return "\n".join(lines)

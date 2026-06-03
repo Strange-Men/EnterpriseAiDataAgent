@@ -45,7 +45,7 @@ export async function deleteTable(tableName: string): Promise<void> {
 }
 
 export async function renameTable(tableName: string, newName: string): Promise<void> {
-  await apiFetch(`/table/${encodeURIComponent(tableName)}/rename`, {
+  await apiFetch(`/tables/${encodeURIComponent(tableName)}/rename`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ new_name: newName }),

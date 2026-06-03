@@ -74,27 +74,29 @@ export function ContextPanel({ onTableSelect }: ContextPanelProps) {
 
           return (
             <div key={tbl.name} className="border-b border-[var(--border-default)]/50">
-              <button
-                onClick={() => handleSelect(tbl.name)}
-                className={`w-full flex items-center justify-between px-3 py-2 text-left hover:bg-[var(--bg-tertiary)] transition-colors ${
+              <div
+                className={`flex items-center px-3 py-2 hover:bg-[var(--bg-tertiary)] transition-colors ${
                   isActive ? "bg-[var(--accent)]/5" : ""
                 }`}
               >
-                <div className="min-w-0">
+                <button
+                  onClick={() => handleSelect(tbl.name)}
+                  className="min-w-0 flex-1 text-left"
+                >
                   <p className={`text-xs truncate ${isActive ? "text-[var(--accent)] font-medium" : "text-[var(--text-primary)]"}`}>
                     {tbl.name}
                   </p>
                   <p className="text-[10px] text-[var(--text-muted)]">
                     {tbl.rowCount} {t("sql.rows")} · {tbl.columns?.length ?? 0} {t("sql.columns")}
                   </p>
-                </div>
+                </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); loadSchema(tbl.name); }}
+                  onClick={() => loadSchema(tbl.name)}
                   className="ml-1 p-0.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
                 >
                   <ChevronRight className={cn("w-3 h-3 transition-transform", isExpanded && "rotate-90")} />
                 </button>
-              </button>
+              </div>
 
               {isExpanded && (
                 <div className="px-3 pb-2">

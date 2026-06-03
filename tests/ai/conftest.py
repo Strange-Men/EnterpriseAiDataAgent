@@ -1,5 +1,7 @@
 """Pytest fixtures for AI evaluation tests."""
 
+import os
+
 import pytest
 from backend.services.ai_analyst import generate_sql, build_schema_context
 from backend.services.data_service import get_executor, list_tables
@@ -8,6 +10,8 @@ from backend.services.data_service import get_executor, list_tables
 @pytest.fixture(scope="session")
 def ai_available():
     """检查 AI 服务是否可用（需要有效的 API key）。"""
+    if os.getenv("RUN_AI_EVAL") != "1":
+        pytest.skip("Set RUN_AI_EVAL=1 to run live AI golden evaluation")
     from backend.config import ANTHROPIC_API_KEY
     if not ANTHROPIC_API_KEY:
         pytest.skip("ANTHROPIC_API_KEY not configured")

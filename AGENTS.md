@@ -10,9 +10,9 @@ This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst
 
 ## Current Version Status
 
-- **Current**: v1.0.0 (Architecture foundation, server-state cache, AI JSON parser hardening)
-- **Phase**: v1.0.0 Architecture & Product Foundation
-- **Next**: v1.0.x AI analysis effectiveness and performance hardening
+- **Current**: v1.0.1 (Architecture split, AI quality gates, performance hardening)
+- **Phase**: v1.0.x Architecture & Product Hardening
+- **Next**: v1.0.x backend data access facade and contract hardening
 
 ## Scope Rules
 

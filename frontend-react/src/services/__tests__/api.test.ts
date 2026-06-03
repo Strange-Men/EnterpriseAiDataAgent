@@ -20,6 +20,7 @@ import {
   uploadFile,
   fetchQualityReport,
   fetchStatus,
+  unwrapApiResponse,
 } from "../api";
 
 beforeEach(() => {
@@ -106,7 +107,7 @@ describe("api service", () => {
     it("should send PUT request with new name", async () => {
       mockFetch.mockResolvedValueOnce(mockJsonResponse(null));
       await renameTable("old", "new");
-      expect(mockFetch).toHaveBeenCalledWith("/api/table/old/rename", expect.objectContaining({
+      expect(mockFetch).toHaveBeenCalledWith("/api/tables/old/rename", expect.objectContaining({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ new_name: "new" }),
@@ -213,6 +214,26 @@ describe("api service", () => {
       const res = await fetchStatus();
       expect(res.api).toBe("ok");
       expect(res.version).toBe("0.4.0");
+    });
+  });
+
+  describe("response envelope helpers", () => {
+    it("should return legacy responses unchanged", () => {
+      const data = { value: 1 };
+      expect(unwrapApiResponse(data)).toEqual(data);
+    });
+
+    it("should unwrap successful envelopes", () => {
+      const data = { value: 1 };
+      expect(unwrapApiResponse({ status: "success", data })).toEqual(data);
+    });
+
+    it("should throw on error envelopes", () => {
+      expect(() => unwrapApiResponse({
+        status: "error",
+        data: null,
+        error: { code: "BAD_REQUEST", message: "Bad request" },
+      })).toThrow("Bad request");
     });
   });
 

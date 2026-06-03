@@ -215,7 +215,7 @@ export const useSqlEditorStore = create<SqlEditorState>()(
 
       // Pagination
       offset: 0,
-      limit: 10000,
+      limit: 1000,
       totalRows: 0,
       hasMore: false,
       isLoadingMore: false,

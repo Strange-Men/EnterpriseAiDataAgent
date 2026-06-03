@@ -249,6 +249,7 @@ def run_ai_query(
             "error": sql_result.get("error", "Failed to generate SQL"),
             "status": "error",
             "generation_ms": sql_result.get("elapsed_ms", 0),
+            "quality_gates": sql_result.get("quality_gates", []),
         }
 
     sql = sql_result["sql"]
@@ -261,6 +262,7 @@ def run_ai_query(
             "error": sql.replace("-- CANNOT_ANSWER:", "").strip(),
             "status": "cannot_answer",
             "generation_ms": sql_result["elapsed_ms"],
+            "quality_gates": sql_result.get("quality_gates", []),
         }
 
     response = {
@@ -268,6 +270,7 @@ def run_ai_query(
         "sql": sql,
         "status": "success",
         "generation_ms": sql_result["elapsed_ms"],
+        "quality_gates": sql_result.get("quality_gates", []),
     }
 
     # 3. Execute SQL (if requested)

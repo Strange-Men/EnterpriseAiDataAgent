@@ -12,6 +12,11 @@ from database.query_executor import QueryExecutor
 from backend.utils.json_safe import normalize_for_response
 
 
+def _sanitize_for_json(obj):
+    """Backward-compatible alias for older tests and callers."""
+    return normalize_for_response(obj)
+
+
 class UploadFileAdapter:
     """Adapts a (filename, bytes) pair to the interface file_loader expects."""
 

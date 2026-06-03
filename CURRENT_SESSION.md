@@ -1,71 +1,71 @@
-# Current Session — Enterprise AI Data Agent
+﻿# Current Session â€” Enterprise AI Data Agent
 
 > Last updated: 2026-06-03
 
 ## Current Version
 
-- **Version**: v1.0.0
+- **Version**: v1.0.1
 - **Phase**: Architecture Foundation & Product Hardening
-- **Status**: In progress — first foundation pass implemented
+- **Status**: v1.0.1 architecture optimization pass implemented
 
 ## Session Goals
 
-1. ✅ 接管 v0.9.9 项目状态并进入 v1.0.0 大版本
-2. ✅ 审计项目结构、版本状态、前后端交互、AI 分析链路和性能风险
-3. ✅ 输出 v1.0.0 架构优化蓝图
-4. ✅ 落地第一轮骨架优化：版本统一、React Query 服务端状态、AI JSON parser 抽离
-5. ⏳ 继续推进大文件拆分、AI 分析效果、分页性能和文件系统治理
+1. âœ… æŽ¥ç®¡ v0.9.9 é¡¹ç›®çŠ¶æ€å¹¶è¿›å…¥ v1.0.0 å¤§ç‰ˆæœ¬
+2. âœ… å®¡è®¡é¡¹ç›®ç»“æž„ã€ç‰ˆæœ¬çŠ¶æ€ã€å‰åŽç«¯äº¤äº’ã€AI åˆ†æžé“¾è·¯å’Œæ€§èƒ½é£Žé™©
+3. âœ… è¾“å‡º v1.0.0 æž¶æž„ä¼˜åŒ–è“å›¾
+4. âœ… è½åœ°ç¬¬ä¸€è½®éª¨æž¶ä¼˜åŒ–ï¼šç‰ˆæœ¬ç»Ÿä¸€ã€React Query æœåŠ¡ç«¯çŠ¶æ€ã€AI JSON parser æŠ½ç¦»
+5. â³ ç»§ç»­æŽ¨è¿›å¤§æ–‡ä»¶æ‹†åˆ†ã€AI åˆ†æžæ•ˆæžœã€åˆ†é¡µæ€§èƒ½å’Œæ–‡ä»¶ç³»ç»Ÿæ²»ç†
 
-## v1.0.0 已完成
+## v1.0.0 å·²å®Œæˆ
 
-### 版本统一
-- `backend/VERSION` → `1.0.0`
-- `frontend-react/package.json` → `1.0.0`
-- `frontend-react/package-lock.json` → `1.0.0`
-- README、AGENTS、CLAUDE、版本记录同步到 v1.0.0
+### ç‰ˆæœ¬ç»Ÿä¸€
+- `backend/VERSION` â†’ `1.0.0`
+- `frontend-react/package.json` â†’ `1.0.0`
+- `frontend-react/package-lock.json` â†’ `1.0.0`
+- READMEã€AGENTSã€CLAUDEã€ç‰ˆæœ¬è®°å½•åŒæ­¥åˆ° v1.0.0
 
-### 项目审计结论
-- 前端已有 React Query，但此前几乎没有真正用于 server state
-- `ai-analysis-panel.tsx`、`sql-workspace-panel.tsx`、`api.ts` 是主要前端复杂度热点
-- `ai_analyst.py`、`ai_pipeline.py` 是主要后端复杂度热点
-- AI 分析效果问题不仅是模型问题，还包括解析、fallback、quality gates、UI 呈现和 trace 可见性
-- 根目录和源码目录存在本地生成物治理问题：`.env`、`.coverage`、`.pytest_cache/`、`.idea/`、`__pycache__/`
-- `backend/data/enterprise.duckdb` 与文件系统规则冲突，应后续非破坏性迁移到 `data/`
+### é¡¹ç›®å®¡è®¡ç»“è®º
+- å‰ç«¯å·²æœ‰ React Queryï¼Œä½†æ­¤å‰å‡ ä¹Žæ²¡æœ‰çœŸæ­£ç”¨äºŽ server state
+- `ai-analysis-panel.tsx`ã€`sql-workspace-panel.tsx`ã€`api.ts` æ˜¯ä¸»è¦å‰ç«¯å¤æ‚åº¦çƒ­ç‚¹
+- `ai_analyst.py`ã€`ai_pipeline.py` æ˜¯ä¸»è¦åŽç«¯å¤æ‚åº¦çƒ­ç‚¹
+- AI åˆ†æžæ•ˆæžœé—®é¢˜ä¸ä»…æ˜¯æ¨¡åž‹é—®é¢˜ï¼Œè¿˜åŒ…æ‹¬è§£æžã€fallbackã€quality gatesã€UI å‘ˆçŽ°å’Œ trace å¯è§æ€§
+- æ ¹ç›®å½•å’Œæºç ç›®å½•å­˜åœ¨æœ¬åœ°ç”Ÿæˆç‰©æ²»ç†é—®é¢˜ï¼š`.env`ã€`.coverage`ã€`.pytest_cache/`ã€`.idea/`ã€`__pycache__/`
+- `backend/data/enterprise.duckdb` ä¸Žæ–‡ä»¶ç³»ç»Ÿè§„åˆ™å†²çªï¼Œåº”åŽç»­éžç ´åæ€§è¿ç§»åˆ° `data/`
 
-### 前端 server-state 优化
-- 新增 `frontend-react/src/hooks/use-server-state.ts`
-- system status、tables、AI status 由 React Query 负责缓存、轮询、重试和 refetch
-- `use-system-status.ts` 改成 Query → Zustand 兼容同步
-- `use-tables.ts` 改成 Query 驱动，并保留 `reload()` 给现有面板使用
-- 新增 `frontend-react/src/services/api/http-client.ts`、`api/status.ts`、`api/tables.ts`
-- 旧 `frontend-react/src/services/api.ts` 保持兼容 re-export，后续继续拆 `query/ai/streams`
+### å‰ç«¯ server-state ä¼˜åŒ–
+- æ–°å¢ž `frontend-react/src/hooks/use-server-state.ts`
+- system statusã€tablesã€AI status ç”± React Query è´Ÿè´£ç¼“å­˜ã€è½®è¯¢ã€é‡è¯•å’Œ refetch
+- `use-system-status.ts` æ”¹æˆ Query â†’ Zustand å…¼å®¹åŒæ­¥
+- `use-tables.ts` æ”¹æˆ Query é©±åŠ¨ï¼Œå¹¶ä¿ç•™ `reload()` ç»™çŽ°æœ‰é¢æ¿ä½¿ç”¨
+- æ–°å¢ž `frontend-react/src/services/api/http-client.ts`ã€`api/status.ts`ã€`api/tables.ts`
+- æ—§ `frontend-react/src/services/api.ts` ä¿æŒå…¼å®¹ re-exportï¼ŒåŽç»­ç»§ç»­æ‹† `query/ai/streams`
 
-### 后端 AI JSON parser 硬化
-- 新增 `backend/utils/llm_json.py`
-- `backend/services/ai_analyst.py` 的 `_parse_llm_json()` 改为共享 parser 包装
-- 新增 `tests/test_llm_json.py`
+### åŽç«¯ AI JSON parser ç¡¬åŒ–
+- æ–°å¢ž `backend/utils/llm_json.py`
+- `backend/services/ai_analyst.py` çš„ `_parse_llm_json()` æ”¹ä¸ºå…±äº« parser åŒ…è£…
+- æ–°å¢ž `tests/test_llm_json.py`
 
-### 文档
-- 新增 `docs/reports/v1.0.0-architecture-optimization-plan.md`
-- README 新增 v1.0.0 Architecture Foundation
-- `docs/architecture/版本记录.md` 新增 v1.0.0 条目
+### æ–‡æ¡£
+- æ–°å¢ž `docs/reports/v1.0.0-architecture-optimization-plan.md`
+- README æ–°å¢ž v1.0.0 Architecture Foundation
+- `docs/architecture/ç‰ˆæœ¬è®°å½•.md` æ–°å¢ž v1.0.0 æ¡ç›®
 
 ## Open Follow-ups
 
-1. 拆分 `frontend-react/src/services/api.ts`
-2. 拆分 `frontend-react/src/panels/ai-analysis-panel.tsx`
-3. 拆分 `frontend-react/src/panels/sql-workspace-panel.tsx`
-4. 建立统一 AI result envelope 和前端 fallback 呈现
-5. 做大数据分页消费和 Playwright 性能基准
-6. 非破坏性迁移 `backend/data/enterprise.duckdb`
-7. 清理本地生成物并确认 Git 忽略状态
+1. æ‹†åˆ† `frontend-react/src/services/api.ts`
+2. æ‹†åˆ† `frontend-react/src/panels/ai-analysis-panel.tsx`
+3. æ‹†åˆ† `frontend-react/src/panels/sql-workspace-panel.tsx`
+4. å»ºç«‹ç»Ÿä¸€ AI result envelope å’Œå‰ç«¯ fallback å‘ˆçŽ°
+5. åšå¤§æ•°æ®åˆ†é¡µæ¶ˆè´¹å’Œ Playwright æ€§èƒ½åŸºå‡†
+6. éžç ´åæ€§è¿ç§» `backend/data/enterprise.duckdb`
+7. æ¸…ç†æœ¬åœ°ç”Ÿæˆç‰©å¹¶ç¡®è®¤ Git å¿½ç•¥çŠ¶æ€
 
 ## Validation
 
-- `cd frontend-react && npm.cmd run type-check` — PASS
-- `cd frontend-react && npm.cmd run build` — PASS
-- `cd frontend-react && npm.cmd test` — PASS (10 files, 110 tests)
-- `cd frontend-react && npm.cmd run lint` — PASS, with Next 16 deprecation warning for `next lint`
-- `backend.utils.llm_json` smoke check with bundled Python — PASS
-- Backend import — BLOCKED locally: system `python`/`py` unavailable; existing `.venv` points to a missing Python path
-- Backend pytest — BLOCKED locally: bundled Codex Python lacks project dependencies (`fastapi`, `pytest`)
+- `cd frontend-react && npm.cmd run type-check` â€” PASS
+- `cd frontend-react && npm.cmd run build` â€” PASS
+- `cd frontend-react && npm.cmd test` â€” PASS (10 files, 110 tests)
+- `cd frontend-react && npm.cmd run lint` â€” PASS, with Next 16 deprecation warning for `next lint`
+- `backend.utils.llm_json` smoke check with bundled Python â€” PASS
+- Backend import â€” BLOCKED locally: system `python`/`py` unavailable; existing `.venv` points to a missing Python path
+- Backend pytest â€” BLOCKED locally: bundled Codex Python lacks project dependencies (`fastapi`, `pytest`)
