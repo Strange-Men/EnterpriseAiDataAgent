@@ -379,3 +379,69 @@
 2. ⚠️ 需修复 `generate_sql()` 中的 NoneType 拼接 bug
 3. 修复后可进入 M3-5 全链路验收
 4. 建议：后续修改 `.env` 后必须重启 uvicorn（或改用 `--reload` + 文件 watch）
+
+---
+
+## 15. NoneType Bug Fix (2026-06-20)
+
+### Bug 现象
+
+重启后端后 401 凭据错误消除，但 `/api/ai/query` 返回：
+
+```
+TypeError: can only concatenate str (not "NoneType") to str
+```
+
+### Root Cause
+
+Mimo API（`mimo-v2.5-pro`）返回 `thinking` content blocks，其 `text` 属性为 `None`。`_call_llm` 在提取输出文本时执行：
+
+```python
+for block in response.content:
+    if hasattr(block, "text"):
+        text += block.text  # block.text 为 None 时触发 TypeError
+```
+
+`hasattr(block, "text")` 对 `None` 值返回 `True`（属性存在但值为 None），导致 `str + None` 拼接失败。
+
+### 修复方案
+
+**最小修复**，仅增加 None 防御，不改变正常逻辑：
+
+| 文件 | 修改 | 说明 |
+|------|------|------|
+| `backend/services/ai_analyst.py` `_call_llm` | `if hasattr(block, "text") and block.text is not None:` | 过滤 None text blocks |
+| `backend/services/ai_analyst.py` `generate_sql` | `raw_sql = raw_sql or ""` | 防御 _call_llm 返回 None |
+| `backend/services/ai_pipeline.py` `run_ai_query` | `sql = sql_result.get("sql") or ""` | 防御 sql 字段为 None |
+| `backend/services/ai_pipeline.py` `_execute_plan_steps` | `sql = sql_result.get("sql") or ""` | 同上（非流式） |
+| `backend/services/ai_pipeline.py` `run_autonomous_analysis_stream` | `sql = sql_result.get("sql") or ""` | 同上（流式） |
+
+### 为什么不是硬编码
+
+- 修复仅增加 None 安全检查，不改变正常 SQL 生成逻辑
+- 正常路径（LLM 返回有效 SQL）不受影响
+- `raw_sql or ""` 对空字符串也是安全的（空字符串走 CANNOT_ANSWER 分支）
+- `sql_result.get("sql") or ""` 用 `get()` 替代 `[]` 访问，对缺失 key 也安全
+
+### 测试
+
+新增 `tests/test_ai_nonetype_fix.py`，6 个测试覆盖：
+
+1. `_call_llm` 处理 thinking block（text=None）
+2. `_call_llm` 所有 block 的 text 均为 None
+3. `generate_sql` 处理 `_call_llm` 返回 None
+4. `generate_sql` 处理 `_call_llm` 返回空字符串
+5. pipeline 处理 `generate_sql` 返回 sql=None
+6. pipeline 处理 `generate_sql` 返回缺少 sql key
+
+### 测试结果
+
+| 测试 | 结果 |
+|------|------|
+| 新增 6 个 NoneType 测试 | ✅ 6 passed |
+| 全量 backend 测试 | ✅ 426 passed (含新增 6 个) |
+| Backend import | ✅ OK |
+
+### 当前状态
+
+NoneType bug 已修复，可以继续 M3-5 全链路验收。
