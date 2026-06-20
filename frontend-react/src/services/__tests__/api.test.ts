@@ -46,7 +46,7 @@ describe("api service", () => {
 
       const result = await fetchTables();
       expect(result).toEqual(tables);
-      expect(mockFetch).toHaveBeenCalledWith("/api/tables", expect.any(Object));
+      expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/tables", expect.any(Object));
     });
 
     it("should throw on error response", async () => {
@@ -63,13 +63,13 @@ describe("api service", () => {
       const result = await fetchTableData("users", 50);
       expect(result.columns).toEqual(["id"]);
       expect(result.data).toEqual([{ id: 1 }]);
-      expect(mockFetch).toHaveBeenCalledWith("/api/tables/users?limit=50", expect.any(Object));
+      expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/tables/users?limit=50", expect.any(Object));
     });
 
     it("should encode table name in URL", async () => {
       mockFetch.mockResolvedValueOnce(mockJsonResponse({ columns: [], data: [], rowCount: 0 }));
       await fetchTableData("my table");
-      expect(mockFetch).toHaveBeenCalledWith("/api/tables/my%20table?limit=100", expect.any(Object));
+      expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/tables/my%20table?limit=100", expect.any(Object));
     });
   });
 
@@ -81,7 +81,7 @@ describe("api service", () => {
       const result = await fetchTableDataPaginated("users");
       expect(result.page).toBe(0);
       expect(result.hasMore).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith("/api/tables/users/data?page=0&page_size=200", expect.any(Object));
+      expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/tables/users/data?page=0&page_size=200", expect.any(Object));
     });
   });
 
@@ -99,7 +99,7 @@ describe("api service", () => {
     it("should send DELETE request", async () => {
       mockFetch.mockResolvedValueOnce(mockJsonResponse(null));
       await deleteTable("users");
-      expect(mockFetch).toHaveBeenCalledWith("/api/tables/users", expect.objectContaining({ method: "DELETE" }));
+      expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/tables/users", expect.objectContaining({ method: "DELETE" }));
     });
   });
 
@@ -107,7 +107,7 @@ describe("api service", () => {
     it("should send PUT request with new name", async () => {
       mockFetch.mockResolvedValueOnce(mockJsonResponse(null));
       await renameTable("old", "new");
-      expect(mockFetch).toHaveBeenCalledWith("/api/tables/old/rename", expect.objectContaining({
+      expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/tables/old/rename", expect.objectContaining({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ new_name: "new" }),
@@ -122,7 +122,7 @@ describe("api service", () => {
 
       const res = await executeQuery("SELECT 1");
       expect(res.status).toBe("success");
-      expect(mockFetch).toHaveBeenCalledWith("/api/query", expect.objectContaining({
+      expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/query", expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ sql: "SELECT 1", offset: 0, limit: 10000 }),
       }));
@@ -132,7 +132,7 @@ describe("api service", () => {
       const controller = new AbortController();
       mockFetch.mockResolvedValueOnce(mockJsonResponse({ status: "success" }));
       await executeQuery("SELECT 1", 0, 100, controller.signal);
-      expect(mockFetch).toHaveBeenCalledWith("/api/query", expect.objectContaining({
+      expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/query", expect.objectContaining({
         signal: controller.signal,
       }));
     });
@@ -142,7 +142,7 @@ describe("api service", () => {
     it("should fetch history with limit", async () => {
       mockFetch.mockResolvedValueOnce(mockJsonResponse([]));
       await fetchQueryHistory(10);
-      expect(mockFetch).toHaveBeenCalledWith("/api/query/history?limit=10", expect.any(Object));
+      expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/query/history?limit=10", expect.any(Object));
     });
   });
 

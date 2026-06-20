@@ -1,4 +1,4 @@
-import { API_BASE, apiFetch } from "@/services/api/http-client";
+import { apiUrl, apiFetch } from "@/services/api/http-client";
 
 export interface QueryResult {
   queryId: string;
@@ -76,7 +76,7 @@ export async function exportQueryResult(
   format: "csv" | "json" | "excel",
   limit: number = 50000
 ): Promise<Blob> {
-  const res = await fetch(`${API_BASE}/query/export`, {
+  const res = await fetch(apiUrl("/api/query/export"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sql, format, limit }),
