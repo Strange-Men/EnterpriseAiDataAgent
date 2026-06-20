@@ -60,18 +60,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Build shortcuts list
   const shortcutsList: (Shortcut & { id: string })[] = useMemo(
     () => [
-      { id: "command-palette", key: "k", mod: "ctrl", description: "Open command palette", handler: () => setCommandOpen(true), global: true },
-      { id: "global-search", key: "f", mod: "ctrl+shift", description: "Global search", handler: () => setSearchOpen(true), global: true },
-      { id: "open-shortcuts", key: "?", mod: "ctrl+shift", description: "Keyboard shortcuts help", handler: () => setShortcutsOpen(true), global: true },
-      { id: "go-home", key: "h", mod: "ctrl", description: "Go Home", handler: () => router.push("/") },
-      { id: "go-analyze", key: "a", mod: "ctrl+shift", description: "Go to Analyze", handler: () => router.push("/analyze") },
-      { id: "go-data", key: "d", mod: "ctrl+shift", description: "Go to Data", handler: () => router.push("/data") },
-      { id: "go-query", key: "q", mod: "ctrl", description: "Go to Query", handler: () => router.push("/query") },
-      { id: "go-settings", key: ",", mod: "ctrl", description: "Go to Settings", handler: () => router.push("/settings") },
-      { id: "toggle-theme", key: "t", mod: "ctrl+shift", description: "Toggle theme", handler: toggleTheme, global: true },
-      { id: "toggle-language", key: "l", mod: "ctrl+shift", description: "Toggle language", handler: toggleLanguage, global: true },
+      { id: "command-palette", key: "k", mod: "ctrl", description: t("shortcut.open-command-palette"), group: "global", handler: () => setCommandOpen(true), global: true },
+      { id: "global-search", key: "f", mod: "ctrl+shift", description: t("shortcut.global-search"), group: "global", handler: () => setSearchOpen(true), global: true },
+      { id: "open-shortcuts", key: "?", mod: "ctrl+shift", description: t("shortcut.keyboard-help"), group: "global", handler: () => setShortcutsOpen(true), global: true },
+      { id: "go-home", key: "h", mod: "ctrl", description: t("shortcut.go-home"), group: "navigation", handler: () => router.push("/") },
+      { id: "go-analyze", key: "a", mod: "ctrl+shift", description: t("shortcut.go-analyze"), group: "navigation", handler: () => router.push("/analyze") },
+      { id: "go-data", key: "d", mod: "ctrl+shift", description: t("shortcut.go-data"), group: "navigation", handler: () => router.push("/data") },
+      { id: "go-query", key: "q", mod: "ctrl", description: t("shortcut.go-query"), group: "navigation", handler: () => router.push("/query") },
+      { id: "go-settings", key: ",", mod: "ctrl", description: t("shortcut.go-settings"), group: "navigation", handler: () => router.push("/settings") },
+      { id: "toggle-theme", key: "t", mod: "ctrl+shift", description: t("shortcut.toggle-theme"), group: "appearance", handler: toggleTheme, global: true },
+      { id: "toggle-language", key: "l", mod: "ctrl+shift", description: t("shortcut.toggle-language"), group: "appearance", handler: toggleLanguage, global: true },
     ],
-    [router, toggleTheme, toggleLanguage]
+    [router, toggleTheme, toggleLanguage, t]
   );
 
   useKeyboardShortcuts(shortcutsList);
@@ -92,8 +92,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               variant="ghost"
               size="sm"
               onClick={() => setMobileNavOpen(true)}
-              title="Open navigation"
-              aria-label="Open navigation"
+              title={t("header.open-nav")}
+              aria-label={t("header.open-nav")}
               className="md:hidden"
               leftIcon={<Menu className="w-3.5 h-3.5" />}
             />
@@ -114,7 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               variant="ghost"
               size="sm"
               onClick={() => setCommandOpen(true)}
-              title={`Command palette (${formatShortcutKey({ key: "K", mod: "ctrl" })})`}
+              title={`${t("header.cmd-palette")} (${formatShortcutKey({ key: "K", mod: "ctrl" })})`}
               leftIcon={<Search className="w-3.5 h-3.5" />}
             >
               <span className="text-[10px] text-[var(--text-muted)]">{formatShortcutKey({ key: "K", mod: "ctrl" })}</span>
@@ -125,7 +125,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               variant="ghost"
               size="sm"
               onClick={() => setShortcutsOpen(true)}
-              title="Keyboard shortcuts"
+              title={t("header.shortcuts")}
               leftIcon={<Keyboard className="w-3.5 h-3.5" />}
             />
 
@@ -134,7 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              title={`${theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} (${formatShortcutKey({ key: "T", mod: "ctrl+shift" })})`}
+              title={`${theme === "dark" ? t("header.switch-to-light") : t("header.switch-to-dark")} (${formatShortcutKey({ key: "T", mod: "ctrl+shift" })})`}
               leftIcon={theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             />
 
@@ -154,7 +154,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
             <button
               type="button"
-              aria-label="Close navigation"
+              aria-label={t("header.close-nav")}
               className="absolute inset-0 bg-black/50"
               onClick={() => setMobileNavOpen(false)}
             />
@@ -164,8 +164,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                   variant="ghost"
                   size="sm"
                   onClick={() => setMobileNavOpen(false)}
-                  title="Close navigation"
-                  aria-label="Close navigation"
+                  title={t("header.close-nav")}
+                  aria-label={t("header.close-nav")}
                   leftIcon={<X className="w-3.5 h-3.5" />}
                 />
               </div>

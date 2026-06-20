@@ -105,10 +105,10 @@ export function SqlWorkspacePanel() {
         toast.success(t("ai.ready"));
         setAiSqlQuestion("");
       } else {
-        toast.error(res.error || "AI could not generate SQL");
+        toast.error(res.error || t("sql.ai-gen-failed"));
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "AI SQL generation failed");
+      toast.error(err instanceof Error ? err.message : t("sql.ai-gen-error"));
     } finally {
       if (mountedRef.current) setAiSqlLoading(false);
     }
@@ -129,10 +129,10 @@ export function SqlWorkspacePanel() {
         wfAdvance("sql-ready", { table: wfTable, sql: res.sql });
         toast.success(t("ai.ready"));
       } else {
-        toast.error(res.error || "AI could not generate SQL");
+        toast.error(res.error || t("sql.ai-gen-failed"));
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "AI SQL generation failed");
+      toast.error(err instanceof Error ? err.message : t("sql.ai-gen-error"));
     } finally {
       if (mountedRef.current) setGeneratingSql(false);
     }
@@ -173,9 +173,9 @@ export function SqlWorkspacePanel() {
       });
       logger.query(sql, result.rowCount, result.runtimeMs);
       if (result.status === "error") {
-        toast.error(`Query failed: ${result.error}`);
+        toast.error(`${t("sql.query-failed")}: ${result.error}`);
       } else {
-        toast.success(`OK (${result.rowCount} rows, ${result.runtimeMs}ms)`);
+        toast.success(t("sql.query-ok", { rows: result.rowCount, ms: result.runtimeMs }));
         if (wfStage === "executing" || wfStage === "sql-ready") {
           wfAdvance("done");
         }
@@ -185,7 +185,7 @@ export function SqlWorkspacePanel() {
         toast(t("query.cancelled"), { icon: " " });
         return;
       }
-      const msg = err instanceof Error ? err.message : "Query failed";
+      const msg = err instanceof Error ? err.message : t("sql.query-failed");
       const ms = Date.now() - startTimeRef.current;
       setQueryResult({
         queryId: "",
@@ -206,7 +206,7 @@ export function SqlWorkspacePanel() {
         error: msg,
         timestamp: new Date().toISOString(),
       });
-      toast.error(`Query failed: ${msg}`);
+      toast.error(`${t("sql.query-failed")}: ${msg}`);
     } finally {
       setExecuting(false);
       abortControllerRef.current = null;
@@ -227,17 +227,17 @@ export function SqlWorkspacePanel() {
       const result = await explainQuery(sql);
       if (!mountedRef.current) return;
       if (result.status === "error") {
-        setExplainError(result.error || "Explain failed");
+        setExplainError(result.error || t("sql.explain-failed"));
       } else {
         setExplainResult(result);
       }
     } catch (err) {
       if (!mountedRef.current) return;
-      setExplainError(err instanceof Error ? err.message : "Explain failed");
+      setExplainError(err instanceof Error ? err.message : t("sql.explain-failed"));
     } finally {
       if (mountedRef.current) setExplainLoading(false);
     }
-  }, [currentSql]);
+  }, [currentSql, t]);
 
   // Cancel handler
   const handleCancel = useCallback(async () => {
@@ -446,7 +446,7 @@ export function SqlWorkspacePanel() {
           className="px-3 py-1.5 text-xs border border-[var(--border-default)] text-[var(--text-muted)] rounded-md hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="Ctrl+Shift+S"
         >
-          Save
+          {t("sql.save")}
         </button>
 
         <button
@@ -454,7 +454,7 @@ export function SqlWorkspacePanel() {
           className="px-3 py-1.5 text-xs border border-[var(--border-default)] text-[var(--text-muted)] rounded-md hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
           title="Ctrl+Shift+K"
         >
-          Clear
+          {t("sql.clear")}
         </button>
 
         <ExportDropdown sql={currentSql} disabled={isExecuting} />

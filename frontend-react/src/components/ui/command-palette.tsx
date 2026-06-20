@@ -60,7 +60,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
     const recentItems: CommandItem[] = runs.map((run) => ({
       id: run.id,
-      label: run.question?.slice(0, 50) || run.mode || "Analysis",
+      label: run.question?.slice(0, 50) || run.mode || t("cmd.analysis-fallback"),
       description: new Date(run.timestamp).toLocaleDateString(),
       icon: <Clock className="w-4 h-4" />,
       action: () => router.push(`/analyze/${run.id}`),

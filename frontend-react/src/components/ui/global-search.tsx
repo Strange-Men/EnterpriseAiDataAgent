@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Clock, Database, FileText } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { cn } from "@/utils/cn";
 
@@ -22,6 +23,7 @@ interface GlobalSearchProps {
 
 export function GlobalSearch({ open, onClose, tables }: GlobalSearchProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const allRuns = useAnalysisStore((s) => s.runs);
   const runs = useMemo(() => allRuns.slice(-30), [allRuns]);
   const [query, setQuery] = useState("");
@@ -33,21 +35,21 @@ export function GlobalSearch({ open, onClose, tables }: GlobalSearchProps) {
     const q = query.toLowerCase();
 
     const pageResults: SearchResult[] = [
-      { label: "Home", href: "/" },
-      { label: "Data", href: "/data" },
-      { label: "SQL Query", href: "/query" },
-      { label: "AI Analyze", href: "/analyze" },
-      { label: "History", href: "/history" },
-      { label: "Settings", href: "/settings" },
+      { label: t("search.page-home"), href: "/" },
+      { label: t("search.page-data"), href: "/data" },
+      { label: t("search.page-query"), href: "/query" },
+      { label: t("search.page-analyze"), href: "/analyze" },
+      { label: t("search.page-history"), href: "/history" },
+      { label: t("search.page-settings"), href: "/settings" },
     ]
       .filter((p) => p.label.toLowerCase().includes(q))
       .map((p) => ({ id: `page-${p.href}`, type: "page" as const, label: p.label, href: p.href }));
 
     const tableResults: SearchResult[] = tables
-      .filter((t) => t.name.toLowerCase().includes(q))
-      .map((t) => ({
-        id: `table-${t.name}`, type: "table" as const,
-        label: t.name, href: "/analyze", detail: "Table",
+      .filter((tb) => tb.name.toLowerCase().includes(q))
+      .map((tb) => ({
+        id: `table-${tb.name}`, type: "table" as const,
+        label: tb.name, href: "/analyze", detail: t("search.table"),
       }));
 
     const runResults: SearchResult[] = runs
@@ -59,13 +61,13 @@ export function GlobalSearch({ open, onClose, tables }: GlobalSearchProps) {
       .slice(0, 15)
       .map((r) => ({
         id: r.id, type: "run" as const,
-        label: r.question?.slice(0, 60) || r.mode || "Analysis",
+        label: r.question?.slice(0, 60) || r.mode || t("search.analysis"),
         detail: r.table ?? "",
         href: `/analyze/${r.id}`,
       }));
 
     return [...pageResults.slice(0, 3), ...tableResults.slice(0, 5), ...runResults];
-  }, [query, runs, tables]);
+  }, [query, runs, tables, t]);
 
   useEffect(() => {
     if (open) {
@@ -112,16 +114,16 @@ export function GlobalSearch({ open, onClose, tables }: GlobalSearchProps) {
             type="text"
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
-            placeholder="Search runs, tables, pages..."
+            placeholder={t("search.placeholder")}
             className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none"
           />
           <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded text-[var(--text-muted)]">Esc</kbd>
         </div>
         <div className="max-h-64 overflow-y-auto p-1">
           {results.length === 0 && query.length > 0 ? (
-            <div className="py-8 text-center text-xs text-[var(--text-muted)]">No results for &ldquo;{query}&rdquo;</div>
+            <div className="py-8 text-center text-xs text-[var(--text-muted)]">{t("search.no-results", { query })}</div>
           ) : query.length === 0 ? (
-            <div className="py-6 text-center text-xs text-[var(--text-muted)]">Start typing to search...</div>
+            <div className="py-6 text-center text-xs text-[var(--text-muted)]">{t("search.start-typing")}</div>
           ) : (
             results.map((r, i) => {
               const Icon = iconMap[r.type];
