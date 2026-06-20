@@ -286,3 +286,96 @@
 ### 是否建议打 tag `v1.0.4-ai-validated`？
 
 **否** — 需 AI 全链路通过后方可打 tag
+
+---
+
+## 14. Credential / Endpoint Diagnosis (2026-06-20)
+
+### 诊断目的
+
+用户确认 API Key 已重新复制，但项目调用仍返回 401。本轮诊断排除 `.env` 格式问题、重复定义、SDK 兼容性，定位真实原因。
+
+### `.env` 文件检查
+
+| Check | Result | Detail |
+|-------|--------|--------|
+| 文件存在 | ✅ PASS | `.env` 在项目根目录 |
+| ANTHROPIC_API_KEY | ✅ SET | 长度 51，前缀 `tp-***`，后缀 `***ue41` |
+| key 格式 | ✅ PASS | 无前导/尾随空格、无换行、无引号包裹 |
+| ANTHROPIC_BASE_URL | ✅ PASS | `https://token-plan-cn.xiaomimimo.com/anthropic`，无空格/换行 |
+| DEFAULT_LLM_MODEL | ✅ PASS | `mimo-v2.5-pro`，无空格/换行 |
+| 重复定义 | ✅ PASS | 每个变量仅出现一次（行 6/8/10） |
+| `.env` in git | ✅ PASS | `git status` 干净，`.env` 未被追踪 |
+
+### Direct httpx Test（绕过后端、绕过 SDK）
+
+| Item | Value |
+|------|-------|
+| URL | `https://token-plan-cn.xiaomimimo.com/anthropic/v1/messages` |
+| Status Code | **200** ✅ |
+| Response | 正常 JSON，包含 `thinking` block |
+| Model | `mimo-v2.5-pro` |
+| Token Usage | input=60, output=32, cache_read=192 |
+
+**结论**：Key、Base URL、Model 全部正确，Mimo API 正常响应。
+
+### Anthropic SDK Test
+
+| Item | Value |
+|------|-------|
+| Client init | ✅ 成功 |
+| messages.create | ✅ 成功，返回 `Message` 对象 |
+| Content type | `thinking` block（Mimo 模型返回 thinking content） |
+
+**结论**：Anthropic SDK 与 Mimo 端点完全兼容。
+
+### Backend Process Diagnosis
+
+| Item | Value |
+|------|-------|
+| `.env` 最后修改时间 | 2026-06-20 **18:43:38** |
+| uvicorn 进程启动时间 | 2026-06-20 **15:52:41** |
+| 时间差 | **2 小时 51 分钟** — 进程早于 `.env` 更新 |
+
+**根因**：uvicorn 进程在用户更新 `.env` 之前启动，`backend/config.py` 在 import 时读取环境变量并缓存为模块级常量，运行期间不会重新读取。旧进程使用的是**旧 Key**。
+
+### 重启后端后测试
+
+| Item | Before Restart | After Restart |
+|------|---------------|---------------|
+| `/api/ai/status` | connection: ok | connection: ok |
+| `/api/ai/query` (401) | ❌ 401 Invalid API Key | ✅ 401 消失 |
+| `/api/ai/query` (实际) | N/A | ⚠️ 新错误：`can only concatenate str (not "NoneType") to str` |
+
+401 凭据错误**已完全解决**。新错误是代码层面的 bug（prompt 构建中 NoneType 拼接），与凭据无关。
+
+### 诊断结果表
+
+| Check | Result | Meaning |
+|-------|--------|---------|
+| .env key set | ✅ PASS | Key 存在且格式正确 |
+| key format | ✅ PASS | 无空格/引号/换行/隐藏字符 |
+| duplicate env vars | ✅ PASS | 无重复定义 |
+| base_url | ✅ PASS | 路径正确 |
+| model | ✅ PASS | 模型名正确 |
+| direct httpx call | ✅ PASS | API 正常响应 |
+| Anthropic SDK call | ✅ PASS | SDK 兼容 |
+| backend call (before restart) | ❌ FAIL | 旧进程用旧 Key |
+| backend call (after restart) | ✅ PASS | 401 消除，出现代码 bug |
+
+### 最终结论
+
+**`BACKEND_PROCESS_NOT_RESTARTED`**
+
+根因不是 Key 无效、不是 `.env` 格式问题、不是 SDK 兼容性问题。是 **uvicorn 进程在 `.env` 更新前启动，缓存了旧 Key**。重启后端后 401 完全消除。
+
+### 发现的代码 bug（非凭据问题）
+
+重启后 `/api/ai/query` 返回 `can only concatenate str (not "NoneType") to str`。这是 `backend/services/ai_pipeline.py` 中 `generate_sql()` 的 prompt 构建 bug，与凭据无关。需单独修复。
+
+### 下一步建议
+
+1. ✅ 凭据问题已解决 — 重启后端即可
+2. ⚠️ 需修复 `generate_sql()` 中的 NoneType 拼接 bug
+3. 修复后可进入 M3-5 全链路验收
+4. 建议：后续修改 `.env` 后必须重启 uvicorn（或改用 `--reload` + 文件 watch）
