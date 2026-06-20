@@ -499,6 +499,52 @@ const zh = {
     "cmd.new-investigation": "新建调查",
     "cmd.toggle-theme": "切换主题 ({{theme}})",
     "cmd.switch-language": "切换语言 ({{language}})",
+    "cmd.analysis-fallback": "分析",
+
+    // Keyboard Shortcuts
+    "shortcut.title": "键盘快捷键",
+    "shortcut.group.global": "全局",
+    "shortcut.group.navigation": "导航",
+    "shortcut.group.appearance": "外观",
+    "shortcut.open-command-palette": "打开命令面板",
+    "shortcut.global-search": "全局搜索",
+    "shortcut.keyboard-help": "快捷键帮助",
+    "shortcut.go-home": "前往首页",
+    "shortcut.go-analyze": "前往分析",
+    "shortcut.go-data": "前往数据",
+    "shortcut.go-query": "前往查询",
+    "shortcut.go-settings": "前往设置",
+    "shortcut.toggle-theme": "切换主题",
+    "shortcut.toggle-language": "切换语言",
+
+    // Global Search
+    "search.placeholder": "搜索运行记录、表、页面...",
+    "search.no-results": "未找到\"{{query}}\"的结果",
+    "search.start-typing": "输入关键词开始搜索...",
+    "search.table": "表",
+    "search.analysis": "分析",
+    "search.page-home": "首页",
+    "search.page-data": "数据",
+    "search.page-query": "SQL 查询",
+    "search.page-analyze": "AI 分析",
+    "search.page-history": "历史",
+    "search.page-settings": "设置",
+
+    // Header Toolbar
+    "header.cmd-palette": "命令面板",
+    "header.shortcuts": "键盘快捷键",
+    "header.switch-to-light": "切换到浅色模式",
+    "header.switch-to-dark": "切换到深色模式",
+    "header.open-nav": "打开导航",
+    "header.close-nav": "关闭导航",
+
+    // SQL Toolbar Extras
+    "sql.save": "保存",
+    "sql.query-ok": "执行成功 ({{rows}} 行, {{ms}}ms)",
+    "sql.query-failed": "查询失败",
+    "sql.explain-failed": "Explain 失败",
+    "sql.ai-gen-failed": "AI 无法生成 SQL",
+    "sql.ai-gen-error": "AI SQL 生成失败",
 
     // Onboarding
     "onboarding.title": "新手教程",

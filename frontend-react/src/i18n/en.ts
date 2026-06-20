@@ -499,6 +499,52 @@ const en = {
     "cmd.new-investigation": "New Investigation",
     "cmd.toggle-theme": "Toggle Theme ({{theme}})",
     "cmd.switch-language": "Switch Language ({{language}})",
+    "cmd.analysis-fallback": "Analysis",
+
+    // Keyboard Shortcuts
+    "shortcut.title": "Keyboard Shortcuts",
+    "shortcut.group.global": "Global",
+    "shortcut.group.navigation": "Navigation",
+    "shortcut.group.appearance": "Appearance",
+    "shortcut.open-command-palette": "Open command palette",
+    "shortcut.global-search": "Global search",
+    "shortcut.keyboard-help": "Keyboard shortcuts help",
+    "shortcut.go-home": "Go Home",
+    "shortcut.go-analyze": "Go to Analyze",
+    "shortcut.go-data": "Go to Data",
+    "shortcut.go-query": "Go to Query",
+    "shortcut.go-settings": "Go to Settings",
+    "shortcut.toggle-theme": "Toggle theme",
+    "shortcut.toggle-language": "Toggle language",
+
+    // Global Search
+    "search.placeholder": "Search runs, tables, pages...",
+    "search.no-results": "No results for \"{{query}}\"",
+    "search.start-typing": "Start typing to search...",
+    "search.table": "Table",
+    "search.analysis": "Analysis",
+    "search.page-home": "Home",
+    "search.page-data": "Data",
+    "search.page-query": "SQL Query",
+    "search.page-analyze": "AI Analyze",
+    "search.page-history": "History",
+    "search.page-settings": "Settings",
+
+    // Header Toolbar
+    "header.cmd-palette": "Command palette",
+    "header.shortcuts": "Keyboard shortcuts",
+    "header.switch-to-light": "Switch to light mode",
+    "header.switch-to-dark": "Switch to dark mode",
+    "header.open-nav": "Open navigation",
+    "header.close-nav": "Close navigation",
+
+    // SQL Toolbar Extras
+    "sql.save": "Save",
+    "sql.query-ok": "OK ({{rows}} rows, {{ms}}ms)",
+    "sql.query-failed": "Query failed",
+    "sql.explain-failed": "Explain failed",
+    "sql.ai-gen-failed": "AI could not generate SQL",
+    "sql.ai-gen-error": "AI SQL generation failed",
 
     // Onboarding
     "onboarding.title": "Getting Started",

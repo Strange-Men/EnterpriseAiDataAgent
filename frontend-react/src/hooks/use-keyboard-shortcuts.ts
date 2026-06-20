@@ -6,6 +6,8 @@ export interface Shortcut {
   key: string;
   mod?: "ctrl" | "ctrl+shift" | "alt";
   description: string;
+  /** Optional group key for display grouping in shortcuts modal */
+  group?: string;
   handler: () => void;
   /** If true, fires even when focus is in an input/textarea */
   global?: boolean;
