@@ -211,3 +211,78 @@
    ```
 3. Key 更新后重新运行本 smoke test
 4. 通过后进入 M3-5 全链路验收
+
+---
+
+## 13. Re-run After API Key Fix (2026-06-20)
+
+用户报告已修正本地 `.env` 中的 Mimo API Key，要求重新执行验收。
+
+### 配置确认
+
+| Item | Status |
+|------|--------|
+| API Key 是否配置 | **YES** — `ANTHROPIC_API_KEY` 已设置 |
+| Base URL 是否配置 | **YES** — `https://token-plan-cn.xiaomimimo.com/anthropic` |
+| Model | `mimo-v2.5-pro` |
+| `/api/ai/status` | `configured: true, connection: ok` |
+
+### Smoke Test 结果
+
+| Item | Value |
+|------|-------|
+| 端点 | `POST /api/ai/query` |
+| 请求体 | `{"question":"按地区统计销售额最高的前 5 个地区"}` |
+| HTTP 状态码 | 200（业务层返回） |
+| LLM 调用 | **失败** |
+| 错误码 | 401 |
+| 错误信息 | `Invalid API Key` — Mimo 端点仍拒绝当前 Key |
+| 耗时 | ~923ms |
+
+### 验收状态
+
+| 检查项 | 结果 |
+|--------|------|
+| Smoke Test | ❌ **FAIL — 401 Invalid API Key** |
+| NL→SQL | ⏭️ 未执行（smoke test 未通过） |
+| Explain | ⏭️ 未执行 |
+| Insights | ⏭️ 未执行 |
+| Report Generation | ⏭️ 未执行 |
+| SSE Streaming | ⏭️ 未执行 |
+| Multi-step Analysis | ⏭️ 未执行 |
+| Scheduler Execution | ⏭️ 未执行 |
+
+### 最终状态
+
+**`BLOCKED_BY_CREDENTIAL`** — 与上一轮结果相同
+
+### 分析
+
+用户声称已修正 API Key，但 Mimo 端点仍返回 401。可能原因：
+
+1. **Key 未正确保存** — `.env` 文件中 `ANTHROPIC_API_KEY` 的值可能仍有误
+2. **Key 未激活** — Mimo 平台可能需要额外激活步骤
+3. **Key 额度不足** — 账户可能没有可用额度
+4. **Key 过期** — 生成的 Key 可能已过期
+5. **代理服务问题** — `token-plan-cn.xiaomimimo.com` 可能有服务端问题
+
+### 建议下一步
+
+1. **直接 curl 测试**（绕过后端，验证 Key 本身有效性）：
+   ```bash
+   curl -X POST https://token-plan-cn.xiaomimimo.com/anthropic/v1/messages \
+     -H "x-api-key: $ANTHROPIC_API_KEY" \
+     -H "anthropic-version: 2023-06-01" \
+     -H "content-type: application/json" \
+     -d '{"model":"mimo-v2.5-pro","max_tokens":32,"messages":[{"role":"user","content":"hi"}]}'
+   ```
+2. 如果 curl 也返回 401，则 Key 本身无效，需在 Mimo 平台重新生成
+3. 如果 curl 成功，则后端代码可能有 Key 读取问题，需进一步排查
+
+### 是否建议 merge 回 master？
+
+**否** — AI 验收仍为 BLOCKED_BY_CREDENTIAL
+
+### 是否建议打 tag `v1.0.4-ai-validated`？
+
+**否** — 需 AI 全链路通过后方可打 tag
