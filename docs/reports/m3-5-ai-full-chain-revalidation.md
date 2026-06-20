@@ -152,3 +152,62 @@
 1. **立即**：检查 `ANTHROPIC_API_KEY` 是否过期或被撤销，联系代理服务提供商确认
 2. **更新 Key 后**：重新运行 M3-5 验收流程
 3. **可选改进**：增强 `ai/status` 健康检查，使其能真实反映 API 连通性
+
+---
+
+## 12. Mimo API Smoke Test (2026-06-20)
+
+用户已手动更新 `.env`，切换至 Mimo Anthropic-compatible API。
+
+### 配置确认
+
+| Item | Status |
+|------|--------|
+| API Key 是否配置 | **YES** — `ANTHROPIC_API_KEY` 已设置（len=51，不输出值） |
+| Base URL 是否配置 | **YES** — `https://token-plan-cn.xiaomimimo.com/anthropic` |
+| Model | `mimo-v2.5-pro` |
+
+### `/api/ai/status` 结果
+
+```json
+{
+  "configured": true,
+  "connection": "ok",
+  "model": "mimo-v2.5-pro",
+  "temperature": 0.7,
+  "base_url": "https://token-plan-cn.xiaomimimo.com/anthropic"
+}
+```
+
+### 最小 AI 调用结果
+
+| Item | Value |
+|------|-------|
+| 端点 | `POST /api/ai/query` |
+| 请求体 | `{"question":"用一句话回答：你可以正常工作吗？"}` |
+| HTTP 状态码 | 200（业务层返回） |
+| LLM 调用 | **失败** |
+| 错误码 | 401 |
+| 错误信息 | `Invalid API Key` — Mimo 端点拒绝当前 Key |
+
+### 结论
+
+**`BLOCKED_BY_CREDENTIAL`**
+
+- `/api/ai/status` 报告 `connection: ok`，但该检查仅验证 Key 非空，不实际调用 API
+- 实际 LLM 调用时，Mimo 端点返回 401 Invalid API Key
+- 问题不在代码，不在 SDK 兼容性，不在端点路径——纯粹是凭证无效
+
+### 下一步建议
+
+1. 确认 Mimo API Key 是否已激活、是否过期、是否有足够额度
+2. 可用 `curl` 直接测试 Mimo 端点（绕过后端）验证 Key 有效性：
+   ```bash
+   curl -X POST https://token-plan-cn.xiaomimimo.com/anthropic/v1/messages \
+     -H "x-api-key: $ANTHROPIC_API_KEY" \
+     -H "anthropic-version: 2023-06-01" \
+     -H "content-type: application/json" \
+     -d '{"model":"mimo-v2.5-pro","max_tokens":32,"messages":[{"role":"user","content":"hi"}]}'
+   ```
+3. Key 更新后重新运行本 smoke test
+4. 通过后进入 M3-5 全链路验收
