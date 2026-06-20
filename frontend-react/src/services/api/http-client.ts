@@ -1,14 +1,32 @@
+const DIRECT_BACKEND = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
+
+/** @deprecated Use DIRECT_BACKEND + path directly for consistent cross-env behavior. */
 const API_BASE = "/api";
-const DIRECT_BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export { API_BASE, DIRECT_BACKEND };
+
+/**
+ * Build an absolute API URL that works in every environment:
+ *  - localhost dev  → http://localhost:8000/api/...
+ *  - Vercel prod    → https://enterpriseaidataagent.onrender.com/api/...
+ *
+ * If `path` already starts with "/api/", it is used as-is.
+ * Otherwise "/api" is prepended (backward-compatible with callers that
+ * historically relied on API_BASE = "/api").
+ */
+export function apiUrl(path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const fullPath = normalizedPath.startsWith("/api/") ? normalizedPath : `/api${normalizedPath}`;
+  return `${DIRECT_BACKEND}${fullPath}`;
+}
 
 export async function apiFetch<T>(
   path: string,
   options?: RequestInit & { signal?: AbortSignal }
 ): Promise<T> {
   const signal = options?.signal ?? AbortSignal.timeout(60_000);
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = apiUrl(path);
+  const res = await fetch(url, {
     ...options,
     signal,
   });

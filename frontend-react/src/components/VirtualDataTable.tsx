@@ -10,7 +10,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { DIRECT_BACKEND } from "@/services/api";
+import { apiUrl } from "@/services/api/http-client";
 
 // ─── Types ───────────────────────────────────────────────────────────
 interface SalesRow {
@@ -232,7 +232,7 @@ export default function VirtualDataTable({
     async (page: number) => {
       setFetchState((s) => ({ ...s, loading: true, error: null }));
       try {
-        const url = `${DIRECT_BACKEND}/api/tables/${tableName}/data?page=${page}&page_size=${PAGE_SIZE}`;
+        const url = apiUrl(`/api/tables/${tableName}/data?page=${page}&page_size=${PAGE_SIZE}`);
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
@@ -262,7 +262,7 @@ export default function VirtualDataTable({
     setFetchState((s) => ({ ...s, loading: true, error: null }));
     try {
       const res = await fetch(
-        `${DIRECT_BACKEND}/api/table/${tableName}/export`
+        apiUrl(`/api/tables/${tableName}/export`)
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();

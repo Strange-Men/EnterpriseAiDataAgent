@@ -4,7 +4,7 @@
  * New code should import feature modules from `@/services/api/*`.
  */
 
-export { API_BASE, DIRECT_BACKEND, apiFetch } from "@/services/api/http-client";
+export { API_BASE, apiUrl, DIRECT_BACKEND, apiFetch } from "@/services/api/http-client";
 
 export type {
   AiQualityGate,
