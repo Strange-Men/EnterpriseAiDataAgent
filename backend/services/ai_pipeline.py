@@ -252,7 +252,7 @@ def run_ai_query(
             "quality_gates": sql_result.get("quality_gates", []),
         }
 
-    sql = sql_result["sql"]
+    sql = sql_result.get("sql") or ""
 
     # Check if the model determined the question can't be answered
     if sql.startswith("-- CANNOT_ANSWER"):
@@ -368,7 +368,7 @@ def _execute_plan_steps(plan: list, schema_context: str, language: str,
             ))
             continue
 
-        sql = sql_result["sql"]
+        sql = sql_result.get("sql") or ""
         if sql.startswith("-- CANNOT_ANSWER"):
             guard.record_step_result(success=False)
             executed_steps.append(_make_step_result(
@@ -583,7 +583,7 @@ def run_autonomous_analysis_stream(
             yield {"type": "step_result", **step_out}
             continue
 
-        sql = sql_result["sql"]
+        sql = sql_result.get("sql") or ""
         if sql.startswith("-- CANNOT_ANSWER"):
             guard.record_step_result(success=False)
             step_out = _make_step_result(step_num, purpose, sql=sql,

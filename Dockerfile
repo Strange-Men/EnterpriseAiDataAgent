@@ -15,7 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # App source
 COPY backend/ backend/
 COPY database/ database/
-COPY data/ data/
+COPY scripts/ scripts/
+COPY testExcel/ testExcel/
+RUN mkdir -p data
 
 # Env
 ENV PYTHONUNBUFFERED=1

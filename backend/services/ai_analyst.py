@@ -389,9 +389,10 @@ def _call_llm(
             )
 
             # 提取输出文本 — concatenate ALL text blocks
+            # Mimo API 返回 thinking blocks 时 block.text 可能为 None
             text = ""
             for block in response.content:
-                if hasattr(block, "text"):
+                if hasattr(block, "text") and block.text is not None:
                     text += block.text
             if not text:
                 text = str(response.content[0])
@@ -593,6 +594,8 @@ def generate_sql(
             operation="sql_generation",
             trace=trace, phase=phase, prompt_name="sql_generation", step=step,
         )
+        # _call_llm 理论上不会返回 None，但防御性处理
+        raw_sql = raw_sql or ""
         sql = extract_sql_from_llm_output(raw_sql)
         is_valid, validation_error = validate_generated_sql(sql)
         quality_gates = build_sql_quality_gates(sql, validation_error)
