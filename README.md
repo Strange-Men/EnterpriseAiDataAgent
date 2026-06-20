@@ -2,6 +2,13 @@
 
 这是一个面向 CSV / Excel 数据文件的 AI 数据分析工作台。用户可以上传数据集，使用内置的 SQL 工作台进行查询分析，也可以通过自然语言让 AI 生成 SQL、解释查询结果、检测数据异常、生成分析报告。这是一个个人作品集项目（MVP），用于展示 AI 应用工程能力，不是企业级生产系统，也不试图替代 Tableau 或 Power BI。
 
+## 在线演示
+
+- 前端 Demo：https://enterprise-ai-data-agent.vercel.app/
+- 后端 API：https://enterpriseaidataagent.onrender.com
+
+> 说明：Render 免费实例可能会休眠，首次访问后端时可能需要等待几十秒唤醒。
+
 ## 1. 项目简介
 
 ### 解决什么问题
