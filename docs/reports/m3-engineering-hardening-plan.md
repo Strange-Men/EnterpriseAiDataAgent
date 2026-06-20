@@ -190,4 +190,22 @@ M3 完成条件：
 
 ---
 
+---
+
+## 9. Status Update (2026-06-20)
+
+| Task | Status | Notes |
+|------|--------|-------|
+| M3-1 Scheduler Verification | ✅ DONE | Task management layer fully functional, execution layer BLOCKED_BY_CREDENTIAL |
+| M3-2 Docker Validation | ✅ DONE | Static audit passed (no P0/P1), DOCKER_NOT_AVAILABLE on local machine |
+| M3-3 Basic CI | ✅ DONE | Remote CI passes (backend + frontend), fixed pytest dependency |
+| M3-4 i18n Cleanup | ✅ DONE | ~40 keys localized, remote CI passes |
+| M3-5 AI Full Chain | ❌ BLOCKED | Requires valid API Key (401 Invalid) |
+
+**M3 Status**: `COMPLETE_WITH_EXTERNAL_BLOCKERS`
+
+See `docs/reports/m3-close-out.md` for full close-out report.
+
+---
+
 *End of M3 Engineering Hardening Plan*
