@@ -75,3 +75,45 @@ $ npm run build
 ## 6. Next Step
 
 建议进入：M3-4 i18n Hardcoded Text Cleanup
+
+## 7. Remote CI Failure Fix
+
+### GitHub Actions 失败原因
+
+- **失败 step**: `Run pytest`
+- **失败命令**: `python -m pytest tests/ -x -q --ignore=tests/ai`
+- **关键错误**: `/opt/hostedtoolcache/Python/3.11.15/x64/bin/python: No module named pytest`
+- **Root cause**: `requirements.txt` 不包含 `pytest`，CI 只安装了业务依赖，未安装测试依赖
+
+### 修复文件
+
+- `.github/workflows/ci.yml`
+
+### 修复方式
+
+在 backend job 的 `Install dependencies` step 中追加安装 `pytest` 和 `httpx`：
+
+```yaml
+- name: Install dependencies
+  run: |
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+    pip install pytest httpx
+```
+
+- `pytest`: 测试运行器
+- `httpx`: FastAPI TestClient 依赖
+
+### 本地验证结果
+
+```bash
+$ python -c "from backend.main import app; print('backend import OK')"
+backend import OK
+
+$ python -m pytest tests/ -x -q --ignore=tests/ai
+420 passed in 7.77s
+```
+
+### Push 后等待远程 CI 复跑
+
+待 push 后观察 GitHub Actions 新 run 结果。
