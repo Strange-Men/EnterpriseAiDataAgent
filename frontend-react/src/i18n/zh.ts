@@ -107,12 +107,15 @@ const zh = {
     "sql.time": "耗时",
 
     "history.title": "查询历史",
-    "history.empty": "暂无查询记录。",
-    "history.search": "搜索 SQL...",
+    "history.empty": "暂无历史记录。",
+    "history.empty-hint": "执行一次自然语言查询或专家 SQL 后会显示在这里。",
+    "history.search": "搜索问题或 SQL...",
     "history.filter-all": "全部",
     "history.filter-success": "成功",
     "history.filter-error": "失败",
-    "history.no-results": "未找到匹配的查询。",
+    "history.type-ai": "AI 分析",
+    "history.type-sql": "专家 SQL",
+    "history.no-results": "未找到匹配的记录。",
     "history.try-different": "请尝试其他搜索词。",
     "history.confirm-clear": "清空所有历史记录？",
     "history.clear": "清空历史",
@@ -279,6 +282,8 @@ const zh = {
     "ai.connection-lost": "连接中断，部分内容已保留",
     "ai.attempt": "尝试",
     "ai.error-json-parse": "AI 返回格式不符合预期，已保留原始响应。",
+    "ai.error-empty-response": "AI 暂时没有返回有效内容，请稍后重试，或换一个更具体的问题。",
+    "ai.error-empty-hint": "提示：检查当前数据表是否选择正确，或尝试更具体的描述。",
     "ai.error-technical-detail": "技术详情",
 
     // SQL Workspace AI

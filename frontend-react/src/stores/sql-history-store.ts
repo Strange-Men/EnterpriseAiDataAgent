@@ -4,8 +4,12 @@ import { fetchQueryHistory } from "@/services/api";
 
 export interface SqlHistoryEntry {
   id: string;
+  type?: "sql" | "ai";
   sql: string;
-  status: "success" | "error";
+  question?: string;
+  tableName?: string;
+  summary?: string;
+  status: "success" | "error" | "partial";
   runtimeMs: number;
   rowCount: number;
   error: string | null;
@@ -16,6 +20,7 @@ interface SqlHistoryState {
   history: SqlHistoryEntry[];
   searchQuery: string;
   filterStatus: "all" | "success" | "error";
+  filterType: "all" | "sql" | "ai";
   isLoading: boolean;
 
   setHistory: (history: SqlHistoryEntry[]) => void;
@@ -24,6 +29,7 @@ interface SqlHistoryState {
   clearHistory: () => void;
   setSearchQuery: (query: string) => void;
   setFilterStatus: (status: "all" | "success" | "error") => void;
+  setFilterType: (type: "all" | "sql" | "ai") => void;
   getFiltered: () => SqlHistoryEntry[];
   exportHistory: () => string;
   fetchHistory: () => Promise<void>;
@@ -35,6 +41,7 @@ export const useSqlHistoryStore = create<SqlHistoryState>()(
       history: [],
       searchQuery: "",
       filterStatus: "all",
+      filterType: "all",
       isLoading: false,
 
       setHistory: (history) => set({ history }),
@@ -55,15 +62,24 @@ export const useSqlHistoryStore = create<SqlHistoryState>()(
 
       setFilterStatus: (filterStatus) => set({ filterStatus }),
 
+      setFilterType: (filterType) => set({ filterType }),
+
       getFiltered: () => {
-        const { history, searchQuery, filterStatus } = get();
+        const { history, searchQuery, filterStatus, filterType } = get();
         let filtered = history;
         if (filterStatus !== "all") {
           filtered = filtered.filter((e) => e.status === filterStatus);
         }
+        if (filterType !== "all") {
+          filtered = filtered.filter((e) => (e.type || "sql") === filterType);
+        }
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
-          filtered = filtered.filter((e) => e.sql.toLowerCase().includes(q));
+          filtered = filtered.filter((e) =>
+            e.sql.toLowerCase().includes(q) ||
+            (e.question && e.question.toLowerCase().includes(q)) ||
+            (e.summary && e.summary.toLowerCase().includes(q))
+          );
         }
         return filtered;
       },

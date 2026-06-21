@@ -15,6 +15,7 @@ export function SqlHistoryPanel() {
     setHistory, removeEntry, clearHistory,
     searchQuery, setSearchQuery,
     filterStatus, setFilterStatus,
+    filterType, setFilterType,
     getFiltered,
   } = useSqlHistoryStore();
   const { addTab, updateTabSql, getActiveTab, setActiveTab } = useSqlEditorStore();
@@ -94,6 +95,15 @@ export function SqlHistoryPanel() {
           className="flex-1 px-2 py-1 text-xs bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
         />
         <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value as "all" | "sql" | "ai")}
+          className="px-2 py-1 text-xs bg-[var(--bg-primary)] text-[var(--text-muted)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
+        >
+          <option value="all">{t("history.filter-all")}</option>
+          <option value="ai">{t("history.type-ai")}</option>
+          <option value="sql">{t("history.type-sql")}</option>
+        </select>
+        <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value as "all" | "success" | "error")}
           className="px-2 py-1 text-xs bg-[var(--bg-primary)] text-[var(--text-muted)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
@@ -130,7 +140,7 @@ export function SqlHistoryPanel() {
         <EmptyState
           icon=" "
           title={searchQuery ? t("history.no-results") : t("history.empty")}
-          description={searchQuery ? t("history.try-different") : "Your query history will appear here"}
+          description={searchQuery ? t("history.try-different") : t("history.empty-hint")}
         />
       ) : (
         <div className="flex-1 overflow-y-auto space-y-1">
@@ -139,15 +149,34 @@ export function SqlHistoryPanel() {
               key={entry.id}
               className="group px-3 py-2 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] transition-colors"
             >
-              {/* SQL preview — clickable to load */}
+              {/* Type badge + content */}
               <div className="flex items-start gap-2">
-                <p
-                  className="flex-1 text-xs font-mono text-[var(--text-primary)] cursor-pointer truncate"
-                  onClick={() => handleLoad(entry.sql)}
-                  title={entry.sql}
-                >
-                  {entry.sql.length > 60 ? entry.sql.slice(0, 60) + "..." : entry.sql}
-                </p>
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
+                  (entry.type || "sql") === "ai"
+                    ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
+                    : "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+                }`}>
+                  {(entry.type || "sql") === "ai" ? t("history.type-ai") : t("history.type-sql")}
+                </span>
+                <div className="flex-1 min-w-0">
+                  {/* Question or SQL preview */}
+                  <p
+                    className="text-xs text-[var(--text-primary)] cursor-pointer truncate"
+                    onClick={() => handleLoad(entry.sql)}
+                    title={entry.question || entry.sql}
+                  >
+                    {entry.question
+                      ? (entry.question.length > 60 ? entry.question.slice(0, 60) + "..." : entry.question)
+                      : (entry.sql.length > 60 ? entry.sql.slice(0, 60) + "..." : entry.sql)
+                    }
+                  </p>
+                  {/* Summary for AI entries */}
+                  {entry.summary && (entry.type || "sql") === "ai" && (
+                    <p className="text-[10px] text-[var(--text-muted)] mt-0.5 truncate">
+                      {entry.summary}
+                    </p>
+                  )}
+                </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                   <button
                     onClick={() => handleRerun(entry.sql)}
@@ -171,16 +200,21 @@ export function SqlHistoryPanel() {
               </div>
 
               {/* Metadata */}
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1.5">
                 <span
                   className={`inline-block w-1.5 h-1.5 rounded-full ${
-                    entry.status === "success" ? "bg-green-400" : "bg-red-400"
+                    entry.status === "success" ? "bg-green-400" : entry.status === "partial" ? "bg-amber-400" : "bg-red-400"
                   }`}
                 />
+                {entry.tableName && (
+                  <span className="text-[10px] text-[var(--accent)] font-mono">
+                    {entry.tableName}
+                  </span>
+                )}
                 <span className="text-[10px] text-[var(--text-muted)] tabular-nums">
                   {entry.runtimeMs}ms
                 </span>
-                {entry.status === "success" && (
+                {entry.status !== "error" && (
                   <span className="text-[10px] text-[var(--text-muted)]">
                     {entry.rowCount} {t("sql.rows")}
                   </span>

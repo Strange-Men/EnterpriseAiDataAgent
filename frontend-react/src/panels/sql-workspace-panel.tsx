@@ -166,6 +166,7 @@ export function SqlWorkspacePanel() {
       setQueryResult(result);
       addEntry({
         id: generateId(),
+        type: "sql",
         sql,
         status: result.status,
         runtimeMs: result.runtimeMs,
@@ -201,6 +202,7 @@ export function SqlWorkspacePanel() {
       });
       addEntry({
         id: generateId(),
+        type: "sql",
         sql,
         status: "error",
         runtimeMs: ms,
