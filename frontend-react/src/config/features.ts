@@ -1,46 +1,45 @@
 /**
  * Feature Flags — controls visibility of experimental features.
  *
- * M4-2: Hide experimental AI features without deleting source code.
- * To restore any feature, set its flag to true.
+ * Categories (M4-7.1):
+ *   core        — product features, flag is temporary, will be removed once stable
+ *   internal    — product decisions, intentionally hidden, not for external users
+ *   experimental — not yet ready, may be promoted or deleted
+ *   deprecated  — scheduled for removal, do not invest in these
  */
 
 export const featureFlags = {
-  /** Quick SQL panel in Analysis Workspace right sidebar */
-  showQuickSqlPanel: false,
-
-  /** Templates management (save/apply analysis templates) */
-  showTemplates: false,
-
-  /** Scheduled analysis tasks */
-  showSchedule: false,
-
-  /** Diff / Compare analysis runs */
-  showDiffCompare: false,
-
-  /** Timeline / Evolution view */
-  showTimeline: false,
-
-  /** Save-as-template action in run detail */
-  showSaveAsTemplate: false,
-
-  /** AI buttons in SQL Workspace (Explain, Insights, Charts, Anomalies) — hidden in M4-6.0.1 */
-  showAiButtonsInSqlWorkspace: false,
-
-  /** AI Generate SQL input in SQL Workspace — hidden in M4-6.0.1 */
-  showAiSqlInputInWorkspace: false,
-
-  /** Autonomous analysis mode (6-step) */
+  // ── Core ────────────────────────────────────────────────────
+  /** Autonomous analysis mode (6-step) — the primary AI analysis mode */
   showAutonomousMode: true,
 
-  /** Charts analysis mode */
+  // ── Internal (product decisions, keep false) ────────────────
+  /** AI buttons in SQL Workspace (Explain, Insights, Charts, Anomalies) — M4-6.0.1 product decision */
+  showAiButtonsInSqlWorkspace: false,
+  /** AI Generate SQL input in SQL Workspace — M4-6.0.1 product decision */
+  showAiSqlInputInWorkspace: false,
+
+  // ── Experimental (not yet ready) ────────────────────────────
+  /** Charts analysis mode — not serving core workflow */
   showChartsMode: false,
-
-  /** Anomalies analysis mode */
+  /** Anomalies analysis mode — not serving core workflow */
   showAnomaliesMode: false,
-
-  /** Full-analysis mode (separate from autonomous) */
+  /** Full-analysis mode (separate from autonomous) — not serving core workflow */
   showFullAnalysisMode: false,
+
+  // ── Deprecated (scheduled for removal) ──────────────────────
+  /** Quick SQL panel in Analysis Workspace right sidebar — superseded by SQL Workspace */
+  showQuickSqlPanel: false,
+  /** Templates management (save/apply analysis templates) — half-baked, no UI entry */
+  showTemplates: false,
+  /** Scheduled analysis tasks — half-baked, no UI entry */
+  showSchedule: false,
+  /** Diff / Compare analysis runs — half-baked, no UI entry */
+  showDiffCompare: false,
+  /** Timeline / Evolution view — half-baked, no UI entry */
+  showTimeline: false,
+  /** Save-as-template action in run detail — half-baked, no UI entry */
+  showSaveAsTemplate: false,
 } as const;
 
 export type FeatureFlag = keyof typeof featureFlags;

@@ -74,24 +74,27 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"Demo seed skipped (non-fatal): {e}")
 
-    # Start scheduler background worker
-    try:
-        from backend.runtime.scheduler_worker import start_worker
-        start_worker()
-        logger.info("Scheduler worker started")
-    except Exception as e:
-        logger.warning(f"Scheduler worker start failed (non-fatal): {e}")
+    # M4-7.1: Scheduler worker disabled — feature flag showSchedule=false,
+    # no user-facing scheduler UI. Worker code preserved in
+    # backend/runtime/scheduler_worker.py for future Agent use.
+    # To re-enable, uncomment the block below.
+    #
+    # try:
+    #     from backend.runtime.scheduler_worker import start_worker
+    #     start_worker()
+    #     logger.info("Scheduler worker started")
+    # except Exception as e:
+    #     logger.warning(f"Scheduler worker start failed (non-fatal): {e}")
 
     yield
 
     # ── Shutdown ───────────────────────────────────────────────
-    # Stop scheduler worker
-    try:
-        from backend.runtime.scheduler_worker import stop_worker
-        stop_worker()
-        logger.info("Scheduler worker stopped")
-    except Exception as e:
-        logger.warning(f"Scheduler worker stop error (non-fatal): {e}")
+    # try:
+    #     from backend.runtime.scheduler_worker import stop_worker
+    #     stop_worker()
+    #     logger.info("Scheduler worker stopped")
+    # except Exception as e:
+    #     logger.warning(f"Scheduler worker stop error (non-fatal): {e}")
 
     logger.info("Application shutting down — closing DB connection")
     try:
