@@ -53,10 +53,22 @@ export function StreamingOutput({
 
   return (
     <div className="space-y-4">
-      {/* Error */}
+      {/* Error — with user-friendly fallback for JSON parse failures */}
       {error && (
         <div className="border border-red-500/30 rounded-lg p-4 bg-red-500/5">
-          <p className="text-xs text-red-400">{error}</p>
+          <p className="text-xs text-red-400">
+            {error.includes("JSON") || error.includes("parse")
+              ? t("ai.error-json-parse")
+              : error}
+          </p>
+          {(error.includes("JSON") || error.includes("parse")) && (
+            <details className="mt-2">
+              <summary className="text-[10px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)]">
+                {t("ai.error-technical-detail")}
+              </summary>
+              <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono whitespace-pre-wrap">{error}</p>
+            </details>
+          )}
         </div>
       )}
 

@@ -6,6 +6,7 @@ import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { useSavedQueriesStore, type SavedQuery } from "@/stores/saved-queries-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
+import Link from "next/link";
 import { MonacoSqlEditor } from "@/components/monaco-sql-editor";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -21,6 +22,7 @@ import { QueryStatsBar } from "@/components/sql-workspace/query-stats-bar";
 import { WorkflowBanner } from "@/components/sql-workspace/workflow-banner";
 import { logger } from "@/services/logger";
 import { generateId } from "@/utils/id";
+import { isFeatureEnabled } from "@/config/features";
 import toast from "react-hot-toast";
 import { format } from "sql-formatter";
 
@@ -371,21 +373,34 @@ export function SqlWorkspacePanel() {
           {t("explain.button")}
         </button>
 
-        {/* AI Generate SQL — standalone natural language to SQL */}
-        <button
-          onClick={() => setShowAiSqlInput(!showAiSqlInput)}
-          className={`px-3 py-1.5 text-xs border rounded-md transition-colors ${
-            showAiSqlInput
-              ? "border-purple-500/50 text-purple-400 bg-purple-500/10"
-              : "border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50"
-          }`}
-          title={t("ai.generate-sql")}
-        >
-          {t("ai.generate-sql")}
-        </button>
+        {/* AI Generate SQL — hidden behind feature flag, link to AI Assistant instead */}
+        {isFeatureEnabled("showAiSqlInputInWorkspace") && (
+          <button
+            onClick={() => setShowAiSqlInput(!showAiSqlInput)}
+            className={`px-3 py-1.5 text-xs border rounded-md transition-colors ${
+              showAiSqlInput
+                ? "border-purple-500/50 text-purple-400 bg-purple-500/10"
+                : "border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50"
+            }`}
+            title={t("ai.generate-sql")}
+          >
+            {t("ai.generate-sql")}
+          </button>
+        )}
 
-        {/* AI buttons — visible when query has results */}
-        {queryResult?.status === "success" && queryResult.data.length > 0 && (
+        {/* Link to AI Assistant for natural language queries */}
+        {!isFeatureEnabled("showAiSqlInputInWorkspace") && (
+          <Link
+            href="/analyze"
+            className="px-3 py-1.5 text-xs border border-purple-500/30 text-purple-400 rounded-md hover:bg-purple-500/10 hover:border-purple-500/50 transition-colors"
+            title={t("sql.goto-ai-assistant")}
+          >
+            {t("sql.goto-ai-assistant")}
+          </Link>
+        )}
+
+        {/* AI buttons — hidden behind feature flag */}
+        {isFeatureEnabled("showAiButtonsInSqlWorkspace") && queryResult?.status === "success" && queryResult.data.length > 0 && (
           <>
             <button
               onClick={() => handleAiAction("explain")}
@@ -460,7 +475,8 @@ export function SqlWorkspacePanel() {
         <ExportDropdown sql={currentSql} disabled={isExecuting} />
       </div>
 
-      {/* ── AI SQL Generation Input ──────────────────────────── */}      {showAiSqlInput && (
+      {/* ── AI SQL Generation Input (feature-flagged) ─────────── */}
+      {isFeatureEnabled("showAiSqlInputInWorkspace") && showAiSqlInput && (
         <AiSqlInput
           value={aiSqlQuestion}
           isLoading={aiSqlLoading}
@@ -608,8 +624,8 @@ export function SqlWorkspacePanel() {
         </div>
       )}
 
-      {/* ── AI Analysis Panel ─────────────────────────────── */}
-      {showAiPanel && aiMode && queryResult?.status === "success" && (
+      {/* ── AI Analysis Panel (feature-flagged) ────────────── */}
+      {isFeatureEnabled("showAiButtonsInSqlWorkspace") && showAiPanel && aiMode && queryResult?.status === "success" && (
         <div className="mt-2 min-h-[200px] max-h-[400px]">
           <AIAnalysisPanel
             mode={aiMode}

@@ -22,7 +22,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/": "nav.home",
   "/data": "nav.data",
   "/query": "nav.query",
-  "/analyze": "nav.analyze",
+  "/analyze": "nav.analyze",  // AI 数据助手
   "/history": "nav.history",
   "/settings": "nav.settings",
 };

@@ -1,16 +1,33 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
+import { isFeatureEnabled } from "@/config/features";
 import type { AnalysisMode } from "@/stores/analysis-store";
 
-const MODES: { mode: AnalysisMode; key: string }[] = [
+interface ModeEntry {
+  mode: AnalysisMode;
+  key: string;
+  experimental?: boolean;
+}
+
+// Core modes are always visible; experimental modes gated by feature flags
+const ALL_MODES: ModeEntry[] = [
   { mode: "autonomous", key: "inv.mode.autonomous" },
-  { mode: "full-analysis", key: "inv.mode.full" },
+  { mode: "full-analysis", key: "inv.mode.full", experimental: true },
   { mode: "insights", key: "inv.mode.insights" },
   { mode: "explain", key: "inv.mode.explain" },
-  { mode: "charts", key: "inv.mode.charts" },
-  { mode: "anomalies", key: "inv.mode.anomalies" },
+  { mode: "charts", key: "inv.mode.charts", experimental: true },
+  { mode: "anomalies", key: "inv.mode.anomalies", experimental: true },
 ];
+
+function isModeVisible(entry: ModeEntry): boolean {
+  if (!entry.experimental) return true;
+  if (entry.mode === "autonomous") return isFeatureEnabled("showAutonomousMode");
+  if (entry.mode === "full-analysis") return isFeatureEnabled("showFullAnalysisMode");
+  if (entry.mode === "charts") return isFeatureEnabled("showChartsMode");
+  if (entry.mode === "anomalies") return isFeatureEnabled("showAnomaliesMode");
+  return false;
+}
 
 interface ModeSelectorProps {
   value: AnalysisMode;
@@ -19,10 +36,11 @@ interface ModeSelectorProps {
 
 export function ModeSelector({ value, onChange }: ModeSelectorProps) {
   const { t } = useTranslation();
+  const visibleModes = ALL_MODES.filter(isModeVisible);
 
   return (
     <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="Analysis mode">
-      {MODES.map(({ mode, key }) => (
+      {visibleModes.map(({ mode, key }) => (
         <button
           key={mode}
           type="button"

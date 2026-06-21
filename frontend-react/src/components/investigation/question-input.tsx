@@ -21,7 +21,7 @@ export function QuestionInput({ onStart, isLoading }: QuestionInputProps) {
 
   const [question, setQuestion] = useState("");
   const [selectedTable, setSelectedTable] = useState(activeTable ?? "");
-  const [mode, setMode] = useState<AnalysisMode>("autonomous");
+  const [mode, setMode] = useState<AnalysisMode>("explain");
 
   const handleSubmit = useCallback(() => {
     const q = question.trim();
