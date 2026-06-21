@@ -14,6 +14,7 @@ import { ReportDialog } from "@/components/ai/report-dialog";
 import { DiffPanel } from "@/panels/diff-panel";
 import { TimelineEvolution } from "@/components/timeline-evolution";
 import { SchedulePanel } from "@/components/schedule-dialog";
+import { isFeatureEnabled } from "@/config/features";
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -155,7 +156,7 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
         >
           {t("analysis.notes")}
         </button>
-        {run.status === "success" && (
+        {isFeatureEnabled("showSaveAsTemplate") && run.status === "success" && (
           <button
             onClick={onSaveAsTemplate}
             className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
@@ -164,13 +165,15 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
             {t("template.save-as")}
           </button>
         )}
-        <button
-          onClick={onShowTimeline}
-          className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
-          title={t("timeline.evolution")}
-        >
-          {t("timeline.evolution")}
-        </button>
+        {isFeatureEnabled("showTimeline") && (
+          <button
+            onClick={onShowTimeline}
+            className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
+            title={t("timeline.evolution")}
+          >
+            {t("timeline.evolution")}
+          </button>
+        )}
         <button
           onClick={onDelete}
           className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded transition-colors ml-auto"
@@ -328,17 +331,19 @@ export function AnalysisWorkspacePanel() {
           >
             {t("analysis.history")}
           </button>
-          <button
-            onClick={() => setShowTemplates(!showTemplates)}
-            className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${
-              showTemplates
-                ? "bg-[var(--accent)]/10 text-[var(--accent)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            {t("template.apply")} {templates.length > 0 && `(${templates.length})`}
-          </button>
-          {successRuns.length >= 2 && (
+          {isFeatureEnabled("showTemplates") && (
+            <button
+              onClick={() => setShowTemplates(!showTemplates)}
+              className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${
+                showTemplates
+                  ? "bg-[var(--accent)]/10 text-[var(--accent)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {t("template.apply")} {templates.length > 0 && `(${templates.length})`}
+            </button>
+          )}
+          {isFeatureEnabled("showDiffCompare") && successRuns.length >= 2 && (
             <button
               onClick={() => setShowCompare(!showCompare)}
               className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${
@@ -350,16 +355,18 @@ export function AnalysisWorkspacePanel() {
               {t("diff.compare")}
             </button>
           )}
-          <button
-            onClick={() => setShowSchedule(!showSchedule)}
-            className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${
-              showSchedule
-                ? "bg-[var(--accent)]/10 text-[var(--accent)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            {t("schedule.title")}
-          </button>
+          {isFeatureEnabled("showSchedule") && (
+            <button
+              onClick={() => setShowSchedule(!showSchedule)}
+              className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${
+                showSchedule
+                  ? "bg-[var(--accent)]/10 text-[var(--accent)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {t("schedule.title")}
+            </button>
+          )}
           {runs.length > 0 && (
             <button
               onClick={() => setShowReportDialog(true)}

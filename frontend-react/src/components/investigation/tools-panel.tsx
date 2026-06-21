@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { executeQuery } from "@/services/api";
+import { isFeatureEnabled } from "@/config/features";
 import { Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -62,8 +63,8 @@ export function ToolsPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-4 p-3">
-        {/* Quick SQL */}
-        <div>
+        {/* Quick SQL — feature-flagged */}
+        {isFeatureEnabled("showQuickSqlPanel") && <div>
           <h4 className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
             {t("inv.quick-sql")}
           </h4>
@@ -94,7 +95,7 @@ export function ToolsPanel() {
               <span className="text-[10px] text-[var(--text-muted)]">{sqlResult}</span>
             )}
           </div>
-        </div>
+        </div>}
 
         {/* Recent runs */}
         <div>
