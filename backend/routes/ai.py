@@ -95,6 +95,7 @@ class AIQueryRequest(BaseModel):
     max_rows: int = 1000
     follow_up_context: FollowUpContext | None = None
     language: str = "zh"
+    table: str | None = None
 
 
 class ExplainRequest(BaseModel):
@@ -127,7 +128,7 @@ async def ai_query(req: AIQueryRequest):
     try:
         return await asyncio.wait_for(
             asyncio.get_running_loop().run_in_executor(
-                AI_EXECUTOR, lambda: run_ai_query(req.question, req.execute, req.explain, req.max_rows, ctx, req.language)
+                AI_EXECUTOR, lambda: run_ai_query(req.question, req.execute, req.explain, req.max_rows, ctx, req.language, table=req.table)
             ),
             timeout=60.0,
         )

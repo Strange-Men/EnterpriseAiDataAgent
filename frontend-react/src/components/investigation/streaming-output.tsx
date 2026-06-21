@@ -28,10 +28,11 @@ interface StreamingOutputProps {
   streamStage: string;
   streamStep?: number;
   error?: string;
+  onRetry?: () => void;
 }
 
 export function StreamingOutput({
-  result, streamEvent, isStreaming, streamStage, streamStep: _streamStep, error,
+  result, streamEvent, isStreaming, streamStage, streamStep: _streamStep, error, onRetry,
 }: StreamingOutputProps) {
   const { t } = useTranslation();
 
@@ -53,13 +54,13 @@ export function StreamingOutput({
 
   // Determine user-friendly error message
   const getErrorMessage = (err: string) => {
-    if (err.includes("Empty LLM response") || err.includes("empty response")) {
-      return { message: t("ai.error-empty-response"), hint: t("ai.error-empty-hint"), showHint: true };
+    if (err.includes("AI_EMPTY_RESPONSE") || err.includes("Empty LLM response") || err.includes("empty response")) {
+      return { message: t("ai.error-empty-response"), hint: t("ai.error-empty-hint"), showHint: true, isRetryable: true };
     }
     if (err.includes("JSON") || err.includes("parse")) {
-      return { message: t("ai.error-json-parse"), hint: null, showHint: false };
+      return { message: t("ai.error-json-parse"), hint: null, showHint: false, isRetryable: false };
     }
-    return { message: err, hint: null, showHint: false };
+    return { message: err, hint: null, showHint: false, isRetryable: false };
   };
 
   const errorInfo = error ? getErrorMessage(error) : null;
@@ -72,6 +73,14 @@ export function StreamingOutput({
           <p className="text-xs text-red-400">{errorInfo.message}</p>
           {errorInfo.showHint && errorInfo.hint && (
             <p className="text-[10px] text-[var(--text-muted)] mt-1">{errorInfo.hint}</p>
+          )}
+          {errorInfo.isRetryable && onRetry && (
+            <button
+              onClick={onRetry}
+              className="mt-2 px-3 py-1.5 text-xs bg-red-500/10 text-red-300 border border-red-500/30 rounded hover:bg-red-500/20 transition-colors"
+            >
+              {t("ai.retry")}
+            </button>
           )}
           <details className="mt-2">
             <summary className="text-[10px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)]">

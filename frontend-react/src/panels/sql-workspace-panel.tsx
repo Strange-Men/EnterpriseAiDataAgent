@@ -43,6 +43,7 @@ export function SqlWorkspacePanel() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const startTimeRef = useRef<number>(0);
   const mountedRef = useRef(true);
+  const resultContainerRef = useRef<HTMLDivElement>(null);
   const activeTab = getActiveTab();
 
   // Cleanup: abort any in-flight query on unmount
@@ -100,7 +101,8 @@ export function SqlWorkspacePanel() {
     setAiSqlLoading(true);
     setAiSqlQualityGates([]);
     try {
-      const res = await aiQuery(aiSqlQuestion.trim(), false, false, undefined, i18n.language);
+      const currentTable = useInvestigationStore.getState().activeTable;
+      const res = await aiQuery(aiSqlQuestion.trim(), false, false, undefined, i18n.language, currentTable ?? undefined);
       setAiSqlQualityGates(res.quality_gates ?? []);
       if (res.sql && activeTab) {
         updateTabSql(activeTab.id, res.sql);
@@ -125,7 +127,7 @@ export function SqlWorkspacePanel() {
     if (!wfTable || generatingSql) return;
     setGeneratingSql(true);
     try {
-      const res = await aiQuery(`Show all data from ${wfTable}`, false, false, undefined, i18n.language);
+      const res = await aiQuery(`Show all data from ${wfTable}`, false, false, undefined, i18n.language, wfTable);
       if (res.sql && activeTab) {
         updateTabSql(activeTab.id, res.sql);
         wfAdvance("sql-ready", { table: wfTable, sql: res.sql });
@@ -182,6 +184,10 @@ export function SqlWorkspacePanel() {
         if (wfStage === "executing" || wfStage === "sql-ready") {
           wfAdvance("done");
         }
+        // Scroll result table into view
+        requestAnimationFrame(() => {
+          resultContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
       }
     } catch (err: unknown) {
       if ((err as Error).name === "AbortError") {
@@ -615,7 +621,7 @@ export function SqlWorkspacePanel() {
 
       {/* ── Result table ─────────────────────────────────── */}
       {queryResult?.status === "success" && queryResult.columns.length > 0 && (
-        <div className="flex-1 min-h-0">
+        <div ref={resultContainerRef} className="flex-1 min-h-[200px]" data-testid="query-result-table">
           <DataTable
             data={queryResult.data}
             columns={queryResult.columns}

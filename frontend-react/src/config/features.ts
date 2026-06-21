@@ -24,11 +24,11 @@ export const featureFlags = {
   /** Save-as-template action in run detail */
   showSaveAsTemplate: false,
 
-  /** AI buttons in SQL Workspace (Explain, Insights, Charts, Anomalies) */
-  showAiButtonsInSqlWorkspace: true,
+  /** AI buttons in SQL Workspace (Explain, Insights, Charts, Anomalies) — hidden in M4-6.0.1 */
+  showAiButtonsInSqlWorkspace: false,
 
-  /** AI Generate SQL input in SQL Workspace */
-  showAiSqlInputInWorkspace: true,
+  /** AI Generate SQL input in SQL Workspace — hidden in M4-6.0.1 */
+  showAiSqlInputInWorkspace: false,
 
   /** Autonomous analysis mode (6-step) */
   showAutonomousMode: true,
