@@ -7,6 +7,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { Copy } from "lucide-react";
 import toast from "react-hot-toast";
 import { useThemeStore } from "@/hooks/use-theme";
+import { safeMarkdownContent } from "@/utils/safe-render";
 
 // ── Theme-aware syntax highlighter style ──────────────────────
 const lightTheme: Record<string, React.CSSProperties> = {
@@ -41,12 +42,15 @@ export interface AnalysisSection {
 export function AnalysisSectionView({ section }: { section: AnalysisSection }) {
   const codeTheme = useCodeTheme();
 
+  // Guard: ensure content is a safe string for ReactMarkdown
+  const safeContent = safeMarkdownContent(section.content, "No content available.");
+
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(section.content).then(
+    navigator.clipboard.writeText(safeContent).then(
       () => toast.success("Copied"),
       () => toast.error("Copy failed")
     );
-  }, [section.content]);
+  }, [safeContent]);
 
   const markdownComponents = useMemo(() => ({
     code({ className, children, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
@@ -128,7 +132,7 @@ export function AnalysisSectionView({ section }: { section: AnalysisSection }) {
       </div>
       <div className="ai-markdown-content">
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-          {section.content}
+          {safeContent}
         </ReactMarkdown>
       </div>
     </div>

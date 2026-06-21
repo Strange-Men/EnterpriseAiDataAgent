@@ -25,11 +25,11 @@ class TestCallLlmNoneTextBlock:
         # Setup mock response with a thinking block (text=None) + text block
         thinking_block = MagicMock()
         thinking_block.text = None
-        thinking_block.__class__.__name__ = "ThinkingBlock"
+        thinking_block.type = "thinking"
 
         text_block = MagicMock()
         text_block.text = "SELECT * FROM sales"
-        text_block.__class__.__name__ = "TextBlock"
+        text_block.type = "text"
 
         mock_response = MagicMock()
         mock_response.content = [thinking_block, text_block]
@@ -44,7 +44,7 @@ class TestCallLlmNoneTextBlock:
     @patch("backend.services.ai_analyst._get_client")
     @patch("backend.services.ai_analyst.get_budget")
     def test_all_blocks_have_none_text(self, mock_budget, mock_get_client):
-        """All content blocks have text=None — falls back to str(block)."""
+        """All content blocks have text=None — returns empty string."""
         from backend.services.ai_analyst import _call_llm
 
         mock_b = MagicMock()
@@ -54,18 +54,18 @@ class TestCallLlmNoneTextBlock:
 
         block = MagicMock()
         block.text = None
+        block.type = "thinking"
 
         mock_response = MagicMock()
         mock_response.content = [block]
-        mock_response.__getitem__ = lambda self, i: block
 
         mock_client = MagicMock()
         mock_client.messages.create.return_value = mock_response
         mock_get_client.return_value = mock_client
 
         result = _call_llm("system prompt", "user message", max_tokens=1024)
-        # Falls back to str(response.content[0])
-        assert isinstance(result, str)
+        # No text blocks with content → returns empty string
+        assert result == ""
 
 
 class TestGenerateSqlNoneHandling:
