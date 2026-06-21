@@ -51,24 +51,34 @@ export function StreamingOutput({
     return <StreamingSkeleton />;
   }
 
+  // Determine user-friendly error message
+  const getErrorMessage = (err: string) => {
+    if (err.includes("Empty LLM response") || err.includes("empty response")) {
+      return { message: t("ai.error-empty-response"), hint: t("ai.error-empty-hint"), showHint: true };
+    }
+    if (err.includes("JSON") || err.includes("parse")) {
+      return { message: t("ai.error-json-parse"), hint: null, showHint: false };
+    }
+    return { message: err, hint: null, showHint: false };
+  };
+
+  const errorInfo = error ? getErrorMessage(error) : null;
+
   return (
     <div className="space-y-4">
-      {/* Error — with user-friendly fallback for JSON parse failures */}
-      {error && (
+      {/* Error — with user-friendly fallback */}
+      {error && errorInfo && (
         <div className="border border-red-500/30 rounded-lg p-4 bg-red-500/5">
-          <p className="text-xs text-red-400">
-            {error.includes("JSON") || error.includes("parse")
-              ? t("ai.error-json-parse")
-              : error}
-          </p>
-          {(error.includes("JSON") || error.includes("parse")) && (
-            <details className="mt-2">
-              <summary className="text-[10px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)]">
-                {t("ai.error-technical-detail")}
-              </summary>
-              <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono whitespace-pre-wrap">{error}</p>
-            </details>
+          <p className="text-xs text-red-400">{errorInfo.message}</p>
+          {errorInfo.showHint && errorInfo.hint && (
+            <p className="text-[10px] text-[var(--text-muted)] mt-1">{errorInfo.hint}</p>
           )}
+          <details className="mt-2">
+            <summary className="text-[10px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)]">
+              {t("ai.error-technical-detail")}
+            </summary>
+            <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono whitespace-pre-wrap">{error}</p>
+          </details>
         </div>
       )}
 
@@ -110,12 +120,19 @@ export function StreamingOutput({
         </div>
       )}
 
-      {/* Steps */}
-      {result?.steps && result.steps.length > 0 && (
-        <StepResults steps={result.steps} />
+      {/* Summary — shown first for user-friendly presentation */}
+      {result?.summary && (
+        <div className="border border-[var(--accent)]/20 rounded-lg p-4 bg-[var(--accent)]/5">
+          <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-2">
+            {t("ai.executive-summary")}
+          </h3>
+          <div className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
+            {result.summary}
+          </div>
+        </div>
       )}
 
-      {/* Sections */}
+      {/* Sections — key findings */}
       {result?.sections && result.sections.length > 0 && (
         <div className="space-y-3">
           {result.sections.map((section, i) => (
@@ -137,16 +154,16 @@ export function StreamingOutput({
         </div>
       )}
 
-      {/* Summary */}
-      {result?.summary && (
-        <div className="border border-[var(--accent)]/20 rounded-lg p-4 bg-[var(--accent)]/5">
-          <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-2">
-            {t("ai.executive-summary")}
-          </h3>
-          <div className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
-            {result.summary}
+      {/* Steps — collapsible execution details */}
+      {result?.steps && result.steps.length > 0 && (
+        <details className="border border-[var(--border-default)] rounded-lg bg-[var(--bg-secondary)]">
+          <summary className="px-4 py-3 text-xs font-semibold text-[var(--accent)] uppercase tracking-wider cursor-pointer hover:text-[var(--text-primary)] transition-colors">
+            {t("inv.plan")} ({result.steps.length} {t("ai.step")})
+          </summary>
+          <div className="px-4 pb-4">
+            <StepResults steps={result.steps} />
           </div>
-        </div>
+        </details>
       )}
 
       {/* Anomalies */}

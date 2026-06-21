@@ -107,12 +107,15 @@ const en = {
     "sql.time": "time",
 
     "history.title": "Query History",
-    "history.empty": "No queries executed yet.",
-    "history.search": "Search SQL...",
+    "history.empty": "No history yet.",
+    "history.empty-hint": "Run a natural language query or expert SQL to see it here.",
+    "history.search": "Search questions or SQL...",
     "history.filter-all": "All",
     "history.filter-success": "Success",
     "history.filter-error": "Error",
-    "history.no-results": "No matching queries found.",
+    "history.type-ai": "AI Analysis",
+    "history.type-sql": "Expert SQL",
+    "history.no-results": "No matching records found.",
     "history.try-different": "Try a different search term.",
     "history.confirm-clear": "Clear all history?",
     "history.clear": "Clear history",
@@ -279,6 +282,8 @@ const en = {
     "ai.connection-lost": "Connection lost — partial content preserved",
     "ai.attempt": "attempt",
     "ai.error-json-parse": "AI returned an unexpected format. The raw response has been preserved.",
+    "ai.error-empty-response": "AI didn't return valid content. Please try again or ask a more specific question.",
+    "ai.error-empty-hint": "Tip: Check if the correct table is selected, or try a more specific description.",
     "ai.error-technical-detail": "Technical Details",
 
     // SQL Workspace AI

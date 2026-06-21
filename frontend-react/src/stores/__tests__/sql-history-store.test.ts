@@ -4,10 +4,25 @@ import { useSqlHistoryStore } from "../sql-history-store";
 describe("sql-history-store", () => {
   const makeEntry = (id: number, sql: string, status: "success" | "error" = "success") => ({
     id: String(id),
+    type: "sql" as const,
     sql,
     status,
     runtimeMs: 10,
     rowCount: 1,
+    error: null,
+    timestamp: new Date().toISOString(),
+  });
+
+  const makeAiEntry = (id: number, question: string, summary: string) => ({
+    id: String(id),
+    type: "ai" as const,
+    sql: "SELECT 1",
+    question,
+    tableName: "test_table",
+    summary,
+    status: "success" as const,
+    runtimeMs: 100,
+    rowCount: 10,
     error: null,
     timestamp: new Date().toISOString(),
   });
@@ -17,6 +32,7 @@ describe("sql-history-store", () => {
       history: [],
       searchQuery: "",
       filterStatus: "all",
+      filterType: "all",
     });
   });
 
@@ -84,5 +100,36 @@ describe("sql-history-store", () => {
     const parsed = JSON.parse(json);
     expect(parsed).toHaveLength(1);
     expect(parsed[0].sql).toBe("SELECT 1");
+  });
+
+  it("should add AI analysis entry", () => {
+    const { addEntry } = useSqlHistoryStore.getState();
+    addEntry(makeAiEntry(1, "What are the top categories?", "Top categories by revenue..."));
+    expect(useSqlHistoryStore.getState().history).toHaveLength(1);
+    expect(useSqlHistoryStore.getState().history[0].type).toBe("ai");
+    expect(useSqlHistoryStore.getState().history[0].question).toBe("What are the top categories?");
+  });
+
+  it("should filter by type", () => {
+    const { addEntry, setFilterType, getFiltered } = useSqlHistoryStore.getState();
+    addEntry(makeEntry(1, "SELECT 1"));
+    addEntry(makeAiEntry(2, "What are the top categories?", "Summary"));
+    setFilterType("ai");
+    expect(getFiltered()).toHaveLength(1);
+    expect(getFiltered()[0].type).toBe("ai");
+    setFilterType("sql");
+    expect(getFiltered()).toHaveLength(1);
+    expect(getFiltered()[0].type).toBe("sql");
+    setFilterType("all");
+    expect(getFiltered()).toHaveLength(2);
+  });
+
+  it("should search by question field", () => {
+    const { addEntry, setSearchQuery, getFiltered } = useSqlHistoryStore.getState();
+    addEntry(makeEntry(1, "SELECT * FROM users"));
+    addEntry(makeAiEntry(2, "What are the top categories?", "Summary about categories"));
+    setSearchQuery("categories");
+    expect(getFiltered()).toHaveLength(1);
+    expect(getFiltered()[0].question).toContain("categories");
   });
 });

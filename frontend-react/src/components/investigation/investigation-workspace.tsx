@@ -14,6 +14,8 @@ import {
 import { useAnalysisStore, type AnalysisMode } from "@/stores/analysis-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import { useDataStore } from "@/stores/data-store";
+import { useSqlHistoryStore } from "@/stores/sql-history-store";
+import { generateId } from "@/utils/id";
 import { StreamingOutput, type InvestigationResult } from "./streaming-output";
 import { StreamingIndicator } from "./ai-streaming-indicator";
 import { SqlWorkspacePanel } from "@/panels/sql-workspace-panel";
@@ -46,6 +48,7 @@ export function InvestigationWorkspace() {
 
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
+  const startTimeRef = useRef<number>(0);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -69,6 +72,7 @@ export function InvestigationWorkspace() {
 
     // Abort any in-progress stream
     abortRef.current?.abort();
+    startTimeRef.current = Date.now();
 
     // Reset investigation context
     const store = useInvestigationStore.getState();
@@ -179,15 +183,19 @@ export function InvestigationWorkspace() {
 
           setResult(finalResult);
 
+          // Determine status based on step results
+          const hasErrors = accumulatedSteps.some((s) => s.status === "error");
+          const runStatus = hasErrors ? "partial" as const : "success" as const;
+
           updateRun(runId, {
-            status: "success",
+            status: runStatus === "partial" ? "error" : "success",
             sections: accumulatedSections,
             multiResult: {
               question: q,
               plan: accumulatedPlan,
               steps: accumulatedSteps,
               summary: accumulatedSummary,
-              status: "success",
+              status: runStatus === "partial" ? "error" : "success",
             },
             trace: accumulatedTrace ? {
               trace_id: (accumulatedTrace.trace_id as string) ?? runId,
@@ -197,6 +205,26 @@ export function InvestigationWorkspace() {
               events: (accumulatedTrace.events as TraceSnapshot["events"]) ?? [],
               guardrail_violations: (data?.guardrail_violations as string[]) ?? [],
             } : null,
+          });
+
+          // Write to unified history store
+          const totalRows = accumulatedSteps.reduce((sum, s) => sum + (s.row_count ?? 0), 0);
+          const lastSql = accumulatedSteps[accumulatedSteps.length - 1]?.sql ?? "";
+          const summaryText = accumulatedSummary
+            ? accumulatedSummary.slice(0, 120) + (accumulatedSummary.length > 120 ? "..." : "")
+            : q;
+          useSqlHistoryStore.getState().addEntry({
+            id: generateId(),
+            type: "ai",
+            sql: lastSql,
+            question: q,
+            tableName: table,
+            summary: summaryText,
+            status: runStatus,
+            runtimeMs: Date.now() - startTimeRef.current,
+            rowCount: totalRows,
+            error: null,
+            timestamp: new Date().toISOString(),
           });
 
           const doneStore = useInvestigationStore.getState();
