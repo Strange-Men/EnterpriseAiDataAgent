@@ -37,7 +37,6 @@ export function GlobalSearch({ open, onClose, tables }: GlobalSearchProps) {
     const pageResults: SearchResult[] = [
       { label: t("search.page-home"), href: "/" },
       { label: t("search.page-data"), href: "/data" },
-      { label: t("search.page-query"), href: "/query" },
       { label: t("search.page-analyze"), href: "/analyze" },
       { label: t("search.page-history"), href: "/history" },
       { label: t("search.page-settings"), href: "/settings" },

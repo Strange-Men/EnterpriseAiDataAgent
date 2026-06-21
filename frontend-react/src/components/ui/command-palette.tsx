@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import {
-  Search, Home, Database, Code, MonitorPlay, Clock,
+  Search, Home, Database, MonitorPlay, Clock,
   Settings, FileText, Plus, Sun, Moon,
 } from "lucide-react";
 import { useAnalysisStore } from "@/stores/analysis-store";
@@ -46,7 +46,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     const navItems: CommandItem[] = [
       { id: "home", label: t("cmd.go-home"), icon: <Home className="w-4 h-4" />, action: () => router.push("/") },
       { id: "data", label: t("cmd.go-data"), icon: <Database className="w-4 h-4" />, action: () => router.push("/data") },
-      { id: "query", label: t("cmd.go-query"), icon: <Code className="w-4 h-4" />, action: () => router.push("/query") },
       { id: "analyze", label: t("cmd.go-analyze"), icon: <MonitorPlay className="w-4 h-4" />, action: () => router.push("/analyze") },
       { id: "history", label: t("cmd.go-history"), icon: <Clock className="w-4 h-4" />, action: () => router.push("/history") },
       { id: "settings", label: t("cmd.go-settings"), icon: <Settings className="w-4 h-4" />, action: () => router.push("/settings") },

@@ -6,7 +6,7 @@
  */
 
 export const featureFlags = {
-  /** Quick SQL panel in AI Assistant right sidebar */
+  /** Quick SQL panel in Analysis Workspace right sidebar */
   showQuickSqlPanel: false,
 
   /** Templates management (save/apply analysis templates) */
@@ -41,9 +41,6 @@ export const featureFlags = {
 
   /** Full-analysis mode (separate from autonomous) */
   showFullAnalysisMode: false,
-
-  /** Guided Demo / Onboarding */
-  showGuidedDemo: false,
 } as const;
 
 export type FeatureFlag = keyof typeof featureFlags;

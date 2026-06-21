@@ -401,7 +401,7 @@ const en = {
     "nav.home": "Home",
     "nav.data": "Data",
     "nav.query": "SQL Query",
-    "nav.analyze": "AI Assistant",
+    "nav.analyze": "Analysis Workspace",
     "nav.history": "History",
     "nav.settings": "Settings",
 
@@ -412,8 +412,8 @@ const en = {
     "home.upload-hint": "CSV or Excel files",
     "home.open-sql": "Open SQL Workspace",
     "home.open-sql-hint": "Write and execute queries",
-    "home.start-ai": "AI Assistant",
-    "home.start-ai-hint": "Ask in plain language, AI analyzes for you",
+    "home.start-ai": "Analysis Workspace",
+    "home.start-ai-hint": "Ask in natural language, AI generates SQL and analyzes",
     "home.demo-flow-title": "How to Get Started",
     "home.step-upload": "Upload or use sample data",
     "home.step-preview": "Preview table structure",
@@ -442,7 +442,7 @@ const en = {
     "settings.system": "System",
 
     // v0.8.1+ Investigation Workspace
-    "inv.title": "AI Assistant",
+    "inv.title": "Analysis Workspace",
     "inv.subtitle": "Ask questions in plain language, AI analyzes your data",
     "inv.start-hint": "Enter your question — AI will generate SQL and analyze the data.",
     "inv.question-placeholder": "Describe what you want to analyze, e.g. What are the top performing categories by revenue?",
@@ -489,6 +489,21 @@ const en = {
     "inv.quick-sql-placeholder": "SELECT * FROM {{table}} LIMIT 10;",
     "inv.run-sql": "Run",
 
+    // Analysis Workspace Tabs (M4-2.1)
+    "workspace.tab.ai-query": "AI Query",
+    "workspace.tab.expert-sql": "Expert SQL",
+    "workspace.ai-query-title": "Natural Language Query",
+    "workspace.ai-query-subtitle": "AI generates SQL from your question, executes it, and explains the results.",
+    "workspace.generate-sql-analyze": "Generate SQL & Analyze",
+    "workspace.example-questions": "Try these questions:",
+    "workspace.example.q1": "What are the top categories by revenue?",
+    "workspace.example.q2": "How do sales rank by region?",
+    "workspace.example.q3": "Which orders might be anomalous?",
+    "workspace.current-table": "Current table",
+    "workspace.no-table": "Upload a file on the Data page first",
+    "workspace.query-redirect": "SQL Query has been merged into the Analysis Workspace \"Expert SQL\" mode.",
+    "workspace.goto-workspace": "Go to Analysis Workspace",
+
     // Command Palette
     "cmd.search-placeholder": "Type a command or search...",
     "cmd.no-results": "No results found",
@@ -498,7 +513,7 @@ const en = {
     "cmd.go-home": "Go Home",
     "cmd.go-data": "Go to Data",
     "cmd.go-query": "Go to Query",
-    "cmd.go-analyze": "Go to AI Assistant",
+    "cmd.go-analyze": "Go to Analysis Workspace",
     "cmd.go-history": "Go to History",
     "cmd.go-settings": "Go to Settings",
     "cmd.new-investigation": "New AI Analysis",
@@ -515,7 +530,7 @@ const en = {
     "shortcut.global-search": "Global search",
     "shortcut.keyboard-help": "Keyboard shortcuts help",
     "shortcut.go-home": "Go Home",
-    "shortcut.go-analyze": "Go to AI Assistant",
+    "shortcut.go-analyze": "Go to Analysis Workspace",
     "shortcut.go-data": "Go to Data",
     "shortcut.go-query": "Go to Query",
     "shortcut.go-settings": "Go to Settings",
@@ -531,7 +546,7 @@ const en = {
     "search.page-home": "Home",
     "search.page-data": "Data",
     "search.page-query": "SQL Query",
-    "search.page-analyze": "AI Assistant",
+    "search.page-analyze": "Analysis Workspace",
     "search.page-history": "History",
     "search.page-settings": "Settings",
 
@@ -550,7 +565,7 @@ const en = {
     "sql.explain-failed": "Explain failed",
     "sql.ai-gen-failed": "AI could not generate SQL",
     "sql.ai-gen-error": "AI SQL generation failed",
-    "sql.goto-ai-assistant": "AI Assistant",
+    "sql.goto-ai-assistant": "Analysis Workspace",
 
     // Onboarding
     "onboarding.title": "Getting Started",

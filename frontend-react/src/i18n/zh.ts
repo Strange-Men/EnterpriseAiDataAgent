@@ -401,7 +401,7 @@ const zh = {
     "nav.home": "首页",
     "nav.data": "数据",
     "nav.query": "SQL 查询",
-    "nav.analyze": "AI 数据助手",
+    "nav.analyze": "分析工作台",
     "nav.history": "历史",
     "nav.settings": "设置",
 
@@ -412,8 +412,8 @@ const zh = {
     "home.upload-hint": "CSV 或 Excel 文件",
     "home.open-sql": "打开 SQL 工作台",
     "home.open-sql-hint": "编写和执行查询",
-    "home.start-ai": "AI 数据助手",
-    "home.start-ai-hint": "用自然语言提问，AI 帮你分析",
+    "home.start-ai": "分析工作台",
+    "home.start-ai-hint": "用自然语言提问，AI 生成 SQL 并分析",
     "home.demo-flow-title": "如何开始",
     "home.step-upload": "上传或使用示例数据",
     "home.step-preview": "预览表结构",
@@ -442,7 +442,7 @@ const zh = {
     "settings.system": "跟随系统",
 
     // v0.8.1+ Investigation Workspace
-    "inv.title": "AI 数据助手",
+    "inv.title": "分析工作台",
     "inv.subtitle": "用自然语言提问，AI 帮你分析数据",
     "inv.start-hint": "输入你的问题，AI 将生成 SQL 并分析数据。",
     "inv.question-placeholder": "用自然语言描述你想分析的问题，例如：营收最高的品类是哪些？",
@@ -489,6 +489,21 @@ const zh = {
     "inv.quick-sql-placeholder": "SELECT * FROM {{table}} LIMIT 10;",
     "inv.run-sql": "执行",
 
+    // Analysis Workspace Tabs (M4-2.1)
+    "workspace.tab.ai-query": "AI 问数",
+    "workspace.tab.expert-sql": "专家 SQL",
+    "workspace.ai-query-title": "自然语言问数",
+    "workspace.ai-query-subtitle": "AI 会根据当前数据表生成 SQL、执行查询，并解释结果。",
+    "workspace.generate-sql-analyze": "生成 SQL 并分析",
+    "workspace.example-questions": "试试这些问题：",
+    "workspace.example.q1": "营收最高的品类是哪些？",
+    "workspace.example.q2": "不同地区的销售额排名如何？",
+    "workspace.example.q3": "哪些订单可能存在异常？",
+    "workspace.current-table": "当前数据表",
+    "workspace.no-table": "请先在数据页面上传文件",
+    "workspace.query-redirect": "SQL 查询已整合到分析工作台的「专家 SQL」模式。",
+    "workspace.goto-workspace": "前往分析工作台",
+
     // Command Palette
     "cmd.search-placeholder": "输入命令或搜索...",
     "cmd.no-results": "未找到结果",
@@ -498,7 +513,7 @@ const zh = {
     "cmd.go-home": "回到首页",
     "cmd.go-data": "前往数据",
     "cmd.go-query": "前往查询",
-    "cmd.go-analyze": "前往 AI 数据助手",
+    "cmd.go-analyze": "前往分析工作台",
     "cmd.go-history": "前往历史",
     "cmd.go-settings": "前往设置",
     "cmd.new-investigation": "新建 AI 分析",
@@ -515,7 +530,7 @@ const zh = {
     "shortcut.global-search": "全局搜索",
     "shortcut.keyboard-help": "快捷键帮助",
     "shortcut.go-home": "前往首页",
-    "shortcut.go-analyze": "前往 AI 数据助手",
+    "shortcut.go-analyze": "前往分析工作台",
     "shortcut.go-data": "前往数据",
     "shortcut.go-query": "前往查询",
     "shortcut.go-settings": "前往设置",
@@ -531,7 +546,7 @@ const zh = {
     "search.page-home": "首页",
     "search.page-data": "数据",
     "search.page-query": "SQL 查询",
-    "search.page-analyze": "AI 数据助手",
+    "search.page-analyze": "分析工作台",
     "search.page-history": "历史",
     "search.page-settings": "设置",
 
@@ -550,7 +565,7 @@ const zh = {
     "sql.explain-failed": "Explain 失败",
     "sql.ai-gen-failed": "AI 无法生成 SQL",
     "sql.ai-gen-error": "AI SQL 生成失败",
-    "sql.goto-ai-assistant": "AI 数据助手",
+    "sql.goto-ai-assistant": "分析工作台",
 
     // Onboarding
     "onboarding.title": "新手教程",
