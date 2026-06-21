@@ -224,6 +224,7 @@ def run_ai_query(
     max_rows: int = 1000,
     follow_up_context: dict | None = None,
     language: str = "zh",
+    table: str | None = None,
 ) -> dict:
     """Natural language → SQL → Execute → Explain pipeline.
 
@@ -233,26 +234,54 @@ def run_ai_query(
     if not question:
         return {"question": "", "sql": "", "error": "Empty question", "status": "error"}
 
-    # 1. Build schema context
-    tables = list_tables()
+    # 1. Build schema context — filter to specified table if provided
+    all_tables = list_tables()
+    if table:
+        tables = [t for t in all_tables if t.get("name") == table]
+        if not tables:
+            # Fallback: use all tables but warn
+            tables = all_tables
+    else:
+        tables = all_tables
     schema_context = build_schema_context(tables)
 
     # 2. Build follow-up context (if provided)
     fu_ctx = build_follow_up_context(follow_up_context) if follow_up_context else None
 
-    # 3. Generate SQL
+    # 3. Generate SQL — with retry on empty response
     sql_result = generate_sql(question, schema_context, fu_ctx, language)
+    generation_ms = sql_result.get("elapsed_ms", 0)
+
+    # Retry once if SQL generation succeeded but returned empty SQL
+    if sql_result["status"] == "success" and not (sql_result.get("sql") or "").strip():
+        retry_question = f"{question}\n\nPlease generate a valid SQL query. Do not return empty."
+        sql_result = generate_sql(retry_question, schema_context, fu_ctx, language)
+        generation_ms += sql_result.get("elapsed_ms", 0)
+
     if sql_result["status"] == "error":
         return {
             "question": question,
             "sql": "",
             "error": sql_result.get("error", "Failed to generate SQL"),
             "status": "error",
-            "generation_ms": sql_result.get("elapsed_ms", 0),
+            "generation_ms": generation_ms,
             "quality_gates": sql_result.get("quality_gates", []),
         }
 
     sql = sql_result.get("sql") or ""
+
+    # If still empty after retry, return structured empty response error
+    if not sql.strip():
+        return {
+            "question": question,
+            "sql": "",
+            "error": "AI_EMPTY_RESPONSE",
+            "error_detail": "AI did not return a valid SQL query. Please try rephrasing your question.",
+            "status": "error",
+            "error_code": "AI_EMPTY_RESPONSE",
+            "generation_ms": generation_ms,
+            "quality_gates": sql_result.get("quality_gates", []),
+        }
 
     # Check if the model determined the question can't be answered
     if sql.startswith("-- CANNOT_ANSWER"):
@@ -374,6 +403,16 @@ def _execute_plan_steps(plan: list, schema_context: str, language: str,
             executed_steps.append(_make_step_result(
                 step_num, purpose, sql=sql,
                 error="Cannot answer this step with available data",
+                status="error",
+            ))
+            continue
+
+        # Handle empty SQL after retry
+        if not sql.strip():
+            guard.record_step_result(success=False)
+            executed_steps.append(_make_step_result(
+                step_num, purpose,
+                error="AI_EMPTY_RESPONSE",
                 status="error",
             ))
             continue
@@ -588,6 +627,16 @@ def run_autonomous_analysis_stream(
             guard.record_step_result(success=False)
             step_out = _make_step_result(step_num, purpose, sql=sql,
                                           error="Cannot answer this step with available data",
+                                          status="error")
+            executed_steps.append(step_out)
+            yield {"type": "step_result", **step_out}
+            continue
+
+        # Handle empty SQL after retry
+        if not sql.strip():
+            guard.record_step_result(success=False)
+            step_out = _make_step_result(step_num, purpose,
+                                          error="AI_EMPTY_RESPONSE",
                                           status="error")
             executed_steps.append(step_out)
             yield {"type": "step_result", **step_out}

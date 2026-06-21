@@ -63,7 +63,8 @@ export function FollowUpInput({ results, onSqlGenerated, question: controlledQue
         ctx.investigation_summary = sessionStore.investigationSummary;
       }
 
-      const res = await aiQuery(q, true, true, Object.keys(ctx).length > 0 ? ctx : undefined, i18n.language);
+      const currentTable = useInvestigationStore.getState().activeTable;
+      const res = await aiQuery(q, true, true, Object.keys(ctx).length > 0 ? ctx : undefined, i18n.language, currentTable ?? undefined);
 
       if (res.sql && res.status === "success") {
         sessionStore.addUserTurn(q);

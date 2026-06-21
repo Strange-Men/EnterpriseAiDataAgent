@@ -21,6 +21,8 @@ export interface AIQueryResult {
   explanation?: string;
   status: "success" | "error" | "cannot_answer" | "sql_error";
   error?: string;
+  error_code?: string;
+  error_detail?: string;
   generation_ms?: number;
   execution_error?: string;
   explanation_ms?: number;
@@ -37,11 +39,13 @@ export async function aiQuery(
   execute: boolean = true,
   explain: boolean = true,
   followUpContext?: FollowUpContext,
-  language?: string
+  language?: string,
+  table?: string,
 ): Promise<AIQueryResult> {
   const body: Record<string, unknown> = { question, execute, explain };
   if (followUpContext) body.follow_up_context = followUpContext;
   if (language) body.language = language;
+  if (table) body.table = table;
   return apiFetch<AIQueryResult>("/ai/query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

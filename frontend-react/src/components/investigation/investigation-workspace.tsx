@@ -434,6 +434,7 @@ export function InvestigationWorkspace() {
               streamStage={streamStage}
               streamStep={streamStep}
               error={error}
+              onRetry={handleSubmit}
             />
 
             {/* Link to run detail */}
