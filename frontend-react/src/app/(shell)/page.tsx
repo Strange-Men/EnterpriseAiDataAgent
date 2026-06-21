@@ -6,12 +6,10 @@ import { useRouter } from "next/navigation";
 import { useDataStore } from "@/stores/data-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
-import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
 import {
   Upload, Code, MonitorPlay, ArrowRight,
-  Database, Zap, BrainCircuit, Clock,
+  Database, Clock, AlertCircle,
 } from "lucide-react";
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -43,136 +41,115 @@ export default function HomePage() {
   const history = useSqlHistoryStore((s) => s.history);
   const recentQueries = useMemo(() => history.slice(0, 5), [history]);
 
-  // Fetch query history on mount
   useEffect(() => {
     useSqlHistoryStore.getState().fetchHistory();
   }, []);
 
-  // Check if status is loaded
   const isStatusLoaded = systemStatus.version !== "...";
-
-  // New user onboarding
-  const isNewUser = runs.length === 0 && tables.length === 0;
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
-      {/* Welcome */}
-      <div>
-        <h2 className="text-lg font-bold text-[var(--text-primary)]">
-          {t("app.title")}
+      {/* Hero */}
+      <div className="text-center space-y-3 py-4">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+          {t("home.hero-title")}
         </h2>
-        <p className="text-sm text-[var(--text-muted)] mt-1">
-          {t("app.subtitle")}
+        <p className="text-sm text-[var(--text-muted)] max-w-2xl mx-auto">
+          {t("home.hero-subtitle")}
         </p>
       </div>
 
-      {/* Onboarding for new users */}
-      {isNewUser && (
-        <Card variant="highlighted">
-          <CardHeader>
-            <CardTitle>{t("dashboard.get-started")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                  <Upload className="w-5 h-5 text-[var(--accent)]" />
-                </div>
-                <p className="text-xs font-medium text-[var(--text-primary)]">{t("dashboard.upload-data")}</p>
-                <p className="text-2xs text-[var(--text-muted)] mt-0.5">{t("dashboard.upload-hint")}</p>
-              </div>
-              <div className="text-center">
-                <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                  <BrainCircuit className="w-5 h-5 text-[var(--accent)]" />
-                </div>
-                <p className="text-xs font-medium text-[var(--text-primary)]">{t("dashboard.ask-questions")}</p>
-                <p className="text-2xs text-[var(--text-muted)] mt-0.5">{t("dashboard.ask-hint")}</p>
-              </div>
-              <div className="text-center">
-                <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-[var(--accent)]" />
-                </div>
-                <p className="text-xs font-medium text-[var(--text-primary)]">{t("dashboard.explore-results")}</p>
-                <p className="text-2xs text-[var(--text-muted)] mt-0.5">{t("dashboard.explore-hint")}</p>
-              </div>
-            </div>
-            <div className="mt-4 text-center">
-              <Button variant="primary" size="lg" onClick={() => router.push("/analyze")} rightIcon={<ArrowRight className="w-4 h-4" />}>
-                {t("dashboard.start-analysis")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Quick actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Quick Start — 3 primary actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <button
           onClick={() => router.push("/data")}
-          className="flex flex-col items-center gap-2 p-6 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] transition-colors text-left"
+          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left"
         >
-          <Upload className="w-6 h-6 text-[var(--accent)]" />
-          <span className="text-sm font-medium text-[var(--text-primary)]">{t("nav.data")}</span>
-          <span className="text-[10px] text-[var(--text-muted)]">{t("dashboard.data-hint")}</span>
+          <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center group-hover:bg-[var(--accent)]/20 transition-colors">
+            <Upload className="w-6 h-6 text-[var(--accent)]" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.upload-data")}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">{t("home.upload-hint")}</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--accent)] transition-colors" />
         </button>
 
         <button
           onClick={() => router.push("/query")}
-          className="flex flex-col items-center gap-2 p-6 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] transition-colors text-left"
+          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left"
         >
-          <Code className="w-6 h-6 text-[var(--accent)]" />
-          <span className="text-sm font-medium text-[var(--text-primary)]">{t("nav.query")}</span>
-          <span className="text-[10px] text-[var(--text-muted)]">{t("dashboard.query-hint")}</span>
+          <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center group-hover:bg-[var(--accent)]/20 transition-colors">
+            <Code className="w-6 h-6 text-[var(--accent)]" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.open-sql")}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">{t("home.open-sql-hint")}</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--accent)] transition-colors" />
         </button>
 
         <button
           onClick={() => router.push("/analyze")}
-          className="flex flex-col items-center gap-2 p-6 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] transition-colors text-left"
+          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left"
         >
-          <MonitorPlay className="w-6 h-6 text-[var(--accent)]" />
-          <span className="text-sm font-medium text-[var(--text-primary)]">{t("nav.analyze")}</span>
-          <span className="text-[10px] text-[var(--text-muted)]">{t("dashboard.analyze-hint")}</span>
+          <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center group-hover:bg-[var(--accent)]/20 transition-colors">
+            <MonitorPlay className="w-6 h-6 text-[var(--accent)]" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.start-ai")}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">{t("home.start-ai-hint")}</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--accent)] transition-colors" />
         </button>
       </div>
 
-      {/* System status */}
+      {/* Demo Flow — 4 steps */}
       <Card>
         <CardHeader>
-          <CardTitle>{t("dashboard.system-status")}</CardTitle>
+          <CardTitle>{t("home.demo-flow-title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          {isStatusLoaded ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div>
-                <span className="text-[var(--text-muted)]">API: </span>
-                <span className={systemStatus.api === "ok" ? "text-green-400" : "text-red-400"}>
-                  {systemStatus.api}
-                </span>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            {[
+              { step: "1", label: t("home.step-upload"), icon: <Upload className="w-4 h-4" /> },
+              { step: "2", label: t("home.step-preview"), icon: <Database className="w-4 h-4" /> },
+              { step: "3", label: t("home.step-query"), icon: <Code className="w-4 h-4" /> },
+              { step: "4", label: t("home.step-insights"), icon: <MonitorPlay className="w-4 h-4" /> },
+            ].map((item) => (
+              <div key={item.step} className="flex flex-col items-center text-center gap-2 p-3">
+                <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-sm font-bold">
+                  {item.step}
+                </div>
+                <span className="text-xs text-[var(--text-primary)]">{item.label}</span>
               </div>
-              <div>
-                <span className="text-[var(--text-muted)]">DB: </span>
-                <span className={systemStatus.db === "ok" ? "text-green-400" : "text-red-400"}>
-                  {systemStatus.db}
-                </span>
-              </div>
-              <div>
-                <span className="text-[var(--text-muted)]">Version: </span>
-                <span className="text-[var(--text-primary)]">{systemStatus.version}</span>
-              </div>
-              <div>
-                <span className="text-[var(--text-muted)]">{t("dashboard.tables-count")}: </span>
-                <span className="text-[var(--text-primary)]">{tables.length}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-pulse">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-4 bg-[var(--bg-tertiary)] rounded w-3/4" />
-              ))}
-            </div>
-          )}
+            ))}
+          </div>
         </CardContent>
       </Card>
+
+      {/* Deployment Notice */}
+      <div className="flex items-start gap-3 p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)]">
+        <AlertCircle className="w-4 h-4 text-[var(--accent)] shrink-0 mt-0.5" />
+        <p className="text-xs text-[var(--text-muted)]">
+          {t("home.deploy-notice")}
+        </p>
+      </div>
+
+      {/* System status (compact) */}
+      {isStatusLoaded && (
+        <div className="flex items-center justify-center gap-6 text-xs text-[var(--text-muted)]">
+          <span>
+            API: <span className={systemStatus.api === "ok" ? "text-green-400" : "text-red-400"}>{systemStatus.api}</span>
+          </span>
+          <span>
+            DB: <span className={systemStatus.db === "ok" ? "text-green-400" : "text-red-400"}>{systemStatus.db}</span>
+          </span>
+          <span>
+            {t("dashboard.tables-count")}: <span className="text-[var(--text-primary)]">{tables.length}</span>
+          </span>
+        </div>
+      )}
 
       {/* Recent analyses */}
       {recentRuns.length > 0 && (
@@ -235,20 +212,6 @@ export default function HomePage() {
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* Quick tip for empty state */}
-      {tables.length > 0 && runs.length === 0 && (
-        <EmptyState
-          icon={<Database className="w-8 h-8" />}
-          title={t("dashboard.ready-to-analyze")}
-          description={t("dashboard.ready-hint", { count: tables.length })}
-          action={
-            <Button variant="primary" size="md" onClick={() => router.push("/analyze")} rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
-              {t("dashboard.start-btn")}
-            </Button>
-          }
-        />
       )}
     </div>
   );

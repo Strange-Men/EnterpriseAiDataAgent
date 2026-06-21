@@ -1,4 +1,6 @@
 "use client";
+// EXPERIMENTAL: This page is not linked from main navigation.
+// It is kept for development/debugging purposes only.
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
