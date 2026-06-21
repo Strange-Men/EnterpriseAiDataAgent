@@ -8,7 +8,7 @@ import { useAnalysisStore } from "@/stores/analysis-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
-  Upload, Code, MonitorPlay, ArrowRight,
+  Upload, MonitorPlay, ArrowRight,
   Database, Clock, AlertCircle,
 } from "lucide-react";
 
@@ -59,8 +59,8 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Quick Start — 3 primary actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Quick Start — 2 primary actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button
           onClick={() => router.push("/data")}
           className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left"
@@ -76,22 +76,8 @@ export default function HomePage() {
         </button>
 
         <button
-          onClick={() => router.push("/query")}
-          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left"
-        >
-          <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center group-hover:bg-[var(--accent)]/20 transition-colors">
-            <Code className="w-6 h-6 text-[var(--accent)]" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.open-sql")}</p>
-            <p className="text-xs text-[var(--text-muted)] mt-1">{t("home.open-sql-hint")}</p>
-          </div>
-          <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--accent)] transition-colors" />
-        </button>
-
-        <button
           onClick={() => router.push("/analyze")}
-          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left"
+          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--accent)]/30 bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left"
         >
           <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center group-hover:bg-[var(--accent)]/20 transition-colors">
             <MonitorPlay className="w-6 h-6 text-[var(--accent)]" />
@@ -114,7 +100,7 @@ export default function HomePage() {
             {[
               { step: "1", label: t("home.step-upload"), icon: <Upload className="w-4 h-4" /> },
               { step: "2", label: t("home.step-preview"), icon: <Database className="w-4 h-4" /> },
-              { step: "3", label: t("home.step-query"), icon: <Code className="w-4 h-4" /> },
+              { step: "3", label: t("home.step-query"), icon: <MonitorPlay className="w-4 h-4" /> },
               { step: "4", label: t("home.step-insights"), icon: <MonitorPlay className="w-4 h-4" /> },
             ].map((item) => (
               <div key={item.step} className="flex flex-col items-center text-center gap-2 p-3">
@@ -195,7 +181,7 @@ export default function HomePage() {
               {recentQueries.map((entry) => (
                 <button
                   key={entry.id}
-                  onClick={() => router.push(`/query`)}
+                  onClick={() => router.push(`/analyze`)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-tertiary)] transition-colors text-left"
                 >
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${

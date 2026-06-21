@@ -13,12 +13,16 @@ import {
 } from "@/services/api";
 import { useAnalysisStore, type AnalysisMode } from "@/stores/analysis-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
-import { InvestigationLayout } from "./investigation-layout";
-import { ContextPanel } from "./context-panel";
-import { ToolsPanel } from "./tools-panel";
-import { QuestionInput } from "./question-input";
+import { useDataStore } from "@/stores/data-store";
 import { StreamingOutput, type InvestigationResult } from "./streaming-output";
 import { StreamingIndicator } from "./ai-streaming-indicator";
+import { SqlWorkspacePanel } from "@/panels/sql-workspace-panel";
+import { Textarea, Select } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Lightbulb, Code } from "lucide-react";
+import type { TraceSnapshot } from "@/stores/analysis-store";
+
+type WorkspaceTab = "ai-query" | "expert-sql";
 
 export function InvestigationWorkspace() {
   const { t, i18n } = useTranslation();
@@ -26,6 +30,12 @@ export function InvestigationWorkspace() {
   const addRun = useAnalysisStore((s) => s.addRun);
   const updateRun = useAnalysisStore((s) => s.updateRun);
   const activeRunId = useAnalysisStore((s) => s.activeRunId);
+  const tables = useDataStore((s) => s.tables);
+  const activeTable = useInvestigationStore((s) => s.activeTable);
+
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("ai-query");
+  const [selectedTable, setSelectedTable] = useState(activeTable ?? "");
+  const [question, setQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [streamStage, setStreamStage] = useState("");
   const [streamStep, setStreamStep] = useState<number | undefined>();
@@ -45,11 +55,22 @@ export function InvestigationWorkspace() {
     };
   }, []);
 
-  const handleStart = useCallback(async (question: string, table: string, mode: AnalysisMode) => {
+  // Sync table from store when tables load
+  useEffect(() => {
+    if (!selectedTable && tables.length > 0) {
+      setSelectedTable(activeTable ?? tables[0].name);
+    }
+  }, [tables, activeTable, selectedTable]);
+
+  const handleSubmit = useCallback(async () => {
+    const q = question.trim();
+    const table = selectedTable || tables[0]?.name;
+    if (!q || !table || isLoading) return;
+
     // Abort any in-progress stream
     abortRef.current?.abort();
 
-    // Reset investigation context — prevents bleed between investigations (B1)
+    // Reset investigation context
     const store = useInvestigationStore.getState();
     store.clear();
     store.reset();
@@ -61,10 +82,11 @@ export function InvestigationWorkspace() {
     setResult(null);
     setError(undefined);
 
-    // Create run
-    const runId = addRun(mode, question, table);
+    // Create run — always use "autonomous" mode internally
+    const mode: AnalysisMode = "autonomous";
+    const runId = addRun(mode, q, table);
     setCurrentRunId(runId);
-    store.addUserTurn(question);
+    store.addUserTurn(q);
     store.advance("analyzing", { table });
 
     // Fetch table data for context
@@ -93,7 +115,7 @@ export function InvestigationWorkspace() {
 
     const latestKeyFindings = useInvestigationStore.getState().keyFindings;
     const abort = streamAiAnalyzeMulti(
-      question,
+      q,
       table,
       columns,
       sampleRows,
@@ -147,7 +169,6 @@ export function InvestigationWorkspace() {
 
           accumulatedTrace = data?.trace as Record<string, unknown> | undefined;
 
-          // Build result
           const finalResult: InvestigationResult = {
             plan: accumulatedPlan,
             steps: accumulatedSteps,
@@ -158,12 +179,11 @@ export function InvestigationWorkspace() {
 
           setResult(finalResult);
 
-          // Update analysis run
           updateRun(runId, {
             status: "success",
             sections: accumulatedSections,
             multiResult: {
-              question,
+              question: q,
               plan: accumulatedPlan,
               steps: accumulatedSteps,
               summary: accumulatedSummary,
@@ -179,12 +199,10 @@ export function InvestigationWorkspace() {
             } : null,
           });
 
-          // Update investigation context
           const doneStore = useInvestigationStore.getState();
           doneStore.addAssistantTurn(accumulatedSummary, accumulatedSteps[accumulatedSteps.length - 1]?.sql);
           doneStore.advance("done");
 
-          // Extract key findings from sections
           if (accumulatedSummary) {
             const sentences = accumulatedSummary.split(/[.!?]+/).filter((s) => s.trim().length > 10);
             sentences.slice(0, 5).forEach((s) => doneStore.addKeyFinding(s.trim()));
@@ -200,10 +218,10 @@ export function InvestigationWorkspace() {
     );
 
     abortRef.current = abort;
-  }, [addRun, updateRun, i18n.language, t]);
+  }, [question, selectedTable, tables, isLoading, addRun, updateRun, i18n.language, t]);
 
-  const handleTableSelect = useCallback((table: string) => {
-    useInvestigationStore.getState().advance("profiling", { table });
+  const handleExampleClick = useCallback((example: string) => {
+    setQuestion(example);
   }, []);
 
   // Load existing run if activeRunId is set from navigation
@@ -222,42 +240,174 @@ export function InvestigationWorkspace() {
     }
   }, [activeRunId, currentRunId]);
 
+  const currentTableName = selectedTable || tables[0]?.name;
+  const currentTableMeta = tables.find((tbl) => tbl.name === currentTableName);
+
   return (
-    <InvestigationLayout
-      context={<ContextPanel onTableSelect={handleTableSelect} />}
-      tools={<ToolsPanel />}
-      main={
-        <div className="p-4 space-y-4 max-w-4xl mx-auto">
-          <QuestionInput onStart={handleStart} isLoading={isLoading} />
+    <div className="flex flex-col h-full">
+      {/* Tab Bar */}
+      <div className="flex items-center border-b border-[var(--border-default)] bg-[var(--bg-secondary)] shrink-0">
+        <button
+          onClick={() => setActiveTab("ai-query")}
+          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+            activeTab === "ai-query"
+              ? "border-[var(--accent)] text-[var(--accent)]"
+              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          }`}
+        >
+          <Lightbulb className="w-3.5 h-3.5" />
+          {t("workspace.tab.ai-query")}
+        </button>
+        <button
+          onClick={() => setActiveTab("expert-sql")}
+          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+            activeTab === "expert-sql"
+              ? "border-[var(--accent)] text-[var(--accent)]"
+              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          }`}
+        >
+          <Code className="w-3.5 h-3.5" />
+          {t("workspace.tab.expert-sql")}
+        </button>
 
-          {isLoading && streamStage && (
-            <StreamingIndicator stage={streamStage} step={streamStep} />
-          )}
+        {/* Table info badge */}
+        {currentTableName && (
+          <div className="ml-auto px-3 py-1 text-[10px] text-[var(--text-muted)]">
+            <span className="uppercase tracking-wider">{t("workspace.current-table")}:</span>{" "}
+            <span className="text-[var(--text-primary)] font-medium">{currentTableName}</span>
+            {currentTableMeta && (
+              <span className="ml-1">({currentTableMeta.rowCount} rows)</span>
+            )}
+          </div>
+        )}
+      </div>
 
-          <StreamingOutput
-            result={result}
-            streamEvent={streamEvent}
-            isStreaming={isLoading}
-            streamStage={streamStage}
-            streamStep={streamStep}
-            error={error}
-          />
-
-          {result && currentRunId && (
-            <div className="flex justify-end pt-2 border-t border-[var(--border-default)]">
-              <button
-                onClick={() => router.push(`/analyze/${currentRunId}`)}
-                className="px-3 py-1 text-xs text-[var(--accent)] hover:underline"
-              >
-                {t("inv.run-detail")} →
-              </button>
+      {/* Tab Content */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {activeTab === "ai-query" ? (
+          <div className="p-6 max-w-3xl mx-auto space-y-6">
+            {/* Header */}
+            <div className="text-center space-y-2">
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                {t("workspace.ai-query-title")}
+              </h2>
+              <p className="text-sm text-[var(--text-muted)]">
+                {t("workspace.ai-query-subtitle")}
+              </p>
             </div>
-          )}
-        </div>
-      }
-    />
+
+            {/* Table selector */}
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider shrink-0">
+                {t("inv.table-label")}
+              </label>
+              {tables.length > 0 ? (
+                <Select
+                  value={selectedTable || tables[0]?.name || ""}
+                  onChange={(e) => setSelectedTable(e.target.value)}
+                  disabled={isLoading}
+                >
+                  {tables.map((tbl) => (
+                    <option key={tbl.name} value={tbl.name}>
+                      {tbl.name} ({tbl.rowCount} rows)
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <span className="text-xs text-[var(--text-muted)] italic">
+                  {t("workspace.no-table")}
+                </span>
+              )}
+            </div>
+
+            {/* Question input */}
+            <div className="space-y-3">
+              <Textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+                placeholder={t("inv.question-placeholder")}
+                rows={3}
+                className="!text-sm !rounded-lg !resize-none"
+                disabled={isLoading}
+              />
+
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!question.trim() || !currentTableName || isLoading}
+                  variant="primary"
+                  size="md"
+                  loading={isLoading}
+                >
+                  {isLoading ? t("inv.running") : t("workspace.generate-sql-analyze")}
+                </Button>
+              </div>
+            </div>
+
+            {/* Example questions */}
+            {!result && !isLoading && (
+              <div className="space-y-2">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+                  {t("workspace.example-questions")}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    t("workspace.example.q1"),
+                    t("workspace.example.q2"),
+                    t("workspace.example.q3"),
+                  ].map((example) => (
+                    <button
+                      key={example}
+                      onClick={() => handleExampleClick(example)}
+                      className="px-3 py-1.5 text-xs text-[var(--text-muted)] border border-[var(--border-default)] rounded-full hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Streaming indicator */}
+            {isLoading && streamStage && (
+              <StreamingIndicator stage={streamStage} step={streamStep} />
+            )}
+
+            {/* Results */}
+            <StreamingOutput
+              result={result}
+              streamEvent={streamEvent}
+              isStreaming={isLoading}
+              streamStage={streamStage}
+              streamStep={streamStep}
+              error={error}
+            />
+
+            {/* Link to run detail */}
+            {result && currentRunId && (
+              <div className="flex justify-end pt-2 border-t border-[var(--border-default)]">
+                <button
+                  onClick={() => router.push(`/analyze/${currentRunId}`)}
+                  className="px-3 py-1 text-xs text-[var(--accent)] hover:underline"
+                >
+                  {t("inv.run-detail")} →
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Expert SQL Tab */
+          <div className="flex flex-col h-full p-4">
+            <SqlWorkspacePanel />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
-
-// Import type for trace
-import type { TraceSnapshot } from "@/stores/analysis-store";

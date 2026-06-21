@@ -22,7 +22,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/": "nav.home",
   "/data": "nav.data",
   "/query": "nav.query",
-  "/analyze": "nav.analyze",  // AI 数据助手
+  "/analyze": "nav.analyze",  // 分析工作台
   "/history": "nav.history",
   "/settings": "nav.settings",
 };
@@ -61,7 +61,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       { id: "go-home", key: "h", mod: "ctrl", description: t("shortcut.go-home"), group: "navigation", handler: () => router.push("/") },
       { id: "go-analyze", key: "a", mod: "ctrl+shift", description: t("shortcut.go-analyze"), group: "navigation", handler: () => router.push("/analyze") },
       { id: "go-data", key: "d", mod: "ctrl+shift", description: t("shortcut.go-data"), group: "navigation", handler: () => router.push("/data") },
-      { id: "go-query", key: "q", mod: "ctrl", description: t("shortcut.go-query"), group: "navigation", handler: () => router.push("/query") },
       { id: "go-settings", key: ",", mod: "ctrl", description: t("shortcut.go-settings"), group: "navigation", handler: () => router.push("/settings") },
       { id: "toggle-theme", key: "t", mod: "ctrl+shift", description: t("shortcut.toggle-theme"), group: "appearance", handler: toggleTheme, global: true },
       { id: "toggle-language", key: "l", mod: "ctrl+shift", description: t("shortcut.toggle-language"), group: "appearance", handler: toggleLanguage, global: true },

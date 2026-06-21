@@ -8,7 +8,6 @@ import { MonitorPlay } from "lucide-react";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { Button } from "@/components/ui/button";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { FeatureTooltip } from "@/components/onboarding/feature-tooltip";
 
 const RunHeader = dynamic(
   () => import("@/components/investigation/run-header").then((m) => ({ default: m.RunHeader })),
@@ -68,11 +67,7 @@ export default function AnalysisDetailPage({ params }: { params: Promise<{ runId
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <FeatureTooltip stepId="view-analysis" position="top">
-            <div data-onboarding="analysis-result">
-              <RunSections run={run} />
-            </div>
-          </FeatureTooltip>
+          <RunSections run={run} />
           <RunTrace run={run} />
         </div>
 
