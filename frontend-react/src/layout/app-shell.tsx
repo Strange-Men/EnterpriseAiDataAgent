@@ -96,7 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
             {/* Quick breadcrumb hint */}
             {isInvestigation && pathname !== "/analyze" && (
-              <span className="text-[10px] text-[var(--text-muted)]">
+              <span className="text-xs text-[var(--text-muted)]">
                 / {pathname.split("/").pop()?.slice(0, 8)}...
               </span>
             )}
@@ -111,7 +111,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               title={`${t("header.cmd-palette")} (${formatShortcutKey({ key: "K", mod: "ctrl" })})`}
               leftIcon={<Search className="w-3.5 h-3.5" />}
             >
-              <span className="text-[10px] text-[var(--text-muted)]">{formatShortcutKey({ key: "K", mod: "ctrl" })}</span>
+              <span className="text-xs text-[var(--text-muted)]">{formatShortcutKey({ key: "K", mod: "ctrl" })}</span>
             </Button>
 
             {/* Keyboard shortcuts help */}

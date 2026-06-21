@@ -6,10 +6,11 @@ import { useRouter } from "next/navigation";
 import { useDataStore } from "@/stores/data-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
+import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Upload, MonitorPlay, ArrowRight,
-  Database, Clock, AlertCircle,
+  Database, Clock, Info,
 } from "lucide-react";
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -98,17 +99,21 @@ export default function HomePage() {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             {[
-              { step: "1", label: t("home.step-upload"), icon: <Upload className="w-4 h-4" /> },
-              { step: "2", label: t("home.step-preview"), icon: <Database className="w-4 h-4" /> },
-              { step: "3", label: t("home.step-query"), icon: <MonitorPlay className="w-4 h-4" /> },
-              { step: "4", label: t("home.step-insights"), icon: <MonitorPlay className="w-4 h-4" /> },
+              { step: "1", label: t("home.step-upload"), icon: <Upload className="w-4 h-4" />, href: "/data" },
+              { step: "2", label: t("home.step-preview"), icon: <Database className="w-4 h-4" />, href: "/data" },
+              { step: "3", label: t("home.step-query"), icon: <MonitorPlay className="w-4 h-4" />, href: "/analyze" },
+              { step: "4", label: t("home.step-insights"), icon: <MonitorPlay className="w-4 h-4" />, href: "/analyze" },
             ].map((item) => (
-              <div key={item.step} className="flex flex-col items-center text-center gap-2 p-3">
+              <button
+                key={item.step}
+                onClick={() => router.push(item.href)}
+                className="flex flex-col items-center text-center gap-2 p-3 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+              >
                 <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-sm font-bold">
                   {item.step}
                 </div>
                 <span className="text-xs text-[var(--text-primary)]">{item.label}</span>
-              </div>
+              </button>
             ))}
           </div>
         </CardContent>
@@ -116,7 +121,7 @@ export default function HomePage() {
 
       {/* Deployment Notice */}
       <div className="flex items-start gap-3 p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)]">
-        <AlertCircle className="w-4 h-4 text-[var(--accent)] shrink-0 mt-0.5" />
+        <Info className="w-4 h-4 text-[var(--accent)] shrink-0 mt-0.5" />
         <p className="text-xs text-[var(--text-muted)]">
           {t("home.deploy-notice")}
         </p>
@@ -157,7 +162,7 @@ export default function HomePage() {
                   <span className="text-xs text-[var(--text-primary)] truncate flex-1">
                     {run.question || run.table || run.mode}
                   </span>
-                  <span className="text-[10px] text-[var(--text-muted)] shrink-0">
+                  <span className="text-xs text-[var(--text-muted)] shrink-0">
                     {timeAgo(run.timestamp, t)}
                   </span>
                 </button>
@@ -181,7 +186,11 @@ export default function HomePage() {
               {recentQueries.map((entry) => (
                 <button
                   key={entry.id}
-                  onClick={() => router.push(`/analyze`)}
+                  onClick={() => {
+                    // Load SQL into editor tab, then navigate to analysis workspace
+                    useSqlEditorStore.getState().addTab(undefined, entry.sql);
+                    router.push("/analyze");
+                  }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-tertiary)] transition-colors text-left"
                 >
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
@@ -190,7 +199,7 @@ export default function HomePage() {
                   <span className="text-xs text-[var(--text-primary)] truncate flex-1 font-mono">
                     {entry.sql.length > 80 ? entry.sql.slice(0, 80) + "..." : entry.sql}
                   </span>
-                  <span className="text-[10px] text-[var(--text-muted)] shrink-0">
+                  <span className="text-xs text-[var(--text-muted)] shrink-0">
                     {entry.runtimeMs}ms · {entry.rowCount} rows
                   </span>
                 </button>
