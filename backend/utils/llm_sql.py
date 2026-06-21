@@ -77,11 +77,55 @@ def _extract_from_fence(text: str) -> str:
 
 
 def _trim_to_first_statement(candidate: str) -> str:
+    """Extract only the first SQL statement from candidate text.
+
+    Stops at the first semicolon. If no semicolon found, attempts to
+    detect where SQL ends and prose begins (e.g. Chinese explanation text).
+    """
     cleaned = _LABEL_RE.sub("", candidate.strip())
     semicolon = cleaned.find(";")
     if semicolon >= 0:
         cleaned = cleaned[: semicolon + 1]
-    return cleaned.strip()
+        return cleaned.strip()
+
+    # No semicolon — try to detect SQL/prose boundary
+    # Split by lines and keep only lines that look like SQL
+    lines = cleaned.split("\n")
+    sql_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            # Empty line — might be between SQL and prose, stop here
+            if sql_lines:
+                break
+            continue
+        # If line starts with non-ASCII and doesn't look like SQL, stop
+        if _is_prose_line(stripped):
+            break
+        sql_lines.append(stripped)
+    return "\n".join(sql_lines).strip()
+
+
+def _is_prose_line(line: str) -> bool:
+    """Detect if a line is prose (explanation/mapping text) rather than SQL."""
+    import unicodedata
+    if not line:
+        return False
+    # Lines starting with common prose markers
+    prose_prefixes = ("映射", "说明", "解释", "注意", "备注", "mapping", "note:", "explanation:")
+    lower = line.lower()
+    for prefix in prose_prefixes:
+        if lower.startswith(prefix):
+            return True
+    # Lines that are mostly non-ASCII (Chinese explanation) and don't contain SQL keywords
+    first_char = line[0]
+    if ord(first_char) > 127:
+        # Check if line contains any SQL keywords
+        upper = line.upper()
+        sql_keywords = ("SELECT", "FROM", "WHERE", "GROUP", "ORDER", "JOIN", "ON", "AS", "AND", "OR")
+        if not any(kw in upper for kw in sql_keywords):
+            return True
+    return False
 
 
 def _normalize_cannot_answer(candidate: str) -> str:

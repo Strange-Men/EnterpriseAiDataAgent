@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, type ReactNode, type ErrorInfo } from "react";
+import { safeErrorText } from "@/utils/safe-render";
 
 interface Props {
   children: ReactNode;
@@ -38,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
               Something went wrong
             </h3>
             <p className="text-xs text-[var(--text-muted)] mb-4 max-w-xs">
-              {this.state.error?.message ?? "An unexpected error occurred"}
+              {safeErrorText(this.state.error)}
             </p>
             <button
               onClick={() => this.setState({ hasError: false, error: null })}

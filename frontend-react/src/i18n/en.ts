@@ -278,7 +278,7 @@ const en = {
     "ai.progress": "Progress",
     "ai.connection-lost": "Connection lost — partial content preserved",
     "ai.attempt": "attempt",
-    "ai.error-json-parse": "AI returned an unexpected format. The raw response has been preserved. This will be fixed in M4-4.",
+    "ai.error-json-parse": "AI returned an unexpected format. The raw response has been preserved.",
     "ai.error-technical-detail": "Technical Details",
 
     // SQL Workspace AI

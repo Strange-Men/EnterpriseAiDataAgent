@@ -12,6 +12,7 @@ import { AnalysisSectionView } from "@/components/ai/analysis-section";
 import { StepResults } from "@/components/ai/step-results";
 import { TraceTimeline } from "@/components/ai/trace-timeline";
 import { FollowUpInput } from "@/components/ai/follow-up-input";
+import { renderSafeText, safeArray } from "@/utils/safe-render";
 
 import { AnalysisSkeleton } from "@/components/ai/analysis-skeleton";
 import { SuggestedQuestions } from "@/components/ai/suggested-questions";
@@ -215,7 +216,7 @@ export function AIAnalysisPanel({
         {error && (
           <div className="px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-md">
             <p className="text-xs font-medium text-red-400 mb-1">{t("ai.error")}</p>
-            <p className="text-xs text-red-300">{error}</p>
+            <p className="text-xs text-red-300">{renderSafeText(error, t("ai.analysis-failed"))}</p>
             <button
               onClick={runAnalysis}
               className="mt-2 px-2 py-1 text-xs text-red-300 border border-red-500/30 rounded hover:bg-red-500/10 transition-colors"
@@ -306,7 +307,7 @@ export function AIAnalysisPanel({
         {streamingError && (
           <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-md">
             <p className="text-xs font-medium text-amber-400 mb-1">{t("ai.connection-lost")}</p>
-            <p className="text-xs text-amber-300 mb-2">{streamingError}</p>
+            <p className="text-xs text-amber-300 mb-2">{renderSafeText(streamingError, t("ai.analysis-failed"))}</p>
             <button
               onClick={retryStreaming}
               className="px-3 py-1.5 text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded hover:bg-amber-500/30 transition-colors"
@@ -410,26 +411,26 @@ export function AIAnalysisPanel({
             {/* Quality gate warnings */}
             {evaluation.quality_gates && !evaluation.quality_gates.passed && (
               <div className="mb-2 px-2 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-md">
-                {evaluation.quality_gates.warnings.map((w, i) => (
-                  <p key={i} className="text-[10px] text-amber-300">⚠ {w}</p>
+                {safeArray<string>(evaluation.quality_gates.warnings).map((w, i) => (
+                  <p key={i} className="text-[10px] text-amber-300">⚠ {renderSafeText(w)}</p>
                 ))}
               </div>
             )}
             {/* Diagnostics */}
-            {evaluation.diagnostics.length > 0 && (
+            {safeArray<string>(evaluation.diagnostics).length > 0 && (
               <div className="mb-1">
                 <p className="text-[10px] font-medium text-[var(--text-muted)] mb-0.5">{t("ai.diagnostics")}</p>
-                {evaluation.diagnostics.map((d, i) => (
-                  <p key={i} className="text-[10px] text-[var(--text-secondary)]">- {d}</p>
+                {safeArray<string>(evaluation.diagnostics).map((d, i) => (
+                  <p key={i} className="text-[10px] text-[var(--text-secondary)]">- {renderSafeText(d)}</p>
                 ))}
               </div>
             )}
             {/* Suggested improvements */}
-            {evaluation.suggested_improvements.length > 0 && (
+            {safeArray<string>(evaluation.suggested_improvements).length > 0 && (
               <div>
                 <p className="text-[10px] font-medium text-[var(--text-muted)] mb-0.5">{t("ai.improvements")}</p>
-                {evaluation.suggested_improvements.map((imp, i) => (
-                  <p key={i} className="text-[10px] text-[var(--text-secondary)]">- {imp}</p>
+                {safeArray<string>(evaluation.suggested_improvements).map((imp, i) => (
+                  <p key={i} className="text-[10px] text-[var(--text-secondary)]">- {renderSafeText(imp)}</p>
                 ))}
               </div>
             )}

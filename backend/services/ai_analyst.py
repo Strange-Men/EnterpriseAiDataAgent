@@ -336,6 +336,25 @@ def build_follow_up_context(ctx: dict) -> str:
     return "\n".join(parts)
 
 
+# ── LLM Text Extraction ───────────────────────────────────────
+
+
+def _extract_visible_text(blocks) -> str:
+    """Extract only user-visible text from LLM response content blocks.
+
+    Filters out ThinkingBlock, signature, and other internal blocks.
+    Only extracts from blocks where type == "text" and text is a non-empty string.
+    """
+    parts = []
+    for block in blocks or []:
+        block_type = getattr(block, "type", None)
+        text = getattr(block, "text", None)
+        # Only include blocks explicitly typed as "text" with valid string content
+        if block_type == "text" and isinstance(text, str) and text.strip():
+            parts.append(text)
+    return "\n".join(parts).strip()
+
+
 # ── LLM Call ────────────────────────────────────────────────────
 
 _TRANSIENT_ERRORS = (
@@ -388,14 +407,9 @@ def _call_llm(
                 timeout=30.0,
             )
 
-            # 提取输出文本 — concatenate ALL text blocks
-            # Mimo API 返回 thinking blocks 时 block.text 可能为 None
-            text = ""
-            for block in response.content:
-                if hasattr(block, "text") and block.text is not None:
-                    text += block.text
-            if not text:
-                text = str(response.content[0])
+            # 提取输出文本 — 只提取 type=="text" 的 block
+            # 过滤 ThinkingBlock / signature / internal blocks
+            text = _extract_visible_text(response.content)
 
             elapsed = (time.time() - start) * 1000
 

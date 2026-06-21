@@ -278,7 +278,7 @@ const zh = {
     "ai.progress": "进度",
     "ai.connection-lost": "连接中断，部分内容已保留",
     "ai.attempt": "尝试",
-    "ai.error-json-parse": "AI 返回格式不符合预期，已保留原始响应。后续将在 M4-4 修复输出契约。",
+    "ai.error-json-parse": "AI 返回格式不符合预期，已保留原始响应。",
     "ai.error-technical-detail": "技术详情",
 
     // SQL Workspace AI
@@ -490,10 +490,10 @@ const zh = {
     "inv.run-sql": "执行",
 
     // Analysis Workspace Tabs (M4-2.1)
-    "workspace.tab.ai-query": "AI 问数",
+    "workspace.tab.ai-query": "自然语言查询",
     "workspace.tab.expert-sql": "专家 SQL",
-    "workspace.ai-query-title": "自然语言问数",
-    "workspace.ai-query-subtitle": "AI 会根据当前数据表生成 SQL、执行查询，并解释结果。",
+    "workspace.ai-query-title": "AI 数据分析",
+    "workspace.ai-query-subtitle": "用自然语言描述问题，AI 会生成 SQL、执行查询，并解释结果。",
     "workspace.generate-sql-analyze": "生成 SQL 并分析",
     "workspace.example-questions": "试试这些问题：",
     "workspace.example.q1": "营收最高的品类是哪些？",

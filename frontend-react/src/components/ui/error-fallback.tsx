@@ -2,6 +2,7 @@
 
 import { AlertTriangle, RefreshCcw } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { safeErrorText } from "@/utils/safe-render";
 
 import type { FallbackProps } from "react-error-boundary";
 
@@ -17,7 +18,7 @@ export function ErrorFallback({ error, resetErrorBoundary, className }: ErrorFal
       </div>
       <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Something went wrong</h2>
       <p className="text-xs text-[var(--text-muted)] max-w-md mb-4 break-words">
-        {error instanceof Error ? error.message : "An unexpected error occurred"}
+        {safeErrorText(error)}
       </p>
       <button
         onClick={resetErrorBoundary}

@@ -19,7 +19,8 @@ class TestCallLlmRetry:
         """Normal success — no retry needed."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.content = [MagicMock(text="SELECT 1")]
+        mock_block = MagicMock(text="SELECT 1", type="text")
+        mock_response.content = [mock_block]
         mock_client.messages.create.return_value = mock_response
         mock_get_client.return_value = mock_client
 
@@ -33,7 +34,8 @@ class TestCallLlmRetry:
         """Rate limit error → retry → success."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.content = [MagicMock(text="SELECT 1")]
+        mock_block = MagicMock(text="SELECT 1", type="text")
+        mock_response.content = [mock_block]
 
         mock_client.messages.create.side_effect = [
             anthropic.RateLimitError("rate limited", response=MagicMock(status_code=429), body=None),
@@ -52,7 +54,8 @@ class TestCallLlmRetry:
         """Timeout error → retry → success."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.content = [MagicMock(text="OK")]
+        mock_block = MagicMock(text="OK", type="text")
+        mock_response.content = [mock_block]
 
         mock_client.messages.create.side_effect = [
             anthropic.APITimeoutError(request=MagicMock()),
@@ -70,7 +73,8 @@ class TestCallLlmRetry:
         """Connection error → retry → success."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.content = [MagicMock(text="OK")]
+        mock_block = MagicMock(text="OK", type="text")
+        mock_response.content = [mock_block]
 
         mock_client.messages.create.side_effect = [
             anthropic.APIConnectionError(request=MagicMock()),

@@ -6,7 +6,18 @@ from typing import Any
 
 
 def parse_llm_json(raw: str) -> Any:
-    """Parse JSON returned by an LLM, including markdown-wrapped output."""
+    """Parse JSON returned by an LLM, including markdown-wrapped output.
+
+    Tries multiple extraction strategies:
+    1. Direct JSON parse
+    2. Markdown fenced code block (```json ... ```)
+    3. Brace/bracket matching
+
+    Raises json.JSONDecodeError if all strategies fail.
+    """
+    if not raw or not raw.strip():
+        raise json.JSONDecodeError("Empty LLM response", raw or "", 0)
+
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
@@ -28,4 +39,8 @@ def parse_llm_json(raw: str) -> Any:
             except json.JSONDecodeError:
                 pass
 
-    raise json.JSONDecodeError("Failed to parse LLM response as JSON", raw, 0)
+    raise json.JSONDecodeError(
+        "Failed to parse LLM response as JSON",
+        raw[:200] if len(raw) > 200 else raw,
+        0,
+    )

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckCircle2, XCircle, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { renderSafeText } from "@/utils/safe-render";
 import type { MultiStepExecuted } from "@/services/api";
 
 interface StepResultsProps {
@@ -86,7 +87,7 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
                 <div>
                   {step.status === "error" && step.error && (
                     <div className="px-3 py-1.5 text-xs text-red-300 bg-red-500/5">
-                      {step.error}
+                      {renderSafeText(step.error, "Step execution failed")}
                     </div>
                   )}
                   {isSuccess && step.data && step.data.length > 0 && step.columns && (
