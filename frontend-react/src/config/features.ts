@@ -25,13 +25,13 @@ export const featureFlags = {
   showSaveAsTemplate: false,
 
   /** AI buttons in SQL Workspace (Explain, Insights, Charts, Anomalies) */
-  showAiButtonsInSqlWorkspace: false,
+  showAiButtonsInSqlWorkspace: true,
 
   /** AI Generate SQL input in SQL Workspace */
-  showAiSqlInputInWorkspace: false,
+  showAiSqlInputInWorkspace: true,
 
   /** Autonomous analysis mode (6-step) */
-  showAutonomousMode: false,
+  showAutonomousMode: true,
 
   /** Charts analysis mode */
   showChartsMode: false,

@@ -21,7 +21,7 @@ import { StreamingIndicator } from "./ai-streaming-indicator";
 import { SqlWorkspacePanel } from "@/panels/sql-workspace-panel";
 import { Textarea, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, Code } from "lucide-react";
+import { Lightbulb, Code, Square } from "lucide-react";
 import type { TraceSnapshot } from "@/stores/analysis-store";
 
 type WorkspaceTab = "ai-query" | "expert-sql";
@@ -248,6 +248,14 @@ export function InvestigationWorkspace() {
     abortRef.current = abort;
   }, [question, selectedTable, tables, isLoading, addRun, updateRun, i18n.language, t]);
 
+  const handleStop = useCallback(() => {
+    abortRef.current?.abort();
+    setIsLoading(false);
+    setStreamStage("");
+    setStreamStep(undefined);
+    toast(t("ai.stopped"), { icon: "⏹" });
+  }, [t]);
+
   const handleExampleClick = useCallback((example: string) => {
     setQuestion(example);
   }, []);
@@ -300,7 +308,7 @@ export function InvestigationWorkspace() {
 
         {/* Table info badge */}
         {currentTableName && (
-          <div className="ml-auto px-3 py-1 text-[10px] text-[var(--text-muted)]">
+          <div className="ml-auto px-3 py-1 text-xs text-[var(--text-muted)]">
             <span className="uppercase tracking-wider">{t("workspace.current-table")}:</span>{" "}
             <span className="text-[var(--text-primary)] font-medium">{currentTableName}</span>
             {currentTableMeta && (
@@ -326,7 +334,7 @@ export function InvestigationWorkspace() {
 
             {/* Table selector */}
             <div className="flex items-center gap-2">
-              <label className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider shrink-0">
+              <label className="text-xs text-[var(--text-muted)] uppercase tracking-wider shrink-0">
                 {t("inv.table-label")}
               </label>
               {tables.length > 0 ? (
@@ -375,13 +383,24 @@ export function InvestigationWorkspace() {
                 >
                   {isLoading ? t("inv.running") : t("workspace.generate-sql-analyze")}
                 </Button>
+                {isLoading && (
+                  <Button
+                    onClick={handleStop}
+                    variant="ghost"
+                    size="md"
+                    leftIcon={<Square className="w-3.5 h-3.5" />}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  >
+                    {t("ai.stop")}
+                  </Button>
+                )}
               </div>
             </div>
 
             {/* Example questions */}
             {!result && !isLoading && (
               <div className="space-y-2">
-                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+                <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">
                   {t("workspace.example-questions")}
                 </p>
                 <div className="flex flex-wrap gap-2">

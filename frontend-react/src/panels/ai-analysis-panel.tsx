@@ -271,7 +271,7 @@ export function AIAnalysisPanel({
             {progressInfo.stepSummaries.length > 0 && (
               <div className="space-y-1 mt-2">
                 {progressInfo.stepSummaries.map((s) => (
-                  <div key={s.step} className="flex items-center gap-2 text-[10px]">
+                  <div key={s.step} className="flex items-center gap-2 text-xs">
                     <span className={s.status === "success" ? "text-emerald-400" : "text-red-400"}>
                       {s.status === "success" ? "✓" : "✗"}
                     </span>
@@ -368,7 +368,7 @@ export function AIAnalysisPanel({
                   <p className="text-xs text-[var(--text-primary)] group-hover:text-amber-400">
                     <span className="text-amber-400 font-semibold">[HIGH]</span> {finding.text}
                   </p>
-                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{t("ai.drill-down-hint")}</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">{t("ai.drill-down-hint")}</p>
                 </button>
               ))}
             </div>
@@ -402,7 +402,7 @@ export function AIAnalysisPanel({
                 const val = evaluation[dim];
                 const color = val === "high" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" : val === "medium" ? "bg-amber-500/15 text-amber-400 border-amber-500/30" : val === "low" ? "bg-red-500/15 text-red-400 border-red-500/30" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)] border-[var(--border-default)]";
                 return (
-                  <span key={dim} className={`text-[10px] px-2 py-0.5 rounded-full border ${color}`}>
+                  <span key={dim} className={`text-xs px-2 py-0.5 rounded-full border ${color}`}>
                     {t(`ai.${dim}`)}: {val}
                   </span>
                 );
@@ -412,25 +412,25 @@ export function AIAnalysisPanel({
             {evaluation.quality_gates && !evaluation.quality_gates.passed && (
               <div className="mb-2 px-2 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-md">
                 {safeArray<string>(evaluation.quality_gates.warnings).map((w, i) => (
-                  <p key={i} className="text-[10px] text-amber-300">⚠ {renderSafeText(w)}</p>
+                  <p key={i} className="text-xs text-amber-300">⚠ {renderSafeText(w)}</p>
                 ))}
               </div>
             )}
             {/* Diagnostics */}
             {safeArray<string>(evaluation.diagnostics).length > 0 && (
               <div className="mb-1">
-                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-0.5">{t("ai.diagnostics")}</p>
+                <p className="text-xs font-medium text-[var(--text-muted)] mb-0.5">{t("ai.diagnostics")}</p>
                 {safeArray<string>(evaluation.diagnostics).map((d, i) => (
-                  <p key={i} className="text-[10px] text-[var(--text-secondary)]">- {renderSafeText(d)}</p>
+                  <p key={i} className="text-xs text-[var(--text-secondary)]">- {renderSafeText(d)}</p>
                 ))}
               </div>
             )}
             {/* Suggested improvements */}
             {safeArray<string>(evaluation.suggested_improvements).length > 0 && (
               <div>
-                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-0.5">{t("ai.improvements")}</p>
+                <p className="text-xs font-medium text-[var(--text-muted)] mb-0.5">{t("ai.improvements")}</p>
                 {safeArray<string>(evaluation.suggested_improvements).map((imp, i) => (
-                  <p key={i} className="text-[10px] text-[var(--text-secondary)]">- {renderSafeText(imp)}</p>
+                  <p key={i} className="text-xs text-[var(--text-secondary)]">- {renderSafeText(imp)}</p>
                 ))}
               </div>
             )}

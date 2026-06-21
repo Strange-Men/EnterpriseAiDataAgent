@@ -64,14 +64,14 @@ function HistoryItem({
     }`}>
       <button
         onClick={onToggleSave}
-        className="px-1 py-2 text-[10px] hover:text-[var(--accent)] transition-colors shrink-0"
+        className="px-1 py-2 text-xs hover:text-[var(--accent)] transition-colors shrink-0"
         title={run.saved ? "Unsave" : "Save"}
       >
         {run.saved ? "★" : "☆"}
       </button>
       <button onClick={onClick} className="flex-1 text-left px-1 py-2 min-w-0">
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
+          <span className={`text-xs font-bold px-1 py-0.5 rounded ${
             isActive ? "bg-[var(--accent)]/20 text-[var(--accent)]" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
           }`}>
             {modeIcon(run.mode)}
@@ -80,13 +80,13 @@ function HistoryItem({
             {run.question || run.table || run.mode}
           </span>
           {run.notes && (
-            <span className="text-[10px] text-[var(--text-muted)]" title={run.notes}>📝</span>
+            <span className="text-xs text-[var(--text-muted)]" title={run.notes}>📝</span>
           )}
           {run.version > 1 && (
-            <span className="text-[10px] text-[var(--text-muted)]">v{run.version}</span>
+            <span className="text-xs text-[var(--text-muted)]">v{run.version}</span>
           )}
-          <span className={`text-[10px] ${statusColor(run.status)}`}>●</span>
-          <span className="text-[10px] text-[var(--text-muted)]">{formatTime(run.timestamp)}</span>
+          <span className={`text-xs ${statusColor(run.status)}`}>●</span>
+          <span className="text-xs text-[var(--text-muted)]">{formatTime(run.timestamp)}</span>
         </div>
       </button>
     </div>
@@ -126,21 +126,21 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
       <div className="flex items-center gap-1 pb-2 border-b border-[var(--border-default)]">
         <button
           onClick={onRerun}
-          className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
+          className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
           title={t("analysis.rerun")}
         >
           {t("analysis.rerun")}
         </button>
         <button
           onClick={onDuplicate}
-          className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
+          className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
           title={t("analysis.duplicate")}
         >
           {t("analysis.duplicate")}
         </button>
         <button
           onClick={onExport}
-          className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
+          className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
           title={t("analysis.export")}
         >
           {t("analysis.export")}
@@ -159,7 +159,7 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
         {isFeatureEnabled("showSaveAsTemplate") && run.status === "success" && (
           <button
             onClick={onSaveAsTemplate}
-            className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
+            className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
             title={t("template.save-as")}
           >
             {t("template.save-as")}
@@ -168,7 +168,7 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
         {isFeatureEnabled("showTimeline") && (
           <button
             onClick={onShowTimeline}
-            className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
+            className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
             title={t("timeline.evolution")}
           >
             {t("timeline.evolution")}
@@ -176,7 +176,7 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
         )}
         <button
           onClick={onDelete}
-          className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded transition-colors ml-auto"
+          className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded transition-colors ml-auto"
           title={t("analysis.delete")}
         >
           {t("analysis.delete")}
@@ -230,7 +230,7 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
       {run.evaluation && (
         <div className="pt-2 border-t border-[var(--border-default)] space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+            <span className="text-xs text-[var(--text-muted)] uppercase tracking-wider">
               {t("eval.confidence")}
             </span>
             <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
@@ -243,17 +243,17 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
           </div>
           {run.evaluation.diagnostics.length > 0 && (
             <div>
-              <p className="text-[10px] text-[var(--text-muted)] mb-1">{t("eval.diagnostics")}</p>
+              <p className="text-xs text-[var(--text-muted)] mb-1">{t("eval.diagnostics")}</p>
               {run.evaluation.diagnostics.map((d, i) => (
-                <p key={i} className="text-[10px] text-yellow-300 ml-2">• {d}</p>
+                <p key={i} className="text-xs text-yellow-300 ml-2">• {d}</p>
               ))}
             </div>
           )}
           {run.evaluation.suggested_improvements.length > 0 && (
             <div>
-              <p className="text-[10px] text-[var(--text-muted)] mb-1">{t("eval.improvements")}</p>
+              <p className="text-xs text-[var(--text-muted)] mb-1">{t("eval.improvements")}</p>
               {run.evaluation.suggested_improvements.map((s, i) => (
-                <p key={i} className="text-[10px] text-[var(--accent)] ml-2">• {s}</p>
+                <p key={i} className="text-xs text-[var(--accent)] ml-2">• {s}</p>
               ))}
             </div>
           )}
@@ -323,18 +323,18 @@ export function AnalysisWorkspacePanel() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${
+            className={`px-1.5 py-0.5 text-xs rounded transition-colors ${
               showHistory
                 ? "bg-[var(--accent)]/10 text-[var(--accent)]"
                 : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             }`}
           >
-            {t("analysis.history")}
+            {t("analysis.recent-runs")}
           </button>
           {isFeatureEnabled("showTemplates") && (
             <button
               onClick={() => setShowTemplates(!showTemplates)}
-              className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${
+              className={`px-1.5 py-0.5 text-xs rounded transition-colors ${
                 showTemplates
                   ? "bg-[var(--accent)]/10 text-[var(--accent)]"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -346,7 +346,7 @@ export function AnalysisWorkspacePanel() {
           {isFeatureEnabled("showDiffCompare") && successRuns.length >= 2 && (
             <button
               onClick={() => setShowCompare(!showCompare)}
-              className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${
+              className={`px-1.5 py-0.5 text-xs rounded transition-colors ${
                 showCompare
                   ? "bg-[var(--accent)]/10 text-[var(--accent)]"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -358,7 +358,7 @@ export function AnalysisWorkspacePanel() {
           {isFeatureEnabled("showSchedule") && (
             <button
               onClick={() => setShowSchedule(!showSchedule)}
-              className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${
+              className={`px-1.5 py-0.5 text-xs rounded transition-colors ${
                 showSchedule
                   ? "bg-[var(--accent)]/10 text-[var(--accent)]"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -370,7 +370,7 @@ export function AnalysisWorkspacePanel() {
           {runs.length > 0 && (
             <button
               onClick={() => setShowReportDialog(true)}
-              className="px-1.5 py-0.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+              className="px-1.5 py-0.5 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
               title={t("report.generate")}
             >
               {t("report.generate")}
@@ -379,7 +379,7 @@ export function AnalysisWorkspacePanel() {
           {runs.length > 0 && (
             <button
               onClick={clearHistory}
-              className="px-1.5 py-0.5 text-[10px] text-[var(--text-muted)] hover:text-red-400 transition-colors"
+              className="px-1.5 py-0.5 text-xs text-[var(--text-muted)] hover:text-red-400 transition-colors"
               title="Clear history"
             >
               ✕
@@ -392,7 +392,7 @@ export function AnalysisWorkspacePanel() {
         {/* Templates section */}
         {showTemplates && (
           <div className="space-y-1.5 pb-2 border-b border-[var(--border-default)]">
-            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+            <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">
               {t("template.apply")}
             </p>
             {templates.length === 0 ? (
@@ -407,12 +407,12 @@ export function AnalysisWorkspacePanel() {
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-[var(--text-primary)] truncate">{tpl.name}</span>
-                      <span className="text-[10px] text-[var(--text-muted)]">
+                      <span className="text-xs text-[var(--text-muted)]">
                         {t("template.steps-count", { count: tpl.steps.length })}
                       </span>
                     </div>
                     {tpl.description && (
-                      <p className="text-[10px] text-[var(--text-muted)] truncate mt-0.5">{tpl.description}</p>
+                      <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">{tpl.description}</p>
                     )}
                   </button>
                 ))}
@@ -441,7 +441,7 @@ export function AnalysisWorkspacePanel() {
             {/* Saved runs */}
             {savedRuns.length > 0 && (
               <>
-                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+                <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">
                   {t("analysis.saved-runs")}
                 </p>
                 {savedRuns.map((run) => (
@@ -472,6 +472,13 @@ export function AnalysisWorkspacePanel() {
                 ))}
               </>
             )}
+            {/* Link to full history */}
+            <button
+              onClick={() => window.location.href = "/history"}
+              className="w-full text-center py-1.5 text-[10px] text-[var(--accent)] hover:underline"
+            >
+              {t("analysis.view-all-history")} →
+            </button>
           </div>
         )}
 
@@ -495,7 +502,7 @@ export function AnalysisWorkspacePanel() {
         ) : (
           <div className="flex flex-col items-center justify-center h-32 text-center">
             <p className="text-sm text-[var(--text-muted)]">{t("analysis.no-selection")}</p>
-            <p className="text-[10px] text-[var(--text-muted)] mt-1">{t("analysis.run-hint")}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">{t("analysis.run-hint")}</p>
           </div>
         )}
 
@@ -503,7 +510,7 @@ export function AnalysisWorkspacePanel() {
         {runs.length === 0 && (
           <div className="flex flex-col items-center justify-center h-32 text-center">
             <p className="text-sm text-[var(--text-muted)]">{t("analysis.no-history")}</p>
-            <p className="text-[10px] text-[var(--text-muted)] mt-1">{t("analysis.start-hint")}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">{t("analysis.start-hint")}</p>
           </div>
         )}
       </div>

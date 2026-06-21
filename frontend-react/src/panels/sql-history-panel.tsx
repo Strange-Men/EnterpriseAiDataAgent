@@ -65,7 +65,7 @@ export function SqlHistoryPanel() {
             <>
               <button
                 onClick={handleExport}
-                className="text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+                className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
                 title={t("history.export")}
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -74,7 +74,7 @@ export function SqlHistoryPanel() {
               </button>
               <button
                 onClick={() => setShowConfirmClear(true)}
-                className="text-[10px] text-[var(--text-muted)] hover:text-red-400 transition-colors"
+                className="text-xs text-[var(--text-muted)] hover:text-red-400 transition-colors"
                 title={t("history.clear")}
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -121,13 +121,13 @@ export function SqlHistoryPanel() {
           <div className="flex gap-2">
             <button
               onClick={() => { clearHistory(); setShowConfirmClear(false); }}
-              className="px-2 py-1 text-[10px] bg-red-500/20 text-red-400 rounded-md hover:bg-red-500/30"
+              className="px-2 py-1 text-xs bg-red-500/20 text-red-400 rounded-md hover:bg-red-500/30"
             >
               {t("table.confirm")}
             </button>
             <button
               onClick={() => setShowConfirmClear(false)}
-              className="px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             >
               {t("table.cancel")}
             </button>
@@ -151,7 +151,7 @@ export function SqlHistoryPanel() {
             >
               {/* Type badge + content */}
               <div className="flex items-start gap-2">
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${
                   (entry.type || "sql") === "ai"
                     ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
                     : "bg-blue-500/15 text-blue-400 border border-blue-500/30"
@@ -172,7 +172,7 @@ export function SqlHistoryPanel() {
                   </p>
                   {/* Summary for AI entries */}
                   {entry.summary && (entry.type || "sql") === "ai" && (
-                    <p className="text-[10px] text-[var(--text-muted)] mt-0.5 truncate">
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">
                       {entry.summary}
                     </p>
                   )}
@@ -207,26 +207,26 @@ export function SqlHistoryPanel() {
                   }`}
                 />
                 {entry.tableName && (
-                  <span className="text-[10px] text-[var(--accent)] font-mono">
+                  <span className="text-xs text-[var(--accent)] font-mono">
                     {entry.tableName}
                   </span>
                 )}
-                <span className="text-[10px] text-[var(--text-muted)] tabular-nums">
+                <span className="text-xs text-[var(--text-muted)] tabular-nums">
                   {entry.runtimeMs}ms
                 </span>
                 {entry.status !== "error" && (
-                  <span className="text-[10px] text-[var(--text-muted)]">
+                  <span className="text-xs text-[var(--text-muted)]">
                     {entry.rowCount} {t("sql.rows")}
                   </span>
                 )}
-                <span className="text-[10px] text-[var(--text-muted)] ml-auto">
+                <span className="text-xs text-[var(--text-muted)] ml-auto">
                   {entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : ""}
                 </span>
               </div>
 
               {/* Error preview */}
               {entry.status === "error" && entry.error && (
-                <p className="text-[10px] text-red-400 mt-1 truncate">{entry.error}</p>
+                <p className="text-xs text-red-400 mt-1 truncate">{entry.error}</p>
               )}
             </div>
           ))}

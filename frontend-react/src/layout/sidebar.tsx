@@ -34,7 +34,7 @@ export function Sidebar() {
         <h1 className="text-sm font-bold text-[var(--accent)] tracking-wide truncate">
           EAI
         </h1>
-        <p className="text-[10px] text-[var(--text-muted)] truncate mt-0.5">
+        <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
           Data Agent
         </p>
       </div>
@@ -69,7 +69,7 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="px-3 py-3 border-t border-[var(--border-default)]">
-        <p className="text-[10px] text-[var(--text-muted)] text-center">
+        <p className="text-xs text-[var(--text-muted)] text-center">
           v{version}
         </p>
       </div>
