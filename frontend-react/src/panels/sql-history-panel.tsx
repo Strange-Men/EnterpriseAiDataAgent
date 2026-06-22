@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "next/navigation";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { useSqlEditorStore } from "@/stores/sql-editor-store";
+import { useAnalysisStore } from "@/stores/analysis-store";
+import { useInvestigationStore } from "@/stores/investigation-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { downloadBlob } from "@/utils/download";
 import { formatLocalTime } from "@/utils/datetime";
@@ -11,6 +14,7 @@ import toast from "react-hot-toast";
 
 export function SqlHistoryPanel() {
   const { t } = useTranslation();
+  const router = useRouter();
   const {
     removeEntry, clearHistory,
     searchQuery, setSearchQuery,
@@ -19,7 +23,8 @@ export function SqlHistoryPanel() {
     getFiltered,
     fetchHistory,
   } = useSqlHistoryStore();
-  const { addTab, updateTabSql, getActiveTab, setActiveTab } = useSqlEditorStore();
+  const { addTab, setActiveTab } = useSqlEditorStore();
+  const { advance: investigationAdvance } = useInvestigationStore();
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
 
@@ -29,19 +34,68 @@ export function SqlHistoryPanel() {
 
   const filtered = getFiltered();
 
-  // Load SQL into current tab
-  const handleLoad = (sql: string) => {
-    const tab = getActiveTab();
-    if (tab) {
-      updateTabSql(tab.id, sql);
+  // Copy text to clipboard with fallback
+  const handleCopy = useCallback(async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(t("history.copied"));
+    } catch {
+      // Fallback for environments without clipboard API
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand("copy");
+        toast.success(t("history.copied"));
+      } catch {
+        toast.error(t("history.copy-failed"));
+      }
+      document.body.removeChild(textarea);
     }
-  };
+  }, [t]);
 
-  // Re-run SQL in a new tab
-  const handleRerun = (sql: string) => {
-    const id = addTab(undefined, sql);
-    setActiveTab(id);
-  };
+  // AI Analysis: Open detail page
+  const handleOpenDetail = useCallback((runId: string) => {
+    router.push(`/analyze/${runId}`);
+  }, [router]);
+
+  // AI Analysis: Re-run (navigate to workspace with question prefilled)
+  const handleRerunAnalysis = useCallback((question: string, tableName?: string) => {
+    // Store the prefilled table for the workspace to pick up
+    if (tableName) {
+      investigationAdvance("idle", { table: tableName });
+    }
+    router.push("/analyze");
+    // Dispatch event so workspace can pick up the question
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("history:rerun-analysis", {
+        detail: { question, table: tableName },
+      }));
+    }, 100);
+  }, [router, investigationAdvance]);
+
+  // Expert SQL: Load to workspace
+  const handleLoadToWorkspace = useCallback((sql: string, tableName?: string) => {
+    // Create a new tab with the SQL
+    const tabId = addTab(undefined, sql);
+    setActiveTab(tabId);
+    router.push("/analyze");
+    toast.success(t("ai.sql-filled"));
+  }, [addTab, setActiveTab, router, t]);
+
+  // Expert SQL: Re-execute
+  const handleReExecute = useCallback((sql: string) => {
+    const tabId = addTab(undefined, sql);
+    setActiveTab(tabId);
+    router.push("/analyze");
+    // Auto-execute after a brief delay for navigation
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("history:auto-execute", { detail: { tabId } }));
+    }, 300);
+  }, [addTab, setActiveTab, router]);
 
   // Export history as JSON
   const handleExport = () => {
@@ -54,49 +108,45 @@ export function SqlHistoryPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border-default)]">
-        <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
+      <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--border-default)]">
+        <h2 className="text-sm font-semibold text-[var(--text-primary)]">
           {t("history.title")}
-        </span>
+        </h2>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[var(--text-muted)]">{filtered.length}</span>
+          <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] px-2 py-0.5 rounded-full">
+            {filtered.length}
+          </span>
           {filtered.length > 0 && (
-            <>
+            <div className="flex items-center gap-1">
               <button
                 onClick={handleExport}
-                className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-                title={t("history.export")}
+                className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)] rounded transition-colors"
               >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                {t("history.export")}
               </button>
               <button
                 onClick={() => setShowConfirmClear(true)}
-                className="text-xs text-[var(--text-muted)] hover:text-red-400 transition-colors"
-                title={t("history.clear")}
+                className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
               >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+                {t("history.clear")}
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
 
       {/* Search & Filter */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-3">
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t("history.search")}
-          className="flex-1 px-2 py-1 text-xs bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
+          className="flex-1 px-3 py-1.5 text-sm bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
         />
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value as "all" | "sql" | "ai")}
-          className="px-2 py-1 text-xs bg-[var(--bg-primary)] text-[var(--text-muted)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
+          className="px-2 py-1.5 text-xs bg-[var(--bg-primary)] text-[var(--text-muted)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
         >
           <option value="all">{t("history.filter-all")}</option>
           <option value="ai">{t("history.type-ai")}</option>
@@ -105,7 +155,7 @@ export function SqlHistoryPanel() {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value as "all" | "success" | "error")}
-          className="px-2 py-1 text-xs bg-[var(--bg-primary)] text-[var(--text-muted)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
+          className="px-2 py-1.5 text-xs bg-[var(--bg-primary)] text-[var(--text-muted)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
         >
           <option value="all">{t("history.filter-all")}</option>
           <option value="success">{t("history.filter-success")}</option>
@@ -115,18 +165,18 @@ export function SqlHistoryPanel() {
 
       {/* Clear confirmation */}
       {showConfirmClear && (
-        <div className="px-3 py-2 mb-2 bg-red-500/10 border border-red-500/30 rounded-md">
+        <div className="px-3 py-2 mb-3 bg-red-500/10 border border-red-500/30 rounded-md">
           <p className="text-xs text-red-400 mb-2">{t("history.confirm-clear")}</p>
           <div className="flex gap-2">
             <button
               onClick={() => { clearHistory(); setShowConfirmClear(false); }}
-              className="px-2 py-1 text-xs bg-red-500/20 text-red-400 rounded-md hover:bg-red-500/30"
+              className="px-3 py-1 text-xs bg-red-500/20 text-red-400 rounded-md hover:bg-red-500/30"
             >
               {t("table.confirm")}
             </button>
             <button
               onClick={() => setShowConfirmClear(false)}
-              className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              className="px-3 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             >
               {t("table.cancel")}
             </button>
@@ -138,97 +188,135 @@ export function SqlHistoryPanel() {
       {filtered.length === 0 ? (
         <EmptyState
           icon=" "
-          title={searchQuery ? t("history.no-results") : t("history.empty")}
-          description={searchQuery ? t("history.try-different") : t("history.empty-hint")}
+          title={searchQuery ? t("history.no-results") : t("history.no-history-title")}
+          description={searchQuery ? t("history.try-different") : t("history.no-history-desc")}
         />
       ) : (
-        <div className="flex-1 overflow-y-auto space-y-1">
-          {filtered.map((entry) => (
-            <div
-              key={entry.id}
-              className="group px-3 py-2 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] transition-colors"
-            >
-              {/* Type badge + content */}
-              <div className="flex items-start gap-2">
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${
-                  (entry.type || "sql") === "ai"
-                    ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
-                    : "bg-blue-500/15 text-blue-400 border border-blue-500/30"
-                }`}>
-                  {(entry.type || "sql") === "ai" ? t("history.type-ai") : t("history.type-sql")}
-                </span>
-                <div className="flex-1 min-w-0">
-                  {/* Question or SQL preview */}
-                  <p
-                    className="text-xs text-[var(--text-primary)] cursor-pointer truncate"
-                    onClick={() => handleLoad(entry.sql)}
-                    title={entry.question || entry.sql}
-                  >
-                    {entry.question
-                      ? (entry.question.length > 60 ? entry.question.slice(0, 60) + "..." : entry.question)
-                      : (entry.sql.length > 60 ? entry.sql.slice(0, 60) + "..." : entry.sql)
-                    }
-                  </p>
-                  {/* Summary for AI entries */}
-                  {entry.summary && (entry.type || "sql") === "ai" && (
-                    <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">
-                      {entry.summary}
+        <div className="flex-1 overflow-y-auto space-y-2">
+          {filtered.map((entry) => {
+            const isAi = (entry.type || "sql") === "ai";
+
+            return (
+              <div
+                key={entry.id}
+                className="group px-4 py-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] hover:shadow-sm transition-all"
+              >
+                {/* Type badge + content */}
+                <div className="flex items-start gap-3">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium shrink-0 mt-0.5 ${
+                    isAi
+                      ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
+                      : "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+                  }`}>
+                    {isAi ? t("history.type-ai") : t("history.type-sql")}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    {/* Question or SQL preview */}
+                    <p
+                      className="text-sm text-[var(--text-primary)] leading-relaxed"
+                      title={entry.question || entry.sql}
+                    >
+                      {entry.question
+                        ? (entry.question.length > 100 ? entry.question.slice(0, 100) + "..." : entry.question)
+                        : (entry.sql.length > 100 ? entry.sql.slice(0, 100) + "..." : entry.sql)
+                      }
                     </p>
-                  )}
+                    {/* Summary for AI entries */}
+                    {entry.summary && isAi && (
+                      <p className="text-xs text-[var(--text-muted)] mt-1 line-clamp-2">
+                        {entry.summary}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                  <button
-                    onClick={() => handleRerun(entry.sql)}
-                    className="p-0.5 text-[var(--text-muted)] hover:text-[var(--accent)]"
-                    title={t("history.rerun")}
-                  >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    </svg>
-                  </button>
+
+                {/* Metadata row */}
+                <div className="flex items-center gap-3 mt-2 pl-[52px]">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${
+                      entry.status === "success" ? "bg-green-400" : entry.status === "partial" ? "bg-amber-400" : "bg-red-400"
+                    }`}
+                  />
+                  {entry.tableName && (
+                    <span className="text-xs text-[var(--accent)] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">
+                      {entry.tableName}
+                    </span>
+                  )}
+                  <span className="text-xs text-[var(--text-muted)] tabular-nums">
+                    {entry.runtimeMs}ms
+                  </span>
+                  {entry.status !== "error" && (
+                    <span className="text-xs text-[var(--text-muted)]">
+                      {entry.rowCount} {t("sql.rows")}
+                    </span>
+                  )}
+                  <span className="text-xs text-[var(--text-muted)] ml-auto">
+                    {formatLocalTime(entry.timestamp)}
+                  </span>
+                </div>
+
+                {/* Error preview */}
+                {entry.status === "error" && entry.error && (
+                  <p className="text-xs text-red-400 mt-1.5 pl-[52px] truncate">{entry.error}</p>
+                )}
+
+                {/* Action buttons — always visible */}
+                <div className="flex items-center gap-2 mt-2.5 pl-[52px]">
+                  {isAi ? (
+                    <>
+                      <button
+                        onClick={() => handleOpenDetail(entry.id)}
+                        className="px-2.5 py-1 text-xs text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded hover:bg-purple-500/20 transition-colors"
+                      >
+                        {t("history.open-detail")}
+                      </button>
+                      <button
+                        onClick={() => handleRerunAnalysis(entry.question || entry.sql, entry.tableName)}
+                        className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                      >
+                        {t("history.rerun-analysis")}
+                      </button>
+                      {entry.question && (
+                        <button
+                          onClick={() => handleCopy(entry.question!)}
+                          className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                        >
+                          {t("history.copy-question")}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleLoadToWorkspace(entry.sql, entry.tableName)}
+                        className="px-2.5 py-1 text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded hover:bg-blue-500/20 transition-colors"
+                      >
+                        {t("history.load-to-workspace")}
+                      </button>
+                      <button
+                        onClick={() => handleReExecute(entry.sql)}
+                        className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                      >
+                        {t("history.re-execute")}
+                      </button>
+                      <button
+                        onClick={() => handleCopy(entry.sql)}
+                        className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                      >
+                        {t("history.copy-sql")}
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={() => removeEntry(entry.id)}
-                    className="p-0.5 text-[var(--text-muted)] hover:text-red-400"
-                    title={t("history.delete")}
+                    className="ml-auto px-2 py-1 text-xs text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded transition-colors opacity-0 group-hover:opacity-100"
                   >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    {t("history.delete")}
                   </button>
                 </div>
               </div>
-
-              {/* Metadata */}
-              <div className="flex items-center gap-2 mt-1.5">
-                <span
-                  className={`inline-block w-1.5 h-1.5 rounded-full ${
-                    entry.status === "success" ? "bg-green-400" : entry.status === "partial" ? "bg-amber-400" : "bg-red-400"
-                  }`}
-                />
-                {entry.tableName && (
-                  <span className="text-xs text-[var(--accent)] font-mono">
-                    {entry.tableName}
-                  </span>
-                )}
-                <span className="text-xs text-[var(--text-muted)] tabular-nums">
-                  {entry.runtimeMs}ms
-                </span>
-                {entry.status !== "error" && (
-                  <span className="text-xs text-[var(--text-muted)]">
-                    {entry.rowCount} {t("sql.rows")}
-                  </span>
-                )}
-                <span className="text-xs text-[var(--text-muted)] ml-auto">
-                  {formatLocalTime(entry.timestamp)}
-                </span>
-              </div>
-
-              {/* Error preview */}
-              {entry.status === "error" && entry.error && (
-                <p className="text-xs text-red-400 mt-1 truncate">{entry.error}</p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

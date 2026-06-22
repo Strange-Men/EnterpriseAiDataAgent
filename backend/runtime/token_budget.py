@@ -93,12 +93,12 @@ class TokenBudget:
 # 每类 operation 的默认预算
 OPERATION_BUDGETS: dict[str, TokenBudget] = {
     "sql_generation": TokenBudget(
-        max_input_tokens=3000,
-        max_output_tokens=512,
-        max_schema_tokens=2000,
+        max_input_tokens=4000,
+        max_output_tokens=1024,
+        max_schema_tokens=2500,
         max_sample_rows=5,
         max_history_turns=0,
-        max_workflow_total=3000,
+        max_workflow_total=4000,
     ),
     "explanation": TokenBudget(
         max_input_tokens=6000,

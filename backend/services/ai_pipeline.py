@@ -10,6 +10,7 @@ from backend.services.ai_analyst import (
 )
 from backend.services.data_service import get_readonly_executor, list_tables
 from backend.utils.json_safe import normalize_for_response
+from backend.utils.llm_json import parse_llm_json
 from backend.prompts.summarizer import (
     CONTRACT as SUMMARIZER_CONTRACT,
     SYSTEM_PROMPT as SUMMARIZER_SYSTEM,
@@ -18,6 +19,8 @@ from backend.prompts.summarizer import (
 from backend.runtime.token_budget import WorkflowTokenTracker, get_budget
 from backend.services.guardrails import AnalysisGuard, AnalysisGuardrails, GuardrailViolation, DEFAULT_GUARDRAILS
 from backend.services.trace import TraceRecorder
+from backend.services.schema_semantics import build_semantic_context, build_semantic_aliases
+from backend.services.sql_templates import try_generate_sql
 import json
 import time
 
@@ -126,16 +129,19 @@ def _generate_step_sql_with_retry(step_question: str, schema_context: str,
                                    fu_ctx, language: str, step_num: int,
                                    tracker: WorkflowTokenTracker,
                                    trace: TraceRecorder,
-                                   on_retry=None) -> dict:
+                                   on_retry=None,
+                                   semantic_context: str | None = None) -> dict:
     """Generate SQL for a step, with one retry on failure.
 
     Args:
         on_retry: Optional callback(step_num, attempt, error) called before retry.
                   Used by streaming variant to yield step_retry events.
+        semantic_context: Semantic field mapping context.
     """
     sql_result = generate_sql(step_question, schema_context, fu_ctx, language,
                               tracker=tracker, trace=trace,
-                              phase=f"step_{step_num}", step=step_num)
+                              phase=f"step_{step_num}", step=step_num,
+                              semantic_context=semantic_context)
     if sql_result["status"] == "error":
         if on_retry:
             on_retry(step_num, 2, sql_result.get("error", "")[:200])
@@ -145,7 +151,8 @@ def _generate_step_sql_with_retry(step_question: str, schema_context: str,
         )
         sql_result = generate_sql(retry_question, schema_context, fu_ctx, language,
                                   tracker=tracker, trace=trace,
-                                  phase=f"step_{step_num}_retry", step=step_num)
+                                  phase=f"step_{step_num}_retry", step=step_num,
+                                  semantic_context=semantic_context)
     return sql_result
 
 
@@ -253,13 +260,21 @@ def run_ai_query(
             tables = all_tables
     else:
         tables = all_tables
-    schema_context = build_schema_context(tables)
+    schema_context = build_schema_context(tables, include_semantics=True)
 
-    # 2. Build follow-up context (if provided)
+    # 2. Build semantic context for the target table
+    semantic_ctx = None
+    target_table = tables[0] if tables else None
+    if target_table:
+        col_names = [c["name"] for c in target_table.get("columns", [])]
+        semantic_ctx = build_semantic_context(col_names)
+
+    # 3. Build follow-up context (if provided)
     fu_ctx = build_follow_up_context(follow_up_context) if follow_up_context else None
 
-    # 3. Generate SQL — with retry on empty response
-    sql_result = generate_sql(question, schema_context, fu_ctx, language)
+    # 4. Generate SQL — with retry on empty response
+    sql_result = generate_sql(question, schema_context, fu_ctx, language,
+                               semantic_context=semantic_ctx)
     generation_ms = sql_result.get("elapsed_ms", 0)
 
     # Retry once if SQL generation succeeded but returned empty SQL
@@ -295,14 +310,32 @@ def run_ai_query(
 
     # Check if the model determined the question can't be answered
     if sql.startswith("-- CANNOT_ANSWER"):
-        return {
-            "question": question,
-            "sql": sql,
-            "error": sql.replace("-- CANNOT_ANSWER:", "").strip(),
-            "status": "cannot_answer",
-            "generation_ms": sql_result["elapsed_ms"],
-            "quality_gates": sql_result.get("quality_gates", []),
-        }
+        # Try deterministic SQL fallback before giving up
+        if target_table:
+            fallback_sql = try_generate_sql(
+                question, target_table["name"],
+                [c["name"] for c in target_table.get("columns", [])],
+            )
+            if fallback_sql:
+                sql = fallback_sql
+            else:
+                return {
+                    "question": question,
+                    "sql": sql,
+                    "error": sql.replace("-- CANNOT_ANSWER:", "").strip(),
+                    "status": "cannot_answer",
+                    "generation_ms": sql_result["elapsed_ms"],
+                    "quality_gates": sql_result.get("quality_gates", []),
+                }
+        else:
+            return {
+                "question": question,
+                "sql": sql,
+                "error": sql.replace("-- CANNOT_ANSWER:", "").strip(),
+                "status": "cannot_answer",
+                "generation_ms": sql_result["elapsed_ms"],
+                "quality_gates": sql_result.get("quality_gates", []),
+            }
 
     response = {
         "question": question,
@@ -356,7 +389,10 @@ def _execute_plan_steps(plan: list, schema_context: str, language: str,
                          max_rows: int, guard: AnalysisGuard,
                          tracker: WorkflowTokenTracker,
                          trace: TraceRecorder,
-                         guardrail_violations: list) -> list[dict]:
+                         guardrail_violations: list,
+                         semantic_context: str | None = None,
+                         target_table: str | None = None,
+                         target_columns: list[str] | None = None) -> list[dict]:
     """Execute all plan steps, returning the list of step results.
 
     Shared by both streaming and non-streaming variants.
@@ -396,7 +432,8 @@ def _execute_plan_steps(plan: list, schema_context: str, language: str,
         # Generate SQL (with retry on failure)
         step_question = f"{purpose}: {sql_goal}"
         sql_result = _generate_step_sql_with_retry(
-            step_question, schema_context, fu_ctx, language, step_num, tracker, trace)
+            step_question, schema_context, fu_ctx, language, step_num, tracker, trace,
+            semantic_context=semantic_context)
 
         if sql_result["status"] == "error":
             guard.record_step_result(success=False)
@@ -409,14 +446,29 @@ def _execute_plan_steps(plan: list, schema_context: str, language: str,
 
         sql = sql_result.get("sql") or ""
         if sql.startswith("-- CANNOT_ANSWER"):
-            reason = sql.replace("-- CANNOT_ANSWER:", "").strip() or "当前数据缺少所需字段"
-            guard.record_step_result(success=False)
-            executed_steps.append(_make_step_result(
-                step_num, purpose, sql=sql,
-                error=reason,
-                status="skipped_no_data",
-            ))
-            continue
+            # Try deterministic fallback
+            if target_table and target_columns:
+                fallback_sql = try_generate_sql(step_question, target_table, target_columns)
+                if fallback_sql:
+                    sql = fallback_sql
+                else:
+                    reason = sql.replace("-- CANNOT_ANSWER:", "").strip() or "当前数据缺少所需字段"
+                    guard.record_step_result(success=False)
+                    executed_steps.append(_make_step_result(
+                        step_num, purpose, sql=sql,
+                        error=reason,
+                        status="skipped_no_data",
+                    ))
+                    continue
+            else:
+                reason = sql.replace("-- CANNOT_ANSWER:", "").strip() or "当前数据缺少所需字段"
+                guard.record_step_result(success=False)
+                executed_steps.append(_make_step_result(
+                    step_num, purpose, sql=sql,
+                    error=reason,
+                    status="skipped_no_data",
+                ))
+                continue
 
         # Handle empty SQL after retry
         if not sql.strip():
@@ -494,11 +546,23 @@ def run_autonomous_analysis(
 
     # 2. Build schema context for SQL generation
     tables = list_tables()
-    schema_context = build_schema_context(tables)
+    schema_context = build_schema_context(tables, include_semantics=True)
+
+    # Build semantic context for the target table
+    semantic_ctx = None
+    target_cols = None
+    if table:
+        target_table_info = next((t for t in tables if t["name"] == table), None)
+        if target_table_info:
+            target_cols = [c["name"] for c in target_table_info.get("columns", [])]
+            semantic_ctx = build_semantic_context(target_cols)
 
     # 3. Execute each step
     executed_steps = _execute_plan_steps(plan, schema_context, language, max_rows,
-                                          guard, tracker, trace, guardrail_violations)
+                                          guard, tracker, trace, guardrail_violations,
+                                          semantic_context=semantic_ctx,
+                                          target_table=table,
+                                          target_columns=target_cols)
 
     # 4. Check minimum success guardrail
     try:
@@ -578,7 +642,16 @@ def run_autonomous_analysis_stream(
 
     # 2. Build schema context
     tables = list_tables()
-    schema_context = build_schema_context(tables)
+    schema_context = build_schema_context(tables, include_semantics=True)
+
+    # Build semantic context for the target table
+    semantic_ctx = None
+    target_cols = None
+    if table:
+        target_table_info = next((t for t in tables if t["name"] == table), None)
+        if target_table_info:
+            target_cols = [c["name"] for c in target_table_info.get("columns", [])]
+            semantic_ctx = build_semantic_context(target_cols)
 
     # 3. Execute each step, yielding events
     executed_steps: list[dict] = []
@@ -620,6 +693,7 @@ def run_autonomous_analysis_stream(
         sql_result = _generate_step_sql_with_retry(
             step_question, schema_context, fu_ctx, language, step_num, tracker, trace,
             on_retry=lambda s, a, e: retry_events.append({"type": "step_retry", "step": s, "attempt": a, "error": e}),
+            semantic_context=semantic_ctx,
         )
         for evt in retry_events:
             yield evt
@@ -635,14 +709,29 @@ def run_autonomous_analysis_stream(
 
         sql = sql_result.get("sql") or ""
         if sql.startswith("-- CANNOT_ANSWER"):
-            reason = sql.replace("-- CANNOT_ANSWER:", "").strip() or "当前数据缺少所需字段"
-            guard.record_step_result(success=False)
-            step_out = _make_step_result(step_num, purpose, sql=sql,
-                                          error=reason,
-                                          status="skipped_no_data")
-            executed_steps.append(step_out)
-            yield {"type": "step_result", **step_out}
-            continue
+            # Try deterministic fallback
+            if table and target_cols:
+                fallback_sql = try_generate_sql(step_question, table, target_cols)
+                if fallback_sql:
+                    sql = fallback_sql
+                else:
+                    reason = sql.replace("-- CANNOT_ANSWER:", "").strip() or "当前数据缺少所需字段"
+                    guard.record_step_result(success=False)
+                    step_out = _make_step_result(step_num, purpose, sql=sql,
+                                                  error=reason,
+                                                  status="skipped_no_data")
+                    executed_steps.append(step_out)
+                    yield {"type": "step_result", **step_out}
+                    continue
+            else:
+                reason = sql.replace("-- CANNOT_ANSWER:", "").strip() or "当前数据缺少所需字段"
+                guard.record_step_result(success=False)
+                step_out = _make_step_result(step_num, purpose, sql=sql,
+                                              error=reason,
+                                              status="skipped_no_data")
+                executed_steps.append(step_out)
+                yield {"type": "step_result", **step_out}
+                continue
 
         # Handle empty SQL after retry
         if not sql.strip():

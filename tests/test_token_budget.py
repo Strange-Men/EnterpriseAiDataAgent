@@ -76,8 +76,8 @@ class TestTruncateRows:
 class TestGetBudget:
     def test_known_operation(self):
         budget = get_budget("sql_generation")
-        assert budget.max_input_tokens == 3000
-        assert budget.max_output_tokens == 512
+        assert budget.max_input_tokens == 4000
+        assert budget.max_output_tokens == 1024
 
     def test_unknown_operation(self):
         budget = get_budget("nonexistent")

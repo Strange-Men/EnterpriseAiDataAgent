@@ -72,12 +72,13 @@ from backend.runtime.token_budget import (
 
 # Trace 导入
 from backend.services.trace import TraceRecorder
-from backend.utils.llm_json import parse_llm_json
+from backend.utils.llm_json import parse_llm_json, safe_parse_llm_json
 from backend.utils.llm_sql import (
     build_sql_quality_gates,
     extract_sql_from_llm_output,
     validate_generated_sql,
 )
+from backend.services.schema_semantics import build_semantic_context
 
 
 # ── JSON Parsing Helper ──────────────────────────────────────────
@@ -247,8 +248,13 @@ TEMPERATURE = DEFAULT_TEMPERATURE
 
 # ── Schema Context Builder ──────────────────────────────────────
 
-def build_schema_context(tables: list[dict]) -> str:
-    """构建可用表和列的文本描述，供 LLM 使用。"""
+def build_schema_context(tables: list[dict], include_semantics: bool = False) -> str:
+    """构建可用表和列的文本描述，供 LLM 使用。
+
+    Args:
+        tables: 表信息列表。
+        include_semantics: 是否在 schema 中附加语义映射。
+    """
     if not tables:
         return "No tables available in the database."
 
@@ -257,11 +263,21 @@ def build_schema_context(tables: list[dict]) -> str:
         name = table["name"]
         cols = table.get("columns", [])
         col_descriptions = []
+        col_names = []
         for col in cols:
             col_type = col.get("type", col.get("dtype", "VARCHAR"))
             col_descriptions.append(f"  - {col['name']} ({col_type})")
+            col_names.append(col["name"])
         lines.append(f"Table: {name}")
         lines.extend(col_descriptions)
+
+        # 附加语义映射
+        if include_semantics and col_names:
+            sem_ctx = build_semantic_context(col_names)
+            if sem_ctx:
+                lines.append("")
+                lines.append(sem_ctx)
+
         lines.append("")
 
     return "\n".join(lines)
@@ -594,10 +610,11 @@ def generate_sql(
     trace: TraceRecorder | None = None,
     phase: str = "unknown",
     step: int | None = None,
+    semantic_context: str | None = None,
 ) -> dict:
     """从自然语言问题生成 SQL。"""
     start = time.time()
-    user_msg = build_sql_user_message(schema_context, question, follow_up_context)
+    user_msg = build_sql_user_message(schema_context, question, follow_up_context, semantic_context)
     budget = get_budget("sql_generation")
     try:
         raw_sql = _call_llm(
@@ -972,7 +989,14 @@ def generate_analysis_plan(
             operation="analysis_plan",
             trace=trace, phase=phase, prompt_name="analysis_plan",
         )
-        result = _parse_llm_json(raw)
+        result, parsed = safe_parse_llm_json(raw, fallback={"plan": []})
+        if not parsed:
+            # JSON parsing failed — build a simple single-step plan from the question
+            result = {
+                "plan": [
+                    {"step": 1, "purpose": question[:200], "sql_goal": question[:200], "depends_on": None}
+                ]
+            }
         if "plan" in result:
             result["plan"] = result["plan"][:3]
         return {
