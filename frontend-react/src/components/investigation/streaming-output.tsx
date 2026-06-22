@@ -6,6 +6,7 @@ import { AnalysisSectionView } from "@/components/ai/analysis-section";
 import { StepResults } from "@/components/ai/step-results";
 import { AiChart } from "@/components/ui/ai-chart";
 import { StreamingSkeleton } from "@/components/ui/skeleton";
+import { renderSafeText } from "@/utils/safe-render";
 import type { MultiStreamEvent, MultiStepExecuted, PlanStep } from "@/services/api";
 import type { ChartSpec } from "@/types";
 import type { AnomalyResult } from "@/types";
@@ -103,7 +104,7 @@ export function StreamingOutput({
                 <span className="w-5 h-5 flex items-center justify-center rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold">
                   {step.step}
                 </span>
-                <span className="text-[var(--text-secondary)]">{step.purpose}</span>
+                <span className="text-[var(--text-secondary)]">{renderSafeText(step.purpose, `Step ${step.step}`)}</span>
               </div>
             ))}
           </div>
@@ -122,7 +123,7 @@ export function StreamingOutput({
                 <span className="w-5 h-5 flex items-center justify-center rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold">
                   {step.step}
                 </span>
-                <span className="text-[var(--text-secondary)]">{step.purpose}</span>
+                <span className="text-[var(--text-secondary)]">{renderSafeText(step.purpose, `Step ${step.step}`)}</span>
               </div>
             ))}
           </div>
@@ -130,7 +131,7 @@ export function StreamingOutput({
       )}
 
       {/* Summary — shown first for user-friendly presentation */}
-      {result?.summary && (
+      {result?.summary && typeof result.summary === "string" && (
         <div className="border border-[var(--accent)]/20 rounded-lg p-4 bg-[var(--accent)]/5">
           <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-2">
             {t("ai.executive-summary")}
@@ -176,13 +177,13 @@ export function StreamingOutput({
       )}
 
       {/* Anomalies */}
-      {result?.anomalies && (
+      {result?.anomalies?.summary && (
         <div className="border border-[var(--border-default)] rounded-lg p-4 bg-[var(--bg-secondary)]">
           <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-2">
             {t("ai.anomaly-detection")}
           </h3>
           <p className="text-xs text-[var(--text-secondary)]">
-            {result.anomalies.summary.total_anomalies} {t("ai.anomalies-found")} · {result.anomalies.summary.columns_affected.length} {t("ai.columns-affected")}
+            {result.anomalies.summary.total_anomalies ?? 0} {t("ai.anomalies-found")} · {(result.anomalies.summary.columns_affected ?? []).length} {t("ai.columns-affected")}
           </p>
           {result.anomalies.anomalies && (
             <p className="text-[10px] text-[var(--text-muted)] mt-1">

@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 
 @dataclass
 class AnalysisGuardrails:
-    max_steps: int = 6
-    max_sql_queries: int = 8
+    max_steps: int = 3
+    max_sql_queries: int = 4
     max_consecutive_failures: int = 2
     max_total_time_seconds: int = 120
     max_step_time_seconds: int = 30
@@ -21,8 +21,8 @@ class AnalysisGuardrails:
 DEFAULT_GUARDRAILS = AnalysisGuardrails()
 
 STRICT_GUARDRAILS = AnalysisGuardrails(
-    max_steps=4,
-    max_sql_queries=5,
+    max_steps=2,
+    max_sql_queries=3,
     max_consecutive_failures=1,
     max_total_time_seconds=60,
     max_step_time_seconds=15,

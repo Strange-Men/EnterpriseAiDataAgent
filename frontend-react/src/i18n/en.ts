@@ -244,6 +244,7 @@ const en = {
     "ai.step": "Step",
     "ai.step-result": "Step Result",
     "ai.step-skipped": "Skipped",
+    "ai.step-skipped-reason": "This step was skipped because the data table lacks the required fields for this analysis.",
     "ai.step-failed": "Step failed",
     "ai.running-steps": "Running analysis steps...",
     "ai.autonomous-btn": "Autonomous Analysis",

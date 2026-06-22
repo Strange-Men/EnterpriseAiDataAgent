@@ -974,7 +974,7 @@ def generate_analysis_plan(
         )
         result = _parse_llm_json(raw)
         if "plan" in result:
-            result["plan"] = result["plan"][:6]
+            result["plan"] = result["plan"][:3]
         return {
             **result,
             "status": "success",

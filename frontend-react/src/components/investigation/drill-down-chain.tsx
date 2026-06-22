@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { cn } from "@/utils/cn";
 import { formatLocalDate } from "@/utils/datetime";
+import { renderSafeText } from "@/utils/safe-render";
 
 interface DrillDownChainProps {
   currentRunId: string;
@@ -81,7 +82,7 @@ export function DrillDownChain({ currentRunId }: DrillDownChainProps) {
                       : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                   )}
                 >
-                  {run.question?.slice(0, 30) || run.mode || "..."}
+                  {renderSafeText(run.question?.slice(0, 30) || run.mode, "...")}
                 </button>
                 {!isLast && (
                   <span className="text-[var(--text-muted)] text-[8px]">/</span>
@@ -119,7 +120,7 @@ export function DrillDownChain({ currentRunId }: DrillDownChainProps) {
                       "text-xs mt-0.5",
                       isCurrent ? "text-[var(--accent)] font-medium" : "text-[var(--text-primary)]"
                     )}>
-                      {run.question || run.table || run.mode}
+                      {renderSafeText(run.question || run.table || run.mode, "Analysis")}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={cn(

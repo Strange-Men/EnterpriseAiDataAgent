@@ -423,7 +423,7 @@ def _execute_plan_steps(plan: list, schema_context: str, language: str,
             guard.record_step_result(success=False)
             executed_steps.append(_make_step_result(
                 step_num, purpose,
-                error="AI 未能生成有效 SQL",
+                error="当前数据表缺少用于该分析的字段，已跳过此步骤。",
                 status="skipped_generation_error",
             ))
             continue
