@@ -3,37 +3,55 @@
  *
  * All timestamps are stored as ISO 8601 UTC strings (with timezone suffix).
  * These helpers convert to the user's local timezone for display.
+ *
+ * IMPORTANT: All formatting uses manual getHours()/getMinutes()/etc. instead
+ * of toLocaleTimeString()/toLocaleString() to produce locale-independent output.
+ * This ensures stable HH:mm / YYYY-MM-DD HH:mm format regardless of CI locale.
  */
 
-/**
- * Format an ISO timestamp as local time (HH:MM).
- * Returns fallback for invalid input.
- */
-export function formatLocalTime(iso: string | undefined | null, fallback = ""): string {
-  if (!iso) return fallback;
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return fallback;
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+export function formatLocalDate(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function formatLocalTimeFromDate(d: Date): string {
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
 /**
- * Format an ISO timestamp as local date + time.
+ * Format an ISO timestamp as local time (HH:mm).
+ * Uses the runtime's local timezone (user's browser).
  * Returns fallback for invalid input.
  */
-export function formatLocalDateTime(iso: string | undefined | null, fallback = ""): string {
-  if (!iso) return fallback;
-  const d = new Date(iso);
+export function formatLocalTime(value: string | Date | number | undefined | null, fallback = ""): string {
+  if (value === null || value === undefined || value === "") return fallback;
+  const d = new Date(value);
   if (isNaN(d.getTime())) return fallback;
-  return d.toLocaleString();
+  return formatLocalTimeFromDate(d);
 }
 
 /**
- * Format an ISO timestamp as relative time ("3 分钟前", "2 hours ago").
+ * Format an ISO timestamp as local date + time (YYYY-MM-DD HH:mm).
+ * Uses the runtime's local timezone (user's browser).
+ * Returns fallback for invalid input.
+ */
+export function formatLocalDateTime(value: string | Date | number | undefined | null, fallback = ""): string {
+  if (value === null || value === undefined || value === "") return fallback;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return fallback;
+  return `${formatLocalDate(d)} ${formatLocalTimeFromDate(d)}`;
+}
+
+/**
+ * Format an ISO timestamp as relative time ("< 1 min", "5 min", "3h", "2d").
  * Falls back to local date for older entries.
  */
-export function formatRelativeTime(iso: string | undefined | null, fallback = ""): string {
-  if (!iso) return fallback;
-  const d = new Date(iso);
+export function formatRelativeTime(value: string | Date | number | undefined | null, fallback = ""): string {
+  if (value === null || value === undefined || value === "") return fallback;
+  const d = new Date(value);
   if (isNaN(d.getTime())) return fallback;
   const now = Date.now();
   const diff = now - d.getTime();
@@ -48,5 +66,5 @@ export function formatRelativeTime(iso: string | undefined | null, fallback = ""
   if (minutes < 60) return `${minutes} min`;
   if (hours < 24) return `${hours}h`;
   if (days < 7) return `${days}d`;
-  return d.toLocaleDateString();
+  return formatLocalDate(d);
 }

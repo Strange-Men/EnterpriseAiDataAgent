@@ -2,6 +2,7 @@
 
 import { useTranslation } from "react-i18next";
 import type { AnalysisRun } from "@/stores/analysis-store";
+import { formatLocalTime, formatLocalDate } from "@/utils/datetime";
 
 interface RunTimelineProps {
   runs: AnalysisRun[];
@@ -26,8 +27,8 @@ export function RunTimeline({ runs }: RunTimelineProps) {
       <div className="space-y-0">
         {runs.map((run, i) => {
           const d = new Date(run.timestamp);
-          const timeStr = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-          const dateStr = d.toLocaleDateString([], { month: "short", day: "numeric" });
+          const timeStr = formatLocalTime(d);
+          const dateStr = formatLocalDate(d);
           const isLast = i === runs.length - 1;
 
           return (

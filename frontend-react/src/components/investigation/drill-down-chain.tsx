@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { cn } from "@/utils/cn";
+import { formatLocalDate } from "@/utils/datetime";
 
 interface DrillDownChainProps {
   currentRunId: string;
@@ -128,7 +129,7 @@ export function DrillDownChain({ currentRunId }: DrillDownChainProps) {
                         {run.status}
                       </span>
                       <span className="text-[9px] text-[var(--text-muted)]">
-                        {new Date(run.timestamp).toLocaleDateString()}
+                        {formatLocalDate(new Date(run.timestamp))}
                       </span>
                     </div>
                   </button>

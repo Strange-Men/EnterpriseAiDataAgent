@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAnalysisStore, type AnalysisRun } from "@/stores/analysis-store";
+import { formatLocalTime, formatLocalDate } from "@/utils/datetime";
 
 function TimelineNode({ run, isLast, onExpand }: {
   run: AnalysisRun;
@@ -17,8 +18,8 @@ function TimelineNode({ run, isLast, onExpand }: {
   };
 
   const d = new Date(run.timestamp);
-  const timeStr = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const dateStr = d.toLocaleDateString([], { month: "short", day: "numeric" });
+  const timeStr = formatLocalTime(d);
+  const dateStr = formatLocalDate(d);
 
   return (
     <div className="flex gap-3">

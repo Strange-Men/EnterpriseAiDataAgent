@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useScheduleStore, type ScheduledTask } from "@/stores/schedule-store";
+import { formatLocalDate } from "@/utils/datetime";
 
 function ScheduleForm({ onSubmit, isLoading }: {
   onSubmit: (data: { name: string; question: string; table: string; interval: string }) => void;
@@ -86,7 +87,7 @@ function ScheduleItem({ task, onToggle, onRemove }: {
           <span className="text-[9px] text-[var(--text-muted)]">{task.interval}</span>
           {task.lastRunAt && (
             <span className="text-[9px] text-[var(--text-muted)]">
-              {t("schedule.last-run")}: {new Date(task.lastRunAt).toLocaleDateString()}
+              {t("schedule.last-run")}: {formatLocalDate(new Date(task.lastRunAt))}
             </span>
           )}
         </div>

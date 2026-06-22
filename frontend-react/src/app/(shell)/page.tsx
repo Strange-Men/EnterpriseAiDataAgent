@@ -4,6 +4,7 @@ import { useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { useDataStore } from "@/stores/data-store";
+import { formatLocalDate } from "@/utils/datetime";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { useSqlEditorStore } from "@/stores/sql-editor-store";
@@ -26,7 +27,7 @@ function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown
   if (minutes < 60) return t("dashboard.minutes-ago", { n: minutes });
   if (hours < 24) return t("dashboard.hours-ago", { n: hours });
   if (days < 7) return t("dashboard.days-ago", { n: days });
-  return new Date(dateStr).toLocaleDateString();
+  return formatLocalDate(new Date(dateStr));
 }
 
 export default function HomePage() {
