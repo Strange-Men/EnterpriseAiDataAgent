@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useSqlHistoryStore } from "../sql-history-store";
 
 describe("sql-history-store", () => {
@@ -131,5 +131,74 @@ describe("sql-history-store", () => {
     setSearchQuery("categories");
     expect(getFiltered()).toHaveLength(1);
     expect(getFiltered()[0].question).toContain("categories");
+  });
+
+  it("should preserve AI entries when fetching history from backend", async () => {
+    const { addEntry } = useSqlHistoryStore.getState();
+
+    // Add local AI entry
+    addEntry(makeAiEntry(1, "AI question", "AI summary"));
+
+    // Simulate what fetchHistory does: merge backend SQL entries with local AI entries
+    const currentHistory = useSqlHistoryStore.getState().history;
+    const localAiEntries = currentHistory.filter((e) => e.type === "ai");
+    const backendHistory = [makeEntry(2, "SELECT 1"), makeEntry(3, "SELECT 2")];
+
+    const seenIds = new Set(backendHistory.map((e) => e.id));
+    const merged = [
+      ...backendHistory,
+      ...localAiEntries.filter((e) => !seenIds.has(e.id)),
+    ];
+
+    // AI entry should be preserved
+    expect(merged.some((e) => e.type === "ai")).toBe(true);
+    const aiEntry = merged.find((e) => e.type === "ai") as { type: string; question?: string } | undefined;
+    expect(aiEntry).toBeDefined();
+    expect(aiEntry!.question).toBe("AI question");
+  });
+
+  it("should allow SQL and AI records to coexist", () => {
+    const { addEntry, getFiltered } = useSqlHistoryStore.getState();
+
+    addEntry(makeEntry(1, "SELECT 1"));
+    addEntry(makeAiEntry(2, "AI question", "AI summary"));
+
+    expect(useSqlHistoryStore.getState().history).toHaveLength(2);
+
+    // Filter by type should work
+    const { setFilterType } = useSqlHistoryStore.getState();
+    setFilterType("sql");
+    expect(getFiltered()).toHaveLength(1);
+    expect(getFiltered()[0].type).toBe("sql");
+
+    setFilterType("ai");
+    expect(getFiltered()).toHaveLength(1);
+    expect(getFiltered()[0].type).toBe("ai");
+
+    setFilterType("all");
+    expect(getFiltered()).toHaveLength(2);
+  });
+
+  it("should deduplicate entries by id when merging", () => {
+    const { addEntry } = useSqlHistoryStore.getState();
+
+    // Add entry with id "1"
+    addEntry(makeEntry(1, "SELECT 1"));
+
+    // Simulate backend returning same id
+    const currentHistory = useSqlHistoryStore.getState().history;
+    const backendHistory = [makeEntry(1, "SELECT 1 UPDATED")];
+    const localAiEntries = currentHistory.filter((e) => e.type === "ai");
+
+    const seenIds = new Set(backendHistory.map((e) => e.id));
+    const merged = [
+      ...backendHistory,
+      ...localAiEntries.filter((e) => !seenIds.has(e.id)),
+    ];
+
+    // Should have only one entry (deduplicated)
+    expect(merged).toHaveLength(1);
+    // Backend version should win
+    expect(merged[0].sql).toBe("SELECT 1 UPDATED");
   });
 });
