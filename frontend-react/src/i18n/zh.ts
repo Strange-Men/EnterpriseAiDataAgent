@@ -226,6 +226,7 @@ const zh = {
     "ai.sql-placeholder": "用自然语言描述你想要的 SQL...",
     "ai.generate": "生成",
     "ai.sql-generated": "SQL 已生成 — 确认后执行",
+    "ai.sql-filled": "已生成 SQL，请检查后点击执行。",
     "ai.semantic-understanding": "语义理解",
     "ai.metrics": "指标",
     "ai.kpis": "核心 KPI",
@@ -341,6 +342,9 @@ const zh = {
     "analysis.duplicate": "复制",
     "analysis.interrupted": "会话中断",
     "analysis.recovery-note": "此运行未完成，可以重新运行。",
+    "analysis.not-found": "未找到这次分析记录，可能是浏览器本地历史已清理。",
+    "analysis.back-to-workspace": "返回分析工作台",
+    "analysis.view-history": "查看历史",
 
     // Dataset Lifecycle
     "dataset.uploaded-at": "上传时间",

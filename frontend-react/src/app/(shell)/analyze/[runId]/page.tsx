@@ -1,10 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { use } from "react";
+import { use, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
-import { MonitorPlay } from "lucide-react";
+import { MonitorPlay, Search } from "lucide-react";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { Button } from "@/components/ui/button";
 import { PanelSkeleton } from "@/components/ui/skeleton";
@@ -40,21 +40,32 @@ export default function AnalysisDetailPage({ params }: { params: Promise<{ runId
   const router = useRouter();
   const { runId } = use(params);
   const run = useAnalysisStore((s) => s.runs.find((r) => r.id === runId));
+  // FIX: subscribe to raw runs and memoize chain computation to avoid React #185
+  const runs = useAnalysisStore((s) => s.runs);
   const getEvolutionChain = useAnalysisStore((s) => s.getEvolutionChain);
+  const chain = useMemo(() => getEvolutionChain(runId), [runs, runId, getEvolutionChain]);
 
   if (!run) {
     return (
       <div className="p-6 flex flex-col items-center justify-center py-24 text-center">
-        <MonitorPlay className="w-10 h-10 text-[var(--text-muted)]/40 mb-3" strokeWidth={1} />
-        <p className="text-sm text-[var(--text-muted)]">{t("analysis.no-selection")}</p>
-        <Button variant="ghost" size="sm" className="mt-2" onClick={() => router.push("/analyze")}>
-          ← {t("inv.back")}
-        </Button>
+        <Search className="w-10 h-10 text-[var(--text-muted)]/40 mb-3" strokeWidth={1} />
+        <p className="text-sm text-[var(--text-muted)] mb-1">
+          {t("analysis.not-found", "未找到这次分析记录，可能是浏览器本地历史已清理。")}
+        </p>
+        <p className="text-xs text-[var(--text-muted)]/60 mb-4 font-mono">
+          ID: {runId}
+        </p>
+        <div className="flex gap-2">
+          <Button variant="primary" size="sm" onClick={() => router.push("/analyze")}>
+            {t("analysis.back-to-workspace", "返回分析工作台")}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => router.push("/history")}>
+            {t("analysis.view-history", "查看历史")}
+          </Button>
+        </div>
       </div>
     );
   }
-
-  const chain = getEvolutionChain(runId);
 
   return (
     <div className="p-4 max-w-5xl mx-auto space-y-6">

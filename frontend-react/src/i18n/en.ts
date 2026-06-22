@@ -226,6 +226,7 @@ const en = {
     "ai.sql-placeholder": "Describe the SQL you want in natural language...",
     "ai.generate": "Generate",
     "ai.sql-generated": "SQL generated — review and run when ready",
+    "ai.sql-filled": "SQL generated. Please review before executing.",
     "ai.semantic-understanding": "Semantic Understanding",
     "ai.metrics": "Metrics",
     "ai.kpis": "KPIs",
@@ -341,6 +342,9 @@ const en = {
     "analysis.duplicate": "Duplicate",
     "analysis.interrupted": "Session interrupted",
     "analysis.recovery-note": "This run was not completed. You can re-run it.",
+    "analysis.not-found": "Analysis record not found. Local history may have been cleared.",
+    "analysis.back-to-workspace": "Back to Workspace",
+    "analysis.view-history": "View History",
 
     // Dataset Lifecycle
     "dataset.uploaded-at": "Uploaded",

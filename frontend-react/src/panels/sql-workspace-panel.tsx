@@ -105,7 +105,7 @@ export function SqlWorkspacePanel() {
       setAiSqlQualityGates(res.quality_gates ?? []);
       if (res.sql && activeTab) {
         updateTabSql(activeTab.id, res.sql);
-        toast.success(t("ai.ready"));
+        toast.success(t("ai.sql-filled"));
         setAiSqlQuestion("");
       } else {
         toast.error(res.error || t("sql.ai-gen-failed"));

@@ -16,8 +16,8 @@ export const featureFlags = {
   // ── Internal (product decisions, keep false) ────────────────
   /** AI buttons in SQL Workspace (Explain, Insights, Charts, Anomalies) — M4-6.0.1 product decision */
   showAiButtonsInSqlWorkspace: false,
-  /** AI Generate SQL input in SQL Workspace — M4-6.0.1 product decision */
-  showAiSqlInputInWorkspace: false,
+  /** AI Generate SQL input in SQL Workspace — generates SQL into editor without auto-executing */
+  showAiSqlInputInWorkspace: true,
 
   // ── Experimental (not yet ready) ────────────────────────────
   /** Charts analysis mode — not serving core workflow */
