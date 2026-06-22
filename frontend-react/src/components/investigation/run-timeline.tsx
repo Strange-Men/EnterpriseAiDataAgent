@@ -3,6 +3,7 @@
 import { useTranslation } from "react-i18next";
 import type { AnalysisRun } from "@/stores/analysis-store";
 import { formatLocalTime, formatLocalDate } from "@/utils/datetime";
+import { renderSafeText } from "@/utils/safe-render";
 
 interface RunTimelineProps {
   runs: AnalysisRun[];
@@ -47,7 +48,7 @@ export function RunTimeline({ runs }: RunTimelineProps) {
                   )}
                 </div>
                 <p className="text-xs text-[var(--text-primary)] truncate mt-0.5">
-                  {run.question || run.table || run.mode}
+                  {renderSafeText(run.question || run.table || run.mode, "Analysis")}
                 </p>
                 {run.sections.length > 0 && (
                   <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
@@ -55,7 +56,7 @@ export function RunTimeline({ runs }: RunTimelineProps) {
                   </p>
                 )}
                 {run.error && (
-                  <p className="text-[10px] text-red-400 mt-0.5 truncate">{run.error}</p>
+                  <p className="text-[10px] text-red-400 mt-0.5 truncate">{renderSafeText(run.error, "")}</p>
                 )}
               </div>
             </div>

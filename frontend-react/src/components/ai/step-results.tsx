@@ -99,9 +99,17 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
               {/* Expanded content */}
               {!isCollapsed && (
                 <div>
-                  {stepIsSkipped && step.error && (
+                  {stepIsSkipped && (
                     <div className="px-3 py-1.5 text-xs text-amber-300 bg-amber-500/5">
-                      {renderSafeText(step.error, "此步骤因数据限制被跳过")}
+                      <span>{t("ai.step-skipped-reason", "当前数据表缺少用于该分析的字段，已跳过此步骤。")}</span>
+                      {step.error && (
+                        <details className="mt-1">
+                          <summary className="text-[10px] text-amber-400/60 cursor-pointer hover:text-amber-400">
+                            {t("ai.error-technical-detail", "技术详情")}
+                          </summary>
+                          <p className="text-[10px] text-amber-400/60 mt-0.5 font-mono">{renderSafeText(step.error, "")}</p>
+                        </details>
+                      )}
                     </div>
                   )}
                   {step.status === "error" && step.error && (

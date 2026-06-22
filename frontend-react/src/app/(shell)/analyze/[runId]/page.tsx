@@ -8,6 +8,7 @@ import { MonitorPlay } from "lucide-react";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { Button } from "@/components/ui/button";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { renderSafeText } from "@/utils/safe-render";
 
 const RunHeader = dynamic(
   () => import("@/components/investigation/run-header").then((m) => ({ default: m.RunHeader })),
@@ -61,7 +62,7 @@ export default function AnalysisDetailPage({ params }: { params: Promise<{ runId
 
       {run.error && (
         <div className="border border-red-500/30 rounded-lg p-4 bg-red-500/5">
-          <p className="text-xs text-red-400">{run.error}</p>
+          <p className="text-xs text-red-400">{renderSafeText(run.error, "An error occurred")}</p>
         </div>
       )}
 

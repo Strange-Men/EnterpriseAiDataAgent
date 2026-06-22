@@ -7,7 +7,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { Copy } from "lucide-react";
 import toast from "react-hot-toast";
 import { useThemeStore } from "@/hooks/use-theme";
-import { safeMarkdownContent } from "@/utils/safe-render";
+import { safeMarkdownContent, renderSafeText } from "@/utils/safe-render";
 
 // ── Theme-aware syntax highlighter style ──────────────────────
 const lightTheme: Record<string, React.CSSProperties> = {
@@ -120,7 +120,7 @@ export function AnalysisSectionView({ section }: { section: AnalysisSection }) {
     <div className="mb-4 last:mb-0">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
-          {section.title}
+          {renderSafeText(section.title, "Section")}
         </h3>
         <button
           onClick={handleCopy}

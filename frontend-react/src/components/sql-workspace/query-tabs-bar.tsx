@@ -88,7 +88,7 @@ export function QueryTabsBar({
         </div>
       ))}
       <button
-        onClick={onAdd}
+        onClick={() => onAdd()}
         className="px-2 py-1 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors flex-shrink-0"
         title={addLabel}
       >

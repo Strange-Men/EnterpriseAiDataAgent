@@ -244,6 +244,7 @@ const zh = {
     "ai.step": "步骤",
     "ai.step-result": "步骤结果",
     "ai.step-skipped": "已跳过",
+    "ai.step-skipped-reason": "当前数据表缺少用于该分析的字段，已跳过此步骤。",
     "ai.step-failed": "步骤执行失败",
     "ai.running-steps": "正在执行分析步骤...",
     "ai.autonomous-btn": "自主分析",

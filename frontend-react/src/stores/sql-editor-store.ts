@@ -122,18 +122,21 @@ export const useSqlEditorStore = create<SqlEditorState>()(
 
       addTab: (name, sql) => {
         const id = generateId();
+        // Defense: ensure name is a string (prevent event objects from leaking in)
+        const safeName = typeof name === "string" && name.trim() ? name.trim() : `Query ${get().tabs.length + 1}`;
+        const safeSql = typeof sql === "string" ? sql : "";
         const tab: QueryTab = {
           id,
-          name: name || `Query ${get().tabs.length + 1}`,
-          sql: sql || "",
+          name: safeName,
+          sql: safeSql,
           createdAt: new Date().toISOString(),
         };
         set((state) => ({
           tabs: [...state.tabs, tab],
           activeTabId: id,
-          currentSql: sql || "",
+          currentSql: safeSql,
           // Clear stale result when creating a blank tab
-          ...(sql ? {} : { queryResult: null }),
+          ...(safeSql ? {} : { queryResult: null }),
         }));
         return id;
       },
@@ -303,9 +306,22 @@ export const useSqlEditorStore = create<SqlEditorState>()(
         activePanelTab: state.activePanelTab,
       }),
       onRehydrateStorage: () => (state) => {
+        if (!state) return;
         // Clear stale execution state from previous session
-        if (state?.isExecuting) {
+        if (state.isExecuting) {
           state.isExecuting = false;
+        }
+        // Defense: sanitize tabs — fix corrupted names from event object leak
+        if (Array.isArray(state.tabs)) {
+          state.tabs = state.tabs.map((tab, i) => ({
+            ...tab,
+            name: typeof tab.name === "string" ? tab.name : `Query ${i + 1}`,
+            sql: typeof tab.sql === "string" ? tab.sql : "",
+          }));
+          // Ensure activeTabId points to a valid tab
+          if (!state.tabs.find((t) => t.id === state.activeTabId)) {
+            state.activeTabId = state.tabs[0]?.id ?? "tab-default";
+          }
         }
       },
     }

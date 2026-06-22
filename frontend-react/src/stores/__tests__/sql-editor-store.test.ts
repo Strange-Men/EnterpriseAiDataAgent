@@ -96,6 +96,47 @@ describe("sql-editor-store", () => {
       expect(typeof newTab?.sql).toBe("string");
       expect(typeof newTab?.createdAt).toBe("string");
     });
+
+    it("should not store event-like objects as tab name (React #31 defense)", () => {
+      const { addTab } = useSqlEditorStore.getState();
+      // Simulate what happens when onClick={addTab} passes MouseEvent as first arg
+      const fakeEvent = {
+        _reactName: "onClick",
+        type: "click",
+        nativeEvent: new Event("click"),
+        target: document.createElement("button"),
+        currentTarget: document.createElement("button"),
+      } as unknown as string;
+
+      const newTabId = addTab(fakeEvent);
+      const state = useSqlEditorStore.getState();
+      const newTab = state.tabs.find((t) => t.id === newTabId);
+
+      // Tab name should be the fallback, not the event object
+      expect(typeof newTab?.name).toBe("string");
+      expect(newTab?.name).toMatch(/^Query \d+$/);
+      expect(newTab?.name).not.toContain("_reactName");
+    });
+
+    it("should handle undefined name gracefully", () => {
+      const { addTab } = useSqlEditorStore.getState();
+      const newTabId = addTab(undefined, "SELECT 1");
+      const state = useSqlEditorStore.getState();
+      const newTab = state.tabs.find((t) => t.id === newTabId);
+
+      expect(typeof newTab?.name).toBe("string");
+      expect(newTab?.name).toMatch(/^Query \d+$/);
+      expect(newTab?.sql).toBe("SELECT 1");
+    });
+
+    it("should handle non-string sql gracefully", () => {
+      const { addTab } = useSqlEditorStore.getState();
+      const newTabId = addTab("Test", undefined);
+      const state = useSqlEditorStore.getState();
+      const newTab = state.tabs.find((t) => t.id === newTabId);
+
+      expect(newTab?.sql).toBe("");
+    });
   });
 
   describe("setActiveTab", () => {

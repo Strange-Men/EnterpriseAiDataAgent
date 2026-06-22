@@ -58,6 +58,18 @@ export function InvestigationWorkspace() {
     };
   }, []);
 
+  // Listen for tab switch events from SqlWorkspacePanel
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail === "ai-query" || detail === "expert-sql") {
+        setActiveTab(detail);
+      }
+    };
+    window.addEventListener("workspace:switch-tab", handler);
+    return () => window.removeEventListener("workspace:switch-tab", handler);
+  }, []);
+
   // Sync table from store when tables load
   useEffect(() => {
     if (!selectedTable && tables.length > 0) {

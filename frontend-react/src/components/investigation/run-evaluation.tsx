@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
+import { renderSafeText } from "@/utils/safe-render";
 import type { AnalysisRun } from "@/stores/analysis-store";
 
 interface RunEvaluationProps {
@@ -32,8 +33,9 @@ function ConfidenceRing({ value }: { value: number }) {
 }
 
 function MetricBar({ label, value }: { label: string; value: string }) {
+  const safeValue = renderSafeText(value, "unknown");
   const levelMap: Record<string, number> = { high: 90, medium: 60, low: 30, unknown: 15 };
-  const pct = levelMap[value.toLowerCase()] ?? 50;
+  const pct = levelMap[safeValue.toLowerCase()] ?? 50;
   const color = pct >= 70 ? "var(--success)" : pct >= 40 ? "var(--warning)" : "var(--error)";
 
   return (
@@ -45,7 +47,7 @@ function MetricBar({ label, value }: { label: string; value: string }) {
           style={{ width: `${pct}%`, backgroundColor: color }}
         />
       </div>
-      <span className="w-10 text-right text-[10px] capitalize text-[var(--text-secondary)]">{value}</span>
+      <span className="w-10 text-right text-[10px] capitalize text-[var(--text-secondary)]">{safeValue}</span>
     </div>
   );
 }
@@ -89,7 +91,7 @@ export function RunEvaluation({ run }: RunEvaluationProps) {
             {eval_.diagnostics.map((d: string, i: number) => (
               <li key={i} className="text-xs text-[var(--text-secondary)] flex items-start gap-1.5">
                 <span className="text-[var(--accent)] mt-0.5">•</span>
-                {d}
+                {renderSafeText(d, "")}
               </li>
             ))}
           </ul>
@@ -106,7 +108,7 @@ export function RunEvaluation({ run }: RunEvaluationProps) {
             {eval_.suggested_improvements.map((imp: string, i: number) => (
               <li key={i} className="text-xs text-[var(--text-secondary)] flex items-start gap-1.5">
                 <span className="text-[var(--accent)] mt-0.5">→</span>
-                {imp}
+                {renderSafeText(imp, "")}
               </li>
             ))}
           </ul>

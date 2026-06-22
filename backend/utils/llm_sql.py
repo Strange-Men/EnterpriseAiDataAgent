@@ -24,7 +24,7 @@ def extract_sql_from_llm_output(raw: str) -> str:
     """
     text = (raw or "").strip()
     if not text:
-        return "-- CANNOT_ANSWER: Model returned an empty SQL response."
+        return "-- CANNOT_ANSWER: 当前数据表缺少用于该分析的字段，无法生成查询。"
 
     cannot_answer = _CANNOT_ANSWER_RE.search(text)
     if cannot_answer:

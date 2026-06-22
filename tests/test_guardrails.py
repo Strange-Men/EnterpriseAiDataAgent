@@ -21,8 +21,8 @@ from backend.services.guardrails import (
 class TestAnalysisGuardrailsDefaults:
     def test_default_values(self):
         g = AnalysisGuardrails()
-        assert g.max_steps == 6
-        assert g.max_sql_queries == 8
+        assert g.max_steps == 3
+        assert g.max_sql_queries == 4
         assert g.max_consecutive_failures == 2
         assert g.max_total_time_seconds == 120
         assert g.max_step_time_seconds == 30
@@ -30,8 +30,8 @@ class TestAnalysisGuardrailsDefaults:
         assert g.require_minimum_success == 1
 
     def test_strict_values(self):
-        assert STRICT_GUARDRAILS.max_steps == 4
-        assert STRICT_GUARDRAILS.max_sql_queries == 5
+        assert STRICT_GUARDRAILS.max_steps == 2
+        assert STRICT_GUARDRAILS.max_sql_queries == 3
         assert STRICT_GUARDRAILS.max_consecutive_failures == 1
         assert STRICT_GUARDRAILS.max_total_time_seconds == 60
 

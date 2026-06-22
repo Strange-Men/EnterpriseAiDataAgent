@@ -6,7 +6,6 @@ import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { useSavedQueriesStore, type SavedQuery } from "@/stores/saved-queries-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
-import Link from "next/link";
 import { MonacoSqlEditor } from "@/components/monaco-sql-editor";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -396,15 +395,18 @@ export function SqlWorkspacePanel() {
           </button>
         )}
 
-        {/* Link to AI Assistant for natural language queries */}
+        {/* Switch to AI Assistant for natural language queries */}
         {!isFeatureEnabled("showAiSqlInputInWorkspace") && (
-          <Link
-            href="/analyze"
+          <button
+            onClick={() => {
+              // Dispatch custom event to parent InvestigationWorkspace to switch tab
+              window.dispatchEvent(new CustomEvent("workspace:switch-tab", { detail: "ai-query" }));
+            }}
             className="px-3 py-1.5 text-xs border border-purple-500/30 text-purple-400 rounded-md hover:bg-purple-500/10 hover:border-purple-500/50 transition-colors"
             title={t("sql.goto-ai-assistant")}
           >
             {t("sql.goto-ai-assistant")}
-          </Link>
+          </button>
         )}
 
         {/* AI buttons — hidden behind feature flag */}

@@ -8,6 +8,7 @@ import { Save, Copy, Play, Download, Trash2, MoreHorizontal } from "lucide-react
 import { useAnalysisStore, type AnalysisRun } from "@/stores/analysis-store";
 import { downloadBlob } from "@/utils/download";
 import { formatLocalDateTime } from "@/utils/datetime";
+import { renderSafeText } from "@/utils/safe-render";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
@@ -100,7 +101,7 @@ export function RunHeader({ run }: RunHeaderProps) {
             )}
           </div>
           <h2 className="text-lg font-bold text-[var(--text-primary)] mt-1 truncate">
-            {run.question || run.table || run.mode}
+            {renderSafeText(run.question || run.table || run.mode, "Analysis")}
           </h2>
           {run.table && (
             <span className="text-[10px] text-[var(--text-muted)] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded mt-1 inline-block">

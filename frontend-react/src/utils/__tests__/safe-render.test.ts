@@ -36,6 +36,22 @@ describe("renderSafeText", () => {
   it("returns fallback for array", () => {
     expect(renderSafeText([1, 2, 3])).toBe("");
   });
+
+  it("returns fallback for event-like object (React #31 defense)", () => {
+    const fakeEvent = {
+      _reactName: "onClick",
+      _targetInst: {},
+      type: "click",
+      nativeEvent: {},
+      target: {},
+      currentTarget: {},
+    };
+    expect(renderSafeText(fakeEvent, "[event]")).toBe("[event]");
+  });
+
+  it("returns fallback for Error object", () => {
+    expect(renderSafeText(new Error("test"), "[error]")).toBe("[error]");
+  });
 });
 
 describe("safeMarkdownContent", () => {
