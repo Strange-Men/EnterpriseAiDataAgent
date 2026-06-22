@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { useAnalysisStore } from "@/stores/analysis-store";
@@ -16,7 +16,12 @@ export function DrillDownChain({ currentRunId }: DrillDownChainProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const setActiveRun = useAnalysisStore((s) => s.setActiveRun);
-  const chain = useAnalysisStore((s) => s.getEvolutionChain(currentRunId));
+  // FIX: Do NOT call getEvolutionChain inside a Zustand selector — it returns
+  // a new array reference every time, causing infinite re-renders (React #185).
+  // Instead, subscribe to the raw `runs` array and compute the chain with useMemo.
+  const runs = useAnalysisStore((s) => s.runs);
+  const getEvolutionChain = useAnalysisStore((s) => s.getEvolutionChain);
+  const chain = useMemo(() => getEvolutionChain(currentRunId), [runs, currentRunId, getEvolutionChain]);
   const [viewMode, setViewMode] = useState<"timeline" | "breadcrumb">("timeline");
 
   const handleNavigate = useCallback((runId: string) => {
