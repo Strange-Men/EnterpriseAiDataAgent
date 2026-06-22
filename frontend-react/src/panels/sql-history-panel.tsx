@@ -5,28 +5,27 @@ import { useTranslation } from "react-i18next";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { EmptyState } from "@/components/ui/empty-state";
-import { fetchQueryHistory } from "@/services/api";
 import { downloadBlob } from "@/utils/download";
+import { formatLocalTime } from "@/utils/datetime";
 import toast from "react-hot-toast";
 
 export function SqlHistoryPanel() {
   const { t } = useTranslation();
   const {
-    setHistory, removeEntry, clearHistory,
+    removeEntry, clearHistory,
     searchQuery, setSearchQuery,
     filterStatus, setFilterStatus,
     filterType, setFilterType,
     getFiltered,
+    fetchHistory,
   } = useSqlHistoryStore();
   const { addTab, updateTabSql, getActiveTab, setActiveTab } = useSqlEditorStore();
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
 
   useEffect(() => {
-    fetchQueryHistory()
-      .then(setHistory)
-      .catch((e) => console.warn("Failed to load history:", e));
-  }, [setHistory]);
+    fetchHistory();
+  }, [fetchHistory]);
 
   const filtered = getFiltered();
 
@@ -220,7 +219,7 @@ export function SqlHistoryPanel() {
                   </span>
                 )}
                 <span className="text-xs text-[var(--text-muted)] ml-auto">
-                  {entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : ""}
+                  {formatLocalTime(entry.timestamp)}
                 </span>
               </div>
 

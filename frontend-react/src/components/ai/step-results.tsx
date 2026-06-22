@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, XCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { renderSafeText } from "@/utils/safe-render";
 import type { MultiStepExecuted } from "@/services/api";
@@ -11,6 +11,10 @@ interface StepResultsProps {
   steps: MultiStepExecuted[];
   isStreaming?: boolean;
   activeStep?: number;
+}
+
+function isSkipped(status: string): boolean {
+  return status.startsWith("skipped");
 }
 
 export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps) {
@@ -38,6 +42,7 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
           const isActive = isStreaming && activeStep === step.step;
           const isCollapsed = collapsed.has(i);
           const isSuccess = step.status === "success";
+          const stepIsSkipped = isSkipped(step.status);
 
           return (
             <div
@@ -54,11 +59,15 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
                 onClick={() => toggleCollapse(i)}
                 className={cn(
                   "w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors",
-                  isSuccess ? "bg-green-500/5 hover:bg-green-500/10" : "bg-red-500/5 hover:bg-red-500/10"
+                  isSuccess ? "bg-green-500/5 hover:bg-green-500/10" :
+                  stepIsSkipped ? "bg-amber-500/5 hover:bg-amber-500/10" :
+                  "bg-red-500/5 hover:bg-red-500/10"
                 )}
               >
                 {isSuccess ? (
                   <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                ) : stepIsSkipped ? (
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 ) : (
                   <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
                 )}
@@ -66,8 +75,13 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
                   #{step.step}
                 </span>
                 <span className="text-xs text-[var(--text-secondary)] flex-1 truncate">
-                  {step.purpose}
+                  {renderSafeText(step.purpose, `Step ${step.step}`)}
                 </span>
+                {stepIsSkipped && (
+                  <span className="text-[10px] text-amber-400 shrink-0">
+                    {t("ai.step-skipped", "已跳过")}
+                  </span>
+                )}
                 {step.row_count != null && isSuccess && (
                   <span className="text-[10px] text-[var(--text-muted)] shrink-0">
                     {step.row_count} {t("sql.rows")}
@@ -85,19 +99,24 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
               {/* Expanded content */}
               {!isCollapsed && (
                 <div>
+                  {stepIsSkipped && step.error && (
+                    <div className="px-3 py-1.5 text-xs text-amber-300 bg-amber-500/5">
+                      {renderSafeText(step.error, "此步骤因数据限制被跳过")}
+                    </div>
+                  )}
                   {step.status === "error" && step.error && (
                     <div className="px-3 py-1.5 text-xs text-red-300 bg-red-500/5">
                       {renderSafeText(step.error, "Step execution failed")}
                     </div>
                   )}
-                  {isSuccess && step.data && step.data.length > 0 && step.columns && (
+                  {isSuccess && step.data && step.data.length > 0 && Array.isArray(step.columns) && step.columns.length > 0 && (
                     <div className="overflow-x-auto max-h-40">
                       <table className="min-w-full text-[10px]">
                         <thead>
                           <tr>
                             {step.columns.map((c) => (
                               <th key={c} className="px-2 py-1 text-left font-semibold bg-[var(--bg-tertiary)] text-[var(--text-muted)] border-b border-[var(--border-default)]">
-                                {c}
+                                {renderSafeText(c, "")}
                               </th>
                             ))}
                           </tr>
@@ -107,7 +126,7 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
                             <tr key={ri}>
                               {step.columns.map((c) => (
                                 <td key={c} className="px-2 py-0.5 text-[var(--text-secondary)] border-b border-[var(--border-default)]/50 truncate max-w-[120px]">
-                                  {String(row[c] ?? "")}
+                                  {typeof row === "object" && row !== null ? String(row[c] ?? "") : String(row ?? "")}
                                 </td>
                               ))}
                             </tr>

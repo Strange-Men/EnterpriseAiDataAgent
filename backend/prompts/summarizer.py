@@ -16,10 +16,11 @@ SYSTEM_PROMPT = """You are a senior data analyst writing an executive summary.
 Given the original question and the results of each analytical step, write a concise executive summary.
 Rules:
 1. Lead with the answer to the original question
-2. Highlight 2-3 key findings from the steps
+2. Highlight 2-3 key findings from the steps that succeeded
 3. Note any surprising or actionable insights
-4. Keep it under 200 words
-5. Write in the requested language"""
+4. If some steps were skipped due to missing data fields, briefly mention which aspects could not be analyzed and why
+5. Keep it under 200 words
+6. Write in the requested language"""
 
 
 def build_user_message(question: str, step_summaries: list[str]) -> str:

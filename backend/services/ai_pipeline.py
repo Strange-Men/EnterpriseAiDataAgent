@@ -161,7 +161,7 @@ def _build_diagnostics(executed_steps: list) -> dict | None:
         if s.get("error"):
             failures.append(f"Step {s['step']}: {s['error'][:100]}")
         elif s["status"].startswith("skipped"):
-            failures.append(f"Step {s['step']}: {s['status']}")
+            failures.append(f"Step {s['step']}: skipped — {s.get('error', 'data not available')[:80]}")
     return {
         "message": f"All {len(executed_steps)} steps failed or were skipped.",
         "failures": failures,
@@ -178,13 +178,20 @@ def _build_executive_summary(question: str, executed_steps: list, language: str,
     step_summaries = []
     summarizer_budget = get_budget("summarizer")
     for s in executed_steps:
-        status_label = "✓" if s["status"] == "success" else "✗"
+        if s["status"] == "success":
+            status_label = "✓"
+        elif s["status"].startswith("skipped"):
+            status_label = "⊘"
+        else:
+            status_label = "✗"
         data_note = ""
         if s["status"] == "success" and s["data"]:
             data_note = f" ({s.get('row_count', len(s['data']))} rows)"
             sample = s["data"][:summarizer_budget.max_sample_rows]
             if sample:
                 data_note += f"\nSample: {json.dumps(sample, default=str, ensure_ascii=False)[:500]}"
+        elif s["status"].startswith("skipped"):
+            data_note = f" [Skipped: {s.get('error', 'data not available')[:100]}]"
         elif s.get("error"):
             data_note = f" Error: {s['error'][:200]}"
         step_summaries.append(f"[{status_label} Step {s['step']}: {s['purpose']}{data_note}]")
@@ -207,9 +214,12 @@ def _determine_overall_status(executed_steps: list, guardrail_violations: list) 
     """Determine overall analysis status based on outcomes."""
     successful = [s for s in executed_steps if s["status"] == "success" and s.get("data")]
     has_errors = any(s["status"] == "error" for s in executed_steps)
+    has_skipped = any(s["status"].startswith("skipped") for s in executed_steps)
     if not successful:
         return "error"
     if has_errors or guardrail_violations:
+        return "partial"
+    if has_skipped:
         return "partial"
     return "success"
 
@@ -399,11 +409,12 @@ def _execute_plan_steps(plan: list, schema_context: str, language: str,
 
         sql = sql_result.get("sql") or ""
         if sql.startswith("-- CANNOT_ANSWER"):
+            reason = sql.replace("-- CANNOT_ANSWER:", "").strip() or "当前数据缺少所需字段"
             guard.record_step_result(success=False)
             executed_steps.append(_make_step_result(
                 step_num, purpose, sql=sql,
-                error="Cannot answer this step with available data",
-                status="error",
+                error=reason,
+                status="skipped_no_data",
             ))
             continue
 
@@ -412,8 +423,8 @@ def _execute_plan_steps(plan: list, schema_context: str, language: str,
             guard.record_step_result(success=False)
             executed_steps.append(_make_step_result(
                 step_num, purpose,
-                error="AI_EMPTY_RESPONSE",
-                status="error",
+                error="AI 未能生成有效 SQL",
+                status="skipped_generation_error",
             ))
             continue
 
@@ -624,10 +635,11 @@ def run_autonomous_analysis_stream(
 
         sql = sql_result.get("sql") or ""
         if sql.startswith("-- CANNOT_ANSWER"):
+            reason = sql.replace("-- CANNOT_ANSWER:", "").strip() or "当前数据缺少所需字段"
             guard.record_step_result(success=False)
             step_out = _make_step_result(step_num, purpose, sql=sql,
-                                          error="Cannot answer this step with available data",
-                                          status="error")
+                                          error=reason,
+                                          status="skipped_no_data")
             executed_steps.append(step_out)
             yield {"type": "step_result", **step_out}
             continue
@@ -636,8 +648,8 @@ def run_autonomous_analysis_stream(
         if not sql.strip():
             guard.record_step_result(success=False)
             step_out = _make_step_result(step_num, purpose,
-                                          error="AI_EMPTY_RESPONSE",
-                                          status="error")
+                                          error="AI 未能生成有效 SQL",
+                                          status="skipped_generation_error")
             executed_steps.append(step_out)
             yield {"type": "step_result", **step_out}
             continue

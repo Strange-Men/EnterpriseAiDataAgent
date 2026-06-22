@@ -64,7 +64,7 @@ export default function HomePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button
           onClick={() => router.push("/data")}
-          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left"
+          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center group-hover:bg-[var(--accent)]/20 transition-colors">
             <Upload className="w-6 h-6 text-[var(--accent)]" />
@@ -78,7 +78,7 @@ export default function HomePage() {
 
         <button
           onClick={() => router.push("/analyze")}
-          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--accent)]/30 bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left"
+          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center group-hover:bg-[var(--accent)]/20 transition-colors">
             <MonitorPlay className="w-6 h-6 text-[var(--accent)]" />
@@ -107,7 +107,7 @@ export default function HomePage() {
               <button
                 key={item.step}
                 onClick={() => router.push(item.href)}
-                className="flex flex-col items-center text-center gap-2 p-3 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="flex flex-col items-center text-center gap-2 p-3 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               >
                 <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-sm font-bold">
                   {item.step}
@@ -154,7 +154,7 @@ export default function HomePage() {
                 <button
                   key={run.id}
                   onClick={() => router.push(`/analyze/${run.id}`)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-tertiary)] transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-tertiary)] transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 >
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                     run.status === "success" ? "bg-green-400" : run.status === "error" ? "bg-red-400" : "bg-yellow-400"
@@ -191,7 +191,7 @@ export default function HomePage() {
                     useSqlEditorStore.getState().addTab(undefined, entry.sql);
                     router.push("/analyze");
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-tertiary)] transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-tertiary)] transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 >
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                     entry.status === "success" ? "bg-green-400" : "bg-red-400"

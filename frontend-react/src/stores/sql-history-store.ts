@@ -90,12 +90,23 @@ export const useSqlHistoryStore = create<SqlHistoryState>()(
       },
 
       // Fetch history from backend (DuckDB persistence)
+      // Merge strategy: backend SQL entries + local AI entries (never overwrite AI)
       fetchHistory: async () => {
         set({ isLoading: true });
         try {
           const backendHistory = await fetchQueryHistory(200);
           if (backendHistory && Array.isArray(backendHistory)) {
-            set({ history: backendHistory });
+            const currentHistory = get().history;
+            const localAiEntries = currentHistory.filter((e) => e.type === "ai");
+            // Merge: backend SQL entries + preserved local AI entries, dedup by id
+            const seenIds = new Set(backendHistory.map((e: SqlHistoryEntry) => e.id));
+            const merged = [
+              ...backendHistory,
+              ...localAiEntries.filter((e) => !seenIds.has(e.id)),
+            ];
+            // Sort by timestamp descending (newest first)
+            merged.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+            set({ history: merged.slice(0, 200) });
           }
         } catch (error) {
           console.error("Failed to fetch history from backend:", error);
