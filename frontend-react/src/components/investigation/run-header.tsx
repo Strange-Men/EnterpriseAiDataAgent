@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { Save, Copy, Play, Download, Trash2, MoreHorizontal } from "lucide-react";
 import { useAnalysisStore, type AnalysisRun } from "@/stores/analysis-store";
 import { downloadBlob } from "@/utils/download";
+import { formatLocalDateTime } from "@/utils/datetime";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
@@ -107,7 +108,7 @@ export function RunHeader({ run }: RunHeaderProps) {
             </span>
           )}
           <p className="text-[10px] text-[var(--text-muted)] mt-1">
-            {new Date(run.timestamp).toLocaleString()}
+            {formatLocalDateTime(run.timestamp)}
           </p>
         </div>
 
