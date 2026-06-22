@@ -132,6 +132,8 @@ export const useSqlEditorStore = create<SqlEditorState>()(
           tabs: [...state.tabs, tab],
           activeTabId: id,
           currentSql: sql || "",
+          // Clear stale result when creating a blank tab
+          ...(sql ? {} : { queryResult: null }),
         }));
         return id;
       },
@@ -177,7 +179,7 @@ export const useSqlEditorStore = create<SqlEditorState>()(
 
       getActiveTab: () => {
         const { tabs, activeTabId } = get();
-        return tabs.find((t) => t.id === activeTabId);
+        return tabs.find((t) => t.id === activeTabId) ?? tabs[0] ?? undefined;
       },
 
       // Current SQL (synced with active tab)

@@ -7,9 +7,9 @@ Lazy-initialised: DuckDB table is only created on first use,
 not at import time — safe under uvicorn --reload.
 """
 
-import time
 import uuid
 from collections import deque
+from datetime import datetime, timezone
 
 
 class QueryHistory:
@@ -130,7 +130,7 @@ class QueryHistory:
             "runtimeMs": runtime_ms,
             "rowCount": row_count,
             "error": error,
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
 
         # Add to memory

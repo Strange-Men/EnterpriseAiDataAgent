@@ -15,13 +15,7 @@ import { DiffPanel } from "@/panels/diff-panel";
 import { TimelineEvolution } from "@/components/timeline-evolution";
 import { SchedulePanel } from "@/components/schedule-dialog";
 import { isFeatureEnabled } from "@/config/features";
-
-// ── Helpers ───────────────────────────────────────────────────
-
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
+import { formatLocalTime } from "@/utils/datetime";
 
 function modeIcon(mode: string): string {
   switch (mode) {
@@ -86,7 +80,7 @@ function HistoryItem({
             <span className="text-xs text-[var(--text-muted)]">v{run.version}</span>
           )}
           <span className={`text-xs ${statusColor(run.status)}`}>●</span>
-          <span className="text-xs text-[var(--text-muted)]">{formatTime(run.timestamp)}</span>
+          <span className="text-xs text-[var(--text-muted)]">{formatLocalTime(run.timestamp)}</span>
         </div>
       </button>
     </div>

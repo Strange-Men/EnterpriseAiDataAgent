@@ -243,6 +243,7 @@ const zh = {
     "ai.executive-summary": "执行摘要",
     "ai.step": "步骤",
     "ai.step-result": "步骤结果",
+    "ai.step-skipped": "已跳过",
     "ai.step-failed": "步骤执行失败",
     "ai.running-steps": "正在执行分析步骤...",
     "ai.autonomous-btn": "自主分析",
@@ -573,7 +574,7 @@ const zh = {
     "sql.explain-failed": "Explain 失败",
     "sql.ai-gen-failed": "AI 无法生成 SQL",
     "sql.ai-gen-error": "AI SQL 生成失败",
-    "sql.goto-ai-assistant": "分析工作台",
+    "sql.goto-ai-assistant": "自然语言查询",
 
     // Onboarding
     "onboarding.title": "新手教程",

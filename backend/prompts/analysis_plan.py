@@ -23,8 +23,9 @@ Rules:
 2. Steps can depend on previous steps' results (use depends_on)
 3. First step should establish baseline/overview
 4. Later steps should investigate specific hypotheses
-5. Steps must be answerable with SQL against available columns
-6. Maximum 6 steps
+5. CRITICAL: Each step MUST only reference columns that actually exist in the schema. Do NOT invent columns. If the data lacks a column needed for a sub-question, SKIP that sub-question entirely — do not create a step for it.
+6. If the question asks about fields that do not exist (e.g., profit, customer_type, region), acknowledge the gap in the summary rather than generating steps that will fail.
+7. Maximum 6 steps
 
 Output as JSON:
 {
@@ -46,6 +47,7 @@ def build_user_message(
     import json
 
     col_desc = [f"  - {c['name']} ({c.get('dtype', 'VARCHAR')})" for c in columns]
+    col_names = [c['name'] for c in columns]
     parts = []
     if prior_findings:
         parts.append("Prior Key Findings:")
@@ -54,7 +56,12 @@ def build_user_message(
         parts.append("")
     parts.append(f"Question: {question}\n\n")
     parts.append(f"Table: {table}\n")
-    parts.append(f"Columns:\n" + "\n".join(col_desc) + "\n\n")
+    parts.append(f"Available Columns (ONLY use these):\n" + "\n".join(col_desc) + "\n")
+    parts.append(f"Column Names: {', '.join(col_names)}\n")
+    parts.append(
+        "IMPORTANT: If the question mentions fields not in the column list above, "
+        "do NOT create steps for those fields. Only plan steps that use existing columns.\n\n"
+    )
     parts.append(
         f"Sample data (first {len(sample_rows)} rows):\n"
         f"{json.dumps(sample_rows, default=str, ensure_ascii=False)}"

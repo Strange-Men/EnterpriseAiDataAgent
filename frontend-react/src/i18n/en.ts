@@ -243,6 +243,7 @@ const en = {
     "ai.executive-summary": "Executive Summary",
     "ai.step": "Step",
     "ai.step-result": "Step Result",
+    "ai.step-skipped": "Skipped",
     "ai.step-failed": "Step failed",
     "ai.running-steps": "Running analysis steps...",
     "ai.autonomous-btn": "Autonomous Analysis",
@@ -573,7 +574,7 @@ const en = {
     "sql.explain-failed": "Explain failed",
     "sql.ai-gen-failed": "AI could not generate SQL",
     "sql.ai-gen-error": "AI SQL generation failed",
-    "sql.goto-ai-assistant": "Analysis Workspace",
+    "sql.goto-ai-assistant": "Natural Language Query",
 
     // Onboarding
     "onboarding.title": "Getting Started",
