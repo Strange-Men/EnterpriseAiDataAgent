@@ -9,6 +9,7 @@ import { useAnalysisStore } from "@/stores/analysis-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { downloadBlob } from "@/utils/download";
+import { runToMarkdown } from "@/utils/export-markdown";
 import { formatLocalTime } from "@/utils/datetime";
 import toast from "react-hot-toast";
 
@@ -25,6 +26,7 @@ export function SqlHistoryPanel() {
   } = useSqlHistoryStore();
   const { addTab, setActiveTab } = useSqlEditorStore();
   const { advance: investigationAdvance } = useInvestigationStore();
+  const runs = useAnalysisStore((s) => s.runs);
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
 
@@ -97,11 +99,43 @@ export function SqlHistoryPanel() {
     }, 300);
   }, [addTab, setActiveTab, router]);
 
-  // Export history as JSON
-  const handleExport = () => {
-    const { exportHistory } = useSqlHistoryStore.getState();
-    const json = exportHistory();
-    downloadBlob("query_history.json", json, "application/json");
+  // AI Analysis: Export as Markdown
+  const handleExportMarkdown = useCallback((runId: string) => {
+    const run = runs.find((r) => r.id === runId);
+    if (!run) {
+      toast.error(t("analysis.not-found"));
+      return;
+    }
+    const md = runToMarkdown(run);
+    downloadBlob(`analysis-${runId.slice(0, 8)}.md`, md, "text/markdown");
+    toast.success(t("history.export-md"));
+  }, [runs, t]);
+
+  // Expert SQL: Export as CSV
+  const handleExportCsv = useCallback((sql: string, tableName?: string) => {
+    // Export the SQL query metadata as CSV
+    const header = "field,value\n";
+    const rows = [
+      `sql,"${sql.replace(/"/g, '""')}"`,
+      tableName ? `table,"${tableName}"` : null,
+      `exported_at,"${new Date().toISOString()}"`,
+    ].filter(Boolean).join("\n");
+    downloadBlob(`query-${sql.slice(0, 20).replace(/[^a-zA-Z0-9]/g, "_")}.csv`, header + rows, "text/csv");
+    toast.success(t("history.export-csv"));
+  }, [t]);
+
+  // Export history as CSV
+  const handleExportAll = () => {
+    const entries = getFiltered();
+    if (entries.length === 0) return;
+    const header = "type,question/sql,table,status,rows,runtime_ms,timestamp\n";
+    const rows = entries.map((e) => {
+      const type = (e.type || "sql") === "ai" ? "AI" : "SQL";
+      const text = (e.question || e.sql).replace(/"/g, '""').replace(/\n/g, " ");
+      const table = (e.tableName || "").replace(/"/g, '""');
+      return `"${type}","${text}","${table}","${e.status}",${e.rowCount},${e.runtimeMs},"${e.timestamp}"`;
+    }).join("\n");
+    downloadBlob("query_history.csv", header + rows, "text/csv");
     toast.success(t("history.exported"));
   };
 
@@ -119,7 +153,7 @@ export function SqlHistoryPanel() {
           {filtered.length > 0 && (
             <div className="flex items-center gap-1">
               <button
-                onClick={handleExport}
+                onClick={handleExportAll}
                 className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)] rounded transition-colors"
               >
                 {t("history.export")}
@@ -261,7 +295,7 @@ export function SqlHistoryPanel() {
                 )}
 
                 {/* Action buttons — always visible */}
-                <div className="flex items-center gap-2 mt-2.5 pl-[52px]">
+                <div className="flex items-center gap-2 mt-2.5 pl-[52px] flex-wrap">
                   {isAi ? (
                     <>
                       <button
@@ -275,6 +309,12 @@ export function SqlHistoryPanel() {
                         className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
                       >
                         {t("history.rerun-analysis")}
+                      </button>
+                      <button
+                        onClick={() => handleExportMarkdown(entry.id)}
+                        className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                      >
+                        {t("history.export-md")}
                       </button>
                       {entry.question && (
                         <button
@@ -298,6 +338,12 @@ export function SqlHistoryPanel() {
                         className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
                       >
                         {t("history.re-execute")}
+                      </button>
+                      <button
+                        onClick={() => handleExportCsv(entry.sql, entry.tableName)}
+                        className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                      >
+                        {t("history.export-csv")}
                       </button>
                       <button
                         onClick={() => handleCopy(entry.sql)}
