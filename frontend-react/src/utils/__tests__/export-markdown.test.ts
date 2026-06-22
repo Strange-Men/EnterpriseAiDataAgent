@@ -92,14 +92,14 @@ describe("runToMarkdown", () => {
 
   it("should contain step status and row count", () => {
     const md = runToMarkdown(makeRun());
-    expect(md).toContain("状态：成功");
+    expect(md).toContain("状态：✓ 成功");
     expect(md).toContain("行数：3");
     expect(md).toContain("行数：10");
   });
 
   it("should contain trace summary", () => {
     const md = runToMarkdown(makeRun());
-    expect(md).toContain("总 LLM 调用：3");
+    expect(md).toContain("LLM 调用次数：3");
     expect(md).toContain("输入 Token：1500");
     expect(md).toContain("输出 Token：800");
   });
@@ -155,7 +155,7 @@ describe("runToMarkdown", () => {
       },
     });
     const md = runToMarkdown(run);
-    expect(md).toContain("状态：失败");
+    expect(md).toContain("状态：✗ 失败");
     expect(md).toContain("错误：Table not found");
   });
 
