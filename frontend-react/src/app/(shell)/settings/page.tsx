@@ -33,7 +33,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <Button variant="secondary" size="md" onClick={toggleLanguage}>
-              {t("settings.switch-to")} {language === "zh" ? "English" : "中文"}
+              {t("settings.switch-language")}
             </Button>
           </CardContent>
         </Card>

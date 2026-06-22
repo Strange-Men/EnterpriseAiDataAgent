@@ -465,6 +465,7 @@ const en = {
     "settings.theme": "Theme",
     "settings.version": "Version",
     "settings.switch-to": "Switch to",
+    "settings.switch-language": "Switch to Chinese",
     "settings.dark": "Dark",
     "settings.light": "Light",
     "settings.system": "System",

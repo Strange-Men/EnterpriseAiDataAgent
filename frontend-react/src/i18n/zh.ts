@@ -465,6 +465,7 @@ const zh = {
     "settings.theme": "主题",
     "settings.version": "版本",
     "settings.switch-to": "切换到",
+    "settings.switch-language": "切换成英文",
     "settings.dark": "深色",
     "settings.light": "浅色",
     "settings.system": "跟随系统",
