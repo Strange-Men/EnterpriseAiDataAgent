@@ -256,8 +256,11 @@ def run_ai_query(
     if table:
         tables = [t for t in all_tables if t.get("name") == table]
         if not tables:
-            # Fallback: use all tables but warn
-            tables = all_tables
+            return {
+                "question": question, "sql": "", "error": f"Table '{table}' not found",
+                "status": "error", "columns": [], "data": [], "rowCount": 0,
+                "explanation": "", "runtimeMs": 0, "generation_ms": 0,
+            }
     else:
         tables = all_tables
     schema_context = build_schema_context(tables, include_semantics=True)
@@ -514,6 +517,17 @@ def run_autonomous_analysis(
     Returns dict with: question, plan, steps, summary, status, elapsed_ms, token_budget, guardrails, trace.
     """
     start = time.time()
+
+    # Validate table exists
+    all_tables = list_tables()
+    if not any(t.get("name") == table for t in all_tables):
+        return {
+            "question": question, "plan": [], "steps": [], "summary": "",
+            "error": f"Table '{table}' not found", "status": "error",
+            "elapsed_ms": round((time.time() - start) * 1000, 2),
+            "token_budget": {}, "trace": {},
+        }
+
     tracker = WorkflowTokenTracker(total_budget=25000)
     guard = AnalysisGuard(guardrails or DEFAULT_GUARDRAILS)
     guardrail_violations: list[str] = []
@@ -617,6 +631,13 @@ def run_autonomous_analysis_stream(
     - {"type": "done", "elapsed_ms": ..., "token_budget": {...}, "guardrails": {...}, "trace": {...}}
     """
     start = time.time()
+
+    # Validate table exists
+    all_tables = list_tables()
+    if not any(t.get("name") == table for t in all_tables):
+        yield {"type": "error", "error": f"Table '{table}' not found"}
+        return
+
     tracker = WorkflowTokenTracker(total_budget=25000)
     guard = AnalysisGuard(guardrails or DEFAULT_GUARDRAILS)
     guardrail_violations: list[str] = []

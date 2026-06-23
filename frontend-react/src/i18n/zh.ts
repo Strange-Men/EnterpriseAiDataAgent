@@ -135,6 +135,7 @@ const zh = {
     "history.copy-failed": "复制失败",
     "history.no-history-title": "暂无历史记录",
     "history.no-history-desc": "完成一次自然语言分析或专家 SQL 查询后会出现在这里。",
+    "history.table-not-found": "该历史记录关联的数据表「{{table}}」已不存在，请重新选择数据表。",
 
     "header.show-left": "显示左侧面板",
     "header.hide-left": "隐藏左侧面板",

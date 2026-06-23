@@ -7,6 +7,7 @@ import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
+import { useDataStore } from "@/stores/data-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { downloadBlob } from "@/utils/download";
 import { runToMarkdown } from "@/utils/export-markdown";
@@ -25,8 +26,15 @@ export function SqlHistoryPanel() {
     fetchHistory,
   } = useSqlHistoryStore();
   const { addTab, setActiveTab } = useSqlEditorStore();
-  const { advance: investigationAdvance } = useInvestigationStore();
+  const { setActiveTable } = useInvestigationStore();
   const runs = useAnalysisStore((s) => s.runs);
+  const tables = useDataStore((s) => s.tables);
+
+  // Check if a table still exists in the database
+  const isTableValid = useCallback((tableName: string | undefined): boolean => {
+    if (!tableName) return false;
+    return tables.some((t) => t.name === tableName);
+  }, [tables]);
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
 
@@ -66,9 +74,13 @@ export function SqlHistoryPanel() {
 
   // AI Analysis: Re-run (navigate to workspace with question prefilled)
   const handleRerunAnalysis = useCallback((question: string, tableName?: string) => {
-    // Store the prefilled table for the workspace to pick up
+    // Validate table still exists before setting it
     if (tableName) {
-      investigationAdvance("idle", { table: tableName });
+      if (!isTableValid(tableName)) {
+        toast.error(t("history.table-not-found", { table: tableName }));
+        return;
+      }
+      setActiveTable(tableName);
     }
     router.push("/analyze");
     // Dispatch event so workspace can pick up the question
@@ -77,16 +89,24 @@ export function SqlHistoryPanel() {
         detail: { question, table: tableName },
       }));
     }, 100);
-  }, [router, investigationAdvance]);
+  }, [router, setActiveTable, isTableValid, t]);
 
   // Expert SQL: Load to workspace
   const handleLoadToWorkspace = useCallback((sql: string, tableName?: string) => {
+    // Validate and set table if available
+    if (tableName) {
+      if (!isTableValid(tableName)) {
+        toast.error(t("history.table-not-found", { table: tableName }));
+        return;
+      }
+      setActiveTable(tableName);
+    }
     // Create a new tab with the SQL
     const tabId = addTab(undefined, sql);
     setActiveTab(tabId);
     router.push("/analyze");
     toast.success(t("ai.sql-filled"));
-  }, [addTab, setActiveTab, router, t]);
+  }, [addTab, setActiveTab, setActiveTable, router, isTableValid, t]);
 
   // Expert SQL: Re-execute
   const handleReExecute = useCallback((sql: string) => {

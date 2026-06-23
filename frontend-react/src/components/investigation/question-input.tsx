@@ -18,19 +18,19 @@ export function QuestionInput({ onStart, isLoading }: QuestionInputProps) {
   const { t } = useTranslation();
   const tables = useDataStore((s) => s.tables);
   const activeTable = useInvestigationStore((s) => s.activeTable);
+  const setActiveTable = useInvestigationStore((s) => s.setActiveTable);
 
   const [question, setQuestion] = useState("");
-  const [selectedTable, setSelectedTable] = useState(activeTable ?? "");
   const [mode, setMode] = useState<AnalysisMode>("explain");
 
   const handleSubmit = useCallback(() => {
     const q = question.trim();
-    const table = selectedTable || tables[0]?.name;
+    const table = activeTable || tables[0]?.name;
     if (!q || !table || isLoading) return;
     onStart(q, table, mode);
-  }, [question, selectedTable, mode, tables, isLoading, onStart]);
+  }, [question, activeTable, mode, tables, isLoading, onStart]);
 
-  const canSubmit = question.trim().length > 0 && (selectedTable || tables.length > 0) && !isLoading;
+  const canSubmit = question.trim().length > 0 && (activeTable || tables.length > 0) && !isLoading;
 
   return (
     <div className="space-y-3">
@@ -59,8 +59,8 @@ export function QuestionInput({ onStart, isLoading }: QuestionInputProps) {
           </label>
           {tables.length > 0 ? (
             <Select
-              value={selectedTable || tables[0]?.name || ""}
-              onChange={(e) => setSelectedTable(e.target.value)}
+              value={activeTable || tables[0]?.name || ""}
+              onChange={(e) => setActiveTable(e.target.value)}
               disabled={isLoading}
             >
               {tables.map((tbl) => (

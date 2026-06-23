@@ -138,6 +138,11 @@ interface InvestigationState {
   // Drill-down chain
   drillChain: string[];
 
+  // ── Table selection (single source of truth) ─────────────────────
+
+  setActiveTable: (table: string | null) => void;
+  ensureValidSelectedTable: (availableTables: string[]) => void;
+
   // ── Lifecycle actions ───────────────────────────────────────────
 
   advance: (stage: InvestigationStage, opts?: { table?: string; sql?: string }) => void;
@@ -204,6 +209,20 @@ export const useInvestigationStore = create<InvestigationState>()(
 
       // Drill-down
       drillChain: [],
+
+      // ── Table selection (single source of truth) ───────────────
+
+      setActiveTable: (table) => set({ activeTable: table }),
+
+      ensureValidSelectedTable: (availableTables) => {
+        const current = get().activeTable;
+        if (current && availableTables.includes(current)) return; // still valid
+        if (availableTables.length > 0) {
+          set({ activeTable: availableTables[0] });
+        } else {
+          set({ activeTable: null });
+        }
+      },
 
       // ── Lifecycle actions ───────────────────────────────────────
 

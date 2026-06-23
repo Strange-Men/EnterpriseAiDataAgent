@@ -34,9 +34,10 @@ export function InvestigationWorkspace() {
   const activeRunId = useAnalysisStore((s) => s.activeRunId);
   const tables = useDataStore((s) => s.tables);
   const activeTable = useInvestigationStore((s) => s.activeTable);
+  const setActiveTable = useInvestigationStore((s) => s.setActiveTable);
+  const ensureValidSelectedTable = useInvestigationStore((s) => s.ensureValidSelectedTable);
 
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("ai-query");
-  const [selectedTable, setSelectedTable] = useState(activeTable ?? "");
   const [question, setQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [streamStage, setStreamStage] = useState("");
@@ -70,16 +71,16 @@ export function InvestigationWorkspace() {
     return () => window.removeEventListener("workspace:switch-tab", handler);
   }, []);
 
-  // Sync table from store when tables load
+  // Validate activeTable against available tables on mount / table list change
   useEffect(() => {
-    if (!selectedTable && tables.length > 0) {
-      setSelectedTable(activeTable ?? tables[0].name);
+    if (tables.length > 0) {
+      ensureValidSelectedTable(tables.map((t) => t.name));
     }
-  }, [tables, activeTable, selectedTable]);
+  }, [tables, ensureValidSelectedTable]);
 
   const handleSubmit = useCallback(async () => {
     const q = question.trim();
-    const table = selectedTable || tables[0]?.name;
+    const table = activeTable || tables[0]?.name;
     if (!q || !table || isLoading) return;
 
     // Abort any in-progress stream
@@ -258,7 +259,7 @@ export function InvestigationWorkspace() {
     );
 
     abortRef.current = abort;
-  }, [question, selectedTable, tables, isLoading, addRun, updateRun, i18n.language, t]);
+  }, [question, activeTable, tables, isLoading, addRun, updateRun, i18n.language, t]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -288,7 +289,7 @@ export function InvestigationWorkspace() {
     }
   }, [activeRunId, currentRunId]);
 
-  const currentTableName = selectedTable || tables[0]?.name;
+  const currentTableName = activeTable || tables[0]?.name;
   const currentTableMeta = tables.find((tbl) => tbl.name === currentTableName);
 
   return (
@@ -351,8 +352,8 @@ export function InvestigationWorkspace() {
               </label>
               {tables.length > 0 ? (
                 <Select
-                  value={selectedTable || tables[0]?.name || ""}
-                  onChange={(e) => setSelectedTable(e.target.value)}
+                  value={activeTable || tables[0]?.name || ""}
+                  onChange={(e) => setActiveTable(e.target.value)}
                   disabled={isLoading}
                 >
                   {tables.map((tbl) => (

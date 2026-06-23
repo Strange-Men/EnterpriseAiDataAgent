@@ -135,6 +135,7 @@ const en = {
     "history.copy-failed": "Copy failed",
     "history.no-history-title": "No History Yet",
     "history.no-history-desc": "Run a natural language analysis or expert SQL query, and it will appear here.",
+    "history.table-not-found": "The table \"{{table}}\" associated with this history record no longer exists. Please select a different table.",
 
     "header.show-left": "Show left panel",
     "header.hide-left": "Hide left panel",

@@ -61,8 +61,14 @@ export function TableManagementPanel() {
       logger.info("store", `Deleted table: ${tableName}`);
       await loadTables();
       if (useInvestigationStore.getState().activeTable === tableName) {
-        setInvestigationContext({ table: null });
-        setCurrentData(null);
+        // Auto-select next valid table or null
+        const remaining = tables.filter((t) => t.name !== tableName);
+        if (remaining.length > 0) {
+          setInvestigationContext({ table: remaining[0].name });
+        } else {
+          setInvestigationContext({ table: null });
+          setCurrentData(null);
+        }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Delete failed";
