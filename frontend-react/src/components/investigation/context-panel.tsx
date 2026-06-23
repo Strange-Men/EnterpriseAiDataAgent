@@ -109,7 +109,7 @@ export function ContextPanel({ onTableSelect }: ContextPanelProps) {
                   ) : (
                     <div className="space-y-0.5">
                       {schemaColumns.map((col) => (
-                        <div key={col.name} className="flex items-center justify-between text-[10px] px-1 py-0.5 rounded hover:bg-[var(--bg-tertiary)]">
+                        <div key={col.name} className="flex items-center justify-between text-xs px-1 py-0.5 rounded hover:bg-[var(--bg-tertiary)]">
                           <span className="text-[var(--text-secondary)] truncate">{col.name}</span>
                           <span className="text-[var(--text-muted)] font-mono ml-2 shrink-0">{col.dtype}</span>
                         </div>

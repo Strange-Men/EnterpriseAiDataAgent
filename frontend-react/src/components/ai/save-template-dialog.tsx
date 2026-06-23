@@ -54,7 +54,7 @@ export function SaveTemplateDialog({
 
         <div className="space-y-3">
           <div>
-            <label className="block text-[10px] text-[var(--text-muted)] mb-1">
+            <label className="block text-xs text-[var(--text-muted)] mb-1">
               {t("template.name")}
             </label>
             <input
@@ -67,7 +67,7 @@ export function SaveTemplateDialog({
           </div>
 
           <div>
-            <label className="block text-[10px] text-[var(--text-muted)] mb-1">
+            <label className="block text-xs text-[var(--text-muted)] mb-1">
               {t("template.description")}
             </label>
             <input
@@ -79,14 +79,14 @@ export function SaveTemplateDialog({
           </div>
 
           <div>
-            <label className="block text-[10px] text-[var(--text-muted)] mb-1">
+            <label className="block text-xs text-[var(--text-muted)] mb-1">
               {t("template.steps-count", { count: steps.length })}
             </label>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {steps.map((step) => (
                 <div
                   key={step.order}
-                  className="px-2 py-1 text-[10px] bg-[var(--bg-primary)] border border-[var(--border-default)] rounded text-[var(--text-secondary)]"
+                  className="px-2 py-1 text-xs bg-[var(--bg-primary)] border border-[var(--border-default)] rounded text-[var(--text-secondary)]"
                 >
                   <span className="text-[var(--accent)] font-bold">{step.order}.</span>{" "}
                   {step.question}

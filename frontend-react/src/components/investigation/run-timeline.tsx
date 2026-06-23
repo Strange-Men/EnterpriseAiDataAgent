@@ -40,9 +40,9 @@ export function RunTimeline({ runs }: RunTimelineProps) {
               </div>
               <div className={`pb-4 flex-1 min-w-0 ${isLast ? "" : ""}`}>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-[var(--text-muted)]">{dateStr} {timeStr}</span>
+                  <span className="text-xs text-[var(--text-muted)]">{dateStr} {timeStr}</span>
                   {run.version > 1 && (
-                    <span className="text-[10px] px-1 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
+                    <span className="text-xs px-1 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                       v{run.version}
                     </span>
                   )}
@@ -51,12 +51,12 @@ export function RunTimeline({ runs }: RunTimelineProps) {
                   {renderSafeText(run.question || run.table || run.mode, "Analysis")}
                 </p>
                 {run.sections.length > 0 && (
-                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">
                     {run.sections.length} {t("inv.sections")}
                   </p>
                 )}
                 {run.error && (
-                  <p className="text-[10px] text-red-400 mt-0.5 truncate">{renderSafeText(run.error, "")}</p>
+                  <p className="text-xs text-red-400 mt-0.5 truncate">{renderSafeText(run.error, "")}</p>
                 )}
               </div>
             </div>

@@ -6,6 +6,7 @@ import { useThemeStore } from "@/hooks/use-theme";
 import { useDataStore } from "@/stores/data-store";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Languages, Sun, Moon, Monitor } from "lucide-react";
 
 export default function SettingsPage() {
@@ -19,7 +20,10 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
-      <h2 className="text-lg font-bold text-[var(--text-primary)]">{t("nav.settings")}</h2>
+      <PageHeader
+        title={t("nav.settings")}
+        description={t("settings.description")}
+      />
 
       <div className="space-y-4">
         {/* Language */}

@@ -109,6 +109,7 @@ const zh = {
     "history.title": "查询历史",
     "history.empty": "暂无历史记录。",
     "history.empty-hint": "执行一次自然语言查询或专家 SQL 后会显示在这里。",
+    "history.description": "查看和管理您的查询历史",
     "history.search": "搜索问题或 SQL...",
     "history.filter-all": "全部",
     "history.filter-success": "成功",
@@ -470,6 +471,7 @@ const zh = {
     "settings.dark": "深色",
     "settings.light": "浅色",
     "settings.system": "跟随系统",
+    "settings.description": "管理您的应用偏好和设置",
 
     // v0.8.1+ Investigation Workspace
     "inv.title": "分析工作台",

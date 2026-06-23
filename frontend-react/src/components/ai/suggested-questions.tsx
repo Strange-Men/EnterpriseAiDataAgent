@@ -24,7 +24,7 @@ export function SuggestedQuestions({
             className="w-full text-left px-3 py-2 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] transition-colors group"
           >
             <p className="text-xs text-[var(--text-primary)] group-hover:text-[var(--accent)]">{q.question}</p>
-            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{q.reason}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">{q.reason}</p>
           </button>
         ))}
       </div>

@@ -82,11 +82,11 @@ function ScheduleItem({ task, onToggle, onRemove }: {
       />
       <div className="flex-1 min-w-0">
         <p className="text-xs text-[var(--text-primary)] truncate">{task.name}</p>
-        <p className="text-[10px] text-[var(--text-muted)] truncate">{task.question}</p>
+        <p className="text-xs text-[var(--text-muted)] truncate">{task.question}</p>
         <div className="flex gap-2 mt-0.5">
-          <span className="text-[9px] text-[var(--text-muted)]">{task.interval}</span>
+          <span className="text-xs text-[var(--text-muted)]">{task.interval}</span>
           {task.lastRunAt && (
-            <span className="text-[9px] text-[var(--text-muted)]">
+            <span className="text-xs text-[var(--text-muted)]">
               {t("schedule.last-run")}: {formatLocalDate(new Date(task.lastRunAt))}
             </span>
           )}
@@ -96,7 +96,7 @@ function ScheduleItem({ task, onToggle, onRemove }: {
         onClick={onRemove}
         type="button"
         aria-label="Remove scheduled task"
-        className="text-[10px] text-[var(--text-muted)] hover:text-red-400 transition-colors shrink-0"
+        className="text-xs text-[var(--text-muted)] hover:text-red-400 transition-colors shrink-0"
       >
         ✕
       </button>

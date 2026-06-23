@@ -23,7 +23,7 @@ export function QualityGates({ gates, compact = false }: QualityGatesProps) {
           <div
             key={gate.name}
             className={[
-              "inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-[10px]",
+              "inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs",
               isPassed
                 ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
                 : "border-amber-500/25 bg-amber-500/10 text-amber-300",

@@ -99,7 +99,7 @@ export function ApplyTemplateDialog({
 
         {/* Step 1: Select template */}
         <div>
-          <label className="block text-[10px] text-[var(--text-muted)] mb-1">
+          <label className="block text-xs text-[var(--text-muted)] mb-1">
             {t("template.select")}
           </label>
           {templates.length === 0 ? (
@@ -123,7 +123,7 @@ export function ApplyTemplateDialog({
                   <div className="flex items-center justify-between">
                     <span className="truncate">{tpl.name}</span>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[10px] text-[var(--text-muted)]">
+                      <span className="text-xs text-[var(--text-muted)]">
                         {t("template.steps-count", { count: tpl.steps.length })}
                       </span>
                       <button
@@ -132,7 +132,7 @@ export function ApplyTemplateDialog({
                           deleteTemplate(tpl.id);
                           if (selectedTemplate?.id === tpl.id) setSelectedTemplate(null);
                         }}
-                        className="text-[10px] text-[var(--text-muted)] hover:text-red-400"
+                        className="text-xs text-[var(--text-muted)] hover:text-red-400"
                       >
                         ×
                       </button>
@@ -147,7 +147,7 @@ export function ApplyTemplateDialog({
         {/* Step 2: Select target table */}
         {selectedTemplate && (
           <div>
-            <label className="block text-[10px] text-[var(--text-muted)] mb-1">
+            <label className="block text-xs text-[var(--text-muted)] mb-1">
               {t("template.select-table")}
             </label>
             <select
@@ -189,7 +189,7 @@ export function ApplyTemplateDialog({
         {/* Step 3: Show adapted questions */}
         {adaptedQuestions.length > 0 && (
           <div>
-            <label className="block text-[10px] text-[var(--text-muted)] mb-1">
+            <label className="block text-xs text-[var(--text-muted)] mb-1">
               {t("template.adapted")}
             </label>
             <div className="space-y-1 max-h-40 overflow-y-auto">
@@ -205,7 +205,7 @@ export function ApplyTemplateDialog({
                   <span className="font-bold text-[var(--accent)]">{q.order}.</span>{" "}
                   {q.question}
                   {q.status === "unadaptable" && q.reason && (
-                    <span className="text-[10px] ml-2 opacity-70">({q.reason})</span>
+                    <span className="text-xs ml-2 opacity-70">({q.reason})</span>
                   )}
                 </div>
               ))}

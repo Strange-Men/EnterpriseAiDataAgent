@@ -52,7 +52,7 @@ export function DrillDownChain({ currentRunId }: DrillDownChainProps) {
           <button
             onClick={() => setViewMode("timeline")}
             className={cn(
-              "px-1.5 py-0.5 text-[10px] rounded transition-colors",
+              "px-1.5 py-0.5 text-xs rounded transition-colors",
               viewMode === "timeline" ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             )}
           >
@@ -61,7 +61,7 @@ export function DrillDownChain({ currentRunId }: DrillDownChainProps) {
           <button
             onClick={() => setViewMode("breadcrumb")}
             className={cn(
-              "px-1.5 py-0.5 text-[10px] rounded transition-colors",
+              "px-1.5 py-0.5 text-xs rounded transition-colors",
               viewMode === "breadcrumb" ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             )}
           >
@@ -81,7 +81,7 @@ export function DrillDownChain({ currentRunId }: DrillDownChainProps) {
                 <button
                   onClick={() => handleNavigate(run.id)}
                   className={cn(
-                    "px-2 py-0.5 text-[10px] rounded-md transition-colors",
+                    "px-2 py-0.5 text-xs rounded-md transition-colors",
                     isCurrent
                       ? "bg-[var(--accent)]/10 text-[var(--accent)] font-medium"
                       : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
@@ -129,12 +129,12 @@ export function DrillDownChain({ currentRunId }: DrillDownChainProps) {
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={cn(
-                        "text-[9px] px-1 rounded",
+                        "text-xs px-1 rounded",
                         run.status === "success" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
                       )}>
                         {run.status}
                       </span>
-                      <span className="text-[9px] text-[var(--text-muted)]">
+                      <span className="text-xs text-[var(--text-muted)]">
                         {formatLocalDate(new Date(run.timestamp))}
                       </span>
                     </div>

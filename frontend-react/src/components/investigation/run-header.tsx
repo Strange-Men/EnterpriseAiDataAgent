@@ -88,10 +88,10 @@ export function RunHeader({ run }: RunHeaderProps) {
       <div className="flex items-start justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)] uppercase tracking-wider">
+            <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)] uppercase tracking-wider">
               {t(MODE_LABELS[run.mode] || run.mode)}
             </span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+            <span className={`text-xs px-1.5 py-0.5 rounded ${
               run.status === "success" ? "bg-green-500/10 text-green-400" :
               run.status === "error" ? "bg-red-500/10 text-red-400" :
               "bg-yellow-500/10 text-yellow-400"
@@ -99,18 +99,18 @@ export function RunHeader({ run }: RunHeaderProps) {
               {run.status}
             </span>
             {run.version > 1 && (
-              <span className="text-[10px] text-[var(--text-muted)]">v{run.version}</span>
+              <span className="text-xs text-[var(--text-muted)]">v{run.version}</span>
             )}
           </div>
           <h2 className="text-lg font-bold text-[var(--text-primary)] mt-1 truncate">
             {renderSafeText(run.question || run.table || run.mode, "Analysis")}
           </h2>
           {run.table && (
-            <span className="text-[10px] text-[var(--text-muted)] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded mt-1 inline-block">
+            <span className="text-xs text-[var(--text-muted)] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded mt-1 inline-block">
               {run.table}
             </span>
           )}
-          <p className="text-[10px] text-[var(--text-muted)] mt-1">
+          <p className="text-xs text-[var(--text-muted)] mt-1">
             {formatLocalDateTime(run.timestamp)}
           </p>
         </div>

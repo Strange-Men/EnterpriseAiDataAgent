@@ -36,8 +36,8 @@ function TimelineNode({ run, isLast, onExpand }: {
           className="w-full text-left group"
         >
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[var(--text-muted)]">{dateStr} {timeStr}</span>
-            <span className="text-[10px] px-1 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
+            <span className="text-xs text-[var(--text-muted)]">{dateStr} {timeStr}</span>
+            <span className="text-xs px-1 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
               v{run.version}
             </span>
           </div>
@@ -45,7 +45,7 @@ function TimelineNode({ run, isLast, onExpand }: {
             {run.question || run.table || run.mode}
           </p>
           {run.sections.length > 0 && (
-            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
               {run.sections.length} sections
             </p>
           )}
@@ -55,11 +55,11 @@ function TimelineNode({ run, isLast, onExpand }: {
           <div className="mt-2 space-y-1 pl-1 border-l border-[var(--border-default)]">
             {run.sections.map((sec, i) => (
               <div key={i} className="px-2 py-1 rounded bg-[var(--bg-primary)]">
-                <p className="text-[10px] text-[var(--text-muted)]">{sec.title}</p>
+                <p className="text-xs text-[var(--text-muted)]">{sec.title}</p>
               </div>
             ))}
             {run.trace && (
-              <div className="flex gap-2 px-2 py-1 text-[10px] text-[var(--text-muted)]">
+              <div className="flex gap-2 px-2 py-1 text-xs text-[var(--text-muted)]">
                 <span>{run.trace.total_llm_calls} calls</span>
                 <span>{run.trace.total_output_tokens} tokens</span>
               </div>
@@ -80,7 +80,7 @@ export function TimelineEvolution({ runId, onClose }: { runId: string; onClose: 
     return (
       <div className="p-3 text-center">
         <p className="text-xs text-[var(--text-muted)]">{t("timeline.no-evolution")}</p>
-        <button onClick={onClose} className="mt-2 text-[10px] text-[var(--accent)] hover:underline">
+        <button onClick={onClose} className="mt-2 text-xs text-[var(--accent)] hover:underline">
           {t("timeline.close")}
         </button>
       </div>

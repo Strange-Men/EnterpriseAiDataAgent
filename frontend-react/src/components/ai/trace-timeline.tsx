@@ -66,7 +66,7 @@ export function TraceTimeline({ trace }: TraceTimelineProps) {
         <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
           {t("analysis.trace")}
         </h3>
-        <span className="text-[10px] text-[var(--text-muted)]">
+        <span className="text-xs text-[var(--text-muted)]">
           {trace.total_llm_calls} calls · {totalTokens} tokens · {(totalLatency / 1000).toFixed(1)}s
         </span>
       </button>
@@ -91,10 +91,10 @@ export function TraceTimeline({ trace }: TraceTimelineProps) {
                       phaseExpanded && "rotate-90"
                     )}
                   />
-                  <span className="text-[10px] font-semibold text-[var(--text-primary)] uppercase tracking-wider">
+                  <span className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider">
                     {phase}
                   </span>
-                  <span className="text-[10px] text-[var(--text-muted)] ml-auto">
+                  <span className="text-xs text-[var(--text-muted)] ml-auto">
                     {events.length} calls · {phaseTokens} tok · {(phaseLatency / 1000).toFixed(2)}s
                   </span>
                 </button>
@@ -102,7 +102,7 @@ export function TraceTimeline({ trace }: TraceTimelineProps) {
                 {phaseExpanded && (
                   <div className="px-2 py-1.5 space-y-1">
                     {events.map((event, i) => (
-                      <div key={i} className="flex items-center gap-2 text-[10px] group/item">
+                      <div key={i} className="flex items-center gap-2 text-xs group/item">
                         <div
                           className={cn(
                             "w-1.5 h-1.5 rounded-full shrink-0",

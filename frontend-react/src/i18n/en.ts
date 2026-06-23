@@ -109,6 +109,7 @@ const en = {
     "history.title": "Query History",
     "history.empty": "No history yet.",
     "history.empty-hint": "Run a natural language query or expert SQL to see it here.",
+    "history.description": "View and manage your query history",
     "history.search": "Search questions or SQL...",
     "history.filter-all": "All",
     "history.filter-success": "Success",
@@ -470,6 +471,7 @@ const en = {
     "settings.dark": "Dark",
     "settings.light": "Light",
     "settings.system": "System",
+    "settings.description": "Manage your application preferences and settings",
 
     // v0.8.1+ Investigation Workspace
     "inv.title": "Analysis Workspace",

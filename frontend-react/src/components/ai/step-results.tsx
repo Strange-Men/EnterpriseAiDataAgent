@@ -71,19 +71,19 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
                 ) : (
                   <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
                 )}
-                <span className="text-[10px] font-bold text-[var(--text-muted)]">
+                <span className="text-xs font-bold text-[var(--text-muted)]">
                   #{step.step}
                 </span>
                 <span className="text-xs text-[var(--text-secondary)] flex-1 truncate">
                   {renderSafeText(step.purpose, `Step ${step.step}`)}
                 </span>
                 {stepIsSkipped && (
-                  <span className="text-[10px] text-amber-400 shrink-0">
+                  <span className="text-xs text-amber-400 shrink-0">
                     {t("ai.step-skipped", "已跳过")}
                   </span>
                 )}
                 {step.row_count != null && isSuccess && (
-                  <span className="text-[10px] text-[var(--text-muted)] shrink-0">
+                  <span className="text-xs text-[var(--text-muted)] shrink-0">
                     {step.row_count} {t("sql.rows")}
                   </span>
                 )}
@@ -104,10 +104,10 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
                       <span>{t("ai.step-skipped-reason", "当前数据表缺少用于该分析的字段，已跳过此步骤。")}</span>
                       {step.error && (
                         <details className="mt-1">
-                          <summary className="text-[10px] text-amber-400/60 cursor-pointer hover:text-amber-400">
+                          <summary className="text-xs text-amber-400/60 cursor-pointer hover:text-amber-400">
                             {t("ai.error-technical-detail", "技术详情")}
                           </summary>
-                          <p className="text-[10px] text-amber-400/60 mt-0.5 font-mono">{renderSafeText(step.error, "")}</p>
+                          <p className="text-xs text-amber-400/60 mt-0.5 font-mono">{renderSafeText(step.error, "")}</p>
                         </details>
                       )}
                     </div>
@@ -119,7 +119,7 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
                   )}
                   {isSuccess && step.data && step.data.length > 0 && Array.isArray(step.columns) && step.columns.length > 0 && (
                     <div className="overflow-x-auto max-h-40">
-                      <table className="min-w-full text-[10px]">
+                      <table className="min-w-full text-xs">
                         <thead>
                           <tr>
                             {step.columns.map((c) => (
@@ -142,7 +142,7 @@ export function StepResults({ steps, isStreaming, activeStep }: StepResultsProps
                         </tbody>
                       </table>
                       {step.data.length > 5 && (
-                        <p className="text-[10px] text-[var(--text-muted)] px-2 py-1">
+                        <p className="text-xs text-[var(--text-muted)] px-2 py-1">
                           +{step.data.length - 5} more rows
                         </p>
                       )}

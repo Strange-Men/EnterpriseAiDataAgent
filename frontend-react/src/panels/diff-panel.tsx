@@ -49,19 +49,19 @@ function SectionDiffRow({ title, change, old_content, new_content }: {
         onClick={() => change !== "unchanged" && setExpanded(!expanded)}
         className={`w-full flex items-center gap-2 px-2 py-1.5 text-left ${change === "unchanged" ? "cursor-default" : "cursor-pointer hover:bg-[var(--bg-secondary)]"}`}
       >
-        <span className={`text-[9px] font-bold px-1 rounded ${badge.cls}`}>{badge.text}</span>
+        <span className={`text-xs font-bold px-1 rounded ${badge.cls}`}>{badge.text}</span>
         <span className="text-xs text-[var(--text-primary)] truncate flex-1">{title}</span>
       </button>
       {expanded && change !== "unchanged" && (
         <div className="px-3 pb-2 space-y-1">
           {old_content !== null && (
             <div className="px-2 py-1 rounded bg-red-500/5 border border-red-500/20">
-              <p className="text-[10px] text-red-300 font-mono whitespace-pre-wrap break-words">{old_content}</p>
+              <p className="text-xs text-red-300 font-mono whitespace-pre-wrap break-words">{old_content}</p>
             </div>
           )}
           {new_content !== null && (
             <div className="px-2 py-1 rounded bg-green-500/5 border border-green-500/20">
-              <p className="text-[10px] text-green-300 font-mono whitespace-pre-wrap break-words">{new_content}</p>
+              <p className="text-xs text-green-300 font-mono whitespace-pre-wrap break-words">{new_content}</p>
             </div>
           )}
         </div>

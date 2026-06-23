@@ -77,7 +77,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
       <span className="text-xs text-[var(--text-primary)] truncate flex-1">
         {run.question || run.table || run.mode}
       </span>
-      <span className="text-[10px] text-[var(--text-muted)]">
+      <span className="text-xs text-[var(--text-muted)]">
         {run.mode}
       </span>
     </label>
@@ -102,7 +102,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
 
         {/* Title */}
         <div>
-          <label className="block text-[10px] text-[var(--text-muted)] mb-1">
+          <label className="block text-xs text-[var(--text-muted)] mb-1">
             {t("report.title")}
           </label>
           <input
@@ -137,13 +137,13 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
 
         {/* Run selection */}
         <div>
-          <label className="block text-[10px] text-[var(--text-muted)] mb-1">
+          <label className="block text-xs text-[var(--text-muted)] mb-1">
             {t("report.select-runs")}
           </label>
           <div className="border border-[var(--border-default)] rounded-md max-h-40 overflow-y-auto">
             {savedRuns.length > 0 && (
               <div className="p-1.5">
-                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider px-2 mb-1">
+                <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider px-2 mb-1">
                   {t("analysis.saved-runs")}
                 </p>
                 {savedRuns.map((run) => (
@@ -153,7 +153,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
             )}
             {completedRuns.length > 0 && (
               <div className="p-1.5 border-t border-[var(--border-default)]">
-                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider px-2 mb-1">
+                <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider px-2 mb-1">
                   {t("analysis.recent-runs")}
                 </p>
                 {completedRuns.map((run) => (
@@ -177,7 +177,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
         {/* Preview */}
         {markdown && (
           <div>
-            <label className="block text-[10px] text-[var(--text-muted)] mb-1">
+            <label className="block text-xs text-[var(--text-muted)] mb-1">
               {t("report.preview")}
             </label>
             <div className="border border-[var(--border-default)] rounded-md p-3 max-h-60 overflow-y-auto prose prose-sm prose-invert max-w-none">

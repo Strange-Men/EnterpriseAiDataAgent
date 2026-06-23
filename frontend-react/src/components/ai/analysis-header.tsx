@@ -77,7 +77,7 @@ export function AnalysisHeader({
           {t(MODE_LABELS[mode] || mode)}
         </span>
         {tableName && (
-          <span className="text-[10px] text-[var(--text-muted)] font-mono bg-[var(--bg-primary)] px-1.5 py-0.5 rounded">
+          <span className="text-xs text-[var(--text-muted)] font-mono bg-[var(--bg-primary)] px-1.5 py-0.5 rounded">
             {tableName}
           </span>
         )}
@@ -110,7 +110,7 @@ export function AnalysisHeader({
             {rawData && (
               <button
                 onClick={handleExportJson}
-                className="px-1.5 py-0.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] border border-[var(--border-default)] rounded transition-colors"
+                className="px-1.5 py-0.5 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] border border-[var(--border-default)] rounded transition-colors"
                 title={t("ai.export-json")}
               >
                 JSON

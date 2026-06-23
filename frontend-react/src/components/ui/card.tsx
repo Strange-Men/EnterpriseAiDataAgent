@@ -25,7 +25,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-lg",
+        "rounded-lg transition-colors",
         cardVariants[variant],
         className
       )}
@@ -62,7 +62,7 @@ export function CardTitle({
   return (
     <h3
       className={cn(
-        "text-xs font-semibold text-[var(--accent)] uppercase tracking-wider",
+        "text-sm font-semibold text-[var(--accent)] uppercase tracking-wider",
         className
       )}
       {...props}
@@ -79,7 +79,7 @@ export function CardDescription({
 }: ComponentProps<"p">) {
   return (
     <p
-      className={cn("text-2xs text-[var(--text-muted)] mt-0.5", className)}
+      className={cn("text-xs text-[var(--text-muted)] mt-0.5", className)}
       {...props}
     >
       {children}
