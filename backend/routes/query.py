@@ -11,6 +11,7 @@ from backend.services.data_service import get_readonly_executor
 from backend.services.query_history import query_history
 from backend.services.export_service import export_as_csv, export_as_json, export_as_excel
 from backend.utils.json_safe import normalize_for_response
+from database.query_executor import QueryError
 
 logger = logging.getLogger("enterprise_ai.query")
 
@@ -139,6 +140,10 @@ async def execute_query(req: QueryRequest):
             "status": "success",
             "error": None,
         })
+    except QueryError as e:
+        runtime_ms = int((time.time() - start) * 1000)
+        query_history.add(sql, "error", runtime_ms, 0, str(e))
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         runtime_ms = int((time.time() - start) * 1000)
         query_history.add(sql, "error", runtime_ms, 0, str(e))
@@ -159,7 +164,10 @@ async def explain_query(req: ExplainRequest):
     if not sql:
         raise HTTPException(status_code=400, detail="Empty SQL query")
 
-    result = get_readonly_executor().explain(sql)
+    try:
+        result = get_readonly_executor().explain(sql)
+    except QueryError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if result["status"] == "error":
         return normalize_for_response({"sql": sql, "plan": [], "status": "error", "error": result["error"]})
     return normalize_for_response({"sql": sql, "plan": result["plan"], "status": "success", "error": None})
@@ -182,7 +190,10 @@ async def export_query(req: ExportRequest):
         raise HTTPException(status_code=400, detail="Empty SQL query")
 
     start = time.time()
-    result = get_readonly_executor().execute(sql)
+    try:
+        result = get_readonly_executor().execute(sql)
+    except QueryError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     runtime_ms = int((time.time() - start) * 1000)
 
     if result["status"] == "error":
