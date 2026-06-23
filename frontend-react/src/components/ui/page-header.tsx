@@ -17,13 +17,13 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <div className={cn("flex items-start justify-between mb-6", className)}>
+    <div className={cn("flex items-start justify-between mb-4", className)}>
       <div>
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">
+        <h1 className="text-lg font-semibold text-[var(--text-secondary)]">
           {title}
         </h1>
         {description && (
-          <p className="text-sm text-[var(--text-muted)] mt-1">
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
             {description}
           </p>
         )}

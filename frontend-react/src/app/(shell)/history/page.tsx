@@ -9,13 +9,13 @@ export default function HistoryPage() {
 
   return (
     <div className="h-full overflow-hidden flex flex-col">
-      <div className="px-6 pt-6">
+      <div className="px-6 pt-5">
         <PageHeader
           title={t("nav.history")}
           description={t("history.description")}
         />
       </div>
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden px-6 pb-4">
         <SqlHistoryPanel />
       </div>
     </div>

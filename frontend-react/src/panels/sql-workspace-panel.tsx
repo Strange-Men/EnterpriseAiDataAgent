@@ -341,7 +341,7 @@ export function SqlWorkspacePanel() {
       />
 
       {/* -- Toolbar ---------------------------------------- */}
-      <div className="flex items-center flex-wrap gap-2 mb-2">
+      <div className="flex items-center flex-wrap gap-2 mb-3">
         <button
           onClick={handleExecute}
           disabled={isExecuting || !currentSql.trim()}
@@ -589,7 +589,7 @@ export function SqlWorkspacePanel() {
       )}
 
       {/* ── Monaco Editor ────────────────────────────────── */}
-      <div className="flex-1 min-h-[200px] mb-2">
+      <div className="flex-1 min-h-[280px] mb-3">
         <MonacoSqlEditor
           value={currentSql}
           onChange={(val) => {

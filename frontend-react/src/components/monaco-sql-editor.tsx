@@ -279,6 +279,7 @@ export function MonacoSqlEditor({
           fontSize: 13,
           fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace",
           lineNumbers: "on",
+          lineHeight: 20,
           roundedSelection: true,
           scrollBeyondLastLine: false,
           wordWrap: "on",
@@ -288,7 +289,7 @@ export function MonacoSqlEditor({
           quickSuggestions: true,
           contextmenu: true,
           readOnly,
-          padding: { top: 8, bottom: 8 },
+          padding: { top: 12, bottom: 12 },
           scrollbar: {
             verticalScrollbarSize: 8,
             horizontalScrollbarSize: 8,
