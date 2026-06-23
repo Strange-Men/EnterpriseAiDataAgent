@@ -55,12 +55,17 @@ def get_db() -> DatabaseManager:
 
 
 def get_executor() -> QueryExecutor:
-    """Lazy-init QueryExecutor singleton (thread-safe)."""
+    """Lazy-init QueryExecutor singleton (thread-safe).
+
+    Re-creates if the underlying DatabaseManager reference is stale
+    (e.g. after DatabaseManager.reset_instance() in tests).
+    """
     global _executor
-    if _executor is None:
+    current_db = get_db()
+    if _executor is None or _executor.db is not current_db:
         with _init_lock:
-            if _executor is None:
-                _executor = QueryExecutor(get_db())
+            if _executor is None or _executor.db is not current_db:
+                _executor = QueryExecutor(current_db)
     return _executor
 
 
@@ -68,12 +73,15 @@ def get_readonly_executor() -> QueryExecutor:
     """Lazy-init read-only QueryExecutor singleton (thread-safe).
 
     Used for user-facing query endpoints to prevent data modification.
+    Re-creates if the underlying DatabaseManager reference is stale
+    (e.g. after DatabaseManager.reset_instance() in tests).
     """
     global _readonly_executor
-    if _readonly_executor is None:
+    current_db = get_db()
+    if _readonly_executor is None or _readonly_executor.db is not current_db:
         with _init_lock:
-            if _readonly_executor is None:
-                _readonly_executor = QueryExecutor(get_db(), readonly=True)
+            if _readonly_executor is None or _readonly_executor.db is not current_db:
+                _readonly_executor = QueryExecutor(current_db, readonly=True)
     return _readonly_executor
 
 
