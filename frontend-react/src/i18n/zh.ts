@@ -435,20 +435,27 @@ const zh = {
     "nav.history": "历史",
     "nav.settings": "设置",
 
-    // Home Page (M4-1)
+    // Sidebar brand (M4-8.2)
+    "sidebar.brand-subtitle": "AI 数据分析",
+
+    // Header table status (M4-8.2)
+    "header.current-table": "当前数据表",
+    "header.no-table": "未选择数据表",
+    "header.rows-count": "{{count}} 行",
+
+    // Home Page (M4-1, M4-8.2)
     "home.hero-title": "AI 数据分析工作台",
-    "home.hero-subtitle": "上传 CSV/Excel 数据，用 SQL 和 AI 快速完成数据探索、质量检查与分析报告。",
+    "home.hero-subtitle": "上传 CSV/Excel 数据，用自然语言提问，AI 自动生成 SQL、执行查询，并导出可阅读的分析报告。",
     "home.upload-data": "上传数据",
-    "home.upload-hint": "CSV 或 Excel 文件",
-    "home.open-sql": "打开 SQL 工作台",
-    "home.open-sql-hint": "编写和执行查询",
-    "home.start-ai": "分析工作台",
-    "home.start-ai-hint": "用自然语言提问，AI 生成 SQL 并分析",
-    "home.demo-flow-title": "如何开始",
-    "home.step-upload": "上传或使用示例数据",
-    "home.step-preview": "预览表结构",
-    "home.step-query": "执行 SQL 查询",
-    "home.step-insights": "生成 AI 洞察 / 报告",
+    "home.upload-hint": "导入 CSV/Excel，预览字段和数据质量",
+    "home.start-analysis": "开始分析",
+    "home.start-analysis-hint": "自然语言提问或专家 SQL",
+    "home.card-upload-title": "上传数据",
+    "home.card-upload-desc": "导入 CSV/Excel，预览字段和数据质量。",
+    "home.card-nl-title": "自然语言分析",
+    "home.card-nl-desc": "直接提问，AI 生成 SQL 并输出分析结果。",
+    "home.card-sql-title": "专家 SQL",
+    "home.card-sql-desc": "查看、编辑、执行 SQL，并导出 CSV。",
     "home.deploy-notice": "线上后端部署在 Render 免费实例，首次访问可能需要等待服务唤醒。",
 
     // Dashboard (legacy, kept for compatibility)

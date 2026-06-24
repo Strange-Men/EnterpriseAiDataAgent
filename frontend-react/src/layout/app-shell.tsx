@@ -8,8 +8,10 @@ import { useLanguage } from "@/hooks/use-language";
 import { useThemeStore } from "@/hooks/use-theme";
 import { Button } from "@/components/ui/button";
 import { useSystemStatus } from "@/hooks/use-system-status";
+import { useInvestigationStore } from "@/stores/investigation-store";
+import { useDataStore } from "@/stores/data-store";
 import {
-  Sun, Moon, Languages, Menu, X,
+  Sun, Moon, Languages, Menu, X, Database,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -30,6 +32,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // Initialize system status + tables on mount (single source of polling)
   useSystemStatus();
+
+  // Current table status for header
+  const activeTable = useInvestigationStore((s) => s.activeTable);
+  const tables = useDataStore((s) => s.tables);
+  const currentTable = tables.find((tbl) => tbl.name === activeTable);
 
   const basePath = "/" + (pathname.split("/")[1] || "");
   const pageTitleKey = PAGE_TITLES[basePath] || PAGE_TITLES["/"];
@@ -74,6 +81,21 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-1">
+            {/* Current table status */}
+            <div className="hidden sm:flex items-center gap-1.5 mr-2 px-2.5 py-1 rounded-md bg-[var(--bg-tertiary)] text-xs">
+              <Database className="w-3 h-3 text-[var(--text-muted)]" />
+              {activeTable ? (
+                <span className="text-[var(--text-muted)]">
+                  <span className="text-[var(--text-primary)] font-medium">{activeTable}</span>
+                  {currentTable && (
+                    <span className="ml-1">({t("header.rows-count", { count: currentTable.rowCount })})</span>
+                  )}
+                </span>
+              ) : (
+                <span className="text-[var(--text-muted)]">{t("header.no-table")}</span>
+              )}
+            </div>
+
             {/* Theme toggle */}
             <Button
               variant="ghost"

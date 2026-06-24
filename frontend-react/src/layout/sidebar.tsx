@@ -35,7 +35,7 @@ export function Sidebar() {
           EAI
         </h1>
         <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
-          Data Agent
+          {t("sidebar.brand-subtitle")}
         </p>
       </div>
 

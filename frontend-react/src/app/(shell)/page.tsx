@@ -11,7 +11,7 @@ import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Upload, MonitorPlay, ArrowRight,
-  Database, Clock, Info,
+  Clock, Info, Terminal,
 } from "lucide-react";
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -61,64 +61,78 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Quick Start — 2 primary actions */}
+      {/* Quick Start — 2 primary CTAs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button
           onClick={() => router.push("/data")}
-          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="group flex items-center gap-4 p-5 rounded-lg border-2 border-[var(--accent)] bg-[var(--accent)]/5 hover:bg-[var(--accent)]/10 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
-          <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center group-hover:bg-[var(--accent)]/20 transition-colors">
-            <Upload className="w-6 h-6 text-[var(--accent)]" />
+          <div className="w-10 h-10 rounded-full bg-[var(--accent)]/15 flex items-center justify-center shrink-0">
+            <Upload className="w-5 h-5 text-[var(--accent)]" />
           </div>
-          <div className="text-center">
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.upload-data")}</p>
-            <p className="text-xs text-[var(--text-muted)] mt-1">{t("home.upload-hint")}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">{t("home.upload-hint")}</p>
           </div>
-          <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--accent)] transition-colors" />
+          <ArrowRight className="w-4 h-4 text-[var(--accent)] shrink-0 group-hover:translate-x-0.5 transition-transform" />
         </button>
 
         <button
           onClick={() => router.push("/analyze")}
-          className="group flex flex-col items-center gap-3 p-6 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="group flex items-center gap-4 p-5 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
-          <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center group-hover:bg-[var(--accent)]/20 transition-colors">
-            <MonitorPlay className="w-6 h-6 text-[var(--accent)]" />
+          <div className="w-10 h-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
+            <MonitorPlay className="w-5 h-5 text-[var(--accent)]" />
           </div>
-          <div className="text-center">
-            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.start-ai")}</p>
-            <p className="text-xs text-[var(--text-muted)] mt-1">{t("home.start-ai-hint")}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.start-analysis")}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">{t("home.start-analysis-hint")}</p>
           </div>
-          <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--accent)] transition-colors" />
+          <ArrowRight className="w-4 h-4 text-[var(--text-muted)] shrink-0 group-hover:text-[var(--accent)] group-hover:translate-x-0.5 transition-all" />
         </button>
       </div>
 
-      {/* Demo Flow — 4 steps */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("home.demo-flow-title")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            {[
-              { step: "1", label: t("home.step-upload"), icon: <Upload className="w-4 h-4" />, href: "/data" },
-              { step: "2", label: t("home.step-preview"), icon: <Database className="w-4 h-4" />, href: "/data" },
-              { step: "3", label: t("home.step-query"), icon: <MonitorPlay className="w-4 h-4" />, href: "/analyze" },
-              { step: "4", label: t("home.step-insights"), icon: <MonitorPlay className="w-4 h-4" />, href: "/analyze" },
-            ].map((item) => (
-              <button
-                key={item.step}
-                onClick={() => router.push(item.href)}
-                className="flex flex-col items-center text-center gap-2 p-3 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              >
-                <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-sm font-bold">
-                  {item.step}
-                </div>
-                <span className="text-xs text-[var(--text-primary)]">{item.label}</span>
-              </button>
-            ))}
+      {/* Three entry cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <button
+          onClick={() => router.push("/data")}
+          className="group flex flex-col gap-3 p-5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
+          <div className="w-9 h-9 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
+            <Upload className="w-4.5 h-4.5 text-[var(--accent)]" />
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.card-upload-title")}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1.5">{t("home.card-upload-desc")}</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push("/analyze")}
+          className="group flex flex-col gap-3 p-5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
+          <div className="w-9 h-9 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
+            <MonitorPlay className="w-4.5 h-4.5 text-[var(--accent)]" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.card-nl-title")}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1.5">{t("home.card-nl-desc")}</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push("/analyze")}
+          className="group flex flex-col gap-3 p-5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
+          <div className="w-9 h-9 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
+            <Terminal className="w-4.5 h-4.5 text-[var(--accent)]" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.card-sql-title")}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1.5">{t("home.card-sql-desc")}</p>
+          </div>
+        </button>
+      </div>
 
       {/* Deployment Notice */}
       <div className="flex items-start gap-3 p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)]">

@@ -435,20 +435,27 @@ const en = {
     "nav.history": "History",
     "nav.settings": "Settings",
 
-    // Home Page (M4-1)
-    "home.hero-title": "AI Data Analysis Workbench",
-    "home.hero-subtitle": "Upload CSV/Excel data, use SQL and AI to quickly complete data exploration, quality checks, and analysis reports.",
+    // Sidebar brand (M4-8.2)
+    "sidebar.brand-subtitle": "Data Analysis",
+
+    // Header table status (M4-8.2)
+    "header.current-table": "Current table",
+    "header.no-table": "No table selected",
+    "header.rows-count": "{{count}} rows",
+
+    // Home Page (M4-1, M4-8.2)
+    "home.hero-title": "AI Data Analysis Workspace",
+    "home.hero-subtitle": "Upload CSV/Excel data, ask questions in natural language, generate SQL, run analysis, and export readable reports.",
     "home.upload-data": "Upload Data",
-    "home.upload-hint": "CSV or Excel files",
-    "home.open-sql": "Open SQL Workspace",
-    "home.open-sql-hint": "Write and execute queries",
-    "home.start-ai": "Analysis Workspace",
-    "home.start-ai-hint": "Ask in natural language, AI generates SQL and analyzes",
-    "home.demo-flow-title": "How to Get Started",
-    "home.step-upload": "Upload or use sample data",
-    "home.step-preview": "Preview table structure",
-    "home.step-query": "Execute SQL queries",
-    "home.step-insights": "Generate AI insights / reports",
+    "home.upload-hint": "Import CSV/Excel, preview fields and data quality",
+    "home.start-analysis": "Start Analysis",
+    "home.start-analysis-hint": "Natural language or expert SQL",
+    "home.card-upload-title": "Upload Data",
+    "home.card-upload-desc": "Import CSV/Excel files, preview fields, and inspect data quality.",
+    "home.card-nl-title": "Natural Language Analysis",
+    "home.card-nl-desc": "Ask questions directly; AI generates SQL and returns analysis results.",
+    "home.card-sql-title": "Expert SQL",
+    "home.card-sql-desc": "Review, edit, and run SQL, then export CSV results.",
     "home.deploy-notice": "The backend is deployed on Render free tier. The first request may take a moment while the service wakes up.",
 
     // Dashboard (legacy, kept for compatibility)
