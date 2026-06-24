@@ -531,6 +531,8 @@ const zh = {
     // Analysis Workspace Tabs (M4-2.1)
     "workspace.tab.ai-query": "自然语言查询",
     "workspace.tab.expert-sql": "专家 SQL",
+    "workspace.tab.recommended": "推荐",
+    "workspace.tab.advanced": "高级",
     "workspace.ai-query-title": "AI 数据分析",
     "workspace.ai-query-subtitle": "用自然语言描述问题，AI 会生成 SQL、执行查询，并解释结果。",
     "workspace.generate-sql-analyze": "生成 SQL 并分析",
@@ -540,6 +542,13 @@ const zh = {
     "workspace.example.q3": "哪些订单可能存在异常？",
     "workspace.current-table": "当前数据表",
     "workspace.no-table": "请先在数据页面上传文件",
+    "workspace.table-strip.label": "当前数据表",
+    "workspace.table-strip.rows": "{{count}} 行",
+    "workspace.table-strip.cols": "{{count}} 列",
+    "workspace.table-strip.description": "自然语言查询和专家 SQL 都将基于这张表执行。",
+    "workspace.table-strip.no-table": "未选择数据表",
+    "workspace.table-strip.no-table-desc": "请先上传或选择数据表，然后开始分析。",
+    "workspace.table-strip.upload": "上传数据",
     "workspace.query-redirect": "SQL 查询已整合到分析工作台的「专家 SQL」模式。",
     "workspace.goto-workspace": "前往分析工作台",
 

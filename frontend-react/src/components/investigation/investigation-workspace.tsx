@@ -21,7 +21,7 @@ import { StreamingIndicator } from "./ai-streaming-indicator";
 import { SqlWorkspacePanel } from "@/panels/sql-workspace-panel";
 import { Textarea, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, Code, Square } from "lucide-react";
+import { Lightbulb, Code, Square, Upload, Database } from "lucide-react";
 import type { TraceSnapshot } from "@/stores/analysis-store";
 
 type WorkspaceTab = "ai-query" | "expert-sql";
@@ -306,6 +306,13 @@ export function InvestigationWorkspace() {
         >
           <Lightbulb className="w-3.5 h-3.5" />
           {t("workspace.tab.ai-query")}
+          <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full ${
+            activeTab === "ai-query"
+              ? "bg-[var(--accent)]/15 text-[var(--accent)]"
+              : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
+          }`}>
+            {t("workspace.tab.recommended")}
+          </span>
         </button>
         <button
           onClick={() => setActiveTab("expert-sql")}
@@ -317,17 +324,54 @@ export function InvestigationWorkspace() {
         >
           <Code className="w-3.5 h-3.5" />
           {t("workspace.tab.expert-sql")}
+          <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full ${
+            activeTab === "expert-sql"
+              ? "bg-[var(--accent)]/15 text-[var(--accent)]"
+              : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
+          }`}>
+            {t("workspace.tab.advanced")}
+          </span>
         </button>
+      </div>
 
-        {/* Table info badge */}
-        {currentTableName && (
-          <div className="ml-auto px-3 py-1 text-xs text-[var(--text-muted)]">
-            <span className="uppercase tracking-wider">{t("workspace.current-table")}:</span>{" "}
-            <span className="text-[var(--text-primary)] font-medium">{currentTableName}</span>
-            {currentTableMeta && (
-              <span className="ml-1">({currentTableMeta.rowCount} rows)</span>
-            )}
-          </div>
+      {/* Current Table Strip */}
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-[var(--border-default)] bg-[var(--bg-primary)] shrink-0">
+        {currentTableName ? (
+          <>
+            <Database className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs text-[var(--text-muted)] shrink-0">{t("workspace.table-strip.label")}</span>
+              <span className="text-xs font-medium text-[var(--text-primary)] truncate">{currentTableName}</span>
+              {currentTableMeta && (
+                <span className="text-xs text-[var(--text-muted)] shrink-0">
+                  · {t("workspace.table-strip.rows", { count: currentTableMeta.rowCount })}
+                  {currentTableMeta.columnCount > 0 && (
+                    <> · {t("workspace.table-strip.cols", { count: currentTableMeta.columnCount })}</>
+                  )}
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] text-[var(--text-muted)] ml-auto shrink-0 hidden sm:block">
+              {t("workspace.table-strip.description")}
+            </span>
+          </>
+        ) : (
+          <>
+            <Database className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-medium text-[var(--text-primary)]">{t("workspace.table-strip.no-table")}</span>
+              <span className="text-xs text-[var(--text-muted)] hidden sm:block">{t("workspace.table-strip.no-table-desc")}</span>
+            </div>
+            <Button
+              onClick={() => router.push("/data")}
+              variant="ghost"
+              size="sm"
+              leftIcon={<Upload className="w-3 h-3" />}
+              className="ml-auto shrink-0 text-[var(--accent)] hover:text-[var(--accent)]"
+            >
+              {t("workspace.table-strip.upload")}
+            </Button>
+          </>
         )}
       </div>
 
@@ -363,9 +407,15 @@ export function InvestigationWorkspace() {
                   ))}
                 </Select>
               ) : (
-                <span className="text-xs text-[var(--text-muted)] italic">
-                  {t("workspace.no-table")}
-                </span>
+                <Button
+                  onClick={() => router.push("/data")}
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<Upload className="w-3 h-3" />}
+                  className="text-[var(--accent)]"
+                >
+                  {t("workspace.table-strip.upload")}
+                </Button>
               )}
             </div>
 

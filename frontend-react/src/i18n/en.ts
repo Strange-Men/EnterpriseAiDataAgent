@@ -529,8 +529,10 @@ const en = {
     "inv.run-sql": "Run",
 
     // Analysis Workspace Tabs (M4-2.1)
-    "workspace.tab.ai-query": "AI Query",
+    "workspace.tab.ai-query": "Natural Language",
     "workspace.tab.expert-sql": "Expert SQL",
+    "workspace.tab.recommended": "Recommended",
+    "workspace.tab.advanced": "Advanced",
     "workspace.ai-query-title": "Natural Language Query",
     "workspace.ai-query-subtitle": "AI generates SQL from your question, executes it, and explains the results.",
     "workspace.generate-sql-analyze": "Generate SQL & Analyze",
@@ -540,6 +542,13 @@ const en = {
     "workspace.example.q3": "Which orders might be anomalous?",
     "workspace.current-table": "Current table",
     "workspace.no-table": "Upload a file on the Data page first",
+    "workspace.table-strip.label": "Current table",
+    "workspace.table-strip.rows": "{{count}} rows",
+    "workspace.table-strip.cols": "{{count}} cols",
+    "workspace.table-strip.description": "Natural language analysis and Expert SQL will run against this table.",
+    "workspace.table-strip.no-table": "No table selected",
+    "workspace.table-strip.no-table-desc": "Upload or select a table before running analysis.",
+    "workspace.table-strip.upload": "Upload Data",
     "workspace.query-redirect": "SQL Query has been merged into the Analysis Workspace \"Expert SQL\" mode.",
     "workspace.goto-workspace": "Go to Analysis Workspace",
 
