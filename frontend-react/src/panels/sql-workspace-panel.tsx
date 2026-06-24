@@ -572,16 +572,41 @@ export function SqlWorkspacePanel() {
         </div>
       )}
 
+      {/* ── Loading description ─────────────────────────── */}
+      {isExecuting && (
+        <div className="px-3 py-3 mb-2 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-md">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs text-[var(--text-primary)] font-medium">{t("sql.loading-description")}</p>
+          </div>
+          <p className="text-[11px] text-[var(--text-muted)] mt-1 ml-5">{t("sql.loading-hint")}</p>
+        </div>
+      )}
+
       {/* ── Error display ────────────────────────────────── */}
       {queryResult?.status === "error" && (
-        <div className="px-3 py-2 mb-2 bg-red-500/10 border border-red-500/30 rounded-md">
-          <p className="text-xs font-medium text-red-400 mb-1">{t("sql.error")}</p>
-          <p className="text-xs text-red-300 font-mono whitespace-pre-wrap">{queryResult.error}</p>
+        <div className="px-3 py-3 mb-2 bg-red-500/5 border border-red-500/20 rounded-md">
+          <p className="text-xs font-medium text-red-400 mb-1">{t("sql.error-friendly")}</p>
+          <p className="text-xs text-[var(--text-muted)]">{t("sql.error-guidance")}</p>
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={handleExecute}
+              className="px-3 py-1 text-xs bg-red-500/10 text-red-300 border border-red-500/20 rounded hover:bg-red-500/20 transition-colors"
+            >
+              {t("sql.retry")}
+            </button>
+          </div>
+          <details className="mt-2">
+            <summary className="text-[10px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)]">
+              {t("sql.error-technical-detail")}
+            </summary>
+            <p className="text-[10px] text-red-300 mt-1 font-mono whitespace-pre-wrap">{queryResult.error}</p>
+          </details>
         </div>
       )}
 
       {/* ── Result table ─────────────────────────────────── */}
-      {queryResult?.status === "success" && queryResult.columns.length > 0 && (
+      {queryResult?.status === "success" && queryResult.columns.length > 0 && queryResult.rowCount > 0 && (
         <div ref={resultContainerRef} className="flex-1 min-h-[200px]" data-testid="query-result-table">
           <DataTable
             data={queryResult.data}
@@ -590,6 +615,19 @@ export function SqlWorkspacePanel() {
             hasMore={hasMore}
             isLoading={isLoadingMore}
           />
+          <div className="mt-2 px-1">
+            <p className="text-[11px] text-[var(--text-muted)]">
+              {t("sql.query-ok", { rows: queryResult.rowCount, ms: queryResult.runtimeMs })} · {t("sql.success-hint")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Empty result ─────────────────────────────────── */}
+      {queryResult?.status === "success" && queryResult.rowCount === 0 && !isExecuting && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <p className="text-sm text-[var(--text-primary)] font-medium">{t("sql.empty-result-title")}</p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">{t("sql.empty-result-hint")}</p>
         </div>
       )}
 

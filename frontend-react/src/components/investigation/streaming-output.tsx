@@ -61,7 +61,7 @@ export function StreamingOutput({
     if (err.includes("JSON") || err.includes("parse")) {
       return { message: t("ai.error-json-parse"), hint: null, showHint: false, isRetryable: false };
     }
-    return { message: err, hint: null, showHint: false, isRetryable: false };
+    return { message: t("inv.error-friendly"), hint: t("inv.error-guidance"), showHint: true, isRetryable: true };
   };
 
   const errorInfo = error ? getErrorMessage(error) : null;
@@ -70,22 +70,24 @@ export function StreamingOutput({
     <div className="space-y-4">
       {/* Error — with user-friendly fallback */}
       {error && errorInfo && (
-        <div className="border border-red-500/30 rounded-lg p-4 bg-red-500/5">
-          <p className="text-xs text-red-400">{errorInfo.message}</p>
+        <div className="border border-red-500/20 rounded-lg p-4 bg-red-500/5">
+          <p className="text-xs font-medium text-red-400 mb-1">{errorInfo.message}</p>
           {errorInfo.showHint && errorInfo.hint && (
-            <p className="text-[10px] text-[var(--text-muted)] mt-1">{errorInfo.hint}</p>
+            <p className="text-xs text-[var(--text-muted)]">{errorInfo.hint}</p>
           )}
-          {errorInfo.isRetryable && onRetry && (
-            <button
-              onClick={onRetry}
-              className="mt-2 px-3 py-1.5 text-xs bg-red-500/10 text-red-300 border border-red-500/30 rounded hover:bg-red-500/20 transition-colors"
-            >
-              {t("ai.retry")}
-            </button>
-          )}
+          <div className="flex items-center gap-2 mt-2">
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="px-3 py-1.5 text-xs bg-red-500/10 text-red-300 border border-red-500/20 rounded hover:bg-red-500/20 transition-colors"
+              >
+                {t("ai.retry")}
+              </button>
+            )}
+          </div>
           <details className="mt-2">
             <summary className="text-[10px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)]">
-              {t("ai.error-technical-detail")}
+              {t("inv.error-technical-detail")}
             </summary>
             <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono whitespace-pre-wrap">{error}</p>
           </details>

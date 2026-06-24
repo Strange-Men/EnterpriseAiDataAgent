@@ -256,8 +256,21 @@ function RunDetail({ run, onDelete, onExport, onRerun, onDuplicate, onUpdateNote
 
       {/* Error */}
       {run.error && (
-        <div className="px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-md">
-          <p className="text-xs text-red-300">{run.error}</p>
+        <div className="px-3 py-3 bg-red-500/5 border border-red-500/20 rounded-md">
+          <p className="text-xs font-medium text-red-400 mb-1">{t("analysis.error-friendly")}</p>
+          <p className="text-xs text-[var(--text-muted)]">{t("analysis.error-guidance")}</p>
+          <button
+            onClick={onRerun}
+            className="mt-2 px-3 py-1 text-xs bg-red-500/10 text-red-300 border border-red-500/20 rounded hover:bg-red-500/20 transition-colors"
+          >
+            {t("analysis.retry")}
+          </button>
+          <details className="mt-2">
+            <summary className="text-[10px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)]">
+              {t("analysis.error-technical-detail")}
+            </summary>
+            <p className="text-[10px] text-red-300 mt-1 font-mono whitespace-pre-wrap">{run.error}</p>
+          </details>
         </div>
       )}
     </div>

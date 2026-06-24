@@ -440,7 +440,20 @@ export function InvestigationWorkspace() {
 
             {/* Streaming indicator */}
             {isLoading && streamStage && (
-              <StreamingIndicator stage={streamStage} step={streamStep} />
+              <div className="space-y-1">
+                <StreamingIndicator stage={streamStage} step={streamStep} />
+                <p className="text-[11px] text-[var(--text-muted)] ml-1">
+                  {t("inv.loading-hint")}
+                </p>
+              </div>
+            )}
+
+            {/* Loading description (before stream starts) */}
+            {isLoading && !streamStage && (
+              <div className="flex items-center gap-2 px-1">
+                <span className="inline-block w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+                <p className="text-xs text-[var(--text-muted)]">{t("inv.loading-description")}</p>
+              </div>
             )}
 
             {/* Results */}
@@ -456,16 +469,20 @@ export function InvestigationWorkspace() {
 
             {/* Link to run detail */}
             {result && currentRunId && (
-              <div className="space-y-2 pt-2 border-t border-[var(--border-default)]">
+              <div className="space-y-3 pt-3 border-t border-[var(--border-default)]">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-400 text-sm">✓</span>
+                  <p className="text-xs text-[var(--text-primary)] font-medium">{t("inv.success-title")}</p>
+                </div>
                 <p className="text-xs text-[var(--text-muted)]">
-                  {t("workspace.result-hint")}
+                  {t("inv.success-hint")}
                 </p>
                 <div className="flex justify-end">
                   <button
                     onClick={() => router.push(`/analyze/${currentRunId}`)}
-                    className="px-3 py-1 text-xs text-[var(--accent)] hover:underline"
+                    className="px-4 py-1.5 text-xs bg-[var(--accent)] text-[var(--bg-primary)] rounded-md hover:bg-[var(--accent-hover)] transition-colors font-medium"
                   >
-                    {t("inv.run-detail")} →
+                    {t("inv.view-detail-btn")} →
                   </button>
                 </div>
               </div>
