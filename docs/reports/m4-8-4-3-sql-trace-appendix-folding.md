@@ -92,7 +92,29 @@
 - [ ] invalid run id 是否仍友好
 - [ ] 历史页打开详情是否没回归
 
-## 7. Next Step
+## 7. CI Fix
+
+首次 push 后 GitHub Actions frontend job 失败，报错：
+
+```text
+Type '{ phase: string; operation: string; status: "success"; latency_ms: number; input_tokens: number; output_tokens: number; }' is missing the following properties from type 'TraceEvent': timestamp, prompt_name
+```
+
+**根因**：测试文件 `analysis-detail-sql-trace-appendix.test.tsx` 中 `makeTrace()` 的两个 mock `TraceEvent` 对象缺少 `timestamp` 和 `prompt_name` 字段，与 `analysis-store.ts` 中 `TraceEvent` 接口定义不一致。
+
+**修复**：补齐两个 mock 对象的必填字段（`timestamp`、`prompt_name`），使用合理默认值。
+
+**未改动项**：
+- 未改业务逻辑
+- 未改 API
+- 未改 Store
+- 未改后端
+- 未改 Markdown export
+- 未改 Trace data source
+- 未改类型定义（未将字段改为 optional）
+- 未用 `as any` / `@ts-ignore`
+
+## 8. Next Step
 
 通过后进入 M4-8.4.4 Detail Page Empty / Error States。
 暂不进入 M5 Agent。

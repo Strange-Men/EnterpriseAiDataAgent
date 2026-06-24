@@ -75,16 +75,20 @@ function makeTrace(): AnalysisRun["trace"] {
     total_output_tokens: 50,
     events: [
       {
+        timestamp: "2026-06-24T10:00:01Z",
         phase: "planning",
         operation: "generate_plan",
+        prompt_name: "analysis_plan",
         status: "success",
         latency_ms: 500,
         input_tokens: 80,
         output_tokens: 30,
       },
       {
+        timestamp: "2026-06-24T10:00:02Z",
         phase: "execution",
         operation: "execute_sql",
+        prompt_name: "sql_execution",
         status: "success",
         latency_ms: 200,
         input_tokens: 20,
