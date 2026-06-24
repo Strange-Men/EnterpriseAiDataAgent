@@ -8,30 +8,6 @@ interface RunEvaluationProps {
   run: AnalysisRun;
 }
 
-function ConfidenceRing({ value }: { value: number }) {
-  const pct = Math.round(value * 100);
-  const radius = 28;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (pct / 100) * circumference;
-  const color = pct >= 70 ? "var(--success)" : pct >= 40 ? "var(--warning)" : "var(--error)";
-
-  return (
-    <div className="relative w-20 h-20">
-      <svg className="w-20 h-20 -rotate-90" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r={radius} fill="none" stroke="var(--bg-tertiary)" strokeWidth="5" />
-        <circle
-          cx="32" cy="32" r={radius} fill="none" stroke={color} strokeWidth="5"
-          strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset}
-          style={{ transition: "stroke-dashoffset 0.6s var(--ease-out)" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-sm font-bold text-[var(--text-primary)]">{pct}%</span>
-      </div>
-    </div>
-  );
-}
-
 function MetricBar({ label, value }: { label: string; value: string }) {
   const safeValue = renderSafeText(value, "unknown");
   const levelMap: Record<string, number> = { high: 90, medium: 60, low: 30, unknown: 15 };
@@ -40,14 +16,14 @@ function MetricBar({ label, value }: { label: string; value: string }) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="w-20 text-[10px] text-[var(--text-muted)]">{label}</span>
+      <span className="w-20 text-xs text-[var(--text-muted)]">{label}</span>
       <div className="flex-1 h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500 ease-out"
           style={{ width: `${pct}%`, backgroundColor: color }}
         />
       </div>
-      <span className="w-10 text-right text-[10px] capitalize text-[var(--text-secondary)]">{safeValue}</span>
+      <span className="w-12 text-right text-xs capitalize text-[var(--text-secondary)]">{safeValue}</span>
     </div>
   );
 }
@@ -64,21 +40,31 @@ export function RunEvaluation({ run }: RunEvaluationProps) {
   }
 
   const eval_ = run.evaluation;
+  const confidencePct = Math.round(eval_.confidence * 100);
+  const confidenceColor = confidencePct >= 70 ? "text-[var(--success)]" : confidencePct >= 40 ? "text-[var(--warning)]" : "text-[var(--error)]";
 
   return (
     <div>
-      <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-4">
+      <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-3">
         {t("inv.evaluation")}
       </h3>
 
-      {/* Confidence ring + metrics */}
-      <div className="flex items-start gap-4 mb-4">
-        <ConfidenceRing value={eval_.confidence} />
-        <div className="flex-1 space-y-2 pt-1">
-          <MetricBar label={t("ai.completeness")} value={eval_.completeness} />
-          <MetricBar label={t("ai.accuracy")} value={eval_.accuracy} />
-          <MetricBar label={t("ai.actionability")} value={eval_.actionability} />
+      {/* Confidence — simplified as number + text */}
+      <div className="mb-3 border border-[var(--border-default)] rounded-lg p-3 bg-[var(--bg-secondary)]">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs text-[var(--text-muted)]">{t("eval.confidence")}</span>
+          <span className={`text-lg font-bold ${confidenceColor}`}>{confidencePct}%</span>
         </div>
+        <p className="text-[10px] text-[var(--text-muted)]">
+          {confidencePct >= 70 ? t("ai.high-confidence") : confidencePct >= 40 ? t("ai.medium-confidence") : t("ai.low-confidence")}
+        </p>
+      </div>
+
+      {/* Metrics */}
+      <div className="mb-3 space-y-2">
+        <MetricBar label={t("ai.completeness")} value={eval_.completeness} />
+        <MetricBar label={t("ai.accuracy")} value={eval_.accuracy} />
+        <MetricBar label={t("ai.actionability")} value={eval_.actionability} />
       </div>
 
       {/* Diagnostics */}
