@@ -237,6 +237,7 @@ const en = {
     "ai.follow-up-placeholder": "e.g. Break this down by month...",
     "ai.generating": "Generating...",
     "ai.generate-sql": "AI Generate SQL",
+    "ai.generate-sql-hint": "Describe your question. AI will generate SQL and insert it into the editor. Review it before running.",
     "ai.sql-placeholder": "Describe the SQL you want in natural language...",
     "ai.generate": "Generate",
     "ai.sql-generated": "SQL generated — review and run when ready",

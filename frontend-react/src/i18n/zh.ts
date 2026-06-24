@@ -237,6 +237,7 @@ const zh = {
     "ai.follow-up-placeholder": "例如：按月份拆分...",
     "ai.generating": "生成中...",
     "ai.generate-sql": "AI 生成 SQL",
+    "ai.generate-sql-hint": "输入问题，AI 生成 SQL 填入编辑器，请检查后手动执行",
     "ai.sql-placeholder": "用自然语言描述你想要的 SQL...",
     "ai.generate": "生成",
     "ai.sql-generated": "SQL 已生成 — 确认后执行",

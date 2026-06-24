@@ -117,11 +117,6 @@ export function SqlWorkspacePanel() {
     }
   }, [aiSqlQuestion, aiSqlLoading, activeTab, updateTabSql, t, i18n.language]);
 
-  const handleAiAction = useCallback((mode: AnalysisMode) => {
-    setAiMode(mode);
-    setShowAiPanel(true);
-  }, []);
-
   const handleGenerateAiSql = useCallback(async () => {
     if (!wfTable || generatingSql) return;
     setGeneratingSql(true);
@@ -342,6 +337,7 @@ export function SqlWorkspacePanel() {
 
       {/* -- Toolbar ---------------------------------------- */}
       <div className="flex items-center flex-wrap gap-2 mb-3">
+        {/* ── Primary Action: Execute SQL ──────────────────── */}
         <button
           onClick={handleExecute}
           disabled={isExecuting || !currentSql.trim()}
@@ -371,6 +367,26 @@ export function SqlWorkspacePanel() {
           </button>
         )}
 
+        {/* ── Separator ────────────────────────────────────── */}
+        <div className="w-px h-5 bg-[var(--border-default)]" />
+
+        {/* ── AI Assistance: Generate SQL ──────────────────── */}
+        <button
+          onClick={() => setShowAiSqlInput(!showAiSqlInput)}
+          className={`px-3 py-1.5 text-xs border rounded-md transition-colors ${
+            showAiSqlInput
+              ? "border-purple-500/50 text-purple-400 bg-purple-500/10"
+              : "border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50"
+          }`}
+          title={t("ai.generate-sql-hint")}
+        >
+          {t("ai.generate-sql")}
+        </button>
+
+        {/* ── Separator ────────────────────────────────────── */}
+        <div className="w-px h-5 bg-[var(--border-default)]" />
+
+        {/* ── Editor Tools: Explain + Format ───────────────── */}
         <button
           onClick={handleExplain}
           disabled={!currentSql.trim()}
@@ -379,69 +395,6 @@ export function SqlWorkspacePanel() {
         >
           {t("explain.button")}
         </button>
-
-        {/* AI Generate SQL — hidden behind feature flag, link to AI Assistant instead */}
-        {isFeatureEnabled("showAiSqlInputInWorkspace") && (
-          <button
-            onClick={() => setShowAiSqlInput(!showAiSqlInput)}
-            className={`px-3 py-1.5 text-xs border rounded-md transition-colors ${
-              showAiSqlInput
-                ? "border-purple-500/50 text-purple-400 bg-purple-500/10"
-                : "border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50"
-            }`}
-            title={t("ai.generate-sql")}
-          >
-            {t("ai.generate-sql")}
-          </button>
-        )}
-
-        {/* Switch to AI Assistant for natural language queries */}
-        {!isFeatureEnabled("showAiSqlInputInWorkspace") && (
-          <button
-            onClick={() => {
-              // Dispatch custom event to parent InvestigationWorkspace to switch tab
-              window.dispatchEvent(new CustomEvent("workspace:switch-tab", { detail: "ai-query" }));
-            }}
-            className="px-3 py-1.5 text-xs border border-purple-500/30 text-purple-400 rounded-md hover:bg-purple-500/10 hover:border-purple-500/50 transition-colors"
-            title={t("sql.goto-ai-assistant")}
-          >
-            {t("sql.goto-ai-assistant")}
-          </button>
-        )}
-
-        {/* AI buttons — hidden behind feature flag */}
-        {isFeatureEnabled("showAiButtonsInSqlWorkspace") && queryResult?.status === "success" && queryResult.data.length > 0 && (
-          <>
-            <button
-              onClick={() => handleAiAction("explain")}
-              className="px-3 py-1.5 text-xs border border-purple-500/30 text-purple-400 rounded-md hover:bg-purple-500/10 hover:border-purple-500/50 transition-colors"
-              title={t("sql.ai-explain")}
-            >
-              {t("ai.explain-btn")}
-            </button>
-            <button
-              onClick={() => handleAiAction("insights")}
-              className="px-3 py-1.5 text-xs border border-purple-500/30 text-purple-400 rounded-md hover:bg-purple-500/10 hover:border-purple-500/50 transition-colors"
-              title={t("sql.ai-insights")}
-            >
-              {t("ai.insights-btn")}
-            </button>
-            <button
-              onClick={() => handleAiAction("charts")}
-              className="px-3 py-1.5 text-xs border border-purple-500/30 text-purple-400 rounded-md hover:bg-purple-500/10 hover:border-purple-500/50 transition-colors"
-              title={t("ai.charts-title")}
-            >
-              {t("ai.charts-title")}
-            </button>
-            <button
-              onClick={() => handleAiAction("anomalies")}
-              className="px-3 py-1.5 text-xs border border-amber-500/30 text-amber-400 rounded-md hover:bg-amber-500/10 hover:border-amber-500/50 transition-colors"
-              title={t("ai.anomaly-detection")}
-            >
-              {t("ai.anomaly-detection")}
-            </button>
-          </>
-        )}
 
         <button
           onClick={handleFormat}
@@ -452,14 +405,22 @@ export function SqlWorkspacePanel() {
           {t("format.button")}
         </button>
 
+        {/* ── Separator ────────────────────────────────────── */}
+        <div className="w-px h-5 bg-[var(--border-default)]" />
+
+        {/* ── Export ────────────────────────────────────────── */}
+        <ExportDropdown sql={currentSql} disabled={isExecuting} />
+
+        {/* ── Spacer ───────────────────────────────────────── */}
         <div className="flex-1" />
 
+        {/* ── Low-frequency actions (weakened) ──────────────── */}
         <button
           onClick={() => setShowSavedPanel(!showSavedPanel)}
-          className={`px-3 py-1.5 text-xs border rounded-md transition-colors ${
+          className={`px-2 py-1 text-[11px] border rounded-md transition-colors ${
             showSavedPanel
               ? "border-[var(--accent)] text-[var(--accent)]"
-              : "border-[var(--border-default)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)]"
+              : "border-[var(--border-default)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)] opacity-70"
           }`}
         >
           {t("saved.button")} ({savedQueries.length})
@@ -468,7 +429,7 @@ export function SqlWorkspacePanel() {
         <button
           onClick={() => setShowSaveDialog(true)}
           disabled={!currentSql.trim()}
-          className="px-3 py-1.5 text-xs border border-[var(--border-default)] text-[var(--text-muted)] rounded-md hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-2 py-1 text-[11px] border border-[var(--border-default)] text-[var(--text-muted)] rounded-md hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed opacity-70"
           title="Ctrl+Shift+S"
         >
           {t("sql.save")}
@@ -476,17 +437,15 @@ export function SqlWorkspacePanel() {
 
         <button
           onClick={() => updateTabSql(activeTabId, "")}
-          className="px-3 py-1.5 text-xs border border-[var(--border-default)] text-[var(--text-muted)] rounded-md hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+          className="px-2 py-1 text-[11px] border border-[var(--border-default)] text-[var(--text-muted)] rounded-md hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors opacity-70"
           title="Ctrl+Shift+K"
         >
           {t("sql.clear")}
         </button>
-
-        <ExportDropdown sql={currentSql} disabled={isExecuting} />
       </div>
 
-      {/* ── AI SQL Generation Input (feature-flagged) ─────────── */}
-      {isFeatureEnabled("showAiSqlInputInWorkspace") && showAiSqlInput && (
+      {/* ── AI SQL Generation Input ──────────────────────────── */}
+      {showAiSqlInput && (
         <AiSqlInput
           value={aiSqlQuestion}
           isLoading={aiSqlLoading}
