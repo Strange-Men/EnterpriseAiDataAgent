@@ -169,7 +169,7 @@ describe("sql-editor-store", () => {
 
     it("should switch to adjacent tab when removing active tab", () => {
       const { addTab, removeTab } = useSqlEditorStore.getState();
-      const tab1Id = useSqlEditorStore.getState().activeTabId;
+      const _tab1Id = useSqlEditorStore.getState().activeTabId;
       const tab2Id = addTab("Query 2", "SELECT 2");
       const tab3Id = addTab("Query 3", "SELECT 3");
 

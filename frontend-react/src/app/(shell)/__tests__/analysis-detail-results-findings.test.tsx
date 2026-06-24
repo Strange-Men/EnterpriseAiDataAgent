@@ -21,7 +21,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { RunSections } from "@/components/investigation/run-sections";
 import { RunEvaluation } from "@/components/investigation/run-evaluation";
 import type { AnalysisRun, EvaluationResult } from "@/stores/analysis-store";
-import type { MultiStepExecuted } from "@/services/api";
+import type { MultiStepExecuted, MultiStepResult } from "@/services/api";
 
 // ── Mock react-i18next ────────────────────────────────────────────
 vi.mock("react-i18next", () => ({
@@ -36,6 +36,17 @@ vi.mock("react-i18next", () => ({
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────
+function makeMultiResult(overrides?: Partial<MultiStepResult>): MultiStepResult {
+  return {
+    question: "Test question",
+    plan: [],
+    steps: [],
+    summary: "Test summary",
+    status: "success",
+    ...overrides,
+  };
+}
+
 function makeRun(overrides?: Partial<AnalysisRun>): AnalysisRun {
   return {
     id: "test-run-1",
@@ -107,7 +118,7 @@ function makeEvaluation(overrides?: Partial<EvaluationResult>): EvaluationResult
 describe("M4-8.4.2: Key Findings Layout", () => {
   it("shows key findings section when present in sections", () => {
     const run = makeRun({
-      multiResult: { steps: [], summary: "Test summary" } as any,
+      multiResult: makeMultiResult(),
       sections: [
         { title: "Key Findings", content: "Finding 1\nFinding 2", type: "markdown" },
       ],
@@ -121,7 +132,7 @@ describe("M4-8.4.2: Key Findings Layout", () => {
 
   it("shows key findings empty state when no findings section", () => {
     const run = makeRun({
-      multiResult: { steps: [], summary: "Test summary" } as any,
+      multiResult: makeMultiResult(),
       sections: [],
     });
     render(<RunSections run={run} />);
@@ -131,7 +142,7 @@ describe("M4-8.4.2: Key Findings Layout", () => {
 
   it("shows key findings empty state when sections have no key findings title", () => {
     const run = makeRun({
-      multiResult: { steps: [], summary: "Test summary" } as any,
+      multiResult: makeMultiResult(),
       sections: [
         { title: "Other Section", content: "Some content", type: "markdown" },
       ],
@@ -142,7 +153,7 @@ describe("M4-8.4.2: Key Findings Layout", () => {
 
   it("extracts key findings from Chinese title", () => {
     const run = makeRun({
-      multiResult: { steps: [], summary: "Test summary" } as any,
+      multiResult: makeMultiResult(),
       sections: [
         { title: "关键发现", content: "Chinese findings", type: "markdown" },
       ],
@@ -153,7 +164,7 @@ describe("M4-8.4.2: Key Findings Layout", () => {
 
   it("key findings appears after summary in DOM order", () => {
     const run = makeRun({
-      multiResult: { steps: [], summary: "Test summary" } as any,
+      multiResult: makeMultiResult(),
       sections: [
         { title: "Key Findings", content: "Test finding", type: "markdown" },
       ],
@@ -173,7 +184,7 @@ describe("M4-8.4.2: Key Findings Layout", () => {
 describe("M4-8.4.2: Main Result Table Layout", () => {
   it("shows result table when steps have data", () => {
     const run = makeRun({
-      multiResult: { steps: makeSteps(), summary: "Test summary" } as any,
+      multiResult: makeMultiResult({ steps: makeSteps() }),
     });
     render(<RunSections run={run} />);
     expect(screen.getByText("inv.main-result")).toBeDefined();
@@ -185,7 +196,7 @@ describe("M4-8.4.2: Main Result Table Layout", () => {
 
   it("shows result table empty state when no steps", () => {
     const run = makeRun({
-      multiResult: { steps: [], summary: "Test summary" } as any,
+      multiResult: makeMultiResult(),
     });
     render(<RunSections run={run} />);
     expect(screen.getByText("inv.main-result-empty")).toBeDefined();
@@ -194,10 +205,9 @@ describe("M4-8.4.2: Main Result Table Layout", () => {
 
   it("shows result table empty state when steps have no data", () => {
     const run = makeRun({
-      multiResult: {
+      multiResult: makeMultiResult({
         steps: [{ step: 1, purpose: "Empty step", sql: "", columns: [], data: [], status: "success" }],
-        summary: "Test summary",
-      } as any,
+      }),
     });
     render(<RunSections run={run} />);
     expect(screen.getByText("inv.main-result-empty")).toBeDefined();
@@ -205,10 +215,7 @@ describe("M4-8.4.2: Main Result Table Layout", () => {
 
   it("limits result table to MAX_PREVIEW_ROWS", () => {
     const run = makeRun({
-      multiResult: {
-        steps: makeStepsWithLargeData(30),
-        summary: "Test summary",
-      } as any,
+      multiResult: makeMultiResult({ steps: makeStepsWithLargeData(30) }),
     });
     render(<RunSections run={run} />);
     // Should show row count hint
@@ -218,10 +225,7 @@ describe("M4-8.4.2: Main Result Table Layout", () => {
 
   it("does not show row count hint when data is within limit", () => {
     const run = makeRun({
-      multiResult: {
-        steps: makeSteps(),
-        summary: "Test summary",
-      } as any,
+      multiResult: makeMultiResult({ steps: makeSteps() }),
     });
     render(<RunSections run={run} />);
     // Should NOT show row count hint for small datasets
@@ -230,7 +234,7 @@ describe("M4-8.4.2: Main Result Table Layout", () => {
 
   it("result table appears after key findings in DOM order", () => {
     const run = makeRun({
-      multiResult: { steps: makeSteps(), summary: "Test summary" } as any,
+      multiResult: makeMultiResult({ steps: makeSteps() }),
       sections: [
         { title: "Key Findings", content: "Test finding", type: "markdown" },
       ],
@@ -247,7 +251,7 @@ describe("M4-8.4.2: Main Result Table Layout", () => {
   it("truncates long cell values to 50 characters", () => {
     const longValue = "a".repeat(100);
     const run = makeRun({
-      multiResult: {
+      multiResult: makeMultiResult({
         steps: [
           {
             step: 1,
@@ -258,8 +262,7 @@ describe("M4-8.4.2: Main Result Table Layout", () => {
             status: "success",
           },
         ],
-        summary: "Test summary",
-      } as any,
+      }),
     });
     render(<RunSections run={run} />);
     // The truncated value should end with "..."
@@ -273,7 +276,7 @@ describe("M4-8.4.2: Main Result Table Layout", () => {
 describe("M4-8.4.2: Steps Collapsible", () => {
   it("steps are collapsed by default", () => {
     const run = makeRun({
-      multiResult: { steps: makeSteps(), summary: "Test summary" } as any,
+      multiResult: makeMultiResult({ steps: makeSteps() }),
     });
     render(<RunSections run={run} />);
     // Step results should not be visible by default
@@ -284,7 +287,7 @@ describe("M4-8.4.2: Steps Collapsible", () => {
 
   it("steps expand when header is clicked", () => {
     const run = makeRun({
-      multiResult: { steps: makeSteps(), summary: "Test summary" } as any,
+      multiResult: makeMultiResult({ steps: makeSteps() }),
     });
     render(<RunSections run={run} />);
     // Find and click the steps header button
@@ -364,8 +367,8 @@ describe("M4-8.4.2: What was NOT changed", () => {
 
   it("RunSections does not render trace", () => {
     const run = makeRun({
-      trace: { entries: [] } as any,
-      multiResult: { steps: [], summary: "Test" } as any,
+      trace: { entries: [] } as unknown as AnalysisRun["trace"],
+      multiResult: makeMultiResult(),
     });
     const { container } = render(<RunSections run={run} />);
     expect(container.textContent).not.toContain("trace");

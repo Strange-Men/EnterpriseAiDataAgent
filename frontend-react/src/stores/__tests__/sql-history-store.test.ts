@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { useSqlHistoryStore } from "../sql-history-store";
 
 describe("sql-history-store", () => {

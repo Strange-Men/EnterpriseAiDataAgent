@@ -86,6 +86,18 @@ vi.mock("react-hot-toast", () => ({
 import { RunHeader } from "@/components/investigation/run-header";
 import { RunSections } from "@/components/investigation/run-sections";
 import type { AnalysisRun } from "@/stores/analysis-store";
+import type { MultiStepResult } from "@/services/api";
+
+function makeMultiResult(overrides?: Partial<MultiStepResult>): MultiStepResult {
+  return {
+    question: "Test question",
+    plan: [],
+    steps: [],
+    summary: "Test summary",
+    status: "success",
+    ...overrides,
+  };
+}
 
 function makeRun(overrides?: Partial<AnalysisRun>): AnalysisRun {
   return {
@@ -174,10 +186,7 @@ describe("M4-8.4.1: Report Header", () => {
 describe("M4-8.4.1: Summary First", () => {
   it("shows executive summary when present", () => {
     const run = makeRun({
-      multiResult: {
-        steps: [],
-        summary: "Revenue increased by 20%",
-      } as any,
+      multiResult: makeMultiResult({ summary: "Revenue increased by 20%" }),
     });
     render(<RunSections run={run} />);
     expect(screen.getByText("Revenue increased by 20%")).toBeDefined();
@@ -185,10 +194,7 @@ describe("M4-8.4.1: Summary First", () => {
 
   it("shows summary before sections (summary appears first in DOM)", () => {
     const run = makeRun({
-      multiResult: {
-        steps: [],
-        summary: "Executive summary text",
-      } as any,
+      multiResult: makeMultiResult({ summary: "Executive summary text" }),
       sections: [
         { title: "Section 1", content: "Section content", type: "markdown" },
       ],
@@ -211,7 +217,7 @@ describe("M4-8.4.1: Summary First", () => {
 
   it("shows empty state when multiResult has no summary", () => {
     const run = makeRun({
-      multiResult: { steps: [], summary: "" } as any,
+      multiResult: makeMultiResult({ summary: "" }),
     });
     render(<RunSections run={run} />);
     expect(screen.getByText("inv.summary-empty")).toBeDefined();
@@ -219,7 +225,7 @@ describe("M4-8.4.1: Summary First", () => {
 
   it("summary section has accent border styling", () => {
     const run = makeRun({
-      multiResult: { steps: [], summary: "Test summary" } as any,
+      multiResult: makeMultiResult(),
     });
     const { container } = render(<RunSections run={run} />);
     const summaryDiv = container.querySelector(".border-\\[var\\(--accent\\)\\]\\/20");
@@ -249,7 +255,7 @@ describe("M4-8.4.1: What was NOT changed", () => {
 
   it("RunSections does not modify trace logic", () => {
     // RunSections doesn't render trace at all — trace is rendered by RunTrace in page.tsx
-    const run = makeRun({ trace: { entries: [] } as any });
+    const run = makeRun({ trace: { entries: [] } as unknown as AnalysisRun["trace"] });
     const { container } = render(<RunSections run={run} />);
     // No trace-related text should be rendered by RunSections
     expect(container.textContent).not.toContain("raw-trace");

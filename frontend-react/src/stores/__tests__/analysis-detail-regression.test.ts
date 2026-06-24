@@ -7,7 +7,7 @@
  *  - Feature flag showAiSqlInputInWorkspace is enabled
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { useAnalysisStore, type AnalysisRun } from "../analysis-store";
+import { useAnalysisStore } from "../analysis-store";
 
 describe("analysis-store: getEvolutionChain regression (M4-7.1.3)", () => {
   beforeEach(() => {
