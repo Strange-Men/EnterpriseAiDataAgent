@@ -84,10 +84,19 @@ export function RunHeader({ run }: RunHeaderProps) {
         ← {t("inv.back")}
       </button>
 
-      {/* Title & status */}
+      {/* Report Header */}
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          {/* Report title */}
+          <h1 className="text-base font-semibold text-[var(--text-primary)]">
+            {t("inv.report-title")}
+          </h1>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
+            {t("inv.report-subtitle")}
+          </p>
+
+          {/* Mode & status badges */}
+          <div className="flex items-center gap-2 mt-2">
             <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)] uppercase tracking-wider">
               {t(MODE_LABELS[run.mode] || run.mode)}
             </span>
@@ -102,17 +111,23 @@ export function RunHeader({ run }: RunHeaderProps) {
               <span className="text-xs text-[var(--text-muted)]">v{run.version}</span>
             )}
           </div>
-          <h2 className="text-lg font-bold text-[var(--text-primary)] mt-1 truncate">
+
+          {/* User question */}
+          <h2 className="text-lg font-bold text-[var(--text-primary)] mt-2 truncate">
             {renderSafeText(run.question || run.table || run.mode, "Analysis")}
           </h2>
-          {run.table && (
-            <span className="text-xs text-[var(--text-muted)] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded mt-1 inline-block">
-              {run.table}
+
+          {/* Data context & timestamp */}
+          <div className="flex items-center gap-2 mt-1">
+            {run.table && (
+              <span className="text-xs text-[var(--text-muted)] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">
+                {run.table}
+              </span>
+            )}
+            <span className="text-xs text-[var(--text-muted)]">
+              {formatLocalDateTime(run.timestamp)}
             </span>
-          )}
-          <p className="text-xs text-[var(--text-muted)] mt-1">
-            {formatLocalDateTime(run.timestamp)}
-          </p>
+          </div>
         </div>
 
         {/* Actions */}

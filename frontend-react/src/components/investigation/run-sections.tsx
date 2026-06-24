@@ -18,14 +18,6 @@ export function RunSections({ run }: RunSectionsProps) {
   const hasSteps = Array.isArray(run.multiResult?.steps) && run.multiResult!.steps!.length > 0;
   const hasCharts = Array.isArray(run.chartSpecs) && run.chartSpecs.length > 0;
 
-  if (!hasSections && !hasSteps && !hasCharts) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-xs text-[var(--text-muted)]">{t("inv.no-sections")}</p>
-      </div>
-    );
-  }
-
   return (
     <div>
       <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-3">
@@ -33,6 +25,27 @@ export function RunSections({ run }: RunSectionsProps) {
       </h3>
 
       <div className="space-y-3">
+        {/* Executive summary — first */}
+        {run.multiResult?.summary && typeof run.multiResult.summary === "string" ? (
+          <div className="border border-[var(--accent)]/20 rounded-lg p-4 bg-[var(--accent)]/5">
+            <h4 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-2">
+              {t("ai.executive-summary")}
+            </h4>
+            <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
+              {run.multiResult.summary}
+            </p>
+          </div>
+        ) : (
+          <div className="border border-dashed border-[var(--border-default)] rounded-lg p-4 text-center">
+            <p className="text-xs text-[var(--text-muted)]">
+              {t("inv.summary-empty")}
+            </p>
+            <p className="text-xs text-[var(--text-muted)]/60 mt-1">
+              {t("inv.summary-empty-hint")}
+            </p>
+          </div>
+        )}
+
         {/* Multi-step results */}
         {hasSteps && (
           <StepResults steps={run.multiResult!.steps!} />
@@ -60,18 +73,6 @@ export function RunSections({ run }: RunSectionsProps) {
             <AiChart spec={chart} />
           </div>
         ))}
-
-        {/* Executive summary */}
-        {run.multiResult?.summary && typeof run.multiResult.summary === "string" && (
-          <div className="border border-[var(--accent)]/20 rounded-lg p-4 bg-[var(--accent)]/5">
-            <h4 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-2">
-              {t("ai.executive-summary")}
-            </h4>
-            <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
-              {run.multiResult.summary}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
