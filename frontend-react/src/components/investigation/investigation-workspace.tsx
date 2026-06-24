@@ -381,7 +381,7 @@ export function InvestigationWorkspace() {
                   }
                 }}
                 placeholder={t("inv.question-placeholder")}
-                rows={3}
+                rows={4}
                 className="!text-sm !rounded-lg !resize-none"
                 disabled={isLoading}
               />
@@ -413,14 +413,18 @@ export function InvestigationWorkspace() {
             {/* Example questions */}
             {!result && !isLoading && (
               <div className="space-y-2">
-                <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">
-                  {t("workspace.example-questions")}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <Lightbulb className="w-3 h-3 text-[var(--text-muted)]" />
+                  <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">
+                    {t("workspace.example-questions")}
+                  </p>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {[
                     t("workspace.example.q1"),
                     t("workspace.example.q2"),
                     t("workspace.example.q3"),
+                    t("workspace.example.q4"),
                   ].map((example) => (
                     <button
                       key={example}
@@ -452,13 +456,18 @@ export function InvestigationWorkspace() {
 
             {/* Link to run detail */}
             {result && currentRunId && (
-              <div className="flex justify-end pt-2 border-t border-[var(--border-default)]">
-                <button
-                  onClick={() => router.push(`/analyze/${currentRunId}`)}
-                  className="px-3 py-1 text-xs text-[var(--accent)] hover:underline"
-                >
-                  {t("inv.run-detail")} →
-                </button>
+              <div className="space-y-2 pt-2 border-t border-[var(--border-default)]">
+                <p className="text-xs text-[var(--text-muted)]">
+                  {t("workspace.result-hint")}
+                </p>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => router.push(`/analyze/${currentRunId}`)}
+                    className="px-3 py-1 text-xs text-[var(--accent)] hover:underline"
+                  >
+                    {t("inv.run-detail")} →
+                  </button>
+                </div>
               </div>
             )}
           </div>
