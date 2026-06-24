@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Check } from "lucide-react";
 import { AnalysisSectionView } from "@/components/ai/analysis-section";
 import { StepResults } from "@/components/ai/step-results";
 import { AiChart } from "@/components/ui/ai-chart";
@@ -51,17 +51,42 @@ function extractResultTable(run: AnalysisRun): { columns: string[]; data: Record
   return null;
 }
 
+/**
+ * Extract all SQL statements from multi-step results.
+ * Returns array of { step, purpose, sql } or empty array.
+ */
+function extractAllSql(run: AnalysisRun): { step: number; purpose: string; sql: string }[] {
+  if (!Array.isArray(run.multiResult?.steps)) return [];
+  return run.multiResult!.steps!
+    .filter((s) => s && typeof s.sql === "string" && s.sql.trim().length > 0)
+    .map((s) => ({ step: s.step, purpose: s.purpose, sql: s.sql }));
+}
+
 export function RunSections({ run }: RunSectionsProps) {
   const { t } = useTranslation();
   const [stepsCollapsed, setStepsCollapsed] = useState(true);
+  const [sqlAppendixCollapsed, setSqlAppendixCollapsed] = useState(true);
+  const [sqlCopied, setSqlCopied] = useState(false);
 
   const hasSections = Array.isArray(run.sections) && run.sections.length > 0;
   const hasSteps = Array.isArray(run.multiResult?.steps) && run.multiResult!.steps!.length > 0;
   const hasCharts = Array.isArray(run.chartSpecs) && run.chartSpecs.length > 0;
 
-  // Extract key findings and result table
+  // Extract key findings, result table, and SQL
   const keyFindings = useMemo(() => extractKeyFindings(run.sections), [run.sections]);
   const resultTable = useMemo(() => extractResultTable(run), [run]);
+  const allSql = useMemo(() => extractAllSql(run), [run]);
+
+  const handleCopySql = useCallback(() => {
+    if (allSql.length === 0) return;
+    const sqlText = allSql
+      .map((s) => `-- Step ${s.step}: ${s.purpose}\n${s.sql}`)
+      .join("\n\n");
+    navigator.clipboard.writeText(sqlText).then(() => {
+      setSqlCopied(true);
+      setTimeout(() => setSqlCopied(false), 2000);
+    });
+  }, [allSql]);
 
   // Filter out the key findings section from regular sections to avoid duplication
   const remainingSections = useMemo(() => {
@@ -230,6 +255,66 @@ export function RunSections({ run }: RunSectionsProps) {
             <AiChart spec={chart} />
           </div>
         ))}
+      </div>
+
+      {/* SQL Appendix — collapsed by default */}
+      <div className="mt-4 border border-[var(--border-default)] rounded-lg overflow-hidden">
+        <button
+          onClick={() => setSqlAppendixCollapsed(!sqlAppendixCollapsed)}
+          className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[var(--bg-secondary)] transition-colors"
+        >
+          {sqlAppendixCollapsed ? (
+            <ChevronRight className="w-4 h-4 text-[var(--text-muted)]" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" />
+          )}
+          <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
+            {t("inv.sql-appendix")}
+          </span>
+          <span className="text-xs text-[var(--text-muted)] ml-auto">
+            {allSql.length > 0
+              ? `${allSql.length} SQL`
+              : t("inv.sql-appendix-empty")}
+          </span>
+        </button>
+        {!sqlAppendixCollapsed && (
+          <div className="px-4 pb-4 space-y-3">
+            <p className="text-xs text-[var(--text-muted)]">
+              {t("inv.sql-appendix-desc")}
+            </p>
+            {allSql.length > 0 ? (
+              <>
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleCopySql}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-default)] rounded-md hover:bg-[var(--bg-tertiary)] transition-colors"
+                  >
+                    {sqlCopied ? (
+                      <Check className="w-3 h-3 text-green-400" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                    {sqlCopied ? t("inv.copy-sql-success") : t("inv.copy-sql")}
+                  </button>
+                </div>
+                {allSql.map((s, i) => (
+                  <div key={i} className="border border-[var(--border-default)] rounded-md overflow-hidden">
+                    <div className="px-3 py-1.5 bg-[var(--bg-tertiary)]/50 text-xs text-[var(--text-muted)]">
+                      Step {s.step}: {s.purpose}
+                    </div>
+                    <pre className="px-3 py-2 text-xs text-[var(--text-secondary)] font-mono whitespace-pre-wrap overflow-x-auto bg-[var(--bg-primary)]">
+                      {s.sql}
+                    </pre>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <p className="text-xs text-[var(--text-muted)] text-center py-2">
+                {t("inv.sql-appendix-empty")}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

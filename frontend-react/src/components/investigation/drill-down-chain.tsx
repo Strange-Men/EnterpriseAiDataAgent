@@ -30,16 +30,7 @@ export function DrillDownChain({ currentRunId }: DrillDownChainProps) {
   }, [router, setActiveRun]);
 
   if (chain.length <= 1) {
-    return (
-      <div>
-        <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-2">
-          {t("inv.drill-chain")}
-        </h3>
-        <div className="text-center py-4 border border-[var(--border-default)] rounded-lg bg-[var(--bg-secondary)]">
-          <p className="text-[10px] text-[var(--text-muted)]">{t("inv.no-drill-chain")}</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
