@@ -4,6 +4,9 @@ const en = {
     "app.subtitle": "DuckDB Management Console",
     "app.language": "Language",
 
+    "data.title": "Data",
+    "data.description": "Upload CSV/Excel data, choose a table, and start AI analysis.",
+
     "nav.file-upload": "File Upload",
     "nav.data-preview": "Data Preview",
     "nav.quality": "Data Quality",
@@ -12,9 +15,14 @@ const en = {
     "nav.sql": "SQL Workspace",
     "nav.tables": "Tables",
 
-    "upload.dropzone": "Drag & drop CSV or Excel files here",
+    "upload.dropzone": "Click to select files",
     "upload.uploading": "Uploading...",
     "upload.no-files": "No files uploaded yet.",
+    "upload.no-files-desc": "After uploading a CSV or Excel file, available tables will appear here.",
+    "upload.formats": "CSV, XLSX, and XLS files are supported",
+    "upload.guidance": "After upload, a data table will be created so you can preview fields, review basic quality, and continue to the analysis workspace.",
+    "upload.flow": "Upload file → Choose table → Start analysis",
+    "upload.next-step": "After uploading, go to the analysis workspace to ask questions in natural language or write SQL.",
     "upload.db-tables": "Database Tables",
     "upload.type": "Type",
     "upload.uploaded": "Uploaded",
@@ -83,6 +91,7 @@ const en = {
     "table.management": "Table Management",
     "table.refresh": "Refresh table list",
     "table.no-tables": "No tables in database.",
+    "table.no-tables-desc": "After uploading a CSV or Excel file, available tables will appear here.",
     "table.query": "Generate SELECT query",
     "table.rename": "Rename table",
     "table.rename-btn": "Rename",

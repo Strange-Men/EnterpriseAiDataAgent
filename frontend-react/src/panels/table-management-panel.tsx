@@ -126,9 +126,9 @@ export function TableManagementPanel() {
       {/* Table list */}
       {tables.length === 0 ? (
         <EmptyState
-          icon=" "
+          icon="📊"
           title={t("table.no-tables")}
-          description="Upload a file to create your first table"
+          description={t("table.no-tables-desc")}
         />
       ) : (
         <div className="space-y-1">

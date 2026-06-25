@@ -143,7 +143,15 @@ export function FileUploadPanel() {
         <p className="text-sm text-[var(--text-muted)]">
           {uploading ? t("upload.uploading") : t("upload.dropzone")}
         </p>
-        <p className="text-xs text-[var(--text-muted)] mt-1">CSV, XLSX, XLS</p>
+        <p className="text-xs text-[var(--text-muted)] mt-1">
+          {t("upload.formats")}
+        </p>
+        <p className="text-xs text-[var(--text-muted)] mt-2">
+          {t("upload.guidance")}
+        </p>
+        <p className="text-[11px] text-[var(--accent)] mt-2 font-medium">
+          {t("upload.flow")}
+        </p>
       </div>
 
       {/* Database tables */}
@@ -257,9 +265,9 @@ export function FileUploadPanel() {
       {/* Empty state */}
       {tables.length === 0 && uploadedFiles.length === 0 && (
         <EmptyState
-          icon=""
+          icon="📄"
           title={t("upload.no-files")}
-          description="Upload CSV or Excel files to get started"
+          description={t("upload.no-files-desc")}
         />
       )}
     </div>

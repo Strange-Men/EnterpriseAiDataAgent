@@ -4,6 +4,9 @@ const zh = {
     "app.subtitle": "DuckDB 数据管理控制台",
     "app.language": "语言",
 
+    "data.title": "数据",
+    "data.description": "上传 CSV/Excel 数据，选择数据表，并开始 AI 分析。",
+
     "nav.file-upload": "文件上传",
     "nav.data-preview": "数据预览",
     "nav.quality": "数据质量",
@@ -12,9 +15,14 @@ const zh = {
     "nav.sql": "SQL 工作区",
     "nav.tables": "表管理",
 
-    "upload.dropzone": "拖拽 CSV 或 Excel 文件到此",
+    "upload.dropzone": "点击选择文件",
     "upload.uploading": "上传中...",
     "upload.no-files": "暂无已上传文件。",
+    "upload.no-files-desc": "上传 CSV 或 Excel 文件后，系统会在这里显示可分析的数据表。",
+    "upload.formats": "支持 CSV、XLSX、XLS 格式",
+    "upload.guidance": "上传后系统会创建数据表，你可以预览字段、检查基础质量，并进入分析工作台。",
+    "upload.flow": "上传文件 → 选择数据表 → 开始分析",
+    "upload.next-step": "上传后可前往分析工作台，用自然语言提问或编写 SQL。",
     "upload.db-tables": "数据库表",
     "upload.type": "类型",
     "upload.uploaded": "上传时间",
@@ -83,6 +91,7 @@ const zh = {
     "table.management": "表管理",
     "table.refresh": "刷新表列表",
     "table.no-tables": "数据库中暂无表。",
+    "table.no-tables-desc": "上传 CSV 或 Excel 文件后，系统会在这里显示可分析的数据表。",
     "table.query": "生成 SELECT 查询",
     "table.rename": "重命名表",
     "table.rename-btn": "重命名",
