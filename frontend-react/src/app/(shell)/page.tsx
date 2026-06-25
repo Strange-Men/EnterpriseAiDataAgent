@@ -11,7 +11,7 @@ import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Upload, MonitorPlay, ArrowRight,
-  Clock, Info, Terminal,
+  Clock, Info,
 } from "lucide-react";
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -89,48 +89,6 @@ export default function HomePage() {
             <p className="text-xs text-[var(--text-muted)] mt-0.5">{t("home.start-analysis-hint")}</p>
           </div>
           <ArrowRight className="w-4 h-4 text-[var(--text-muted)] shrink-0 group-hover:text-[var(--accent)] group-hover:translate-x-0.5 transition-all" />
-        </button>
-      </div>
-
-      {/* Three entry cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <button
-          onClick={() => router.push("/data")}
-          className="group flex flex-col gap-3 p-5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-        >
-          <div className="w-9 h-9 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
-            <Upload className="w-4.5 h-4.5 text-[var(--accent)]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.card-upload-title")}</p>
-            <p className="text-xs text-[var(--text-muted)] mt-1.5">{t("home.card-upload-desc")}</p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => router.push("/analyze")}
-          className="group flex flex-col gap-3 p-5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-        >
-          <div className="w-9 h-9 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
-            <MonitorPlay className="w-4.5 h-4.5 text-[var(--accent)]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.card-nl-title")}</p>
-            <p className="text-xs text-[var(--text-muted)] mt-1.5">{t("home.card-nl-desc")}</p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => router.push("/analyze")}
-          className="group flex flex-col gap-3 p-5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-        >
-          <div className="w-9 h-9 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
-            <Terminal className="w-4.5 h-4.5 text-[var(--accent)]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.card-sql-title")}</p>
-            <p className="text-xs text-[var(--text-muted)] mt-1.5">{t("home.card-sql-desc")}</p>
-          </div>
         </button>
       </div>
 

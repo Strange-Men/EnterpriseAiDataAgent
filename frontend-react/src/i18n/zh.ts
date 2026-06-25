@@ -139,6 +139,12 @@ const zh = {
     "table.cols-label": "列",
     "table.start-analysis": "开始分析",
 
+    // System history table (M4-8.8)
+    "table.system-history-badge": "历史记录表",
+    "table.system-history-desc": "用于保存查询和分析历史，不是普通上传数据表。删除后，相关历史记录可能无法直接重新运行。",
+    "table.system-table-delete-warning": "这是系统历史记录表，用于保存查询和分析历史。\n\n删除后，相关历史记录可能无法直接重新运行。\n\n确定要删除吗？",
+    "table.system-table-delete-title": "系统表不建议删除",
+
     "sql.title": "SQL 工作区",
     "sql.execute": "执行",
     "sql.running": "执行中...",
@@ -576,7 +582,7 @@ const zh = {
     // v0.8.1+ Investigation Workspace
     "inv.title": "分析工作台",
     "inv.subtitle": "用自然语言提问，AI 帮你分析数据",
-    "inv.start-hint": "输入你的问题，AI 将生成 SQL 并分析数据。",
+    "inv.start-hint": "输入你想了解的问题，点击生成分析后，这里会显示本次分析结果。",
     "inv.question-placeholder": "用自然语言描述你想分析的问题，例如：营收最高的品类是哪些？",
     "inv.table-label": "数据集",
     "inv.mode-label": "分析模式",

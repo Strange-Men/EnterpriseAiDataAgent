@@ -19,6 +19,8 @@ import { logger } from "@/services/logger";
 import toast from "react-hot-toast";
 import type { TableInfo } from "@/types";
 
+const SYSTEM_HISTORY_TABLE = "query_history";
+
 export function TableManagementPanel() {
   const { t } = useTranslation();
   const { setCurrentData, setQualityReport } = useDataStore();
@@ -54,7 +56,11 @@ export function TableManagementPanel() {
   };
 
   const handleDelete = async (tableName: string) => {
-    if (!confirm(t("table.confirm-delete"))) return;
+    if (tableName === SYSTEM_HISTORY_TABLE) {
+      if (!confirm(t("table.system-table-delete-warning"))) return;
+    } else {
+      if (!confirm(t("table.confirm-delete"))) return;
+    }
     setLoading(true);
     try {
       await apiDeleteTable(tableName);
@@ -135,6 +141,7 @@ export function TableManagementPanel() {
         <div className="space-y-1">
           {tables.map((tbl: TableInfo) => {
             const isSelected = tbl.name === activeTable;
+            const isSystemTable = tbl.name === SYSTEM_HISTORY_TABLE;
             return (
             <div
               key={tbl.name}
@@ -169,6 +176,11 @@ export function TableManagementPanel() {
                       <Tooltip text={tbl.name} maxLen={22} />
                     </button>
                     <div className="flex items-center gap-1.5">
+                      {isSystemTable && (
+                        <span className="text-[10px] px-1 py-0.5 rounded bg-amber-500/15 text-amber-400 font-medium">
+                          {t("table.system-history-badge")}
+                        </span>
+                      )}
                       {isSelected && (
                         <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent)]">
                           {t("table.current-selected-badge")}
@@ -189,6 +201,13 @@ export function TableManagementPanel() {
                   </>
                 )}
               </div>
+
+              {/* System table description */}
+              {isSystemTable && renaming !== tbl.name && (
+                <p className="text-[10px] text-amber-400/80 mb-1 leading-relaxed">
+                  {t("table.system-history-desc")}
+                </p>
+              )}
 
               {/* Action buttons */}
               {renaming !== tbl.name && (
@@ -218,9 +237,13 @@ export function TableManagementPanel() {
                   <button
                     onClick={() => handleDelete(tbl.name)}
                     disabled={loading}
-                    className="px-1.5 py-0.5 text-[10px] border border-[var(--border-default)] text-[var(--text-muted)] rounded hover:text-[var(--error)] hover:border-[var(--error)] transition-colors disabled:opacity-50"
-                    title={t("table.delete")}
-                    aria-label={t("table.delete-aria")}
+                    className={`px-1.5 py-0.5 text-[10px] border rounded transition-colors disabled:opacity-50 ${
+                      isSystemTable
+                        ? "border-amber-500/30 text-amber-400/60 hover:text-amber-400 hover:border-amber-400 hover:bg-amber-500/10"
+                        : "border-[var(--border-default)] text-[var(--text-muted)] hover:text-[var(--error)] hover:border-[var(--error)]"
+                    }`}
+                    title={isSystemTable ? t("table.system-table-delete-title") : t("table.delete")}
+                    aria-label={isSystemTable ? t("table.system-table-delete-title") : t("table.delete-aria")}
                   >
                     ×
                   </button>
