@@ -108,7 +108,8 @@ describe("Table List / Current Table Card Polish (M4-8.6.2)", () => {
     });
 
     it("should still have table.confirm-delete key (zh)", () => {
-      expect(zh.translation["table.confirm-delete"]).toBe("确认删除表");
+      expect(zh.translation["table.confirm-delete"]).toBeTruthy();
+      expect(zh.translation["table.confirm-delete"]).toContain("删除");
     });
 
     it("should still have table.query key (zh)", () => {

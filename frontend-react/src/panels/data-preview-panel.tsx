@@ -46,8 +46,8 @@ export function DataPreviewPanel() {
     return (
       <EmptyState
         icon="📋"
-        title={t("preview.no-data")}
-        description={t("preview.no-data-loaded")}
+        title={t("preview.no-table-selected")}
+        description={t("preview.no-table-selected-desc")}
       />
     );
   }
@@ -57,7 +57,7 @@ export function DataPreviewPanel() {
       <EmptyState
         icon="📋"
         title={t("preview.no-data")}
-        description={t("preview.no-data-loaded")}
+        description={t("upload.load-error-hint")}
       />
     );
   }

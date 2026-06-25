@@ -54,11 +54,11 @@ export function TableManagementPanel() {
   };
 
   const handleDelete = async (tableName: string) => {
-    if (!confirm(`${t("table.confirm-delete")} "${tableName}"?`)) return;
+    if (!confirm(t("table.confirm-delete"))) return;
     setLoading(true);
     try {
       await apiDeleteTable(tableName);
-      toast.success(`Deleted "${tableName}"`);
+      toast.success(t("table.delete-success", { name: tableName }));
       logger.info("store", `Deleted table: ${tableName}`);
       await loadTables();
       if (useInvestigationStore.getState().activeTable === tableName) {
@@ -72,7 +72,7 @@ export function TableManagementPanel() {
         }
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Delete failed";
+      const msg = err instanceof Error ? err.message : t("table.delete-failed");
       toast.error(msg);
       logger.error("store", `Delete failed: ${tableName}`, err);
     }
@@ -220,6 +220,7 @@ export function TableManagementPanel() {
                     disabled={loading}
                     className="px-1.5 py-0.5 text-[10px] border border-[var(--border-default)] text-[var(--text-muted)] rounded hover:text-[var(--error)] hover:border-[var(--error)] transition-colors disabled:opacity-50"
                     title={t("table.delete")}
+                    aria-label={t("table.delete-aria")}
                   >
                     ×
                   </button>

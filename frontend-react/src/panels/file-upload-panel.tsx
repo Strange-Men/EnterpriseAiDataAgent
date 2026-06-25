@@ -243,7 +243,12 @@ export function FileUploadPanel() {
                 </>
               )}
               {f.status === "error" && (
-                <p className="text-xs text-red-400 mt-1">{f.error}</p>
+                <div className="mt-1">
+                  <p className="text-xs text-yellow-400">{t("upload.error-hint")}</p>
+                  {f.error && (
+                    <p className="text-[10px] text-[var(--text-muted)] mt-0.5 opacity-70">{f.error}</p>
+                  )}
+                </div>
               )}
 
               {/* Inline AI Analysis Panel */}
