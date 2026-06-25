@@ -11,7 +11,7 @@ export default function HistoryPage() {
     <div className="h-full overflow-hidden flex flex-col">
       <div className="px-6 pt-5">
         <PageHeader
-          title={t("nav.history")}
+          title={t("history.title")}
           description={t("history.description")}
         />
       </div>

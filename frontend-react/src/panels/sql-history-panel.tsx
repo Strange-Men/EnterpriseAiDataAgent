@@ -163,13 +163,10 @@ export function SqlHistoryPanel() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-[var(--border-default)]">
-        <h2 className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-          {t("history.title")}
-        </h2>
+        <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] px-2 py-0.5 rounded-full">
+          {filtered.length} {t("history.title")}
+        </span>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] px-2 py-0.5 rounded-full">
-            {filtered.length}
-          </span>
           {filtered.length > 0 && (
             <div className="flex items-center gap-1">
               <button
@@ -190,31 +187,48 @@ export function SqlHistoryPanel() {
       </div>
 
       {/* Search & Filter */}
-      <div className="flex items-center gap-2 mb-3">
+      <div className="mb-3">
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t("history.search")}
-          className="flex-1 px-3 py-1.5 text-sm bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
+          className="w-full px-3 py-1.5 text-sm bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none mb-2"
         />
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value as "all" | "sql" | "ai")}
-          className="px-2 py-1.5 text-xs bg-[var(--bg-primary)] text-[var(--text-muted)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
-        >
-          <option value="all">{t("history.filter-all")}</option>
-          <option value="ai">{t("history.type-ai")}</option>
-          <option value="sql">{t("history.type-sql")}</option>
-        </select>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as "all" | "success" | "error")}
-          className="px-2 py-1.5 text-xs bg-[var(--bg-primary)] text-[var(--text-muted)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none"
-        >
-          <option value="all">{t("history.filter-all")}</option>
-          <option value="success">{t("history.filter-success")}</option>
-          <option value="error">{t("history.filter-error")}</option>
-        </select>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Type filter chips */}
+          <div className="flex items-center gap-1">
+            {(["all", "ai", "sql"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setFilterType(v)}
+                className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                  filterType === v
+                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                    : "bg-[var(--bg-primary)] text-[var(--text-muted)] border-[var(--border-default)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                }`}
+              >
+                {v === "all" ? t("history.filter-all") : v === "ai" ? t("history.type-ai") : t("history.type-sql")}
+              </button>
+            ))}
+          </div>
+          <span className="text-[var(--border-default)]">|</span>
+          {/* Status filter chips */}
+          <div className="flex items-center gap-1">
+            {(["all", "success", "error"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setFilterStatus(v)}
+                className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                  filterStatus === v
+                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                    : "bg-[var(--bg-primary)] text-[var(--text-muted)] border-[var(--border-default)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                }`}
+              >
+                {v === "all" ? t("history.filter-all") : v === "success" ? t("history.filter-success") : t("history.filter-failed")}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Clear confirmation */}
@@ -244,6 +258,24 @@ export function SqlHistoryPanel() {
           icon=" "
           title={searchQuery ? t("history.no-results") : t("history.no-history-title")}
           description={searchQuery ? t("history.try-different") : t("history.no-history-desc")}
+          action={
+            !searchQuery && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => router.push("/data")}
+                  className="px-3 py-1.5 text-xs bg-[var(--accent)] text-white rounded-md hover:opacity-90 transition-opacity"
+                >
+                  {t("history.no-history-action-upload")}
+                </button>
+                <button
+                  onClick={() => router.push("/analyze")}
+                  className="px-3 py-1.5 text-xs bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-md hover:border-[var(--accent)] transition-colors"
+                >
+                  {t("history.no-history-action-analyze")}
+                </button>
+              </div>
+            )
+          }
         />
       ) : (
         <div className="flex-1 overflow-y-auto space-y-2">
