@@ -85,7 +85,7 @@ describe("History Actions Clarity (M4-8.5.3)", () => {
         "history.rerun-analysis",
         "history.export-md",
         "history.copy-question",
-      ];
+      ] as const;
       for (const key of aiKeys) {
         expect(zh.translation[key]).toBeDefined();
         expect(en.translation[key]).toBeDefined();
@@ -98,7 +98,7 @@ describe("History Actions Clarity (M4-8.5.3)", () => {
         "history.re-execute",
         "history.export-csv",
         "history.copy-sql",
-      ];
+      ] as const;
       for (const key of sqlKeys) {
         expect(zh.translation[key]).toBeDefined();
         expect(en.translation[key]).toBeDefined();
