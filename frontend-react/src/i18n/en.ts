@@ -529,7 +529,7 @@ const en = {
     "dashboard.hours-ago": "{{n}}h ago",
     "dashboard.days-ago": "{{n}}d ago",
 
-    // Settings (v0.9.4)
+    // Settings (v0.9.4, M4-8.7.1 polish)
     "settings.current": "Current",
     "settings.theme": "Theme",
     "settings.version": "Version",
@@ -538,7 +538,15 @@ const en = {
     "settings.dark": "Dark",
     "settings.light": "Light",
     "settings.system": "System",
-    "settings.description": "Manage your application preferences and settings",
+    "settings.description": "Manage language, appearance, and basic preferences for your workspace.",
+    "settings.section-preferences": "Interface Preferences",
+    "settings.section-preferences-desc": "Adjust theme and display preferences.",
+    "settings.section-system": "System Information",
+    "settings.section-system-desc": "Review the current version and runtime status.",
+    "settings.lang-zh": "Chinese",
+    "settings.lang-en": "English",
+    "settings.brand-name": "Enterprise AI Data Agent",
+    "settings.version-fallback": "Version information unavailable",
 
     // v0.8.1+ Investigation Workspace
     "inv.title": "Analysis Workspace",

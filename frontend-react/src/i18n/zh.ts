@@ -529,7 +529,7 @@ const zh = {
     "dashboard.hours-ago": "{{n}} 小时前",
     "dashboard.days-ago": "{{n}} 天前",
 
-    // Settings (v0.9.4)
+    // Settings (v0.9.4, M4-8.7.1 polish)
     "settings.current": "当前",
     "settings.theme": "主题",
     "settings.version": "版本",
@@ -538,7 +538,15 @@ const zh = {
     "settings.dark": "深色",
     "settings.light": "浅色",
     "settings.system": "跟随系统",
-    "settings.description": "管理您的应用偏好和设置",
+    "settings.description": "管理语言、外观和基础偏好，让工作台更符合你的使用习惯。",
+    "settings.section-preferences": "界面偏好",
+    "settings.section-preferences-desc": "调整主题和显示方式。",
+    "settings.section-system": "系统信息",
+    "settings.section-system-desc": "查看当前版本和运行状态。",
+    "settings.lang-zh": "中文",
+    "settings.lang-en": "英文",
+    "settings.brand-name": "Enterprise AI Data Agent",
+    "settings.version-fallback": "版本信息暂不可用",
 
     // v0.8.1+ Investigation Workspace
     "inv.title": "分析工作台",

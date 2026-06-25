@@ -17,6 +17,7 @@ export default function SettingsPage() {
 
   const themeLabel = theme === "dark" ? t("settings.dark") : t("settings.light");
   const nextThemeLabel = theme === "dark" ? t("settings.light") : t("settings.dark");
+  const langDisplay = language === "zh" ? t("settings.lang-zh") : t("settings.lang-en");
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
@@ -25,7 +26,13 @@ export default function SettingsPage() {
         description={t("settings.description")}
       />
 
+      {/* Interface Preferences */}
       <div className="space-y-4">
+        <div>
+          <h2 className="text-sm font-medium text-[var(--text-secondary)]">{t("settings.section-preferences")}</h2>
+          <p className="text-2xs text-[var(--text-muted)] mt-0.5">{t("settings.section-preferences-desc")}</p>
+        </div>
+
         {/* Language */}
         <Card>
           <CardContent className="flex items-center justify-between py-4">
@@ -33,7 +40,7 @@ export default function SettingsPage() {
               <Languages className="w-5 h-5 text-[var(--text-muted)]" />
               <div>
                 <CardTitle className="!text-sm !normal-case !text-[var(--text-primary)] !tracking-normal !font-medium">{t("app.language")}</CardTitle>
-                <p className="text-2xs text-[var(--text-muted)]">{t("settings.current")}: {language === "zh" ? "中文" : "English"}</p>
+                <p className="text-2xs text-[var(--text-muted)]">{t("settings.current")}: {langDisplay}</p>
               </div>
             </div>
             <Button variant="secondary" size="md" onClick={toggleLanguage}>
@@ -57,6 +64,14 @@ export default function SettingsPage() {
             </Button>
           </CardContent>
         </Card>
+      </div>
+
+      {/* System Information */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-sm font-medium text-[var(--text-secondary)]">{t("settings.section-system")}</h2>
+          <p className="text-2xs text-[var(--text-muted)] mt-0.5">{t("settings.section-system-desc")}</p>
+        </div>
 
         {/* Version Info */}
         <Card>
@@ -65,7 +80,11 @@ export default function SettingsPage() {
               <Monitor className="w-5 h-5 text-[var(--text-muted)]" />
               <div>
                 <CardTitle className="!text-sm !normal-case !text-[var(--text-primary)] !tracking-normal !font-medium">{t("settings.version")}</CardTitle>
-                <p className="text-2xs text-[var(--text-muted)]">Enterprise AI Data Agent v{version}</p>
+                <p className="text-2xs text-[var(--text-muted)]">
+                  {version
+                    ? `${t("settings.brand-name")} v${version}`
+                    : t("settings.version-fallback")}
+                </p>
               </div>
             </div>
           </CardContent>
