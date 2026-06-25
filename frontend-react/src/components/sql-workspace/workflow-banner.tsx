@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslation } from "react-i18next";
+
 interface WorkflowBannerProps {
   stage: string;
   table?: string | null;
@@ -13,12 +17,14 @@ export function WorkflowBanner({
   onGenerateSql,
   onReset,
 }: WorkflowBannerProps) {
+  const { t } = useTranslation();
+
   if (stage === "idle") return null;
 
   if (stage === "done") {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 mb-2 bg-green-500/5 border border-green-500/20 rounded-md text-xs">
-        <span className="text-green-400">Done: {table}</span>
+        <span className="text-green-400">{t("workflow.done", { table })}</span>
         <button
           onClick={onReset}
           className="text-[var(--text-muted)] hover:text-[var(--text-primary)] ml-auto"
@@ -29,11 +35,11 @@ export function WorkflowBanner({
     );
   }
 
-  const label = stage === "uploading" ? "Uploading..." :
-    stage === "profiling" ? `Table ready: ${table}` :
-    stage === "analyzing" ? `Analyzing ${table}...` :
-    stage === "sql-ready" ? `Analysis complete: ${table}` :
-    stage === "executing" ? "Executing..." : "";
+  const label = stage === "uploading" ? t("workflow.uploading") :
+    stage === "profiling" ? t("workflow.table-ready", { table }) :
+    stage === "analyzing" ? t("workflow.analyzing", { table }) :
+    stage === "sql-ready" ? t("workflow.analysis-complete", { table }) :
+    stage === "executing" ? t("workflow.executing") : "";
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 mb-2 bg-purple-500/5 border border-purple-500/20 rounded-md text-xs">
@@ -45,13 +51,13 @@ export function WorkflowBanner({
           disabled={isGeneratingSql}
           className="ml-auto px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded hover:bg-purple-500/20 transition-colors disabled:opacity-50"
         >
-          {isGeneratingSql ? "Generating..." : "Generate SQL"}
+          {isGeneratingSql ? t("workflow.generating") : t("workflow.generate-sql")}
         </button>
       )}
       <button
         onClick={onReset}
         className="text-[var(--text-muted)] hover:text-[var(--text-primary)] ml-1"
-        title="Dismiss"
+        title={t("workflow.dismiss")}
       >
         x
       </button>

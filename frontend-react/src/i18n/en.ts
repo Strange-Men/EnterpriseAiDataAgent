@@ -85,6 +85,16 @@ const en = {
     "status.db": "Database",
     "status.version": "Version",
     "status.uptime": "Uptime",
+    "status.ai-label": "AI",
+    "status.ai-not-set": "Not Set",
+    "status.ai-settings": "AI Settings",
+    "status.ai-model": "Model",
+    "status.ai-temperature": "Temperature",
+    "status.ai-base-url": "Base URL",
+    "status.ai-status": "Status",
+    "status.ai-connected": "Connected",
+    "status.ai-not-configured": "API key not set",
+    "status.ai-connection-error": "Connection error",
 
     "charts.title": "Visualizations",
     "charts.empty": "No charts generated yet.",
@@ -358,6 +368,21 @@ const en = {
     "ai.error-empty-response": "AI didn't return valid content. Please try again or ask a more specific question.",
     "ai.error-empty-hint": "Tip: Check if the correct table is selected, or try a more specific description.",
     "ai.error-technical-detail": "Technical Details",
+
+    // Workflow Banner (M4-8.7.2)
+    "workflow.done": "Done: {{table}}",
+    "workflow.uploading": "Uploading...",
+    "workflow.table-ready": "Table ready: {{table}}",
+    "workflow.analyzing": "Analyzing {{table}}...",
+    "workflow.analysis-complete": "Analysis complete: {{table}}",
+    "workflow.executing": "Executing...",
+    "workflow.generating": "Generating...",
+    "workflow.generate-sql": "Generate SQL",
+    "workflow.dismiss": "Dismiss",
+
+    // Analysis Section (M4-8.7.2)
+    "analysis.no-content": "No content available.",
+    "analysis.section-fallback": "Section",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI Analyze",

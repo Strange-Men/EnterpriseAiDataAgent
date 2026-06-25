@@ -85,6 +85,16 @@ const zh = {
     "status.db": "数据库",
     "status.version": "版本",
     "status.uptime": "运行时间",
+    "status.ai-label": "AI",
+    "status.ai-not-set": "未配置",
+    "status.ai-settings": "AI 设置",
+    "status.ai-model": "模型",
+    "status.ai-temperature": "温度",
+    "status.ai-base-url": "Base URL",
+    "status.ai-status": "状态",
+    "status.ai-connected": "已连接",
+    "status.ai-not-configured": "未配置 API Key",
+    "status.ai-connection-error": "连接错误",
 
     "charts.title": "可视化",
     "charts.empty": "暂无图表。",
@@ -358,6 +368,21 @@ const zh = {
     "ai.error-empty-response": "AI 暂时没有返回有效内容，请稍后重试，或换一个更具体的问题。",
     "ai.error-empty-hint": "提示：检查当前数据表是否选择正确，或尝试更具体的描述。",
     "ai.error-technical-detail": "技术详情",
+
+    // Workflow Banner (M4-8.7.2)
+    "workflow.done": "完成：{{table}}",
+    "workflow.uploading": "上传中...",
+    "workflow.table-ready": "数据表就绪：{{table}}",
+    "workflow.analyzing": "分析 {{table}} 中...",
+    "workflow.analysis-complete": "分析完成：{{table}}",
+    "workflow.executing": "执行中...",
+    "workflow.generating": "生成中...",
+    "workflow.generate-sql": "生成 SQL",
+    "workflow.dismiss": "关闭",
+
+    // Analysis Section (M4-8.7.2)
+    "analysis.no-content": "暂无内容。",
+    "analysis.section-fallback": "分析段落",
 
     // SQL Workspace AI
     "sql.ai-analyze": "AI 分析",

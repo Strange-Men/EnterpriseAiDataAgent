@@ -51,11 +51,11 @@ export function StatusPanel() {
               aiStatus?.connection === "ok"
                 ? t("status.operational")
                 : aiStatus?.connection === "not_configured"
-                ? "Not Set"
+                ? t("status.ai-not-set")
                 : t("status.error")
             }
           />
-          <p className="text-xs text-[var(--text-muted)] mt-1">AI</p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">{t("status.ai-label")}</p>
         </div>
       </div>
 
@@ -74,34 +74,34 @@ export function StatusPanel() {
       {/* AI Settings */}
       <div className="border-t border-[var(--border-default)] pt-3">
         <div className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider mb-2">
-          AI Settings
+          {t("status.ai-settings")}
         </div>
         {aiError ? (
           <p className="text-xs text-red-400">{aiError}</p>
         ) : aiStatus ? (
           <div className="space-y-1.5 text-xs">
             <div className="flex justify-between">
-              <span className="text-[var(--text-muted)]">Model</span>
+              <span className="text-[var(--text-muted)]">{t("status.ai-model")}</span>
               <span className="font-mono text-[var(--text-primary)]">{aiStatus.model}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[var(--text-muted)]">Temperature</span>
+              <span className="text-[var(--text-muted)]">{t("status.ai-temperature")}</span>
               <span className="font-mono text-[var(--text-primary)]">{aiStatus.temperature}</span>
             </div>
             {aiStatus.base_url !== "default" && (
               <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Base URL</span>
+                <span className="text-[var(--text-muted)]">{t("status.ai-base-url")}</span>
                 <span className="font-mono text-[var(--text-primary)] truncate max-w-[140px]">{aiStatus.base_url}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-[var(--text-muted)]">Status</span>
+              <span className="text-[var(--text-muted)]">{t("status.ai-status")}</span>
               <span className={`font-medium ${
                 aiStatus.connection === "ok" ? "text-green-400" :
                 aiStatus.connection === "not_configured" ? "text-yellow-400" : "text-red-400"
               }`}>
-                {aiStatus.connection === "ok" ? "Connected" :
-                 aiStatus.connection === "not_configured" ? "API key not set" : "Connection error"}
+                {aiStatus.connection === "ok" ? t("status.ai-connected") :
+                 aiStatus.connection === "not_configured" ? t("status.ai-not-configured") : t("status.ai-connection-error")}
               </span>
             </div>
           </div>

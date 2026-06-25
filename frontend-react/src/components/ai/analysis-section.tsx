@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { Copy } from "lucide-react";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import { useThemeStore } from "@/hooks/use-theme";
 import { safeMarkdownContent, renderSafeText } from "@/utils/safe-render";
 
@@ -40,17 +41,18 @@ export interface AnalysisSection {
 
 // ── Component ─────────────────────────────────────────────────
 export function AnalysisSectionView({ section }: { section: AnalysisSection }) {
+  const { t } = useTranslation();
   const codeTheme = useCodeTheme();
 
   // Guard: ensure content is a safe string for ReactMarkdown
-  const safeContent = safeMarkdownContent(section.content, "No content available.");
+  const safeContent = safeMarkdownContent(section.content, t("analysis.no-content"));
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(safeContent).then(
-      () => toast.success("Copied"),
-      () => toast.error("Copy failed")
+      () => toast.success(t("ai.copied")),
+      () => toast.error(t("ai.copy-failed"))
     );
-  }, [safeContent]);
+  }, [safeContent, t]);
 
   const markdownComponents = useMemo(() => ({
     code({ className, children, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
@@ -120,12 +122,12 @@ export function AnalysisSectionView({ section }: { section: AnalysisSection }) {
     <div className="mb-4 last:mb-0">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
-          {renderSafeText(section.title, "Section")}
+          {renderSafeText(section.title, t("analysis.section-fallback"))}
         </h3>
         <button
           onClick={handleCopy}
           className="p-0.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-          title="Copy section"
+          title={t("ai.copy-section")}
         >
           <Copy className="w-3 h-3" />
         </button>
