@@ -25,6 +25,7 @@ export function TableManagementPanel() {
   const { tables, reload: loadTables } = useTables();
   const { setCurrentSql } = useSqlEditorStore();
   const setInvestigationContext = useInvestigationStore((s) => s.setContext);
+  const activeTable = useInvestigationStore((s) => s.activeTable);
   const analysisRuns = useAnalysisStore((s) => s.runs);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
@@ -132,10 +133,16 @@ export function TableManagementPanel() {
         />
       ) : (
         <div className="space-y-1">
-          {tables.map((tbl: TableInfo) => (
+          {tables.map((tbl: TableInfo) => {
+            const isSelected = tbl.name === activeTable;
+            return (
             <div
               key={tbl.name}
-              className="group px-3 py-2 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] transition-colors"
+              className={`group px-3 py-2 rounded-md transition-colors ${
+                isSelected
+                  ? "bg-[var(--accent)]/5 border border-[var(--accent)]/30"
+                  : "bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)]"
+              }`}
             >
               {/* Table name row */}
               <div className="flex items-center justify-between mb-1">
@@ -162,6 +169,11 @@ export function TableManagementPanel() {
                       <Tooltip text={tbl.name} maxLen={22} />
                     </button>
                     <div className="flex items-center gap-1.5">
+                      {isSelected && (
+                        <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent)]">
+                          {t("table.current-selected-badge")}
+                        </span>
+                      )}
                       {(() => {
                         const count = analysisRuns.filter((r) => r.table === tbl.name).length;
                         return count > 0 ? (
@@ -171,7 +183,7 @@ export function TableManagementPanel() {
                         ) : null;
                       })()}
                       <span className="text-xs text-[var(--text-muted)] tabular-nums">
-                        {tbl.rowCount.toLocaleString()} × {tbl.columnCount}
+                        {tbl.rowCount.toLocaleString()} {t("table.rows-label")} · {tbl.columnCount} {t("table.cols-label")}
                       </span>
                     </div>
                   </>
@@ -214,7 +226,7 @@ export function TableManagementPanel() {
                 </div>
               )}
             </div>
-          ))}
+          )})}
         </div>
       )}
 
