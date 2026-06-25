@@ -361,9 +361,15 @@ const en = {
     "analysis.duplicate": "Duplicate",
     "analysis.interrupted": "Session interrupted",
     "analysis.recovery-note": "This run was not completed. You can re-run it.",
-    "analysis.not-found": "Analysis record not found. Local history may have been cleared.",
+    "analysis.not-found": "Analysis record not found",
+    "analysis.not-found-desc": "This analysis may have been deleted, not synced yet, or the link may be invalid.",
     "analysis.back-to-workspace": "Back to Workspace",
     "analysis.view-history": "View History",
+    "analysis.failed-title": "Analysis did not complete",
+    "analysis.failed-desc": "This analysis did not finish successfully. Rerun it, or return to the workspace and rephrase the question.",
+    "analysis.partial-report": "Report content is incomplete",
+    "analysis.partial-report-desc": "This analysis returned partial content. You can still review available results or rerun the analysis.",
+    "analysis.technical-detail": "Technical Details",
 
     // Dataset Lifecycle
     "dataset.uploaded-at": "Uploaded",

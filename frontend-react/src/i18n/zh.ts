@@ -361,9 +361,15 @@ const zh = {
     "analysis.duplicate": "复制",
     "analysis.interrupted": "会话中断",
     "analysis.recovery-note": "此运行未完成，可以重新运行。",
-    "analysis.not-found": "未找到这次分析记录，可能是浏览器本地历史已清理。",
+    "analysis.not-found": "未找到分析记录",
+    "analysis.not-found-desc": "这条分析记录可能已被删除、尚未同步，或链接已失效。",
     "analysis.back-to-workspace": "返回分析工作台",
     "analysis.view-history": "查看历史",
+    "analysis.failed-title": "分析未完成",
+    "analysis.failed-desc": "本次分析没有成功完成。你可以重新运行，或返回分析工作台换一种提问方式。",
+    "analysis.partial-report": "报告内容不完整",
+    "analysis.partial-report-desc": "当前分析只返回了部分内容，你仍可以查看已有结果或重新运行分析。",
+    "analysis.technical-detail": "技术详情",
 
     // Dataset Lifecycle
     "dataset.uploaded-at": "上传时间",
