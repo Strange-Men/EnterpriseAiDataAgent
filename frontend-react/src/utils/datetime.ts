@@ -46,6 +46,20 @@ export function formatLocalDateTime(value: string | Date | number | undefined | 
 }
 
 /**
+ * Format runtime milliseconds into human-readable string.
+ * Examples: 500 → "500ms", 1200 → "1.2s", 65000 → "1m 5s"
+ */
+export function formatRuntime(ms: number | undefined | null): string {
+  if (ms === null || ms === undefined || ms < 0) return "";
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds.toFixed(1).replace(/\.0$/, "")}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainSeconds = Math.round(seconds % 60);
+  return `${minutes}m ${remainSeconds}s`;
+}
+
+/**
  * Format an ISO timestamp as relative time ("< 1 min", "5 min", "3h", "2d").
  * Falls back to local date for older entries.
  */

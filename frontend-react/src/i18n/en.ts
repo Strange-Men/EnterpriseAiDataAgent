@@ -140,6 +140,13 @@ const en = {
     "history.no-history-action-upload": "Upload Data",
     "history.no-history-action-analyze": "Start Analysis",
     "history.table-not-found": "The table \"{{table}}\" associated with this history record no longer exists. Please select a different table.",
+    "history.status-success": "Success",
+    "history.status-partial": "Partial",
+    "history.status-error": "Failed",
+    "history.table-label": "Table",
+    "history.duration-label": "Duration",
+    "history.unnamed-analysis": "Untitled analysis",
+    "history.unnamed-sql": "Untitled SQL query",
 
     "header.show-left": "Show left panel",
     "header.hide-left": "Hide left panel",

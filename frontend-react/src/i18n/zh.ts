@@ -140,6 +140,13 @@ const zh = {
     "history.no-history-action-upload": "上传数据",
     "history.no-history-action-analyze": "开始分析",
     "history.table-not-found": "该历史记录关联的数据表「{{table}}」已不存在，请重新选择数据表。",
+    "history.status-success": "成功",
+    "history.status-partial": "部分成功",
+    "history.status-error": "失败",
+    "history.table-label": "表",
+    "history.duration-label": "耗时",
+    "history.unnamed-analysis": "未命名分析",
+    "history.unnamed-sql": "未命名 SQL 查询",
 
     "header.show-left": "显示左侧面板",
     "header.hide-left": "隐藏左侧面板",

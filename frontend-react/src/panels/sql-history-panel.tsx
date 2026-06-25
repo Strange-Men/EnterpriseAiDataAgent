@@ -11,7 +11,7 @@ import { useDataStore } from "@/stores/data-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { downloadBlob } from "@/utils/download";
 import { runToMarkdown } from "@/utils/export-markdown";
-import { formatLocalTime } from "@/utils/datetime";
+import { formatLocalTime, formatRelativeTime, formatRuntime } from "@/utils/datetime";
 import toast from "react-hot-toast";
 
 export function SqlHistoryPanel() {
@@ -278,76 +278,89 @@ export function SqlHistoryPanel() {
           }
         />
       ) : (
-        <div className="flex-1 overflow-y-auto space-y-2">
+        <div className="flex-1 overflow-y-auto space-y-3">
           {filtered.map((entry) => {
             const isAi = (entry.type || "sql") === "ai";
+            const displayTitle = isAi
+              ? (entry.question || t("history.unnamed-analysis"))
+              : (entry.sql.split("\n")[0].trim() || t("history.unnamed-sql"));
+            const truncatedTitle = displayTitle.length > 100 ? displayTitle.slice(0, 100) + "..." : displayTitle;
+            const statusKey = entry.status === "success" ? "history.status-success"
+              : entry.status === "partial" ? "history.status-partial" : "history.status-error";
 
             return (
               <div
                 key={entry.id}
                 className="group px-4 py-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] hover:shadow-sm transition-all"
               >
-                {/* Type badge + content */}
-                <div className="flex items-start gap-3">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium shrink-0 mt-0.5 ${
+                {/* Header: Type badge + Status badge + Time */}
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                     isAi
                       ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
                       : "bg-blue-500/15 text-blue-400 border border-blue-500/30"
                   }`}>
                     {isAi ? t("history.type-ai") : t("history.type-sql")}
                   </span>
-                  <div className="flex-1 min-w-0">
-                    {/* Question or SQL preview */}
-                    <p
-                      className="text-sm text-[var(--text-primary)] leading-relaxed"
-                      title={entry.question || entry.sql}
-                    >
-                      {entry.question
-                        ? (entry.question.length > 100 ? entry.question.slice(0, 100) + "..." : entry.question)
-                        : (entry.sql.length > 100 ? entry.sql.slice(0, 100) + "..." : entry.sql)
-                      }
-                    </p>
-                    {/* Summary for AI entries */}
-                    {entry.summary && isAi && (
-                      <p className="text-xs text-[var(--text-muted)] mt-1 line-clamp-2">
-                        {entry.summary}
-                      </p>
-                    )}
-                  </div>
+                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${
+                    entry.status === "success" ? "text-green-400" : entry.status === "partial" ? "text-amber-400" : "text-red-400"
+                  }`}>
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${
+                      entry.status === "success" ? "bg-green-400" : entry.status === "partial" ? "bg-amber-400" : "bg-red-400"
+                    }`} />
+                    {t(statusKey)}
+                  </span>
+                  <span className="ml-auto text-xs text-[var(--text-muted)]" title={formatLocalTime(entry.timestamp)}>
+                    {formatRelativeTime(entry.timestamp)}
+                  </span>
                 </div>
 
-                {/* Metadata row */}
-                <div className="flex items-center gap-3 mt-2 pl-[52px]">
-                  <span
-                    className={`inline-block w-2 h-2 rounded-full ${
-                      entry.status === "success" ? "bg-green-400" : entry.status === "partial" ? "bg-amber-400" : "bg-red-400"
-                    }`}
-                  />
+                {/* Title: Question or SQL summary */}
+                <p
+                  className="text-sm font-medium text-[var(--text-primary)] leading-snug mb-1.5"
+                  title={entry.question || entry.sql}
+                >
+                  {truncatedTitle}
+                </p>
+
+                {/* Metadata: Table · Rows · Duration */}
+                <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] flex-wrap">
                   {entry.tableName && (
-                    <span className="text-xs text-[var(--accent)] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">
-                      {entry.tableName}
+                    <span className="inline-flex items-center gap-1">
+                      <span className="text-[var(--text-muted)]/70">{t("history.table-label")}:</span>
+                      <span className="font-mono text-[var(--accent)] bg-[var(--bg-tertiary)] px-1 py-0.5 rounded">
+                        {entry.tableName}
+                      </span>
                     </span>
                   )}
-                  <span className="text-xs text-[var(--text-muted)] tabular-nums">
-                    {entry.runtimeMs}ms
-                  </span>
-                  {entry.status !== "error" && (
-                    <span className="text-xs text-[var(--text-muted)]">
-                      {entry.rowCount} {t("sql.rows")}
-                    </span>
+                  {entry.tableName && entry.rowCount !== undefined && entry.status !== "error" && (
+                    <span className="text-[var(--border-default)]">·</span>
                   )}
-                  <span className="text-xs text-[var(--text-muted)] ml-auto">
-                    {formatLocalTime(entry.timestamp)}
-                  </span>
+                  {entry.rowCount !== undefined && entry.status !== "error" && (
+                    <span>{entry.rowCount} {t("sql.rows")}</span>
+                  )}
+                  {(entry.rowCount !== undefined && entry.status !== "error" && entry.runtimeMs != null) && (
+                    <span className="text-[var(--border-default)]">·</span>
+                  )}
+                  {entry.runtimeMs != null && (
+                    <span>{t("history.duration-label")}: {formatRuntime(entry.runtimeMs)}</span>
+                  )}
                 </div>
+
+                {/* AI Summary (if exists) */}
+                {entry.summary && isAi && (
+                  <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed line-clamp-2">
+                    {entry.summary}
+                  </p>
+                )}
 
                 {/* Error preview */}
                 {entry.status === "error" && entry.error && (
-                  <p className="text-xs text-red-400 mt-1.5 pl-[52px] truncate">{entry.error}</p>
+                  <p className="text-xs text-red-400 mt-1.5 truncate">{entry.error}</p>
                 )}
 
-                {/* Action buttons — always visible */}
-                <div className="flex items-center gap-2 mt-2.5 pl-[52px] flex-wrap">
+                {/* Action buttons — separated by subtle divider */}
+                <div className="flex items-center gap-2 mt-2.5 pt-2 border-t border-[var(--border-default)]/50 flex-wrap">
                   {isAi ? (
                     <>
                       <button
