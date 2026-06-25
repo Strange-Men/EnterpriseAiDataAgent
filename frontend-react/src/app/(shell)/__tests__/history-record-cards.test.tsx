@@ -120,8 +120,8 @@ describe("History Record Cards (M4-8.5.2)", () => {
     });
 
     it("should preserve export-csv key", () => {
-      expect(zh.translation["history.export-csv"]).toBe("导出 CSV");
-      expect(en.translation["history.export-csv"]).toBe("Export CSV");
+      expect(zh.translation["history.export-csv"]).toBe("导出记录 CSV");
+      expect(en.translation["history.export-csv"]).toBe("Export Record CSV");
     });
 
     it("should preserve copy-question key", () => {

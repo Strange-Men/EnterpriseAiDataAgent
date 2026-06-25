@@ -483,7 +483,10 @@ export function SqlHistoryPanel() {
                           <Play className="w-3 h-3" />
                           {t("history.re-execute")}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleExportCsv(entry.sql, entry.tableName)}>
+                        <DropdownMenuItem
+                          onClick={() => handleExportCsv(entry.sql, entry.tableName)}
+                          title={t("history.export-csv-tooltip")}
+                        >
                           <ArrowDownToLine className="w-3 h-3" />
                           {t("history.export-csv")}
                         </DropdownMenuItem>

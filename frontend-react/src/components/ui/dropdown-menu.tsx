@@ -88,18 +88,21 @@ export function DropdownMenuItem({
   children,
   disabled,
   danger,
+  title,
 }: {
   className?: string;
   onClick?: () => void;
   children: ReactNode;
   disabled?: boolean;
   danger?: boolean;
+  title?: string;
 }) {
   return (
     <button
       role="menuitem"
       onClick={onClick}
       disabled={disabled}
+      title={title}
       className={cn(
         "w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors",
         "focus:outline-none focus:bg-[var(--bg-tertiary)]",
