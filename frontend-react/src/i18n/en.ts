@@ -125,6 +125,7 @@ const en = {
     "history.exported": "History exported",
     "history.rerun": "Re-run in new tab",
     "history.delete": "Delete entry",
+    "history.more-actions": "More actions",
     "history.open-detail": "View Details",
     "history.rerun-analysis": "Re-run",
     "history.copy-question": "Copy Question",

@@ -9,9 +9,11 @@ import { useAnalysisStore } from "@/stores/analysis-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import { useDataStore } from "@/stores/data-store";
 import { EmptyState } from "@/components/ui/empty-state";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { downloadBlob } from "@/utils/download";
 import { runToMarkdown } from "@/utils/export-markdown";
 import { formatLocalTime, formatRelativeTime, formatRuntime } from "@/utils/datetime";
+import { MoreHorizontal, Play, FileText, ClipboardCopy, Trash2, ArrowDownToLine } from "lucide-react";
 import toast from "react-hot-toast";
 
 export function SqlHistoryPanel() {
@@ -359,71 +361,85 @@ export function SqlHistoryPanel() {
                   <p className="text-xs text-red-400 mt-1.5 truncate">{entry.error}</p>
                 )}
 
-                {/* Action buttons — separated by subtle divider */}
-                <div className="flex items-center gap-2 mt-2.5 pt-2 border-t border-[var(--border-default)]/50 flex-wrap">
+                {/* Action buttons — primary action + More menu */}
+                <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-[var(--border-default)]/50">
                   {isAi ? (
                     <>
                       <button
                         onClick={() => handleOpenDetail(entry.id)}
-                        className="px-2.5 py-1 text-xs text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded hover:bg-purple-500/20 transition-colors"
+                        className="px-3 py-1 text-xs font-medium text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded hover:bg-purple-500/20 transition-colors"
                       >
                         {t("history.open-detail")}
                       </button>
-                      <button
-                        onClick={() => handleRerunAnalysis(entry.question || entry.sql, entry.tableName)}
-                        className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                      <DropdownMenu
+                        trigger={
+                          <button
+                            className="px-1.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded transition-colors"
+                            title={t("history.more-actions")}
+                          >
+                            <MoreHorizontal className="w-3.5 h-3.5" />
+                          </button>
+                        }
                       >
-                        {t("history.rerun-analysis")}
-                      </button>
-                      <button
-                        onClick={() => handleExportMarkdown(entry.id)}
-                        className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
-                      >
-                        {t("history.export-md")}
-                      </button>
-                      {entry.question && (
-                        <button
-                          onClick={() => handleCopy(entry.question!)}
-                          className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
-                        >
-                          {t("history.copy-question")}
-                        </button>
-                      )}
+                        <DropdownMenuItem onClick={() => handleRerunAnalysis(entry.question || entry.sql, entry.tableName)}>
+                          <Play className="w-3 h-3" />
+                          {t("history.rerun-analysis")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportMarkdown(entry.id)}>
+                          <FileText className="w-3 h-3" />
+                          {t("history.export-md")}
+                        </DropdownMenuItem>
+                        {entry.question && (
+                          <DropdownMenuItem onClick={() => handleCopy(entry.question!)}>
+                            <ClipboardCopy className="w-3 h-3" />
+                            {t("history.copy-question")}
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => removeEntry(entry.id)} danger>
+                          <Trash2 className="w-3 h-3" />
+                          {t("history.delete")}
+                        </DropdownMenuItem>
+                      </DropdownMenu>
                     </>
                   ) : (
                     <>
                       <button
                         onClick={() => handleLoadToWorkspace(entry.sql, entry.tableName)}
-                        className="px-2.5 py-1 text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded hover:bg-blue-500/20 transition-colors"
+                        className="px-3 py-1 text-xs font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded hover:bg-blue-500/20 transition-colors"
                       >
                         {t("history.load-to-workspace")}
                       </button>
-                      <button
-                        onClick={() => handleReExecute(entry.sql)}
-                        className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                      <DropdownMenu
+                        trigger={
+                          <button
+                            className="px-1.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded transition-colors"
+                            title={t("history.more-actions")}
+                          >
+                            <MoreHorizontal className="w-3.5 h-3.5" />
+                          </button>
+                        }
                       >
-                        {t("history.re-execute")}
-                      </button>
-                      <button
-                        onClick={() => handleExportCsv(entry.sql, entry.tableName)}
-                        className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
-                      >
-                        {t("history.export-csv")}
-                      </button>
-                      <button
-                        onClick={() => handleCopy(entry.sql)}
-                        className="px-2.5 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
-                      >
-                        {t("history.copy-sql")}
-                      </button>
+                        <DropdownMenuItem onClick={() => handleReExecute(entry.sql)}>
+                          <Play className="w-3 h-3" />
+                          {t("history.re-execute")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportCsv(entry.sql, entry.tableName)}>
+                          <ArrowDownToLine className="w-3 h-3" />
+                          {t("history.export-csv")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleCopy(entry.sql)}>
+                          <ClipboardCopy className="w-3 h-3" />
+                          {t("history.copy-sql")}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => removeEntry(entry.id)} danger>
+                          <Trash2 className="w-3 h-3" />
+                          {t("history.delete")}
+                        </DropdownMenuItem>
+                      </DropdownMenu>
                     </>
                   )}
-                  <button
-                    onClick={() => removeEntry(entry.id)}
-                    className="ml-auto px-2 py-1 text-xs text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    {t("history.delete")}
-                  </button>
                 </div>
               </div>
             );

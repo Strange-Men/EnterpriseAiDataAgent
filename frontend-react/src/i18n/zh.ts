@@ -125,6 +125,7 @@ const zh = {
     "history.exported": "历史已导出",
     "history.rerun": "在新标签页重新运行",
     "history.delete": "删除记录",
+    "history.more-actions": "更多操作",
     "history.open-detail": "查看详情",
     "history.rerun-analysis": "重新运行",
     "history.copy-question": "复制问题",
