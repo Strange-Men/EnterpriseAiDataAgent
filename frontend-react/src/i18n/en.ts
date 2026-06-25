@@ -139,6 +139,12 @@ const en = {
     "table.cols-label": "cols",
     "table.start-analysis": "Start Analysis",
 
+    // System history table (M4-8.8)
+    "table.system-history-badge": "History Table",
+    "table.system-history-desc": "Used to store query and analysis history. This is not a regular uploaded data table. Deleting it may make related history records unavailable for rerun.",
+    "table.system-table-delete-warning": "This is a system history table used to store query and analysis history.\n\nDeleting it may make related history records unavailable for rerun.\n\nAre you sure you want to delete it?",
+    "table.system-table-delete-title": "System table — deletion not recommended",
+
     "sql.title": "SQL Workspace",
     "sql.execute": "Execute",
     "sql.running": "Running...",
@@ -576,7 +582,7 @@ const en = {
     // v0.8.1+ Investigation Workspace
     "inv.title": "Analysis Workspace",
     "inv.subtitle": "Ask questions in plain language, AI analyzes your data",
-    "inv.start-hint": "Enter your question — AI will generate SQL and analyze the data.",
+    "inv.start-hint": "Enter a question and run analysis. Results from the current run will appear here.",
     "inv.question-placeholder": "Describe what you want to analyze, e.g. What are the top performing categories by revenue?",
     "inv.table-label": "Dataset",
     "inv.mode-label": "Analysis Mode",

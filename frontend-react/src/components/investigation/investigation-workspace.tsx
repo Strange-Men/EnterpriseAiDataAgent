@@ -59,6 +59,11 @@ export function InvestigationWorkspace() {
     };
   }, []);
 
+  // Clear stale activeRunId on mount so old results don't auto-load
+  useEffect(() => {
+    useAnalysisStore.getState().setActiveRun(null);
+  }, []);
+
   // Listen for tab switch events from SqlWorkspacePanel
   useEffect(() => {
     const handler = (e: Event) => {
@@ -77,6 +82,20 @@ export function InvestigationWorkspace() {
       ensureValidSelectedTable(tables.map((t) => t.name));
     }
   }, [tables, ensureValidSelectedTable]);
+
+  // Clear transient result when active table changes
+  const prevTableRef = useRef(activeTable);
+  useEffect(() => {
+    if (prevTableRef.current !== activeTable && prevTableRef.current !== null) {
+      setResult(null);
+      setCurrentRunId(null);
+      setError(undefined);
+      setStreamStage("");
+      setStreamStep(undefined);
+      setStreamEvent(null);
+    }
+    prevTableRef.current = activeTable;
+  }, [activeTable]);
 
   const handleSubmit = useCallback(async () => {
     const q = question.trim();
