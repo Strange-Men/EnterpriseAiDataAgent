@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/compone
 import { downloadBlob } from "@/utils/download";
 import { runToMarkdown } from "@/utils/export-markdown";
 import { formatLocalTime, formatRelativeTime, formatRuntime } from "@/utils/datetime";
-import { MoreHorizontal, Play, FileText, ClipboardCopy, Trash2, ArrowDownToLine } from "lucide-react";
+import { MoreHorizontal, Play, FileText, ClipboardCopy, Trash2, ArrowDownToLine, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 
 export function SqlHistoryPanel() {
@@ -36,6 +36,13 @@ export function SqlHistoryPanel() {
   const isTableValid = useCallback((tableName: string | undefined): boolean => {
     if (!tableName) return false;
     return tables.some((t) => t.name === tableName);
+  }, [tables]);
+
+  // Check if a history record is stale (table no longer exists)
+  const isRecordStale = useCallback((entry: { tableName?: string }): boolean => {
+    if (!entry.tableName) return false; // No table field = not stale (don't误判)
+    if (tables.length === 0) return false; // No table list loaded yet = can't判断
+    return !tables.some((t) => t.name === entry.tableName);
   }, [tables]);
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
@@ -290,6 +297,8 @@ export function SqlHistoryPanel() {
             const statusKey = entry.status === "success" ? "history.status-success"
               : entry.status === "partial" ? "history.status-partial" : "history.status-error";
 
+            const stale = isRecordStale(entry);
+
             return (
               <div
                 key={entry.id}
@@ -312,6 +321,12 @@ export function SqlHistoryPanel() {
                     }`} />
                     {t(statusKey)}
                   </span>
+                  {stale && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20">
+                      <AlertTriangle className="w-3 h-3" />
+                      {t("history.stale-badge")}
+                    </span>
+                  )}
                   <span className="ml-auto text-xs text-[var(--text-muted)]" title={formatLocalTime(entry.timestamp)}>
                     {formatRelativeTime(entry.timestamp)}
                   </span>
@@ -327,12 +342,20 @@ export function SqlHistoryPanel() {
 
                 {/* Metadata: Table · Rows · Duration */}
                 <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] flex-wrap">
-                  {entry.tableName && (
+                  {entry.tableName ? (
                     <span className="inline-flex items-center gap-1">
                       <span className="text-[var(--text-muted)]/70">{t("history.table-label")}:</span>
-                      <span className="font-mono text-[var(--accent)] bg-[var(--bg-tertiary)] px-1 py-0.5 rounded">
+                      <span className={`font-mono px-1 py-0.5 rounded ${
+                        stale
+                          ? "text-amber-400 bg-amber-500/10 line-through"
+                          : "text-[var(--accent)] bg-[var(--bg-tertiary)]"
+                      }`}>
                         {entry.tableName}
                       </span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] italic">
+                      {t("history.table-not-recorded")}
                     </span>
                   )}
                   {entry.tableName && entry.rowCount !== undefined && entry.status !== "error" && (
@@ -348,6 +371,13 @@ export function SqlHistoryPanel() {
                     <span>{t("history.duration-label")}: {formatRuntime(entry.runtimeMs)}</span>
                   )}
                 </div>
+
+                {/* Stale table warning */}
+                {stale && (
+                  <p className="text-xs text-amber-400 mt-1.5 leading-relaxed">
+                    {t("history.stale-description")}
+                  </p>
+                )}
 
                 {/* AI Summary (if exists) */}
                 {entry.summary && isAi && (
@@ -381,7 +411,16 @@ export function SqlHistoryPanel() {
                           </button>
                         }
                       >
-                        <DropdownMenuItem onClick={() => handleRerunAnalysis(entry.question || entry.sql, entry.tableName)}>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (stale) {
+                              toast.error(t("history.stale-guard"));
+                              return;
+                            }
+                            handleRerunAnalysis(entry.question || entry.sql, entry.tableName);
+                          }}
+                          disabled={stale}
+                        >
                           <Play className="w-3 h-3" />
                           {t("history.rerun-analysis")}
                         </DropdownMenuItem>
@@ -405,8 +444,19 @@ export function SqlHistoryPanel() {
                   ) : (
                     <>
                       <button
-                        onClick={() => handleLoadToWorkspace(entry.sql, entry.tableName)}
-                        className="px-3 py-1 text-xs font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded hover:bg-blue-500/20 transition-colors"
+                        onClick={() => {
+                          if (stale) {
+                            toast.error(t("history.stale-guard"));
+                            return;
+                          }
+                          handleLoadToWorkspace(entry.sql, entry.tableName);
+                        }}
+                        className={`px-3 py-1 text-xs font-medium border rounded transition-colors ${
+                          stale
+                            ? "text-[var(--text-muted)] bg-[var(--bg-tertiary)] border-[var(--border-default)] opacity-60 cursor-not-allowed"
+                            : "text-blue-400 bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20"
+                        }`}
+                        disabled={stale}
                       >
                         {t("history.load-to-workspace")}
                       </button>
@@ -420,7 +470,16 @@ export function SqlHistoryPanel() {
                           </button>
                         }
                       >
-                        <DropdownMenuItem onClick={() => handleReExecute(entry.sql)}>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (stale) {
+                              toast.error(t("history.stale-guard"));
+                              return;
+                            }
+                            handleReExecute(entry.sql);
+                          }}
+                          disabled={stale}
+                        >
                           <Play className="w-3 h-3" />
                           {t("history.re-execute")}
                         </DropdownMenuItem>
