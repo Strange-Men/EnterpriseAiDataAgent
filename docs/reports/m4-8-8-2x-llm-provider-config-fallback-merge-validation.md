@@ -45,7 +45,7 @@ No real key, token value, `.env`, frontend provider API key, or browser-exposed 
 ## Branch CI / Master CI Result
 
 - Branch CI: PASS, GitHub Actions run `28219119785`
-- Master CI: pending until `master` is pushed after this validation report
+- Master CI: PASS, GitHub Actions run `28219297578`
 
 ## What Was Not Changed
 
@@ -58,4 +58,4 @@ No real key, token value, `.env`, frontend provider API key, or browser-exposed 
 
 ## Next Step
 
-Push `master`, wait for master CI, and record final CI status in the session output.
+Keep M5 Agent work blocked, do not create a tag, and run online smoke before final M4 closure.
