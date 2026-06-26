@@ -26,6 +26,12 @@ RC Report: `docs/reports/m4-final-release-candidate-report.md`
 
 **M4.9 Engineering Completeness**
 
+已完成：
+- M4.9.0 Engineering Completeness Audit
+- M4.9.1 Merge + Validation
+- M4.9.2 Docker Compose Local Demo — merged to master
+- M4.9.3 README / README.en Rewrite — merged to master
+
 范围：
 - Dockerfile / docker-compose
 - README / README.en
