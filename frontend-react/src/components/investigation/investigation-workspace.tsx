@@ -10,6 +10,7 @@ import {
   type MultiStreamEvent,
   type MultiStepExecuted,
   type PlanStep,
+  type LlmProvider,
 } from "@/services/api";
 import { useAnalysisStore, type AnalysisMode } from "@/stores/analysis-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
@@ -32,12 +33,12 @@ export function InvestigationWorkspace() {
   const router = useRouter();
   const addRun = useAnalysisStore((s) => s.addRun);
   const updateRun = useAnalysisStore((s) => s.updateRun);
-  const activeRunId = useAnalysisStore((s) => s.activeRunId);
   const tables = useDataStore((s) => s.tables);
   const activeTable = useInvestigationStore((s) => s.activeTable);
   const setActiveTable = useInvestigationStore((s) => s.setActiveTable);
   const ensureValidSelectedTable = useInvestigationStore((s) => s.ensureValidSelectedTable);
   const llmProvider = useWorkspaceStore((s) => s.llmProvider);
+  const setLlmProvider = useWorkspaceStore((s) => s.setLlmProvider);
 
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("ai-query");
   const [question, setQuestion] = useState("");
@@ -48,6 +49,7 @@ export function InvestigationWorkspace() {
   const [result, setResult] = useState<InvestigationResult | null>(null);
   const [error, setError] = useState<string | undefined>();
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
@@ -92,6 +94,7 @@ export function InvestigationWorkspace() {
       setResult(null);
       setCurrentRunId(null);
       setError(undefined);
+      setFallbackNotice(null);
       setStreamStage("");
       setStreamStep(undefined);
       setStreamEvent(null);
@@ -119,6 +122,7 @@ export function InvestigationWorkspace() {
     setStreamEvent(null);
     setResult(null);
     setError(undefined);
+    setFallbackNotice(null);
 
     // Create run — always use "autonomous" mode internally
     const mode: AnalysisMode = "autonomous";
@@ -217,6 +221,12 @@ export function InvestigationWorkspace() {
 
           setResult(finalResult);
 
+          // Check for LLM fallback notice
+          const llmMeta = data?.llm as Record<string, unknown> | undefined;
+          if (llmMeta?.fallback_triggered && llmMeta?.fallback_reason) {
+            setFallbackNotice(t("ai.llm-fallback-notice"));
+          }
+
           // Determine status based on step results
           const hasErrors = accumulatedSteps.some((s) => s.status === "error");
           const runStatus = hasErrors ? "partial" as const : "success" as const;
@@ -295,21 +305,9 @@ export function InvestigationWorkspace() {
     setQuestion(example);
   }, []);
 
-  // Load existing run if activeRunId is set from navigation
-  useEffect(() => {
-    if (activeRunId && !currentRunId) {
-      const run = useAnalysisStore.getState().runs.find((r) => r.id === activeRunId);
-      if (run && run.status === "success") {
-        setResult({
-          sections: run.sections,
-          summary: run.multiResult?.summary,
-          steps: run.multiResult?.steps,
-          trace: run.trace as unknown as Record<string, unknown>,
-        });
-        setCurrentRunId(activeRunId);
-      }
-    }
-  }, [activeRunId, currentRunId]);
+  // NOTE: Intentionally NOT restoring old runs from persisted activeRunId.
+  // Analyze page only shows transient results from the current session.
+  // Historical results are accessible via History / Detail pages.
 
   const currentTableName = activeTable || tables[0]?.name;
   const currentTableMeta = tables.find((tbl) => tbl.name === currentTableName);
@@ -389,6 +387,30 @@ export function InvestigationWorkspace() {
                   {t("workspace.no-table")}
                 </span>
               )}
+            </div>
+
+            {/* LLM Provider selector */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-[var(--text-muted)] uppercase tracking-wider shrink-0">
+                  {t("ai.llm-provider")}
+                </label>
+                <select
+                  value={llmProvider}
+                  onChange={(e) => setLlmProvider(e.target.value as LlmProvider)}
+                  disabled={isLoading}
+                  className="h-7 rounded border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 text-xs text-[var(--text-secondary)] outline-none hover:border-[var(--accent)] disabled:opacity-60"
+                  aria-label={t("ai.llm-provider")}
+                >
+                  <option value="mock">{t("ai.llm-provider-mock")}</option>
+                  <option value="deepseek">{t("ai.llm-provider-deepseek")}</option>
+                  <option value="doubao">{t("ai.llm-provider-doubao")}</option>
+                  <option value="mimo">{t("ai.llm-provider-mimo")}</option>
+                </select>
+              </div>
+              <p className="text-2xs text-[var(--text-muted)]">
+                {t("ai.llm-provider-hint")}
+              </p>
             </div>
 
             {/* Question input */}
@@ -475,6 +497,27 @@ export function InvestigationWorkspace() {
               <div className="flex items-center gap-2 px-1">
                 <span className="inline-block w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
                 <p className="text-xs text-[var(--text-muted)]">{t("inv.loading-description")}</p>
+              </div>
+            )}
+
+            {/* Fallback notice */}
+            {fallbackNotice && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                <span className="text-yellow-400 text-xs mt-0.5">⚠</span>
+                <p className="text-xs text-yellow-300">{fallbackNotice}</p>
+              </div>
+            )}
+
+            {/* Empty state — only shown when no result and not loading */}
+            {!result && !isLoading && !error && (
+              <div className="flex flex-col items-center justify-center py-12 text-center space-y-2">
+                <Lightbulb className="w-6 h-6 text-[var(--text-muted)] opacity-40" />
+                <p className="text-sm font-medium text-[var(--text-muted)]">
+                  {t("ai.waiting-title")}
+                </p>
+                <p className="text-xs text-[var(--text-muted)] max-w-sm">
+                  {t("ai.waiting-hint")}
+                </p>
               </div>
             )}
 

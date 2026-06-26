@@ -65,10 +65,10 @@ export default function HomePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button
           onClick={() => router.push("/data")}
-          className="group flex items-center gap-4 p-5 rounded-lg border-2 border-[var(--accent)] bg-[var(--accent)]/5 hover:bg-[var(--accent)]/10 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="group flex items-center gap-4 p-5 rounded-lg border-2 border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
-          <div className="w-10 h-10 rounded-full bg-[var(--accent)]/15 flex items-center justify-center shrink-0">
-            <Upload className="w-5 h-5 text-[var(--accent)]" />
+          <div className="w-10 h-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center shrink-0 group-hover:bg-[var(--accent)]/15 transition-colors">
+            <Upload className="w-5 h-5 text-[var(--text-muted)] group-hover:text-[var(--accent)] transition-colors" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-[var(--text-primary)]">{t("home.upload-data")}</p>
