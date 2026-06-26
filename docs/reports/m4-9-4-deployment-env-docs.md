@@ -63,16 +63,17 @@ Add deployment, environment, and Docker demo documentation for M4.9 engineering 
 
 ## 7. Validation
 
-- markdown link / content check: docs cross-reference correctly
-- safety search: no real keys, no prohibited content
-- pytest: (pending)
-- backend import: (pending)
-- ruff: (pending)
-- frontend tsc: (pending)
-- frontend test: (pending)
-- frontend build: (pending)
-- frontend lint: (pending)
-- docker compose config: (pending)
+- markdown link / content check: docs cross-reference correctly ✅
+- safety search: no real keys, no prohibited content ✅
+- pytest: 559 passed, 31 skipped ✅
+- backend import: OK ✅
+- ruff: All checks passed ✅
+- frontend tsc: passed (no errors) ✅
+- frontend test: 1171 passed (48 files) ✅
+- frontend build: passed ✅
+- frontend lint: 3 warnings (pre-existing) ✅
+- docker compose config: valid ✅
+- CI: backend + frontend passed ✅
 
 ## 8. Next Step
 
