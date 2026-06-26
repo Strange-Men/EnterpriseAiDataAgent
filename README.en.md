@@ -1,101 +1,131 @@
-# EnterpriseAiDataAgent | AI Data Analysis Workspace
+# EnterpriseAiDataAgent
 
 中文版: [README.md](README.md)
 
-An AI data analysis workspace demo for CSV / Excel datasets. It supports data upload, table preview, SQL workspace, natural language analysis, anomaly detection, report generation, and configurable multi-provider LLM integration (Mock / DeepSeek / Doubao / Mimo). Mock mode is the default — the platform runs without a real API key.
+EnterpriseAiDataAgent is an AI data analysis workspace demo for CSV / Excel datasets. It combines DuckDB, table preview, natural language analysis, expert SQL workspace, history records, report details, and configurable LLM providers with Mock fallback — so you can explore the full analysis workflow without a real API key.
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi)
 ![DuckDB](https://img.shields.io/badge/DuckDB-OLAP-FFC800?logo=duckdb)
 ![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-UI-06B6D4?logo=tailwindcss)
-![Mock](https://img.shields.io/badge/Mock-Default-orange)
 ![Docker](https://img.shields.io/badge/Docker-Local%20Demo-2496ED?logo=docker)
 
 ---
 
-## 1. Highlights
+## Core Value
 
-- CSV / Excel upload and table management
-- DuckDB local OLAP engine, zero configuration
-- Natural language to SQL generation and execution
-- Expert SQL workspace (Monaco Editor, autocomplete, multi-tab)
-- Query history and report detail pages
-- Mock / DeepSeek / Doubao / Mimo multi-provider LLM support
-- Mock LLM as default fallback — runs without a real API key
-- Automatic fallback to Mock when real provider is unavailable
-- Docker Compose one-command local demo
-- Frontend-backend separation: FastAPI + Next.js
+- **Zero-config to run**: Mock LLM by default; Docker Compose starts locally out of the box.
+- **Multi-provider switchable**: Mock / DeepSeek / Doubao / Mimo with automatic fallback when a real provider is unavailable.
+- **Complete analysis pipeline**: Upload data → table preview → natural language analysis / expert SQL → history → report detail.
 
 ---
 
-## 2. Current Version
+## Table of Contents
 
-- M4 is finalized
-- Tag: `v1.4.0-m4-uiux-llm-fallback`
-- Current phase: M4.9 Engineering Completeness
-
----
-
-## 3. Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS |
-| SQL Editor | Monaco Editor, sql-formatter |
-| State Management | React Query (server state), Zustand (client state) |
-| Backend | FastAPI, Pydantic, Uvicorn |
-| Database | DuckDB (embedded OLAP) |
-| Data Processing | Pandas, NumPy, openpyxl |
-| LLM Providers | Mock, DeepSeek, Doubao, Mimo (OpenAI-compatible) |
-| Charts | Recharts |
-| Testing | pytest (backend), Vitest (frontend) |
-| Deployment | Docker Compose (local demo) |
+- [Why It Exists](#why-it-exists)
+- [Goals](#goals)
+- [Solution](#solution)
+- [Current Validation](#current-validation)
+- [Core Capabilities](#core-capabilities)
+- [Quick Start](#quick-start)
+- [Quick Demo](#quick-demo)
+- [Tech Stack](#tech-stack)
+- [LLM Providers](#llm-providers)
+- [Environment Variables](#environment-variables)
+- [Documentation](#documentation)
+- [FAQ](#faq)
+- [Project Boundaries](#project-boundaries)
+- [Contributing](#contributing)
+- [Roadmap](#roadmap)
 
 ---
 
-## 4. Features
+## Why It Exists
 
-### Data Management
+Working with CSV / Excel data often hits a few practical walls:
 
-- CSV / Excel file upload (`.csv`, `.xlsx`)
-- Automatic type inference, import to DuckDB
-- Table preview, rename, delete, export
-- Built-in demo_sales sample dataset
-
-### SQL Workspace
-
-- Monaco Editor with keyword / table / column autocomplete
-- Multi-tab SQL editor
-- Query execution, EXPLAIN plan, cancel running queries
-- Query history with search and filter
-- Save / favorite queries
-- Export results to CSV / JSON / Excel
-
-### AI Data Analysis
-
-- Natural language to SQL (NL→SQL pipeline)
-- Real-time query result explanation (SSE streaming)
-- Structured insight generation with confidence and severity
-- Chart type suggestions
-- Smart analysis question recommendations based on dataset characteristics
-- LLM provider selector (frontend switchable)
-
-### Anomaly Detection and Reports
-
-- Data quality report: missing values, duplicates, outliers, quality score
-- Statistical anomaly detection: Z-score, IQR methods
-- LLM explanation of anomaly business significance
-- Multi-step analysis: AI generates plan → step-by-step execution → result summary
-- Markdown analysis report generation
+- You want to analyze data but don't write SQL fluently.
+- You want AI-assisted analysis, but setting up a real LLM key and paying per call feels like overhead for exploration.
+- You want a local, quick way to validate an AI analysis workflow, but spreadsheet tools lack natural language analysis.
+- You want to keep history and traceable reports — not just one-off chat replies.
 
 ---
 
-## 5. Quick Start with Docker Compose
+## Goals
 
-Docker Compose runs a local demo with Mock LLM by default — no real API key required.
+EnterpriseAiDataAgent aims to provide a locally-runnable AI data analysis workspace demo:
+
+- Let users upload CSV / Excel and ask analysis questions in natural language.
+- Use DuckDB to handle local structured data queries.
+- Provide an expert SQL workspace for advanced users.
+- Support multiple LLM providers while keeping Mock LLM as a fallback.
+- Deliver the full core workflow even with no API key and no external model available.
+
+---
+
+## Solution
+
+| User Pain Point | What the Project Does |
+|---|---|
+| Can't write SQL | Natural language analysis entry + expert SQL workspace for advanced users |
+| LLM setup is costly | Supports Mock / DeepSeek / Doubao / Mimo — switchable providers |
+| No API key to try it | Mock LLM by default, zero-config startup |
+| Analysis results are hard to trace | History page and Analysis Detail report page |
+| Local setup is complex | Docker Compose local demo |
+
+---
+
+## Current Validation
+
+Latest M4.9.5 engineering completeness regression results:
+
+- Docker Compose local demo verified: backend + frontend start together.
+- Backend `/docs` and `/api/ai/status` return 200.
+- Frontend localhost returns 200.
+- Mock LLM works by default, no real API key required.
+- Backend tests: 559 passed, 31 skipped.
+- Frontend tests: 1171 passed.
+- master CI passed.
+- No `.env` committed, no real API keys found.
+
+---
+
+## Core Capabilities
+
+### 1. Upload Data
+
+Upload CSV / Excel files to create queryable DuckDB tables. Supports `.csv` and `.xlsx` formats with automatic column type inference.
+
+### 2. Preview and Select Tables
+
+View fields, row counts, and data preview. Distinguish between user-uploaded tables and system history tables. Supports rename, delete, and export.
+
+### 3. Natural Language Analysis
+
+Type a question, choose an LLM provider, and the system generates SQL, executes it, and returns analysis results. Supports SSE streaming output.
+
+### 4. Expert SQL
+
+SQL workspace for advanced users with Monaco Editor, keyword/table/column autocomplete, and multi-tab editing.
+
+### 5. History
+
+Retains past questions, SQL, export options, and re-run entries. Supports search and filter.
+
+### 6. Report Detail
+
+View analysis reports as Summary / Findings / Result / SQL Appendix.
+
+### 7. Data Quality Report
+
+View missing values, duplicates, outliers, and quality scores for any table.
+
+---
+
+## Quick Start
+
+### Docker Compose (Recommended)
 
 ```bash
 docker compose build
@@ -116,72 +146,50 @@ docker compose down --remove-orphans
 
 To use a real LLM provider, copy `.env.docker.example` to `.env.docker`, fill in the API key, and uncomment the `env_file` line in `docker-compose.yml`.
 
+### Local Development
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full instructions.
+
 ---
 
-## 6. Local Development
-
-### Requirements
-
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Python | 3.11+ | Backend runtime |
-| Node.js | 20+ | Frontend build |
-| npm | 10+ | Frontend dependencies |
-
-### Backend
+## Quick Demo
 
 ```bash
-# Create virtual environment
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # Linux / macOS
+# 1. Start Docker Compose
+docker compose build && docker compose up
 
-# Install dependencies
-pip install -r requirements.txt
+# 2. Open http://localhost:3000
 
-# Start backend (default port 8000)
-uvicorn backend.main:app --reload --port 8000
+# 3. Upload a CSV or Excel file
+#    (sample data available in the testExcel/ directory)
+
+# 4. Go to Data page, select a table, and preview it
+
+# 5. Go to Analyze page, select Mock LLM
+
+# 6. Type a question, e.g.: "Summarize the main fields and analysis directions of this dataset."
+
+# 7. Review the results, and find past analyses in History
+
+# 8. Stop
+docker compose down --remove-orphans
 ```
-
-### Frontend
-
-```bash
-cd frontend-react
-npm install
-npm run dev
-```
-
-### Access URLs
-
-- Frontend: http://localhost:3000
-- Backend Docs: http://localhost:8000/docs
-- AI Status: http://localhost:8000/api/ai/status
 
 ---
 
-## 7. Environment Variables
+## Tech Stack
 
-The project provides multiple env example files:
-
-| File | Purpose |
-|------|---------|
-| `.env.example` | Full local development config reference |
-| `backend/.env.example` | Backend LLM runtime config |
-| `frontend-react/.env.example` | Frontend public variables (no secrets) |
-| `.env.docker.example` | Docker Compose environment example |
-
-Key points:
-
-- API keys are configured only in backend environment variables
-- Frontend never contains real keys
-- Mock is the default safe mode — runs without any key
-- Automatic fallback to Mock when real provider is unavailable
+- **Frontend**: Next.js 15 / React 19 / TypeScript / Tailwind CSS / Monaco Editor / Recharts
+- **Backend**: FastAPI / Pydantic / Uvicorn
+- **Data Analysis**: DuckDB / Pandas / openpyxl
+- **LLM Runtime**: Mock / DeepSeek / Doubao / Mimo provider adapter
+- **State Management**: React Query (server) / Zustand (client)
+- **Testing**: pytest (backend) / Vitest (frontend)
+- **Infrastructure**: Docker / Docker Compose / GitHub Actions
 
 ---
 
-## 8. LLM Provider Configuration
-
-Supported providers:
+## LLM Providers
 
 | Provider | Description |
 |----------|-------------|
@@ -199,17 +207,25 @@ See [docs/LLM_PROVIDER_CONFIG.md](docs/LLM_PROVIDER_CONFIG.md) for detailed conf
 
 ---
 
-## 9. Docker and Deployment Notes
+## Environment Variables
 
-The current Docker Compose setup is a **local demo** — not production-grade.
+| File | Purpose |
+|------|---------|
+| `.env.example` | Full local development config reference |
+| `backend/.env.example` | Backend LLM runtime config |
+| `frontend-react/.env.example` | Frontend public variables (no secrets) |
+| `.env.docker.example` | Docker Compose environment example |
 
-- `Dockerfile`: Backend (Python 3.11-slim + FastAPI + DuckDB)
-- `Dockerfile.frontend`: Frontend (Node.js 20 Alpine + Next.js standalone)
-- `docker-compose.yml`: Orchestrates backend + frontend with Mock LLM default
+Key points:
+
+- API keys are configured only in backend environment variables
+- Frontend never contains real keys
+- Mock is the default safe mode — runs without any key
+- Automatic fallback to Mock when real provider is unavailable
 
 ---
 
-## 10. Documentation
+## Documentation
 
 - [LLM Provider Configuration](docs/LLM_PROVIDER_CONFIG.md)
 - [Environment Variables](docs/ENVIRONMENT.md)
@@ -218,63 +234,54 @@ The current Docker Compose setup is a **local demo** — not production-grade.
 
 ---
 
-## 11. Project Boundaries
+## FAQ
 
-- **Not** a production-grade BI system
-- **Does not connect** to real enterprise databases
-- **Does not include** real API keys
-- **Does not guarantee** real LLM uptime
-- Mock mode runs by default; real providers require user-configured backend env
-- Single-user local-first, no multi-tenancy
-- Targets CSV / Excel structured tabular data
+### Can I run it without a real LLM API key?
 
----
+Yes. Mock LLM is the default — no API key required.
 
-## 12. Validation Status
+### I configured DeepSeek / Doubao / Mimo but it still falls back to Mock. What's wrong?
 
-Most recent M4.9.2 validation results:
+Check that the backend environment variables are set correctly: API Key, Base URL, Model name, and provider allowlist. Check the backend logs for the fallback reason.
 
-| Dimension | Result |
-|-----------|--------|
-| pytest | 559 passed, 31 skipped |
-| backend import | OK |
-| ruff | All checks passed |
-| frontend tsc | passed |
-| frontend test | 1171 passed (48 files) |
-| frontend build | passed |
-| frontend lint | 3 warnings (pre-existing) |
-| Docker Compose build | passed |
-| Docker Compose up | passed |
-| no real key committed | confirmed |
+### Docker startup fails. What should I check?
+
+Make sure Docker Desktop is running and ports 3000 / 8000 are not occupied. Then check `docker compose logs backend` and `docker compose logs frontend`.
+
+### The frontend can't connect to the backend. What's wrong?
+
+Check that `NEXT_PUBLIC_API_BASE_URL` points to the backend address. In Docker Compose mode this is pre-configured; in local dev mode, verify your `.env`.
+
+### Is this a production-grade BI system?
+
+No. This is an AI data analysis workspace demo. It does not include production-grade auth, multi-tenancy, enterprise database connections, or production data persistence.
 
 ---
 
-## 13. Project Structure
+## Project Boundaries
 
-```text
-EnterpriseAiDataAgent/
-├── backend/              # FastAPI backend, LLM providers, prompt contracts
-├── frontend-react/       # Next.js 15 / React 19 / TypeScript frontend
-├── database/             # DuckDB schema and seed scripts
-├── docs/                 # Architecture, reports, governance docs
-├── tests/                # Backend tests
-├── Dockerfile            # Backend container
-├── Dockerfile.frontend   # Frontend container
-├── docker-compose.yml    # Local demo orchestration
-├── .env.example          # Full env reference
-├── .env.docker.example   # Docker env example
-├── requirements.txt      # Python dependencies
-└── README.md
-```
+- Not a production-grade BI system.
+- No enterprise-grade auth, multi-tenancy, or audit systems.
+- No real LLM API keys built in.
+- Targets CSV / Excel file analysis by default.
+- Docker Compose is for local demo use.
 
 ---
 
-## 14. Roadmap
+## Contributing
 
-- M4.9.3 README / README.en ✅
-- M4.9.4 Deployment + Env Docs ✅
-- M4.9.5 Engineering Regression
-- M4.9.6 Engineering Tag
+Interested in contributing? Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting issues or PRs.
+
+---
+
+## Roadmap
+
+| Stage | Focus | Status |
+|---|---|---|
+| M4 | UI/UX polish + LLM fallback | Done |
+| M4.9 | Docker / README / deployment docs | Done |
+| M5 | Agent workflow enhancement | Planned |
+| Future | More file formats, stronger data profiling, richer report export | Planned |
 
 ---
 

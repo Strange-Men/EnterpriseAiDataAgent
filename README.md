@@ -1,185 +1,167 @@
-# EnterpriseAiDataAgent | AI 数据分析工作台
+# EnterpriseAiDataAgent
 
 English version: [README.en.md](README.en.md)
 
-面向 CSV / Excel 数据的 AI 数据分析工作台 Demo。支持数据上传、表格预览、SQL 工作台、自然语言分析、异常检测、报告生成，以及可配置的多 LLM Provider（Mock / DeepSeek / Doubao / Mimo）。Mock 默认可用，无真实 API Key 也能跑。
+面向 CSV / Excel 数据的 AI 数据分析工作台 Demo：通过 DuckDB、本地表格预览、自然语言分析、专家 SQL、历史报告和多 LLM Provider + Mock fallback，帮助用户在无真实 API Key 的情况下快速验证 AI 数据分析流程。
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi)
 ![DuckDB](https://img.shields.io/badge/DuckDB-OLAP-FFC800?logo=duckdb)
 ![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-UI-06B6D4?logo=tailwindcss)
-![Mock](https://img.shields.io/badge/Mock-Default-orange)
 ![Docker](https://img.shields.io/badge/Docker-Local%20Demo-2496ED?logo=docker)
 
 ---
 
-## 1. 项目亮点
+## 核心价值
 
-- CSV / Excel 上传与数据表管理
-- DuckDB 本地 OLAP 分析引擎，零配置
-- 自然语言生成 SQL 并执行
-- 专家 SQL 工作台（Monaco Editor、自动补全、多标签页）
-- 查询历史与报告详情页
-- Mock / DeepSeek / Doubao / Mimo 多 LLM Provider
-- Mock LLM 默认兜底，无真实 key 也能跑
-- 真实 provider 不可用时自动 fallback 到 Mock
-- Docker Compose 一键本地 Demo
-- 前后端分离：FastAPI + Next.js
+- **零配置可运行**：默认 Mock LLM，本地 Docker Compose 可直接启动。
+- **多模型可切换**：支持 Mock / DeepSeek / Doubao / Mimo，真实模型不可用时自动 fallback。
+- **分析链路完整**：数据上传 → 表格预览 → 自然语言分析 / 专家 SQL → 历史记录 → 报告详情。
 
 ---
 
-## 2. 当前版本
+## 目录
 
-- M4 已封板
-- tag: `v1.4.0-m4-uiux-llm-fallback`
-- 当前阶段：M4.9 Engineering Completeness
-
----
-
-## 3. 技术栈
-
-| 层级 | 技术 |
-|------|------|
-| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS |
-| SQL 编辑器 | Monaco Editor, sql-formatter |
-| 状态管理 | React Query（服务端状态）, Zustand（客户端状态） |
-| Backend | FastAPI, Pydantic, Uvicorn |
-| 数据库 | DuckDB（嵌入式 OLAP） |
-| 数据处理 | Pandas, NumPy, openpyxl |
-| LLM Providers | Mock, DeepSeek, Doubao, Mimo（OpenAI-compatible） |
-| 图表 | Recharts |
-| 测试 | pytest（后端）, Vitest（前端） |
-| 部署 | Docker Compose（本地 demo） |
+- [项目背景](#项目背景)
+- [项目目标](#项目目标)
+- [解决方案](#解决方案)
+- [当前验证结果](#当前验证结果)
+- [核心能力](#核心能力)
+- [快速体验](#快速体验)
+- [技术栈](#技术栈)
+- [LLM Provider](#llm-provider)
+- [环境变量](#环境变量)
+- [文档](#文档)
+- [FAQ](#faq)
+- [项目边界](#项目边界)
+- [贡献](#贡献)
+- [Roadmap](#roadmap)
 
 ---
 
-## 4. 核心功能
+## 项目背景
 
-### 数据管理
+很多非技术用户拿到 CSV / Excel 数据后，常见痛点是：
 
-- CSV / Excel 文件上传（`.csv`、`.xlsx`）
-- 自动类型推断，导入 DuckDB
-- 表预览、重命名、删除、导出
-- 内置 demo_sales 示例数据集
-
-### SQL 工作台
-
-- Monaco Editor，关键字 / 表名 / 列名自动补全
-- 多标签页 SQL 编辑器
-- 查询执行、EXPLAIN 计划、取消运行中的查询
-- 查询历史（搜索、过滤、重跑）
-- 保存 / 收藏常用查询
-- 结果导出为 CSV / JSON / Excel
-
-### AI 数据分析
-
-- 自然语言转 SQL（NL→SQL 管线）
-- 查询结果实时解释（SSE 流式输出）
-- 结构化洞察生成（带置信度和严重程度）
-- 图表类型建议
-- 智能分析问题推荐（基于数据集特征）
-- LLM Provider 选择器（前端可切换）
-
-### 异常检测与报告
-
-- 数据质量报告：缺失值、重复值、异常值、质量评分
-- 统计异常检测：Z-score、IQR 方法
-- LLM 解释异常的业务含义
-- 多步分析：AI 生成计划 → 分步执行 → 结果汇总
-- 生成 Markdown 格式分析报告
+- 想分析数据但不会写 SQL。
+- 想用 AI 辅助分析，但真实 LLM Key 配置和调用成本较高。
+- 想在本地快速验证 AI 分析链路，但传统表格工具缺少自然语言分析能力。
+- 想保留历史分析结果和可追溯报告，而不是只得到一次性聊天回复。
 
 ---
 
-## 5. 快速启动：Docker Compose
+## 项目目标
 
-Docker Compose 是本地 Demo 模式，默认使用 Mock LLM，不需要真实 API Key。
+EnterpriseAiDataAgent 的目标是提供一个可本地运行的 AI 数据分析工作台 Demo：
+
+- 让用户上传 CSV / Excel 后，用自然语言提出分析问题。
+- 用 DuckDB 承载本地结构化数据查询。
+- 提供专家 SQL 工作台给进阶用户使用。
+- 支持多 LLM Provider，同时保留 Mock LLM 兜底。
+- 在无 API Key、无外部模型可用时，也能完整演示核心流程。
+
+---
+
+## 解决方案
+
+| 用户痛点 | 项目行动 |
+|---|---|
+| 不会写 SQL | 提供自然语言分析入口，并保留专家 SQL 工作台 |
+| LLM 配置成本高 | 支持 Mock / DeepSeek / Doubao / Mimo，多 provider 可切换 |
+| 没有 API Key 也想体验 | 默认 Mock LLM，可零配置启动 |
+| 分析结果难以追溯 | 提供 History 和 Analysis Detail 报告页 |
+| 本地启动复杂 | 提供 Docker Compose 本地 Demo |
+
+---
+
+## 当前验证结果
+
+最近一次 M4.9.5 工程完整性回归结果：
+
+- Docker Compose 本地 Demo 已验证：backend + frontend 可同时启动。
+- Backend `/docs` 和 `/api/ai/status` 返回 200。
+- Frontend localhost 返回 200。
+- Mock LLM 默认可用，无需真实 API Key。
+- Backend tests: 559 passed, 31 skipped。
+- Frontend tests: 1171 passed。
+- master CI passed。
+- 未提交 `.env`，未发现真实 API Key。
+
+---
+
+## 核心能力
+
+### 1. 上传数据
+
+CSV / Excel 上传，自动生成 DuckDB 可查询数据表。支持 `.csv` 和 `.xlsx` 格式，自动推断列类型。
+
+### 2. 预览与选择数据表
+
+查看字段、行数、预览数据，区分普通上传表和系统历史表。支持重命名、删除和导出操作。
+
+### 3. 自然语言分析
+
+输入问题，选择 LLM Provider，系统自动转 SQL 并执行，生成分析结果。支持 SSE 流式输出。
+
+### 4. 专家 SQL
+
+面向进阶用户的 SQL 查询工作台，提供 Monaco Editor、关键字/表名/列名自动补全、多标签页编辑器。
+
+### 5. 历史记录
+
+保留历史问题、SQL、导出、重新运行入口。支持搜索和过滤。
+
+### 6. 报告详情
+
+以 Summary / Findings / Result / SQL Appendix 的形式查看分析报告。
+
+### 7. 数据质量报告
+
+查看缺失值、重复值、异常值统计和质量评分。
+
+---
+
+## 快速体验
 
 ```bash
+# 1. 启动 Docker Compose
 docker compose build
 docker compose up
-```
 
-启动后访问：
+# 2. 打开浏览器
+#    Frontend: http://localhost:3000
+#    Backend Docs: http://localhost:8000/docs
 
-- Frontend: http://localhost:3000
-- Backend Docs: http://localhost:8000/docs
-- AI Status: http://localhost:8000/api/ai/status
+# 3. 上传一个 CSV 或 Excel 文件（仓库自带 testExcel/ 目录下有示例数据）
 
-停止：
+# 4. 在 Data 页面选择数据表并查看预览
 
-```bash
+# 5. 进入 Analyze 页面，选择 Mock LLM
+
+# 6. 输入一个自然语言问题，例如："请总结这份数据的主要字段和可分析方向。"
+
+# 7. 查看分析结果，并在 History 中回溯记录
+
+# 8. 停止
 docker compose down --remove-orphans
 ```
 
-如需使用真实 LLM Provider，复制 `.env.docker.example` 为 `.env.docker`，填写对应 API Key，然后取消 `docker-compose.yml` 中 `env_file` 的注释。
+---
+
+## 技术栈
+
+- **前端**：Next.js 15 / React 19 / TypeScript / Tailwind CSS / Monaco Editor / Recharts
+- **后端**：FastAPI / Pydantic / Uvicorn
+- **数据分析**：DuckDB / Pandas / openpyxl
+- **LLM Runtime**：Mock / DeepSeek / Doubao / Mimo provider adapter
+- **状态管理**：React Query（服务端）/ Zustand（客户端）
+- **测试**：pytest（后端）/ Vitest（前端）
+- **工程化**：Docker / Docker Compose / GitHub Actions
 
 ---
 
-## 6. 本地开发启动
-
-### 环境要求
-
-| 工具 | 版本 | 用途 |
-|------|------|------|
-| Python | 3.11+ | 后端运行 |
-| Node.js | 20+ | 前端构建 |
-| npm | 10+ | 前端依赖 |
-
-### Backend
-
-```bash
-# 创建虚拟环境
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # Linux / macOS
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 启动后端（默认端口 8000）
-uvicorn backend.main:app --reload --port 8000
-```
-
-### Frontend
-
-```bash
-cd frontend-react
-npm install
-npm run dev
-```
-
-### 访问地址
-
-- Frontend: http://localhost:3000
-- Backend Docs: http://localhost:8000/docs
-- AI Status: http://localhost:8000/api/ai/status
-
----
-
-## 7. 环境变量
-
-项目提供多个 env 示例文件：
-
-| 文件 | 用途 |
-|------|------|
-| `.env.example` | 本地开发完整配置参考 |
-| `backend/.env.example` | 后端 LLM 运行时配置 |
-| `frontend-react/.env.example` | 前端公开变量（不含密钥） |
-| `.env.docker.example` | Docker Compose 环境变量示例 |
-
-关键说明：
-
-- API Key 只配置在后端环境变量中
-- 前端不配置任何真实 Key
-- Mock 是默认安全模式，无需任何 Key 即可运行
-- 真实 provider 不可用时自动 fallback 到 Mock
-
----
-
-## 8. LLM Provider 配置
+## LLM Provider
 
 支持以下 LLM Provider：
 
@@ -199,17 +181,27 @@ npm run dev
 
 ---
 
-## 9. Docker / 部署说明
+## 环境变量
 
-当前 Docker Compose 是**本地 Demo**，不宣称生产级部署能力。
+项目提供多个 env 示例文件：
 
-- `Dockerfile`：Backend（Python 3.11-slim + FastAPI + DuckDB）
-- `Dockerfile.frontend`：Frontend（Node.js 20 Alpine + Next.js standalone）
-- `docker-compose.yml`：编排 backend + frontend，默认 Mock LLM
+| 文件 | 用途 |
+|------|------|
+| `.env.example` | 本地开发完整配置参考 |
+| `backend/.env.example` | 后端 LLM 运行时配置 |
+| `frontend-react/.env.example` | 前端公开变量（不含密钥） |
+| `.env.docker.example` | Docker Compose 环境变量示例 |
+
+关键说明：
+
+- API Key 只配置在后端环境变量中
+- 前端不配置任何真实 Key
+- Mock 是默认安全模式，无需任何 Key 即可运行
+- 真实 provider 不可用时自动 fallback 到 Mock
 
 ---
 
-## 10. 文档
+## 文档
 
 - [LLM Provider 配置](docs/LLM_PROVIDER_CONFIG.md)
 - [环境变量说明](docs/ENVIRONMENT.md)
@@ -218,63 +210,54 @@ npm run dev
 
 ---
 
-## 11. 项目边界
+## FAQ
 
-- **不是**生产级 BI 系统
-- **不连接**真实企业数据库
-- **不内置**真实 API Key
-- **不承诺**真实 LLM 永久在线
-- 默认 Mock 可跑，真实 provider 需要用户自行配置后端 env
-- 单用户本地优先，没有多租户
-- 面向 CSV / Excel 结构化表格数据
+### 没有真实 LLM API Key 能运行吗？
 
----
+可以。默认使用 Mock LLM，不需要任何 API Key。
 
-## 12. 验证状态
+### DeepSeek / Doubao / Mimo 配置后仍然 fallback 到 Mock 怎么办？
 
-最近一次 M4.9.2 验证结果：
+检查后端环境变量是否配置正确，包括 API Key、Base URL、Model 名称和 provider allowlist。查看后端日志中的 fallback 原因。
 
-| 维度 | 结果 |
-|------|------|
-| pytest | 559 passed, 31 skipped |
-| backend import | OK |
-| ruff | All checks passed |
-| frontend tsc | passed |
-| frontend test | 1171 passed (48 files) |
-| frontend build | passed |
-| frontend lint | 3 warnings (pre-existing) |
-| Docker Compose build | passed |
-| Docker Compose up | passed |
-| no real key committed | confirmed |
+### Docker 启动失败怎么办？
+
+检查 Docker Desktop 是否启动，3000 / 8000 端口是否被占用，然后查看 `docker compose logs backend` 和 `docker compose logs frontend`。
+
+### 前端无法连接后端怎么办？
+
+检查 `NEXT_PUBLIC_API_BASE_URL` 是否指向后端地址。Docker Compose 模式下默认已配置，本地开发模式下需要确认 `.env` 中的地址正确。
+
+### 这是生产级 BI 系统吗？
+
+不是。本项目是 AI 数据分析工作台 Demo，不包含生产级权限、多租户、企业数据库接入和生产级数据持久化。
 
 ---
 
-## 13. 目录结构
+## 项目边界
 
-```text
-EnterpriseAiDataAgent/
-├── backend/              # FastAPI backend, LLM providers, prompt contracts
-├── frontend-react/       # Next.js 15 / React 19 / TypeScript frontend
-├── database/             # DuckDB schema and seed scripts
-├── docs/                 # Architecture, reports, governance docs
-├── tests/                # Backend tests
-├── Dockerfile            # Backend container
-├── Dockerfile.frontend   # Frontend container
-├── docker-compose.yml    # Local demo orchestration
-├── .env.example          # Full env reference
-├── .env.docker.example   # Docker env example
-├── requirements.txt      # Python dependencies
-└── README.md
-```
+- 非生产级 BI 系统。
+- 不包含企业级权限、多租户和审计系统。
+- 不内置真实 LLM API Key。
+- 默认面向 CSV / Excel 文件分析。
+- Docker Compose 主要用于本地 Demo。
 
 ---
 
-## 14. 后续计划
+## 贡献
 
-- M4.9.3 README / README.en ✅
-- M4.9.4 Deployment + Env Docs ✅
-- M4.9.5 Engineering Regression
-- M4.9.6 Engineering Tag
+欢迎提交 Issue 或 PR。提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+---
+
+## Roadmap
+
+| Stage | Focus | Status |
+|---|---|---|
+| M4 | UI/UX polish + LLM fallback | Done |
+| M4.9 | Docker / README / deployment docs | Done |
+| M5 | Agent workflow enhancement | Planned |
+| Future | More file formats, stronger data profiling, richer report export | Planned |
 
 ---
 

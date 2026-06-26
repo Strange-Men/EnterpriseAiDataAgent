@@ -4,45 +4,36 @@
 
 ## Current Version
 
-- **Version**: v1.4.0-m4-uiux-llm-fallback (M4 Final RC)
-- **Phase**: M4 UI/UX + LLM Fallback — CLOSED
-- **Tag**: `v1.4.0-m4-uiux-llm-fallback`
-- **Status**: M4 封板完成
+- **Version**: v1.4.1-m4-engineering-complete
+- **Phase**: M4 Engineering Completeness — CLOSED
+- **Tag**: `v1.4.1-m4-engineering-complete`
+- **Status**: M4 最终封板完成
 
 ## M4 Status
 
-M4 is closed as a frontend UI/UX + LLM fallback release candidate.
+M4 is fully closed: UI/UX polish, LLM fallback, Docker Compose, README, deployment docs, and final engineering tag.
 
 Closed scope:
 - Home / Data / Analyze / History / Detail / Settings polish
 - LLM provider selector (Mock / DeepSeek / Doubao / Mimo)
 - Mock fallback when real provider unavailable
 - Online smoke hotfixes (7 user-reported issues fixed)
-- Final regression tests (559 backend, 1171 frontend)
+- Docker Compose local demo
+- README / README.en value polish (STAR-style)
+- Deployment docs, environment docs, LLM provider docs
+- Final engineering regression (559 backend, 1171 frontend)
+- CONTRIBUTING.md
 
 RC Report: `docs/reports/m4-final-release-candidate-report.md`
+Regression Report: `docs/reports/m4-9-5-engineering-completeness-regression.md`
+Polish Report: `docs/reports/m4-9-6-readme-value-polish-final-tag.md`
 
 ## Next Stage
 
-**M4.9 Engineering Completeness**
+**M5 Agent Workflow Enhancement** — Planned, not started.
 
-已完成：
-- M4.9.0 Engineering Completeness Audit
-- M4.9.1 Merge + Validation
-- M4.9.2 Docker Compose Local Demo — merged to master
-- M4.9.3 README / README.en Rewrite — merged to master
-- M4.9.4 Deployment + Env Docs — merged to master
-- M4.9.5 Engineering Completeness Regression — merged to master
+After this tag, future work can choose either:
+- Real hosted deployment smoke
+- M5 Agent workflow enhancement
 
-下一步：
-- M4.9.6 Final Engineering Completeness Tag
-
-范围：
-- Dockerfile / docker-compose
-- README / README.en
-- env.example 最终整理
-- 本地一键启动说明
-- Render / Vercel 部署说明
-- 项目边界说明
-- Demo 数据说明
-- 不做新 Agent 功能
+Do not start M5 until user confirms.
