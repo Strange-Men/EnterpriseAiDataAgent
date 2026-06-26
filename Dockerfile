@@ -24,6 +24,12 @@ ENV PYTHONUNBUFFERED=1
 ENV HOST=0.0.0.0
 ENV PORT=8000
 
+# LLM defaults — safe mock mode; override at runtime with real provider keys
+ENV LLM_MODE=mock
+ENV LLM_DEFAULT_PROVIDER=mock
+ENV LLM_FALLBACK_PROVIDER=mock
+ENV LLM_FALLBACK_ON_ERROR=true
+
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \

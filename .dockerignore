@@ -5,18 +5,29 @@ frontend-react/node_modules/
 # Build artifacts
 .next/
 frontend-react/.next/
+frontend-react/dist/
+frontend-react/.npm-cache/
+dist/
 __pycache__/
 *.pyc
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
 
 # Git
 .git/
+.github/
 .gitignore
 
-# Environment
+# Environment — secrets only, .env.example is allowed
 .env
 .env.local
 .env.*.local
+
+# Security
+*.key
+*.pem
 
 # Database files
 data/*.duckdb
@@ -39,3 +50,7 @@ error_logs/
 # Temp
 temp/
 *.tmp
+
+# Non-production directories
+mystudy/
+.agents/
