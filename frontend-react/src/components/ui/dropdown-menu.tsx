@@ -7,6 +7,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/utils/cn";
 
 interface DropdownMenuProps {
@@ -25,7 +26,9 @@ export function DropdownMenu({
   onOpenChange,
 }: DropdownMenuProps) {
   const [open, setOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => {
@@ -33,16 +36,60 @@ export function DropdownMenu({
     onOpenChange?.(false);
   }, [onOpenChange]);
 
+  // Compute menu position from trigger's bounding rect (portal-based)
+  const computePosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const menuW = 180; // approximate min-width
+    const gap = 6;
+
+    const top = rect.bottom + gap;
+
+    let left: number;
+    if (align === "right") {
+      // Right-align: menu right edge = trigger right edge
+      left = rect.right - menuW;
+    } else {
+      left = rect.left;
+    }
+
+    // Clamp to viewport
+    const clampedLeft = Math.max(8, Math.min(left, window.innerWidth - menuW - 8));
+
+    setMenuStyle({
+      position: "fixed",
+      top,
+      left: clampedLeft,
+      minWidth: menuW,
+      zIndex: 2147483647,
+    });
+  }, [align]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    computePosition();
+
+    // Recompute on scroll / resize
+    const recompute = () => computePosition();
+    window.addEventListener("scroll", recompute, true);
+    window.addEventListener("resize", recompute);
+    return () => {
+      window.removeEventListener("scroll", recompute, true);
+      window.removeEventListener("resize", recompute);
+    };
+  }, [open, computePosition]);
+
   useEffect(() => {
     if (!open) return;
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        close();
-      }
+      const target = e.target as Node;
+      // Ignore clicks on the trigger itself (handled by toggle)
+      if (triggerRef.current?.contains(target)) return;
+      // Ignore clicks inside the menu
+      if (menuRef.current?.contains(target)) return;
+      close();
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -66,7 +113,7 @@ export function DropdownMenu({
 
   return (
     <div ref={containerRef} className="relative inline-block">
-      <div onClick={() => {
+      <div ref={triggerRef} onClick={() => {
         setOpen((prev) => {
           const next = !prev;
           onOpenChange?.(next);
@@ -74,20 +121,22 @@ export function DropdownMenu({
         });
       }}>{trigger}</div>
 
-      {open && (
+      {open && createPortal(
         <div
           ref={menuRef}
           role="menu"
+          data-testid="history-record-menu"
+          style={menuStyle}
           className={cn(
-            "absolute top-full mt-1 z-dropdown min-w-[160px]",
+            "min-w-[160px]",
             "bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-ds-md",
             "py-1 animate-fade-in",
-            align === "right" ? "right-0" : "left-0",
             className
           )}
         >
           {children}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

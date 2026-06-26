@@ -48,7 +48,6 @@ export function SqlHistoryPanel() {
   }, [tables]);
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
-  const [openDropdownEntryId, setOpenDropdownEntryId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchHistory();
@@ -303,9 +302,7 @@ export function SqlHistoryPanel() {
             return (
               <div
                 key={entry.id}
-                className={`group relative px-4 py-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] hover:shadow-sm transition-all ${
-                  openDropdownEntryId === entry.id ? "z-10" : ""
-                }`}
+                className="group relative px-4 py-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] hover:shadow-sm transition-all"
               >
                 {/* Header: Type badge + Status badge + Time */}
                 <div className="flex items-center gap-2 mb-1.5">
@@ -406,7 +403,7 @@ export function SqlHistoryPanel() {
                       </button>
                       <DropdownMenu
                         align="right"
-                        onOpenChange={(isOpen) => setOpenDropdownEntryId(isOpen ? entry.id : null)}
+
                         trigger={
                           <button
                             className="px-1.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded transition-colors"
@@ -467,7 +464,7 @@ export function SqlHistoryPanel() {
                       </button>
                       <DropdownMenu
                         align="right"
-                        onOpenChange={(isOpen) => setOpenDropdownEntryId(isOpen ? entry.id : null)}
+
                         trigger={
                           <button
                             className="px-1.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded transition-colors"
