@@ -7,6 +7,7 @@ import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 import { useDataStore } from "@/stores/data-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -29,6 +30,7 @@ export function SqlHistoryPanel() {
   } = useSqlHistoryStore();
   const { addTab, setActiveTab } = useSqlEditorStore();
   const { setActiveTable } = useInvestigationStore();
+  const setPendingRerunDraft = useWorkspaceStore((s) => s.setPendingRerunDraft);
   const runs = useAnalysisStore((s) => s.runs);
   const tables = useDataStore((s) => s.tables);
 
@@ -46,6 +48,7 @@ export function SqlHistoryPanel() {
   }, [tables]);
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+  const [openDropdownEntryId, setOpenDropdownEntryId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchHistory();
@@ -83,22 +86,20 @@ export function SqlHistoryPanel() {
 
   // AI Analysis: Re-run (navigate to workspace with question prefilled)
   const handleRerunAnalysis = useCallback((question: string, tableName?: string) => {
-    // Validate table still exists before setting it
+    // Set the table if it still exists
     if (tableName) {
       if (!isTableValid(tableName)) {
-        toast.error(t("history.table-not-found", { table: tableName }));
+        // Table is gone — still navigate, but warn the user
+        setPendingRerunDraft({ question, tableName, source: "history-rerun" });
+        router.push("/analyze");
         return;
       }
       setActiveTable(tableName);
     }
+    // Set pending draft so Analyze page can consume it
+    setPendingRerunDraft({ question, tableName, source: "history-rerun" });
     router.push("/analyze");
-    // Dispatch event so workspace can pick up the question
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("history:rerun-analysis", {
-        detail: { question, table: tableName },
-      }));
-    }, 100);
-  }, [router, setActiveTable, isTableValid, t]);
+  }, [router, setActiveTable, setPendingRerunDraft, isTableValid, t]);
 
   // Expert SQL: Load to workspace
   const handleLoadToWorkspace = useCallback((sql: string, tableName?: string) => {
@@ -302,7 +303,9 @@ export function SqlHistoryPanel() {
             return (
               <div
                 key={entry.id}
-                className="group px-4 py-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] hover:shadow-sm transition-all"
+                className={`group relative px-4 py-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] hover:shadow-sm transition-all ${
+                  openDropdownEntryId === entry.id ? "z-10" : ""
+                }`}
               >
                 {/* Header: Type badge + Status badge + Time */}
                 <div className="flex items-center gap-2 mb-1.5">
@@ -402,6 +405,8 @@ export function SqlHistoryPanel() {
                         {t("history.open-detail")}
                       </button>
                       <DropdownMenu
+                        align="right"
+                        onOpenChange={(isOpen) => setOpenDropdownEntryId(isOpen ? entry.id : null)}
                         trigger={
                           <button
                             className="px-1.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded transition-colors"
@@ -461,6 +466,8 @@ export function SqlHistoryPanel() {
                         {t("history.load-to-workspace")}
                       </button>
                       <DropdownMenu
+                        align="right"
+                        onOpenChange={(isOpen) => setOpenDropdownEntryId(isOpen ? entry.id : null)}
                         trigger={
                           <button
                             className="px-1.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded transition-colors"

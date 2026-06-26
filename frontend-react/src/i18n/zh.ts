@@ -315,6 +315,8 @@ const zh = {
     "ai.llm-provider-hint": "Mock 模式无需 API Key，适合演示；真实模型不可用时会自动使用 Mock 兜底。",
     "ai.waiting-title": "等待分析",
     "ai.waiting-hint": "输入你想了解的问题，点击生成分析后，这里会显示本次分析结果。",
+    "ai.rerun-loaded": "已从历史记录载入问题，你可以确认后重新生成分析。",
+    "ai.rerun-table-missing": "原数据表已不存在，已载入问题，请重新选择数据表后再生成分析。",
     "ai.follow-up-hint": "基于当前结果追问，AI 将生成新的 SQL。",
     "ai.follow-up-placeholder": "例如：按月份拆分...",
     "ai.generating": "生成中...",

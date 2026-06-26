@@ -14,6 +14,7 @@ interface DropdownMenuProps {
   children: ReactNode;
   align?: "left" | "right";
   className?: string;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function DropdownMenu({
@@ -21,12 +22,16 @@ export function DropdownMenu({
   children,
   align = "right",
   className,
+  onOpenChange,
 }: DropdownMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => {
+    setOpen(false);
+    onOpenChange?.(false);
+  }, [onOpenChange]);
 
   useEffect(() => {
     if (!open) return;
@@ -61,7 +66,13 @@ export function DropdownMenu({
 
   return (
     <div ref={containerRef} className="relative inline-block">
-      <div onClick={() => setOpen((prev) => !prev)}>{trigger}</div>
+      <div onClick={() => {
+        setOpen((prev) => {
+          const next = !prev;
+          onOpenChange?.(next);
+          return next;
+        });
+      }}>{trigger}</div>
 
       {open && (
         <div

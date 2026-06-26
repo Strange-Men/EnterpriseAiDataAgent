@@ -3,6 +3,12 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type { LlmProvider } from "@/services/api";
 import type { Language, LayoutPreset, PanelId } from "@/types";
 
+export interface PendingRerunDraft {
+  question: string;
+  tableName?: string;
+  source: "history-rerun";
+}
+
 interface WorkspaceState {
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -12,6 +18,9 @@ interface WorkspaceState {
 
   llmProvider: LlmProvider;
   setLlmProvider: (provider: LlmProvider) => void;
+
+  pendingRerunDraft: PendingRerunDraft | null;
+  setPendingRerunDraft: (draft: PendingRerunDraft | null) => void;
 
   collapsedPanels: Record<PanelId, boolean>;
   togglePanel: (panel: PanelId) => void;
@@ -29,6 +38,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       llmProvider: "mock",
       setLlmProvider: (llmProvider) => set({ llmProvider }),
+
+      pendingRerunDraft: null,
+      setPendingRerunDraft: (draft) => set({ pendingRerunDraft: draft }),
 
       collapsedPanels: { left: false, center: false, right: false },
       togglePanel: (panel) =>

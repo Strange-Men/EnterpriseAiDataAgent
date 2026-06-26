@@ -39,6 +39,8 @@ export function InvestigationWorkspace() {
   const ensureValidSelectedTable = useInvestigationStore((s) => s.ensureValidSelectedTable);
   const llmProvider = useWorkspaceStore((s) => s.llmProvider);
   const setLlmProvider = useWorkspaceStore((s) => s.setLlmProvider);
+  const pendingRerunDraft = useWorkspaceStore((s) => s.pendingRerunDraft);
+  const setPendingRerunDraft = useWorkspaceStore((s) => s.setPendingRerunDraft);
 
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("ai-query");
   const [question, setQuestion] = useState("");
@@ -67,6 +69,34 @@ export function InvestigationWorkspace() {
   useEffect(() => {
     useAnalysisStore.getState().setActiveRun(null);
   }, []);
+
+  // Consume pending rerun draft from History page
+  useEffect(() => {
+    if (!pendingRerunDraft) return;
+    const { question: draftQuestion, tableName: draftTable } = pendingRerunDraft;
+
+    // Prefill question
+    setQuestion(draftQuestion);
+
+    // If table exists, select it; otherwise warn
+    if (draftTable) {
+      const tableExists = tables.some((tbl) => tbl.name === draftTable);
+      if (tableExists) {
+        setActiveTable(draftTable);
+      } else {
+        toast(t("ai.rerun-table-missing"), { icon: "⚠️" });
+      }
+    }
+
+    // Switch to AI query tab
+    setActiveTab("ai-query");
+
+    // Show loaded toast
+    toast.success(t("ai.rerun-loaded"), { duration: 3000 });
+
+    // Consume draft so it doesn't re-trigger
+    setPendingRerunDraft(null);
+  }, [pendingRerunDraft, tables, setActiveTable, setPendingRerunDraft, t]);
 
   // Listen for tab switch events from SqlWorkspacePanel
   useEffect(() => {

@@ -315,6 +315,8 @@ const en = {
     "ai.llm-provider-hint": "Mock mode requires no API key and is safe for demos. If a real provider is unavailable, Mock will be used as fallback.",
     "ai.waiting-title": "Waiting for analysis",
     "ai.waiting-hint": "Enter a question and run analysis. Results from the current run will appear here.",
+    "ai.rerun-loaded": "Question loaded from history. Review it and run analysis again.",
+    "ai.rerun-table-missing": "The original table is no longer available. The question was loaded; choose a table before running analysis.",
     "ai.follow-up-hint": "Ask a follow-up question to generate new SQL based on these results.",
     "ai.follow-up-placeholder": "e.g. Break this down by month...",
     "ai.generating": "Generating...",
