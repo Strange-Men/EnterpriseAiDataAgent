@@ -1,3 +1,8 @@
+# Docker Compose — local demo only (not production-grade).
+# Backend defaults to mock LLM mode; no real API keys required.
+# To use real providers, set env vars on the backend service or copy
+# .env.docker.example to .env.docker and uncomment the env_file line.
+
 services:
   backend:
     build:
@@ -7,11 +12,13 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
-    env_file:
-      - .env
+    # Uncomment the next line to load provider keys from .env.docker:
+    # env_file: .env.docker
     environment:
-      - HOST=0.0.0.0
-      - PORT=8000
+      LLM_MODE: mock
+      LLM_DEFAULT_PROVIDER: mock
+      LLM_FALLBACK_PROVIDER: mock
+      LLM_FALLBACK_ON_ERROR: "true"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/status"]
@@ -24,11 +31,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
     ports:
       - "3000:3000"
     depends_on:
       backend:
         condition: service_healthy
-    environment:
-      - NEXT_PUBLIC_API_URL=http://backend:8000
     restart: unless-stopped
