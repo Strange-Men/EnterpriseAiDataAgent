@@ -6,6 +6,7 @@ import { useSqlEditorStore } from "@/stores/sql-editor-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { useSavedQueriesStore, type SavedQuery } from "@/stores/saved-queries-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 import { MonacoSqlEditor } from "@/components/monaco-sql-editor";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -38,6 +39,7 @@ export function SqlWorkspacePanel() {
   const { addEntry, fetchHistory } = useSqlHistoryStore();
   const { queries: savedQueries, saveQuery, deleteQuery, toggleFavorite } = useSavedQueriesStore();
   const { stage: wfStage, activeTable: wfTable, advance: wfAdvance, reset: wfReset } = useInvestigationStore();
+  const llmProvider = useWorkspaceStore((state) => state.llmProvider);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -101,7 +103,7 @@ export function SqlWorkspacePanel() {
     setAiSqlQualityGates([]);
     try {
       const currentTable = useInvestigationStore.getState().activeTable;
-      const res = await aiQuery(aiSqlQuestion.trim(), false, false, undefined, i18n.language, currentTable ?? undefined);
+      const res = await aiQuery(aiSqlQuestion.trim(), false, false, undefined, i18n.language, currentTable ?? undefined, llmProvider);
       setAiSqlQualityGates(res.quality_gates ?? []);
       if (res.sql && activeTab) {
         updateTabSql(activeTab.id, res.sql);
@@ -115,13 +117,13 @@ export function SqlWorkspacePanel() {
     } finally {
       if (mountedRef.current) setAiSqlLoading(false);
     }
-  }, [aiSqlQuestion, aiSqlLoading, activeTab, updateTabSql, t, i18n.language]);
+  }, [aiSqlQuestion, aiSqlLoading, activeTab, updateTabSql, t, i18n.language, llmProvider]);
 
   const handleGenerateAiSql = useCallback(async () => {
     if (!wfTable || generatingSql) return;
     setGeneratingSql(true);
     try {
-      const res = await aiQuery(`Show all data from ${wfTable}`, false, false, undefined, i18n.language, wfTable);
+      const res = await aiQuery(`Show all data from ${wfTable}`, false, false, undefined, i18n.language, wfTable, llmProvider);
       if (res.sql && activeTab) {
         updateTabSql(activeTab.id, res.sql);
         wfAdvance("sql-ready", { table: wfTable, sql: res.sql });
@@ -134,7 +136,7 @@ export function SqlWorkspacePanel() {
     } finally {
       if (mountedRef.current) setGeneratingSql(false);
     }
-  }, [wfTable, generatingSql, activeTab, updateTabSql, wfAdvance, t, i18n.language]);
+  }, [wfTable, generatingSql, activeTab, updateTabSql, wfAdvance, t, i18n.language, llmProvider]);
 
   const handleExecute = useCallback(async () => {
     const sql = currentSql.trim();

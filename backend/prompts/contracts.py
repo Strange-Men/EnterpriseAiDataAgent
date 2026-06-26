@@ -7,7 +7,7 @@
 - 用途说明
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

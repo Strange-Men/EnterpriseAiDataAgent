@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { LlmProvider } from "@/services/api";
 import type { Language, LayoutPreset, PanelId } from "@/types";
 
 interface WorkspaceState {
@@ -8,6 +9,9 @@ interface WorkspaceState {
 
   layout: LayoutPreset;
   setLayout: (layout: LayoutPreset) => void;
+
+  llmProvider: LlmProvider;
+  setLlmProvider: (provider: LlmProvider) => void;
 
   collapsedPanels: Record<PanelId, boolean>;
   togglePanel: (panel: PanelId) => void;
@@ -22,6 +26,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       layout: "default",
       setLayout: (layout) => set({ layout }),
+
+      llmProvider: "mock",
+      setLlmProvider: (llmProvider) => set({ llmProvider }),
 
       collapsedPanels: { left: false, center: false, right: false },
       togglePanel: (panel) =>
@@ -39,7 +46,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     {
       name: "workspace-settings",
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
       migrate: (persisted: unknown, version: number) => {
         if (!persisted || typeof persisted !== "object") return {};
         const p = persisted as Record<string, unknown>;
@@ -48,7 +55,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           if (typeof p.language === "string") result.language = p.language;
           if (typeof p.layout === "string") result.layout = p.layout;
           if (p.collapsedPanels && typeof p.collapsedPanels === "object") result.collapsedPanels = p.collapsedPanels;
+          result.llmProvider = "mock";
           return result;
+        }
+        if (version < 2) {
+          return { ...p, llmProvider: "mock" };
         }
         return p;
       },

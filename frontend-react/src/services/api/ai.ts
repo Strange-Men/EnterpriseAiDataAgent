@@ -2,6 +2,17 @@ import type { AnomalyResult, QualityReport } from "@/types";
 import { apiFetch } from "@/services/api/http-client";
 import type { AiQualityGate } from "@/services/api/envelope";
 
+export type LlmProvider = "mock" | "deepseek" | "doubao" | "mimo";
+
+export interface LlmMetadata {
+  mode: "mock" | "real";
+  provider_requested: LlmProvider;
+  provider_used: LlmProvider;
+  fallback_triggered: boolean;
+  fallback_reason?: string | null;
+  calls?: number;
+}
+
 export interface FollowUpContext {
   previous_sql?: string;
   previous_result_schema?: { name: string; dtype: string }[];
@@ -27,6 +38,7 @@ export interface AIQueryResult {
   execution_error?: string;
   explanation_ms?: number;
   quality_gates?: AiQualityGate[];
+  llm?: LlmMetadata;
 }
 
 export type InsightItem =
@@ -41,11 +53,13 @@ export async function aiQuery(
   followUpContext?: FollowUpContext,
   language?: string,
   table?: string,
+  llmProvider?: LlmProvider,
 ): Promise<AIQueryResult> {
   const body: Record<string, unknown> = { question, execute, explain };
   if (followUpContext) body.follow_up_context = followUpContext;
   if (language) body.language = language;
   if (table) body.table = table;
+  if (llmProvider) body.llm_provider = llmProvider;
   return apiFetch<AIQueryResult>("/ai/query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -58,11 +72,13 @@ export async function aiExplain(
   sql: string,
   results: Record<string, unknown>[],
   conversationHistory?: { role: string; content: string }[],
-  language?: string
-): Promise<{ explanation: string; status: string }> {
+  language?: string,
+  llmProvider?: LlmProvider,
+): Promise<{ explanation: string; status: string; llm?: LlmMetadata }> {
   const body: Record<string, unknown> = { question, sql, results };
   if (conversationHistory) body.conversation_history = conversationHistory;
   if (language) body.language = language;
+  if (llmProvider) body.llm_provider = llmProvider;
   return apiFetch("/ai/explain", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -74,11 +90,13 @@ export async function aiInsights(
   question: string,
   results: Record<string, unknown>[],
   language?: string,
-  priorContext?: string
-): Promise<{ insights: InsightItem[]; trends: TrendItem[]; suggested_next_steps: string[]; filtered_insights_count?: number }> {
+  priorContext?: string,
+  llmProvider?: LlmProvider,
+): Promise<{ insights: InsightItem[]; trends: TrendItem[]; suggested_next_steps: string[]; filtered_insights_count?: number; llm?: LlmMetadata }> {
   const body: Record<string, unknown> = { question, results };
   if (language) body.language = language;
   if (priorContext) body.prior_context = priorContext;
+  if (llmProvider) body.llm_provider = llmProvider;
   return apiFetch("/ai/insights", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -89,10 +107,12 @@ export async function aiInsights(
 export async function aiChartSuggest(
   results: Record<string, unknown>[],
   question: string = "",
-  language?: string
-): Promise<{ recommended_charts: { type: string; title: string; x_axis: string; y_axis: string; reason: string }[] }> {
+  language?: string,
+  llmProvider?: LlmProvider,
+): Promise<{ recommended_charts: { type: string; title: string; x_axis: string; y_axis: string; reason: string }[]; llm?: LlmMetadata }> {
   const body: Record<string, unknown> = { results, question };
   if (language) body.language = language;
+  if (llmProvider) body.llm_provider = llmProvider;
   return apiFetch("/ai/chart-suggest", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -126,16 +146,19 @@ export interface DatasetSemantics {
   suggested_focus: string;
   status: string;
   elapsed_ms?: number;
+  llm?: LlmMetadata;
 }
 
 export async function aiSemantics(
   table: string,
   columns: { name: string; dtype: string }[],
   sampleRows: Record<string, unknown>[],
-  language?: string
+  language?: string,
+  llmProvider?: LlmProvider,
 ): Promise<DatasetSemantics> {
   const body: Record<string, unknown> = { table, columns, sample_rows: sampleRows };
   if (language) body.language = language;
+  if (llmProvider) body.llm_provider = llmProvider;
   return apiFetch<DatasetSemantics>("/ai/semantics", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -153,11 +176,13 @@ export async function aiSuggestQuestions(
   table: string,
   profile: Record<string, unknown>,
   semantics?: Record<string, unknown>,
-  language?: string
-): Promise<{ questions: SuggestedQuestion[]; status: string }> {
+  language?: string,
+  llmProvider?: LlmProvider,
+): Promise<{ questions: SuggestedQuestion[]; status: string; llm?: LlmMetadata }> {
   const body: Record<string, unknown> = { table, profile };
   if (semantics) body.semantics = semantics;
   if (language) body.language = language;
+  if (llmProvider) body.llm_provider = llmProvider;
   return apiFetch("/ai/suggest-questions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -177,6 +202,7 @@ export interface AnalysisPlan {
   status: string;
   elapsed_ms?: number;
   error?: string;
+  llm?: LlmMetadata;
 }
 
 export async function aiGeneratePlan(
@@ -184,10 +210,12 @@ export async function aiGeneratePlan(
   table: string,
   columns: { name: string; dtype: string }[],
   sampleRows: Record<string, unknown>[],
-  language?: string
+  language?: string,
+  llmProvider?: LlmProvider,
 ): Promise<AnalysisPlan> {
   const body: Record<string, unknown> = { question, table, columns, sample_rows: sampleRows };
   if (language) body.language = language;
+  if (llmProvider) body.llm_provider = llmProvider;
   return apiFetch<AnalysisPlan>("/ai/plan", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -214,6 +242,7 @@ export interface MultiStepResult {
   status: string;
   elapsed_ms?: number;
   error?: string;
+  llm?: LlmMetadata;
 }
 
 export async function aiAnalyzeMulti(
@@ -222,10 +251,12 @@ export async function aiAnalyzeMulti(
   columns: { name: string; dtype: string }[],
   sampleRows: Record<string, unknown>[],
   language?: string,
-  maxRows: number = 500
+  maxRows: number = 500,
+  llmProvider?: LlmProvider,
 ): Promise<MultiStepResult> {
   const body: Record<string, unknown> = { question, table, columns, sample_rows: sampleRows, max_rows: maxRows };
   if (language) body.language = language;
+  if (llmProvider) body.llm_provider = llmProvider;
   return apiFetch<MultiStepResult>("/ai/analyze-multi", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -252,6 +283,7 @@ export interface MultiStreamEvent {
   trace?: Record<string, unknown>;
   token_budget?: Record<string, unknown>;
   guardrail_violations?: string[];
+  llm?: LlmMetadata;
 }
 
 export interface MultiStreamCallbacks {
@@ -305,10 +337,14 @@ export interface AnalysisResult {
   data?: Record<string, unknown>[];
   elapsed_ms: number;
   status: string;
+  llm?: LlmMetadata;
 }
 
-export async function analyzeTable(tableName: string, language?: string): Promise<AnalysisResult> {
-  const query = language ? `?language=${encodeURIComponent(language)}` : "";
+export async function analyzeTable(tableName: string, language?: string, llmProvider?: LlmProvider): Promise<AnalysisResult> {
+  const params = new URLSearchParams();
+  if (language) params.set("language", language);
+  if (llmProvider) params.set("llm_provider", llmProvider);
+  const query = params.toString() ? `?${params.toString()}` : "";
   return apiFetch<AnalysisResult>(`/analyze/${encodeURIComponent(tableName)}${query}`, {
     method: "POST",
   });
@@ -331,7 +367,8 @@ export async function aiAdaptTemplate(
   targetTable: string,
   targetColumns: { name: string; dtype: string }[],
   language?: string,
-): Promise<{ adapted_questions: AdaptedQuestion[]; status: string }> {
+  llmProvider?: LlmProvider,
+): Promise<{ adapted_questions: AdaptedQuestion[]; status: string; llm?: LlmMetadata }> {
   return apiFetch("/ai/adapt-template", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -341,6 +378,7 @@ export async function aiAdaptTemplate(
       target_table: targetTable,
       target_columns: targetColumns,
       language: language || "zh",
+      llm_provider: llmProvider,
     }),
   });
 }
@@ -427,6 +465,7 @@ export interface EvaluationResult {
     warnings: string[];
     checks_run: string[];
   };
+  llm?: LlmMetadata;
 }
 
 export async function aiEvaluate(
@@ -434,6 +473,7 @@ export async function aiEvaluate(
   sections: unknown[],
   trace?: unknown,
   language?: string,
+  llmProvider?: LlmProvider,
 ): Promise<EvaluationResult> {
   return apiFetch("/ai/evaluate", {
     method: "POST",
@@ -443,6 +483,7 @@ export async function aiEvaluate(
       sections,
       trace,
       language: language || "zh",
+      llm_provider: llmProvider,
     }),
   });
 }
@@ -488,11 +529,13 @@ export async function aiDetectAnomalies(
   results: Record<string, unknown>[],
   columns?: string[],
   method: string = "auto",
-  language?: string
+  language?: string,
+  llmProvider?: LlmProvider,
 ): Promise<AnomalyResult> {
   const body: Record<string, unknown> = { question, results, method };
   if (columns) body.columns = columns;
   if (language) body.language = language;
+  if (llmProvider) body.llm_provider = llmProvider;
   return apiFetch<AnomalyResult>("/ai/anomalies", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -8,7 +8,6 @@ import json
 import time
 
 import anthropic
-import httpx
 
 from backend.config import (
     ANTHROPIC_API_KEY,
@@ -20,44 +19,36 @@ from backend.config import (
 # Prompt 层导入
 from backend.prompts.locale import apply_language
 from backend.prompts.sql_generation import (
-    CONTRACT as SQL_GEN_CONTRACT,
     SYSTEM_PROMPT as SQL_GEN_SYSTEM,
     build_user_message as build_sql_user_message,
 )
 from backend.prompts.explanation import (
-    CONTRACT as EXPLAIN_CONTRACT,
     SYSTEM_PROMPT as EXPLAIN_SYSTEM,
     build_user_message as build_explain_user_message,
 )
 from backend.prompts.insights import (
-    CONTRACT as INSIGHTS_CONTRACT,
     SYSTEM_PROMPT as INSIGHTS_SYSTEM,
     build_user_message as build_insights_user_message,
 )
 from backend.prompts.chart_suggest import (
-    CONTRACT as CHART_CONTRACT,
     SYSTEM_PROMPT as CHART_SYSTEM,
     build_user_message as build_chart_user_message,
 )
 from backend.prompts.semantics import (
-    CONTRACT as SEMANTICS_CONTRACT,
     SYSTEM_PROMPT as SEMANTICS_SYSTEM,
     build_user_message as build_semantics_user_message,
 )
 from backend.prompts.suggest_questions import (
-    CONTRACT as QUESTIONS_CONTRACT,
     SYSTEM_PROMPT as QUESTIONS_SYSTEM,
     build_user_message as build_questions_user_message,
     build_profile_summary,
     build_semantics_summary,
 )
 from backend.prompts.analysis_plan import (
-    CONTRACT as PLAN_CONTRACT,
     SYSTEM_PROMPT as PLAN_SYSTEM,
     build_user_message as build_plan_user_message,
 )
 from backend.prompts.anomaly_interpretation import (
-    CONTRACT as ANOMALY_CONTRACT,
     SYSTEM_PROMPT as ANOMALY_SYSTEM,
     build_user_message as build_anomaly_user_message,
 )
@@ -72,6 +63,7 @@ from backend.runtime.token_budget import (
 
 # Trace 导入
 from backend.services.trace import TraceRecorder
+from backend.services.llm_runtime import call_llm_text
 from backend.utils.llm_json import parse_llm_json, safe_parse_llm_json
 from backend.utils.llm_sql import (
     build_sql_quality_gates,
@@ -410,84 +402,51 @@ def _call_llm(
         user_message = truncate_text(user_message, budget.max_input_tokens)
 
     start = time.time()
-    client = _get_client()
-    last_error = None
-    for attempt in range(MAX_RETRIES + 1):
-        try:
-            response = client.messages.create(
-                model=MODEL,
-                max_tokens=max_tokens,
-                temperature=TEMPERATURE,
-                system=apply_language(system, language),
-                messages=[{"role": "user", "content": user_message}],
-                timeout=30.0,
+    try:
+        text, _metadata = call_llm_text(
+            apply_language(system, language),
+            user_message,
+            max_tokens=max_tokens,
+            temperature=TEMPERATURE,
+            language=language,
+            operation=operation,
+        )
+
+        elapsed = (time.time() - start) * 1000
+
+        if tracker:
+            output_tokens = estimate_tokens(text)
+            tracker.record(operation, input_tokens, output_tokens)
+
+        if trace:
+            trace.record_llm_call(
+                operation=operation,
+                phase=phase,
+                prompt_name=prompt_name,
+                input_text=user_message,
+                output_text=text,
+                latency_ms=elapsed,
+                status="success",
+                sql=text if operation == "sql_generation" else None,
+                step=step,
             )
 
-            # 提取输出文本 — 只提取 type=="text" 的 block
-            # 过滤 ThinkingBlock / signature / internal blocks
-            text = _extract_visible_text(response.content)
-
-            elapsed = (time.time() - start) * 1000
-
-            # 记录到 tracker
-            if tracker:
-                output_tokens = estimate_tokens(text)
-                tracker.record(operation, input_tokens, output_tokens)
-
-            # 记录到 trace
-            if trace:
-                trace.record_llm_call(
-                    operation=operation,
-                    phase=phase,
-                    prompt_name=prompt_name,
-                    input_text=user_message,
-                    output_text=text,
-                    latency_ms=elapsed,
-                    status="success",
-                    sql=text if operation == "sql_generation" else None,
-                    step=step,
-                )
-
-            return text
-        except _TRANSIENT_ERRORS as e:
-            last_error = e
-            if attempt < MAX_RETRIES:
-                time.sleep(RETRY_DELAYS[attempt])
-                continue
-            break
-        except Exception as e:
-            elapsed = (time.time() - start) * 1000
-            if trace:
-                trace.record_llm_call(
-                    operation=operation,
-                    phase=phase,
-                    prompt_name=prompt_name,
-                    input_text=user_message,
-                    output_text="",
-                    latency_ms=elapsed,
-                    status="error",
-                    error=str(e),
-                    step=step,
-                )
-            raise
-
-    # All retries exhausted
-    elapsed = (time.time() - start) * 1000
-    if trace:
-        trace.record_llm_call(
-            operation=operation,
-            phase=phase,
-            prompt_name=prompt_name,
-            input_text=user_message,
-            output_text="",
-            latency_ms=elapsed,
-            status="error",
-            error=f"Retried {MAX_RETRIES}x: {last_error}",
-            step=step,
-        )
-    if last_error is not None:
-        raise last_error
-    raise RuntimeError(f"All {MAX_RETRIES} retries exhausted with no error captured for {operation}")
+        return text
+    except Exception as e:
+        elapsed = (time.time() - start) * 1000
+        if trace:
+            trace.record_llm_call(
+                operation=operation,
+                phase=phase,
+                prompt_name=prompt_name,
+                input_text=user_message,
+                output_text="",
+                latency_ms=elapsed,
+                status="error",
+                error="LLM provider request failed",
+                step=step,
+            )
+        raise RuntimeError("LLM provider request failed") from e
 
 
 def _call_llm_stream(
@@ -515,52 +474,19 @@ def _call_llm_stream(
         user_message = truncate_text(user_message, budget.max_input_tokens)
 
     start = time.time()
-    client = _get_client()
     output_text = ""
-    last_error = None
-
-    # Retry only on stream establishment (before any chunks yielded)
-    # Use explicit read timeout to prevent hanging when proxy stops sending data
-    stream_timeout = httpx.Timeout(timeout=180.0, connect=15.0, read=45.0, write=15.0, pool=15.0)
-    for attempt in range(MAX_RETRIES + 1):
-        try:
-            with client.messages.stream(
-                model=MODEL,
-                max_tokens=max_tokens,
-                temperature=TEMPERATURE,
-                system=apply_language(system, language),
-                messages=[{"role": "user", "content": user_message}],
-                timeout=stream_timeout,
-            ) as stream:
-                for chunk in stream.text_stream:
-                    output_text += chunk
-                    yield chunk
-            break  # success — exit retry loop
-        except _TRANSIENT_ERRORS as e:
-            last_error = e
-            if output_text:
-                # Already yielded chunks — can't retry mid-stream
-                raise
-            if attempt < MAX_RETRIES:
-                time.sleep(RETRY_DELAYS[attempt])
-                continue
-        except Exception as e:
-            elapsed = (time.time() - start) * 1000
-            if trace:
-                trace.record_llm_call(
-                    operation=operation,
-                    phase=phase,
-                    prompt_name=prompt_name,
-                    input_text=user_message,
-                    output_text=output_text,
-                    latency_ms=elapsed,
-                    status="error",
-                    error=str(e),
-                    step=step,
-                )
-            raise
-    else:
-        # All retries exhausted without success
+    try:
+        output_text, _metadata = call_llm_text(
+            apply_language(system, language),
+            user_message,
+            max_tokens=max_tokens,
+            temperature=TEMPERATURE,
+            language=language,
+            operation=operation,
+        )
+        if output_text:
+            yield output_text
+    except Exception as e:
         elapsed = (time.time() - start) * 1000
         if trace:
             trace.record_llm_call(
@@ -568,15 +494,13 @@ def _call_llm_stream(
                 phase=phase,
                 prompt_name=prompt_name,
                 input_text=user_message,
-                output_text="",
+                output_text=output_text,
                 latency_ms=elapsed,
                 status="error",
-                error=f"Retried {MAX_RETRIES}x: {last_error}",
+                error="LLM provider request failed",
                 step=step,
             )
-        if last_error is not None:
-            raise last_error
-        raise RuntimeError(f"All {MAX_RETRIES} retries exhausted with no error captured for {operation}")
+        raise RuntimeError("LLM provider request failed") from e
 
     elapsed = (time.time() - start) * 1000
 
@@ -1084,7 +1008,6 @@ def _apply_quality_gates(evaluation: dict) -> dict:
         checks_run.append(dim)
         val = evaluation.get(dim, "unknown")
         if val == "low":
-            label = dim.capitalize()
             warnings.append(f"Low {dim} — analysis quality may be insufficient")
 
     return {

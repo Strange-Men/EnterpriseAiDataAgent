@@ -3,7 +3,6 @@
 支持 replay、debugging、performance 分析。
 """
 
-import json
 import time
 import uuid
 from dataclasses import dataclass, field

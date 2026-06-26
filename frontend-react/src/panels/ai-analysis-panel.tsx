@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { aiEvaluate } from "@/services/api";
+import { aiEvaluate, type LlmMetadata } from "@/services/api";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import { useAnalysisStore, type AnalysisMode, type TraceSnapshot } from "@/stores/analysis-store";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 import { AiChart } from "@/components/ui/ai-chart";
 import type { AnomalyResult } from "@/types";
 import { AnalysisHeader } from "@/components/ai/analysis-header";
@@ -46,6 +47,9 @@ export function AIAnalysisPanel({
   tableName, sql, question, results, mode, onClose, onComplete, onSqlGenerated,
 }: AIAnalysisPanelProps) {
   const { t, i18n } = useTranslation();
+  const llmProvider = useWorkspaceStore((state) => state.llmProvider);
+  const setLlmProvider = useWorkspaceStore((state) => state.setLlmProvider);
+  const [llmMetadata, setLlmMetadata] = useState<LlmMetadata | null>(null);
 
   const {
     isLoading, setIsLoading,
@@ -98,6 +102,7 @@ export function AIAnalysisPanel({
     setDrillDownFindings([]);
     setProgressInfo(null);
     setElapsedSeconds(0);
+    setLlmMetadata(null);
 
     const runId = useAnalysisStore.getState().addRun(mode, question || tableName || "", tableName);
 
@@ -107,19 +112,19 @@ export function AIAnalysisPanel({
       if (mode === "explain" && sql && question && results) {
         const sessionStore = useInvestigationStore.getState();
         const history = sessionStore.getRecentTurns(6).map((t) => ({ role: t.role, content: t.content }));
-        result = await runExplainMode(sql, question, results, history, i18n.language, t,
+        result = await runExplainMode(sql, question, results, history, i18n.language, t, llmProvider,
           setStreamingContent, streamAbortRef, sessionStore);
       } else if (mode === "insights" && question && results) {
         const priorContext = useInvestigationStore.getState().getContextForInsights();
-        result = await runInsightsMode(question, results, i18n.language, t, priorContext ?? undefined);
+        result = await runInsightsMode(question, results, i18n.language, t, priorContext ?? undefined, llmProvider);
         if (result.drillDownFindings?.length) {
           setDrillDownFindings(result.drillDownFindings);
           if (!priorContext) useInvestigationStore.getState().addKeyFinding(result.drillDownFindings[0].text);
         }
       } else if (mode === "charts" && results) {
-        result = await runChartsMode(question || "", results, i18n.language, t);
+        result = await runChartsMode(question || "", results, i18n.language, t, llmProvider);
       } else if (mode === "anomalies" && question && results) {
-        result = await runAnomaliesMode(question, results, i18n.language, t);
+        result = await runAnomaliesMode(question, results, i18n.language, t, llmProvider);
         if (result.raw) useAnalysisStore.getState().updateRun(runId, { anomalies: result.raw as AnomalyResult });
         const anomalyRes = result.raw as { anomalies: unknown[]; summary: { total_anomalies: number; columns_affected: string[] } };
         if (anomalyRes?.anomalies?.length > 0) {
@@ -128,14 +133,15 @@ export function AIAnalysisPanel({
           );
         }
       } else if (mode === "full-analysis" && tableName) {
-        result = await runFullAnalysisMode(tableName, i18n.language, t);
+        result = await runFullAnalysisMode(tableName, i18n.language, t, llmProvider);
       } else if (mode === "autonomous" && tableName) {
         const priorFindings = useInvestigationStore.getState().getContextForPlan();
-        result = await runAutonomousMode(tableName, question || "", i18n.language, t,
+        result = await runAutonomousMode(tableName, question || "", i18n.language, t, llmProvider,
           priorFindings ?? undefined, setProgressInfo, setSections, setMultiResult,
           setElapsedSeconds, progressTimerRef, streamAbortRef);
       }
 
+      if (result.llm) setLlmMetadata(result.llm);
       if (result.chartSpecs?.length) setChartSpecs(result.chartSpecs);
       if (result.suggestedQuestions?.length) setSuggestedQuestions(result.suggestedQuestions);
       if (result.trace) setTrace(result.trace);
@@ -161,6 +167,7 @@ export function AIAnalysisPanel({
           aiEvaluate(question || tableName || "", evalSections,
             traceData ? { total_llm_calls: traceData.total_llm_calls, total_output_tokens: traceData.total_output_tokens, guardrail_violations: traceData.guardrail_violations } : undefined,
             i18n.language,
+            llmProvider,
           ).then((res) => {
             if (!mountedRef.current) return;
             setEvaluation(res);
@@ -182,7 +189,7 @@ export function AIAnalysisPanel({
       setIsLoading(false);
     }
   }, [
-    mode, sql, question, results, tableName, t, i18n.language, streamingContent, onComplete,
+    mode, sql, question, results, tableName, t, i18n.language, streamingContent, onComplete, llmProvider,
     setChartSpecs, setDrillDownFindings, setElapsedSeconds, setError, setEvaluation,
     setFollowUpQuestion, setHasRun, setIsLoading, setMultiResult, setProgressInfo,
     setRawData, setSections, setStreamingContent, setStreamingError, setSuggestedQuestions,
@@ -207,10 +214,23 @@ export function AIAnalysisPanel({
         rawData={rawData}
         isLoading={isLoading}
         onRun={!hasRun && !isLoading ? runAnalysis : undefined}
+        llmProvider={llmProvider}
+        onLlmProviderChange={setLlmProvider}
         onClose={onClose}
       />
 
       <div className="flex-1 overflow-y-auto p-3">
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
+          <span className="rounded border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 py-1">
+            {t(`ai.llm-using-${llmProvider}`)}
+          </span>
+          {llmMetadata?.fallback_triggered && (
+            <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
+              {t("ai.llm-fallback-notice")}
+            </span>
+          )}
+        </div>
+
         {isLoading && <AnalysisSkeleton />}
 
         {error && (
@@ -439,7 +459,7 @@ export function AIAnalysisPanel({
 
         {/* Follow-up */}
         {hasRun && !isLoading && (
-          <FollowUpInput results={results} onSqlGenerated={onSqlGenerated} question={followUpQuestion ?? undefined} onQuestionChange={setFollowUpQuestion} />
+          <FollowUpInput results={results} onSqlGenerated={onSqlGenerated} question={followUpQuestion ?? undefined} onQuestionChange={setFollowUpQuestion} llmProvider={llmProvider} />
         )}
       </div>
     </div>

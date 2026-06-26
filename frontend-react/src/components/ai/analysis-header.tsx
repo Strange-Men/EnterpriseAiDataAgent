@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import type { LlmProvider } from "@/services/api";
 import { downloadBlob } from "@/utils/download";
 import type { AnalysisSection } from "./analysis-section";
 
@@ -32,6 +33,8 @@ interface AnalysisHeaderProps {
   sections: AnalysisSection[];
   rawData: unknown;
   isLoading: boolean;
+  llmProvider: LlmProvider;
+  onLlmProviderChange: (provider: LlmProvider) => void;
   onRun?: () => void;
   onClose?: () => void;
 }
@@ -44,8 +47,15 @@ const MODE_LABELS: Record<string, string> = {
   charts: "ai.charts-title",
 };
 
+const PROVIDER_LABELS: Record<LlmProvider, string> = {
+  mock: "ai.llm-provider-mock",
+  deepseek: "ai.llm-provider-deepseek",
+  doubao: "ai.llm-provider-doubao",
+  mimo: "ai.llm-provider-mimo",
+};
+
 export function AnalysisHeader({
-  mode, tableName, hasResults, sections, rawData, isLoading, onRun, onClose,
+  mode, tableName, hasResults, sections, rawData, isLoading, llmProvider, onLlmProviderChange, onRun, onClose,
 }: AnalysisHeaderProps) {
   const { t } = useTranslation();
 
@@ -83,6 +93,23 @@ export function AnalysisHeader({
         )}
       </div>
       <div className="flex items-center gap-1">
+        <label className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+          <span className="sr-only">{t("ai.llm-provider")}</span>
+          <select
+            value={llmProvider}
+            onChange={(event) => onLlmProviderChange(event.target.value as LlmProvider)}
+            disabled={isLoading}
+            className="h-7 max-w-[132px] rounded border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 text-xs text-[var(--text-secondary)] outline-none hover:border-[var(--accent)] disabled:opacity-60"
+            aria-label={t("ai.llm-provider")}
+            title={t("ai.llm-provider")}
+          >
+            {(["mock", "deepseek", "doubao", "mimo"] as const).map((provider) => (
+              <option key={provider} value={provider}>
+                {t(PROVIDER_LABELS[provider])}
+              </option>
+            ))}
+          </select>
+        </label>
         {!hasResults && !isLoading && onRun && (
           <button
             onClick={onRun}

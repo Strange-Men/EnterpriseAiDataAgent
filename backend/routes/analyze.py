@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException
 from backend.services import data_service
 from backend.services.profiler import build_profile
 from backend.services.ai_analyst import generate_insights, suggest_charts
+from backend.services.llm_runtime import LLMProviderSelectionError, run_with_llm_context
 from backend.utils.json_safe import normalize_for_response
 
 logger = logging.getLogger("enterprise_ai.analyze")
@@ -19,7 +20,7 @@ router = APIRouter()
 
 
 @router.post("/analyze/{table_name}")
-async def analyze_table(table_name: str, language: str = "zh"):
+async def analyze_table(table_name: str, language: str = "zh", llm_provider: str | None = None):
     """Run full automated analysis on a table."""
     start = time.time()
 
@@ -33,15 +34,28 @@ async def analyze_table(table_name: str, language: str = "zh"):
 
         sample_data = normalize_for_response(df.head(20).to_dict(orient="records"))
 
-        ai_insights = {}
+        def run_ai_parts():
+            ai_result = {}
+            try:
+                ai_result = generate_insights(
+                    question=f"What are the key insights, trends, and anomalies in the '{table_name}' dataset?",
+                    results=sample_data,
+                    language=language,
+                )
+            except Exception:
+                pass
+            chart_result = {}
+            try:
+                chart_result = suggest_charts(sample_data, f"What are the key patterns in {table_name}?", language=language)
+            except Exception:
+                pass
+            return {"ai_insights": ai_result, "charts": chart_result.get("recommended_charts", [])}
+
         try:
-            ai_insights = generate_insights(
-                question=f"What are the key insights, trends, and anomalies in the '{table_name}' dataset?",
-                results=sample_data,
-                language=language,
-            )
-        except Exception:
-            pass
+            ai_parts = run_with_llm_context(llm_provider, run_ai_parts)
+        except LLMProviderSelectionError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        ai_insights = ai_parts.get("ai_insights", {})
 
         # Build backward-compatible ai_summary from structured insights
         summary_parts = []
@@ -57,12 +71,7 @@ async def analyze_table(table_name: str, language: str = "zh"):
                 summary_parts.append(t)
         ai_summary = "\n".join(summary_parts) if summary_parts else ""
 
-        charts = []
-        try:
-            chart_result = suggest_charts(sample_data, f"What are the key patterns in {table_name}?", language=language)
-            charts = chart_result.get("recommended_charts", [])
-        except Exception:
-            pass
+        charts = ai_parts.get("charts", [])
 
         elapsed = (time.time() - start) * 1000
 
@@ -76,6 +85,7 @@ async def analyze_table(table_name: str, language: str = "zh"):
             "data_quality_notes": ai_insights.get("data_quality_notes", []),
             "suggested_next_steps": ai_insights.get("suggested_next_steps", []),
             "chart_suggestions": charts,
+            "llm": ai_parts.get("llm"),
             "data": sample_data,
             "elapsed_ms": round(elapsed, 2),
             "status": "success",

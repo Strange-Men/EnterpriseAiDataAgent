@@ -1,10 +1,10 @@
 import type { AnomalyResult } from "@/types";
 import { DIRECT_BACKEND } from "@/services/api/http-client";
-import type { MultiStreamCallbacks, MultiStreamEvent, PlanStep } from "@/services/api/ai";
+import type { LlmProvider, MultiStreamCallbacks, MultiStreamEvent, PlanStep } from "@/services/api/ai";
 
 export interface StreamCallbacks {
   onChunk: (text: string) => void;
-  onDone: () => void;
+  onDone: (data?: Record<string, unknown>) => void;
   onError: (err: Error) => void;
 }
 
@@ -182,7 +182,7 @@ function consumeSseStream(
       onEvent: (data) => {
         if (data.type === "text") callbacks.onChunk((data.content as string) || "");
       },
-      onDone: () => callbacks.onDone(),
+      onDone: (data) => callbacks.onDone(data),
       onError: callbacks.onError,
     },
     timeoutMs,
@@ -196,11 +196,13 @@ export function streamAiExplain(
   results: Record<string, unknown>[],
   callbacks: StreamCallbacks,
   conversationHistory?: { role: string; content: string }[],
-  language?: string
+  language?: string,
+  llmProvider?: LlmProvider,
 ): AbortController {
   const body: Record<string, unknown> = { question, sql, results };
   if (conversationHistory) body.conversation_history = conversationHistory;
   if (language) body.language = language;
+  if (llmProvider) body.llm_provider = llmProvider;
   return consumeSseStream(
     (signal) => fetch(`${DIRECT_BACKEND}/api/ai/explain/stream`, {
       method: "POST",
@@ -217,11 +219,13 @@ export function streamAiInsights(
   results: Record<string, unknown>[],
   callbacks: StreamCallbacks,
   language?: string,
-  priorContext?: string
+  priorContext?: string,
+  llmProvider?: LlmProvider,
 ): AbortController {
   const body: Record<string, unknown> = { question, results };
   if (language) body.language = language;
   if (priorContext) body.prior_context = priorContext;
+  if (llmProvider) body.llm_provider = llmProvider;
   return consumeSseStream(
     (signal) => fetch(`${DIRECT_BACKEND}/api/ai/insights/stream`, {
       method: "POST",
@@ -241,11 +245,13 @@ export function streamAiAnalyzeMulti(
   callbacks: MultiStreamCallbacks,
   language?: string,
   maxRows: number = 500,
-  priorFindings?: string[]
+  priorFindings?: string[],
+  llmProvider?: LlmProvider,
 ): AbortController {
   const body: Record<string, unknown> = { question, table, columns, sample_rows: sampleRows, max_rows: maxRows };
   if (language) body.language = language;
   if (priorFindings?.length) body.prior_findings = priorFindings;
+  if (llmProvider) body.llm_provider = llmProvider;
 
   return consumeSseStreamGeneric(
     (signal) => fetch(`${DIRECT_BACKEND}/api/ai/analyze-multi/stream`, {
@@ -275,11 +281,13 @@ export function streamAiDetectAnomalies(
   callbacks: AnomalyStreamCallbacks,
   columns?: string[],
   method: string = "auto",
-  language?: string
+  language?: string,
+  llmProvider?: LlmProvider,
 ): AbortController {
   const body: Record<string, unknown> = { question, results, method };
   if (columns) body.columns = columns;
   if (language) body.language = language;
+  if (llmProvider) body.llm_provider = llmProvider;
 
   return consumeSseStreamGeneric(
     (signal) => fetch(`${DIRECT_BACKEND}/api/ai/anomalies/stream`, {

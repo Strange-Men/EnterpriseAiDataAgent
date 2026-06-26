@@ -21,7 +21,6 @@ def build_report(runs: list[dict], options: dict | None = None) -> str:
     title = opts.get("title", "Analysis Report")
     include_trace = opts.get("include_trace", False)
     include_data_samples = opts.get("include_data_samples", True)
-    language = opts.get("language", "zh")
 
     lines: list[str] = []
 

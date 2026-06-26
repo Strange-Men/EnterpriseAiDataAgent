@@ -12,6 +12,8 @@ import {
   type MultiStepResult,
   type PlanStep,
   type MultiStepExecuted,
+  type LlmMetadata,
+  type LlmProvider,
 } from "@/services/api";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import type { AnalysisSection, TraceSnapshot } from "@/stores/analysis-store";
@@ -26,6 +28,7 @@ export interface ModeResult {
   trace?: TraceSnapshot | null;
   suggestedQuestions?: { question: string; reason: string }[];
   storeMultiResult?: MultiStepResult | null;
+  llm?: LlmMetadata;
 }
 
 // ── Mode: Explain ─────────────────────────────────────────────
@@ -33,11 +36,13 @@ export async function runExplainMode(
   sql: string, question: string, results: Record<string, unknown>[],
   history: { role: string; content: string }[],
   language: string, t: (k: string) => string,
+  llmProvider: LlmProvider,
   onStreaming: (c: string | null) => void,
   streamAbortRef: React.MutableRefObject<AbortController | null>,
   sessionStore: ReturnType<typeof useInvestigationStore.getState>,
 ): Promise<ModeResult> {
   let accumulated = "";
+  let llm: LlmMetadata | undefined;
   let frameId: number | null = null;
   const scheduleUpdate = () => {
     if (frameId !== null) return;
@@ -53,11 +58,12 @@ export async function runExplainMode(
         accumulated += text;
         scheduleUpdate();
       },
-      onDone: () => {
+      onDone: (data) => {
         if (frameId !== null) {
           window.cancelAnimationFrame(frameId);
           frameId = null;
         }
+        llm = data?.llm as LlmMetadata | undefined;
         onStreaming(accumulated);
         resolve();
       },
@@ -68,7 +74,7 @@ export async function runExplainMode(
         }
         reject(err);
       },
-    }, history.length > 0 ? history : undefined, language);
+    }, history.length > 0 ? history : undefined, language, llmProvider);
     streamAbortRef.current = ctrl;
   });
   const sections: AnalysisSection[] = [{
@@ -82,7 +88,7 @@ export async function runExplainMode(
 
   const chartSpecs: ChartSpec[] = [];
   try {
-    const chartRes = await aiChartSuggest(results, question, language);
+    const chartRes = await aiChartSuggest(results, question, language, llmProvider);
     if (chartRes.recommended_charts?.length) {
       chartRes.recommended_charts
         .filter((c) => ["bar", "line", "pie", "scatter"].includes(c.type))
@@ -93,7 +99,7 @@ export async function runExplainMode(
         }));
     }
   } catch { /* non-fatal */ }
-  return { sections, chartSpecs };
+  return { sections, chartSpecs, llm };
 }
 
 // ── Mode: Insights ────────────────────────────────────────────
@@ -101,8 +107,9 @@ export async function runInsightsMode(
   question: string, results: Record<string, unknown>[],
   language: string, t: (k: string) => string,
   priorContext: string | undefined,
+  llmProvider: LlmProvider,
 ): Promise<ModeResult> {
-  const res = await aiInsights(question, results, language, priorContext);
+  const res = await aiInsights(question, results, language, priorContext, llmProvider);
   let md = "";
   const highSeverity: { text: string; severity: string; index: number }[] = [];
   if (res.insights?.length) {
@@ -131,7 +138,7 @@ export async function runInsightsMode(
   }
   return {
     sections: [{ title: t("ai.insights"), content: md || t("ai.no-insights"), type: "markdown" }],
-    raw: res, drillDownFindings: highSeverity,
+    raw: res, drillDownFindings: highSeverity, llm: res.llm,
   };
 }
 
@@ -139,8 +146,9 @@ export async function runInsightsMode(
 export async function runChartsMode(
   question: string, results: Record<string, unknown>[],
   language: string, t: (k: string) => string,
+  llmProvider: LlmProvider,
 ): Promise<ModeResult> {
-  const res = await aiChartSuggest(results, question, language);
+  const res = await aiChartSuggest(results, question, language, llmProvider);
   let md = "";
   const chartSpecs: ChartSpec[] = [];
   if (res.recommended_charts?.length) {
@@ -157,7 +165,7 @@ export async function runChartsMode(
   }
   return {
     sections: [{ title: t("ai.chart-suggestions"), content: md || t("ai.no-charts"), type: "markdown" }],
-    raw: res, chartSpecs,
+    raw: res, chartSpecs, llm: res.llm,
   };
 }
 
@@ -165,8 +173,9 @@ export async function runChartsMode(
 export async function runAnomaliesMode(
   question: string, results: Record<string, unknown>[],
   language: string, t: (k: string) => string,
+  llmProvider: LlmProvider,
 ): Promise<ModeResult> {
-  const res = await aiDetectAnomalies(question, results, undefined, "auto", language);
+  const res = await aiDetectAnomalies(question, results, undefined, "auto", language, llmProvider);
   const anomalies = res?.anomalies ?? [];
   const summary = res?.summary ?? {};
   const interpretations = res?.interpretations ?? [];
@@ -206,7 +215,7 @@ export async function runAnomaliesMode(
       sections.push({ title: t("ai.recommended-actions"), content: actMd, type: "markdown" });
     }
   }
-  return { sections, raw: res };
+  return { sections, raw: res, llm: (res as { llm?: LlmMetadata }).llm };
 }
 
 // ── Mode: Full Analysis ───────────────────────────────────────
@@ -246,9 +255,9 @@ function renderInsightsMd(insights: unknown[], _t: (k: string) => string): { md:
 }
 
 export async function runFullAnalysisMode(
-  tableName: string, language: string, t: (k: string) => string,
+  tableName: string, language: string, t: (k: string) => string, llmProvider: LlmProvider,
 ): Promise<ModeResult> {
-  const res = await analyzeTable(tableName, language);
+  const res = await analyzeTable(tableName, language, llmProvider);
   if (!res?.profile) {
     return { sections: [{ title: t("ai.error"), content: "No profile data returned.", type: "markdown" }] };
   }
@@ -294,7 +303,7 @@ export async function runFullAnalysisMode(
   try {
     const semCols = res.profile.columns.map((c) => ({ name: c.name, dtype: c.dtype }));
     const sampleRows = res.data?.slice(0, 5) ?? [];
-    const semRes = await aiSemantics(tableName, semCols, sampleRows, language);
+    const semRes = await aiSemantics(tableName, semCols, sampleRows, language, llmProvider);
     if (semRes.status === "success" && semRes.summary) {
       let semMd = `**${semRes.summary}**\n\n`;
       if (semRes.detected_kpis?.length) semMd += `**${t("ai.kpis")}:** ${semRes.detected_kpis.join(", ")}\n\n`;
@@ -327,7 +336,7 @@ export async function runFullAnalysisMode(
   // Suggested questions (non-fatal)
   let suggestedQuestions: { question: string; reason: string }[] = [];
   try {
-    const sqRes = await aiSuggestQuestions(tableName, res.profile as unknown as Record<string, unknown>, undefined, language);
+    const sqRes = await aiSuggestQuestions(tableName, res.profile as unknown as Record<string, unknown>, undefined, language, llmProvider);
     if (sqRes.questions?.length) suggestedQuestions = sqRes.questions;
   } catch { /* non-fatal */ }
 
@@ -342,12 +351,13 @@ export async function runFullAnalysisMode(
       }));
   }
 
-  return { sections, raw: res, chartSpecs, suggestedQuestions };
+  return { sections, raw: res, chartSpecs, suggestedQuestions, llm: res.llm };
 }
 
 // ── Mode: Autonomous ──────────────────────────────────────────
 export async function runAutonomousMode(
   tableName: string, question: string, language: string, t: (k: string) => string,
+  llmProvider: LlmProvider,
   priorFindings: string[] | undefined,
   setProgressInfo: React.Dispatch<React.SetStateAction<{
     totalSteps: number; currentStep: number; startTime: number;
@@ -370,6 +380,7 @@ export async function runAutonomousMode(
   const executedSteps: MultiStepExecuted[] = [];
   let execSummary = "";
   let runTrace: TraceSnapshot | null = null;
+  let llm: LlmMetadata | undefined;
   const startTime = Date.now();
 
   setElapsedSeconds(0);
@@ -426,6 +437,7 @@ export async function runAutonomousMode(
         if (progressTimerRef.current) { clearInterval(progressTimerRef.current); progressTimerRef.current = null; }
         setSections((prev) => prev.filter((s) => s.title !== t("ai.running-steps")));
         const rawTrace = data?.trace;
+        llm = data?.llm;
         if (rawTrace) {
           runTrace = {
             trace_id: String(rawTrace.trace_id || ""), total_llm_calls: Number(rawTrace.total_llm_calls || 0),
@@ -436,13 +448,13 @@ export async function runAutonomousMode(
         }
         resolve();
       },
-    }, language, 500, priorFindings);
+    }, language, 500, priorFindings, llmProvider);
     streamAbortRef.current = ctrl;
   });
 
-  const finalResult: MultiStepResult = { question: q, plan: planSteps, steps: executedSteps, summary: execSummary, status: "success" };
+  const finalResult: MultiStepResult = { question: q, plan: planSteps, steps: executedSteps, summary: execSummary, status: "success", llm };
   setMultiResult(finalResult);
-  return { sections: [], raw: finalResult, trace: runTrace, storeMultiResult: finalResult };
+  return { sections: [], raw: finalResult, trace: runTrace, storeMultiResult: finalResult, llm };
 }
 
 

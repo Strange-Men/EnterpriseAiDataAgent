@@ -4,7 +4,6 @@
 """
 
 import threading
-import time
 
 
 _worker_thread: threading.Thread | None = None

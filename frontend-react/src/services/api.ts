@@ -61,6 +61,8 @@ export type {
   EvaluationResult,
   FollowUpContext,
   InsightItem,
+  LlmMetadata,
+  LlmProvider,
   MultiStepExecuted,
   MultiStepResult,
   MultiStreamCallbacks,

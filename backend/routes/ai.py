@@ -9,15 +9,15 @@ Endpoints:
 """
 
 import asyncio
+import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-import json
-from backend.config import ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL
 
-logger = logging.getLogger("enterprise_ai.routes.ai")
+from backend.config import ANTHROPIC_BASE_URL, LLM_DEFAULT_PROVIDER
 from backend.services.ai_analyst import (
     explain_results,
     explain_results_stream,
@@ -35,7 +35,19 @@ from backend.services.ai_analyst import (
 )
 from backend.services.ai_pipeline import run_ai_query, run_autonomous_analysis, run_autonomous_analysis_stream
 from backend.services.guardrails import AnalysisGuardrails
-from backend.utils.json_safe import json_safe_encoder, normalize_for_response
+from backend.services.llm_runtime import (
+    LLMProviderSelectionError,
+    SUPPORTED_LLM_PROVIDERS,
+    allowed_providers,
+    get_provider_config,
+    llm_context,
+    normalize_provider,
+    run_with_llm_context,
+    summarize_llm_events,
+)
+from backend.utils.json_safe import json_safe_encoder
+
+logger = logging.getLogger("enterprise_ai.routes.ai")
 
 router = APIRouter()
 AI_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ai-route")
@@ -56,26 +68,36 @@ def _parse_guardrails(config: dict | None) -> AnalysisGuardrails | None:
     return AnalysisGuardrails(**filtered)
 
 
+def _run_with_provider(provider: str | None, fn):
+    try:
+        return run_with_llm_context(provider, fn)
+    except LLMProviderSelectionError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+def _validate_provider(provider: str | None) -> str:
+    try:
+        return normalize_provider(provider)
+    except LLMProviderSelectionError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
 @router.get("/ai/status")
 async def ai_status():
     """Check AI service configuration and health."""
-    has_key = bool(ANTHROPIC_API_KEY)
-
-    connection_ok = False
-    try:
-        from backend.services.ai_analyst import _get_client
-        _get_client()
-        if has_key:
-            connection_ok = True
-    except Exception:
-        pass
+    provider_config = get_provider_config(LLM_DEFAULT_PROVIDER)
+    is_mock = LLM_DEFAULT_PROVIDER == "mock"
+    configured = is_mock or bool(provider_config.api_key and provider_config.base_url and provider_config.model)
 
     return {
-        "configured": has_key,
-        "connection": "ok" if connection_ok else ("not_configured" if not has_key else "error"),
-        "model": MODEL,
+        "configured": configured,
+        "connection": "ok" if configured else "not_configured",
+        "model": provider_config.model or MODEL,
         "temperature": TEMPERATURE,
-        "base_url": ANTHROPIC_BASE_URL or "default",
+        "base_url": provider_config.base_url or ANTHROPIC_BASE_URL or "default",
+        "default_provider": LLM_DEFAULT_PROVIDER,
+        "supported_providers": SUPPORTED_LLM_PROVIDERS,
+        "allowed_providers": allowed_providers(),
     }
 
 
@@ -96,6 +118,7 @@ class AIQueryRequest(BaseModel):
     follow_up_context: FollowUpContext | None = None
     language: str = "zh"
     table: str | None = None
+    llm_provider: str | None = None
 
 
 class ExplainRequest(BaseModel):
@@ -104,6 +127,7 @@ class ExplainRequest(BaseModel):
     results: list[dict]
     conversation_history: list[dict] | None = None
     language: str = "zh"
+    llm_provider: str | None = None
 
 
 class InsightsRequest(BaseModel):
@@ -111,12 +135,14 @@ class InsightsRequest(BaseModel):
     results: list[dict]
     language: str = "zh"
     prior_context: str | None = None
+    llm_provider: str | None = None
 
 
 class ChartSuggestRequest(BaseModel):
     results: list[dict]
     question: str = ""
     language: str = "zh"
+    llm_provider: str | None = None
 
 
 @router.post("/ai/query")
@@ -128,7 +154,11 @@ async def ai_query(req: AIQueryRequest):
     try:
         return await asyncio.wait_for(
             asyncio.get_running_loop().run_in_executor(
-                AI_EXECUTOR, lambda: run_ai_query(req.question, req.execute, req.explain, req.max_rows, ctx, req.language, table=req.table)
+                AI_EXECUTOR,
+                lambda: _run_with_provider(
+                    req.llm_provider,
+                    lambda: run_ai_query(req.question, req.execute, req.explain, req.max_rows, ctx, req.language, table=req.table),
+                ),
             ),
             timeout=60.0,
         )
@@ -142,7 +172,11 @@ async def ai_explain(req: ExplainRequest):
     try:
         result = await asyncio.wait_for(
             asyncio.get_running_loop().run_in_executor(
-                AI_EXECUTOR, lambda: explain_results(req.question, req.sql, req.results, req.conversation_history, req.language)
+                AI_EXECUTOR,
+                lambda: _run_with_provider(
+                    req.llm_provider,
+                    lambda: explain_results(req.question, req.sql, req.results, req.conversation_history, req.language),
+                ),
             ),
             timeout=60.0,
         )
@@ -159,7 +193,11 @@ async def ai_insights(req: InsightsRequest):
     try:
         result = await asyncio.wait_for(
             asyncio.get_running_loop().run_in_executor(
-                AI_EXECUTOR, lambda: generate_insights(req.question, req.results, req.language, prior_context=req.prior_context)
+                AI_EXECUTOR,
+                lambda: _run_with_provider(
+                    req.llm_provider,
+                    lambda: generate_insights(req.question, req.results, req.language, prior_context=req.prior_context),
+                ),
             ),
             timeout=60.0,
         )
@@ -173,7 +211,7 @@ async def ai_insights(req: InsightsRequest):
 @router.post("/ai/chart-suggest")
 async def ai_chart_suggest(req: ChartSuggestRequest):
     """Suggest chart types for data."""
-    return suggest_charts(req.results, req.question, req.language)
+    return _run_with_provider(req.llm_provider, lambda: suggest_charts(req.results, req.question, req.language))
 
 
 # ── Anomaly Detection ──────────────────────────────────────────
@@ -186,14 +224,18 @@ class AnomalyDetectRequest(BaseModel):
     language: str = "zh"
     min_deviation_score: float = 1.5
     adaptive: bool = True
+    llm_provider: str | None = None
 
 
 @router.post("/ai/anomalies")
 async def ai_anomalies(req: AnomalyDetectRequest):
     """Detect and interpret anomalies in query results."""
-    result = detect_and_interpret_anomalies(
-        req.question, req.results, req.columns, req.method, req.language,
-        min_deviation_score=req.min_deviation_score, adaptive=req.adaptive,
+    result = _run_with_provider(
+        req.llm_provider,
+        lambda: detect_and_interpret_anomalies(
+            req.question, req.results, req.columns, req.method, req.language,
+            min_deviation_score=req.min_deviation_score, adaptive=req.adaptive,
+        ),
     )
     if result["status"] == "error":
         raise HTTPException(status_code=500, detail=result.get("error", "Anomaly detection failed"))
@@ -203,13 +245,16 @@ async def ai_anomalies(req: AnomalyDetectRequest):
 @router.post("/ai/anomalies/stream")
 async def ai_anomalies_stream(req: AnomalyDetectRequest):
     """Stream anomaly detection: statistical results first, then LLM interpretation."""
+    provider = _validate_provider(req.llm_provider)
     def event_generator():
         try:
-            for event in detect_and_interpret_anomalies_stream(
-                req.question, req.results, req.columns, req.method, req.language,
-                min_deviation_score=req.min_deviation_score, adaptive=req.adaptive,
-            ):
-                yield _sse_event(json.loads(event))
+            with llm_context(provider):
+                for event in detect_and_interpret_anomalies_stream(
+                    req.question, req.results, req.columns, req.method, req.language,
+                    min_deviation_score=req.min_deviation_score, adaptive=req.adaptive,
+                ):
+                    yield _sse_event(json.loads(event))
+                yield _sse_event({"type": "done", "llm": summarize_llm_events()})
         except Exception as e:
             logger.error(f"anomaly stream failed: {type(e).__name__}: {e}", exc_info=True)
             yield _sse_event({"type": "error", "error": "Anomaly detection failed"})
@@ -231,11 +276,13 @@ def _sse_event(data: dict) -> str:
 @router.post("/ai/explain/stream")
 async def ai_explain_stream(req: ExplainRequest):
     """Stream AI explanation as SSE."""
+    provider = _validate_provider(req.llm_provider)
     def event_generator():
         try:
-            for chunk in explain_results_stream(req.question, req.sql, req.results, req.conversation_history, req.language):
-                yield _sse_event({"type": "text", "content": chunk})
-            yield _sse_event({"type": "done"})
+            with llm_context(provider):
+                for chunk in explain_results_stream(req.question, req.sql, req.results, req.conversation_history, req.language):
+                    yield _sse_event({"type": "text", "content": chunk})
+                yield _sse_event({"type": "done", "llm": summarize_llm_events()})
         except Exception as e:
             logger.error(f"explain stream failed: {type(e).__name__}: {e}", exc_info=True)
             yield _sse_event({"type": "error", "error": "Explanation failed"})
@@ -250,11 +297,13 @@ async def ai_explain_stream(req: ExplainRequest):
 @router.post("/ai/insights/stream")
 async def ai_insights_stream(req: InsightsRequest):
     """Stream AI insights as SSE (raw JSON text chunks)."""
+    provider = _validate_provider(req.llm_provider)
     def event_generator():
         try:
-            for chunk in generate_insights_stream(req.question, req.results, req.language, prior_context=req.prior_context):
-                yield _sse_event({"type": "text", "content": chunk})
-            yield _sse_event({"type": "done"})
+            with llm_context(provider):
+                for chunk in generate_insights_stream(req.question, req.results, req.language, prior_context=req.prior_context):
+                    yield _sse_event({"type": "text", "content": chunk})
+                yield _sse_event({"type": "done", "llm": summarize_llm_events()})
         except Exception as e:
             logger.error(f"insights stream failed: {type(e).__name__}: {e}", exc_info=True)
             yield _sse_event({"type": "error", "error": "Insights generation failed"})
@@ -273,12 +322,13 @@ class SemanticsRequest(BaseModel):
     columns: list[dict]
     sample_rows: list[dict]
     language: str = "zh"
+    llm_provider: str | None = None
 
 
 @router.post("/ai/semantics")
 async def ai_semantics(req: SemanticsRequest):
     """Generate semantic understanding of a dataset."""
-    return generate_semantics(req.table, req.columns, req.sample_rows, req.language)
+    return _run_with_provider(req.llm_provider, lambda: generate_semantics(req.table, req.columns, req.sample_rows, req.language))
 
 
 class SuggestQuestionsRequest(BaseModel):
@@ -286,12 +336,13 @@ class SuggestQuestionsRequest(BaseModel):
     profile: dict
     semantics: dict | None = None
     language: str = "zh"
+    llm_provider: str | None = None
 
 
 @router.post("/ai/suggest-questions")
 async def ai_suggest_questions(req: SuggestQuestionsRequest):
     """Suggest analytical questions for a dataset."""
-    return suggest_questions(req.table, req.profile, req.semantics, req.language)
+    return _run_with_provider(req.llm_provider, lambda: suggest_questions(req.table, req.profile, req.semantics, req.language))
 
 
 # ── Analysis Planning ───────────────────────────────────────────
@@ -303,6 +354,7 @@ class AnalysisPlanRequest(BaseModel):
     sample_rows: list[dict]
     language: str = "zh"
     prior_findings: list[str] | None = None
+    llm_provider: str | None = None
 
 
 @router.post("/ai/plan")
@@ -310,7 +362,10 @@ async def ai_analysis_plan(req: AnalysisPlanRequest):
     """Generate a multi-step analysis plan for a complex question."""
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Empty question")
-    return generate_analysis_plan(req.question, req.table, req.columns, req.sample_rows, req.language, prior_findings=req.prior_findings)
+    return _run_with_provider(
+        req.llm_provider,
+        lambda: generate_analysis_plan(req.question, req.table, req.columns, req.sample_rows, req.language, prior_findings=req.prior_findings),
+    )
 
 
 # ── Autonomous Multi-step Analysis ─────────────────────────────
@@ -324,6 +379,7 @@ class MultiAnalyzeRequest(BaseModel):
     max_rows: int = 500
     guardrails: dict | None = None
     prior_findings: list[str] | None = None
+    llm_provider: str | None = None
 
 
 @router.post("/ai/analyze-multi")
@@ -335,10 +391,14 @@ async def ai_analyze_multi(req: MultiAnalyzeRequest):
     try:
         result = await asyncio.wait_for(
             asyncio.get_running_loop().run_in_executor(
-                AI_EXECUTOR, lambda: run_autonomous_analysis(
-                    req.question, req.table, req.columns, req.sample_rows,
-                    req.language, req.max_rows, gr, prior_findings=req.prior_findings,
-                )
+                AI_EXECUTOR,
+                lambda: _run_with_provider(
+                    req.llm_provider,
+                    lambda: run_autonomous_analysis(
+                        req.question, req.table, req.columns, req.sample_rows,
+                        req.language, req.max_rows, gr, prior_findings=req.prior_findings,
+                    ),
+                ),
             ),
             timeout=180.0,
         )
@@ -351,13 +411,17 @@ async def ai_analyze_multi(req: MultiAnalyzeRequest):
 async def ai_analyze_multi_stream(req: MultiAnalyzeRequest):
     """Stream autonomous analysis as SSE: plan → step_start → step_result → summary → done."""
     gr = _parse_guardrails(req.guardrails)
+    provider = _validate_provider(req.llm_provider)
     def event_generator():
         try:
-            for event in run_autonomous_analysis_stream(
-                req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows, gr,
-                prior_findings=req.prior_findings,
-            ):
-                yield _sse_event(event)
+            with llm_context(provider):
+                for event in run_autonomous_analysis_stream(
+                    req.question, req.table, req.columns, req.sample_rows, req.language, req.max_rows, gr,
+                    prior_findings=req.prior_findings,
+                ):
+                    if event.get("type") == "done":
+                        event["llm"] = summarize_llm_events()
+                    yield _sse_event(event)
         except Exception as e:
             logger.error(f"multi-analysis stream failed: {type(e).__name__}: {e}", exc_info=True)
             yield _sse_event({"type": "error", "error": "Multi-step analysis failed"})
@@ -377,6 +441,7 @@ class AdaptTemplateRequest(BaseModel):
     target_table: str
     target_columns: list[dict]
     language: str = "zh"
+    llm_provider: str | None = None
 
 
 @router.post("/ai/adapt-template")
@@ -390,18 +455,22 @@ async def ai_adapt_template(req: AdaptTemplateRequest):
         system = apply_language(CONTRACT.SYSTEM_PROMPT, req.language)
         user_msg = build_user_message(req.template_steps, req.original_columns, req.target_columns)
 
-        raw = _call_llm(
-            system=system,
-            user_message=user_msg,
-            max_tokens=CONTRACT.max_output_tokens,
-            language=req.language,
-            operation="template_adaptation",
-            phase="adapt",
-            prompt_name="template_adaptation",
-        )
+        def run_adapt():
+            raw = _call_llm(
+                system=system,
+                user_message=user_msg,
+                max_tokens=CONTRACT.max_output_tokens,
+                language=req.language,
+                operation="template_adaptation",
+                phase="adapt",
+                prompt_name="template_adaptation",
+            )
+            parsed = _parse_llm_json(raw)
+            return {"adapted_questions": parsed.get("adapted_questions", []), "status": "success"}
 
-        parsed = _parse_llm_json(raw)
-        return {"adapted_questions": parsed.get("adapted_questions", []), "status": "success"}
+        return _run_with_provider(req.llm_provider, run_adapt)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Template adaptation error: {e}")
         raise HTTPException(status_code=500, detail="Template adaptation failed")
@@ -510,12 +579,13 @@ class EvaluateRequest(BaseModel):
     sections: list[dict]
     trace: dict | None = None
     language: str = "zh"
+    llm_provider: str | None = None
 
 
 @router.post("/ai/evaluate")
 async def ai_evaluate(req: EvaluateRequest):
     """AI 对分析结果做自我评估。"""
-    result = evaluate_analysis(req.question, req.sections, req.trace, req.language)
+    result = _run_with_provider(req.llm_provider, lambda: evaluate_analysis(req.question, req.sections, req.trace, req.language))
     if result["status"] == "error":
         logger.error(f"AI evaluation error: {result.get('diagnostics', ['Unknown'])}")
         raise HTTPException(status_code=500, detail="AI evaluation failed")

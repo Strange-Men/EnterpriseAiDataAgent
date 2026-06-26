@@ -3,6 +3,8 @@
 Run with:  uvicorn backend.main:app --reload --port 8000
 """
 
+# ruff: noqa: E402
+
 import os
 import sys
 import logging

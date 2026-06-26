@@ -5,7 +5,7 @@ import time
 import threading
 
 from database.db_manager import DatabaseManager
-from database.file_loader import load_file, FileLoadError
+from database.file_loader import load_file
 from database.schema_detector import detect_schema
 from database.data_quality import analyze_dataframe
 from database.query_executor import QueryExecutor
@@ -111,9 +111,13 @@ def get_system_health() -> dict:
     ai_configured = False
     ai_model = ""
     try:
-        from backend.config import ANTHROPIC_API_KEY, DEFAULT_LLM_MODEL
-        ai_configured = bool(ANTHROPIC_API_KEY)
-        ai_model = DEFAULT_LLM_MODEL
+        from backend.config import LLM_DEFAULT_PROVIDER
+        from backend.services.llm_runtime import get_provider_config
+        provider_config = get_provider_config(LLM_DEFAULT_PROVIDER)
+        ai_configured = LLM_DEFAULT_PROVIDER == "mock" or bool(
+            provider_config.api_key and provider_config.base_url and provider_config.model
+        )
+        ai_model = provider_config.model
     except Exception:
         pass
 

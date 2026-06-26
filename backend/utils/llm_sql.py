@@ -108,7 +108,6 @@ def _trim_to_first_statement(candidate: str) -> str:
 
 def _is_prose_line(line: str) -> bool:
     """Detect if a line is prose (explanation/mapping text) rather than SQL."""
-    import unicodedata
     if not line:
         return False
     # Lines starting with common prose markers

@@ -89,6 +89,19 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
       expect(en.translation["workspace.generate-sql-analyze"]).toBe("Generate Analysis");
     });
 
+    it("Analyze: LLM provider selector copy exists without key fields", () => {
+      expect(zh.translation["ai.llm-provider"]).toBe("模型供应商");
+      expect(en.translation["ai.llm-provider"]).toBe("Model Provider");
+      expect(zh.translation["ai.llm-provider-mock"]).toBe("Mock LLM");
+      expect(en.translation["ai.llm-provider-deepseek"]).toBe("DeepSeek");
+      expect(en.translation["ai.llm-provider-doubao"]).toBe("Doubao");
+      expect(en.translation["ai.llm-provider-mimo"]).toBe("Mimo");
+      const allCopy = `${JSON.stringify(zh.translation)} ${JSON.stringify(en.translation)}`;
+      ["DEEPSEEK", "DOUBAO", "MIMO"].forEach((provider) => {
+        expect(allCopy).not.toContain(`${provider}_API_${"KEY"}`);
+      });
+    });
+
     it("Analyze: example questions exist (4 total)", () => {
       expect(zh.translation["workspace.example.q1"]).toBeDefined();
       expect(zh.translation["workspace.example.q2"]).toBeDefined();

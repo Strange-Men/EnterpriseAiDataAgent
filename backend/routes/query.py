@@ -189,13 +189,10 @@ async def export_query(req: ExportRequest):
     if not sql:
         raise HTTPException(status_code=400, detail="Empty SQL query")
 
-    start = time.time()
     try:
         result = get_readonly_executor().execute(sql)
     except QueryError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    runtime_ms = int((time.time() - start) * 1000)
-
     if result["status"] == "error":
         logger.error(f"Export query error: {result['error']}")
         raise HTTPException(status_code=400, detail="Export query failed")

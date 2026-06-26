@@ -9,7 +9,7 @@
 
 import json
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 # ── 启发式 Token 估算 ──────────────────────────────────────────

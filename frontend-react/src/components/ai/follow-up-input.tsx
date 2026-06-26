@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { aiQuery } from "@/services/api";
-import type { FollowUpContext } from "@/services/api";
+import type { FollowUpContext, LlmProvider } from "@/services/api";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,10 @@ interface FollowUpInputProps {
   onSqlGenerated?: (sql: string) => void;
   question?: string;
   onQuestionChange?: (q: string) => void;
+  llmProvider?: LlmProvider;
 }
 
-export function FollowUpInput({ results, onSqlGenerated, question: controlledQuestion, onQuestionChange }: FollowUpInputProps) {
+export function FollowUpInput({ results, onSqlGenerated, question: controlledQuestion, onQuestionChange, llmProvider }: FollowUpInputProps) {
   const { t, i18n } = useTranslation();
   const [internalQuestion, setInternalQuestion] = useState("");
   const question = controlledQuestion !== undefined ? controlledQuestion : internalQuestion;
@@ -64,7 +65,7 @@ export function FollowUpInput({ results, onSqlGenerated, question: controlledQue
       }
 
       const currentTable = useInvestigationStore.getState().activeTable;
-      const res = await aiQuery(q, true, true, Object.keys(ctx).length > 0 ? ctx : undefined, i18n.language, currentTable ?? undefined);
+      const res = await aiQuery(q, true, true, Object.keys(ctx).length > 0 ? ctx : undefined, i18n.language, currentTable ?? undefined, llmProvider);
 
       if (res.sql && res.status === "success") {
         sessionStore.addUserTurn(q);
@@ -82,7 +83,7 @@ export function FollowUpInput({ results, onSqlGenerated, question: controlledQue
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [question, loading, results, onSqlGenerated, t, i18n.language, setQuestion]);
+  }, [question, loading, results, onSqlGenerated, t, i18n.language, setQuestion, llmProvider]);
 
   if (!onSqlGenerated) return null;
 

@@ -33,7 +33,6 @@ def build_user_message(
     target_schema: list[dict],
 ) -> str:
     """构建模板适配的用户消息。"""
-    import json
 
     questions_desc = "\n".join(
         f"  {q['order']}. [{q.get('mode', 'explain')}] {q['question']}"

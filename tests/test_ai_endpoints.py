@@ -39,6 +39,23 @@ class TestAIQueryEndpoint:
         data = resp.json()
         assert "sql" in data
         assert data["status"] == "success"
+        assert data["llm"]["provider_requested"] == "mock"
+
+    @patch("backend.routes.ai.run_ai_query")
+    def test_query_passes_provider_and_returns_metadata(self, mock_run):
+        mock_run.return_value = {
+            "sql": "SELECT * FROM test LIMIT 100",
+            "status": "success",
+        }
+        resp = client.post("/api/ai/query", json={"question": "Show rows", "llm_provider": "deepseek"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["llm"]["provider_requested"] == "deepseek"
+        assert data["llm"]["provider_used"] == "deepseek"
+
+    def test_query_invalid_provider_returns_422(self):
+        resp = client.post("/api/ai/query", json={"question": "How many rows?", "llm_provider": "invalid"})
+        assert resp.status_code == 422
 
     def test_query_missing_question(self):
         resp = client.post("/api/ai/query", json={})

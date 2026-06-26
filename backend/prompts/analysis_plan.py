@@ -57,7 +57,7 @@ def build_user_message(
         parts.append("")
     parts.append(f"Question: {question}\n\n")
     parts.append(f"Table: {table}\n")
-    parts.append(f"Available Columns (ONLY use these):\n" + "\n".join(col_desc) + "\n")
+    parts.append("Available Columns (ONLY use these):\n" + "\n".join(col_desc) + "\n")
     parts.append(f"Column Names: {', '.join(col_names)}\n")
     parts.append(
         "IMPORTANT: If the question mentions fields not in the column list above, "

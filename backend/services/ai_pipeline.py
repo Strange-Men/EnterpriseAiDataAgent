@@ -10,16 +10,14 @@ from backend.services.ai_analyst import (
 )
 from backend.services.data_service import get_readonly_executor, list_tables
 from backend.utils.json_safe import normalize_for_response
-from backend.utils.llm_json import parse_llm_json
 from backend.prompts.summarizer import (
-    CONTRACT as SUMMARIZER_CONTRACT,
     SYSTEM_PROMPT as SUMMARIZER_SYSTEM,
     build_user_message as build_summarizer_user_message,
 )
 from backend.runtime.token_budget import WorkflowTokenTracker, get_budget
 from backend.services.guardrails import AnalysisGuard, AnalysisGuardrails, GuardrailViolation, DEFAULT_GUARDRAILS
 from backend.services.trace import TraceRecorder
-from backend.services.schema_semantics import build_semantic_context, build_semantic_aliases
+from backend.services.schema_semantics import build_semantic_context
 from backend.services.sql_templates import try_generate_sql
 import json
 import time
@@ -413,7 +411,7 @@ def _execute_plan_steps(plan: list, schema_context: str, language: str,
                                            trace, guardrail_violations)
         if violation:
             executed_steps.append(_make_step_result(
-                step_num, purpose, error=v.message,
+                step_num, purpose, error=violation.message,
                 status=f"skipped_{violation.rule}",
             ))
             if violation.rule in ("max_sql_queries", "consecutive_failures", "total_timeout"):

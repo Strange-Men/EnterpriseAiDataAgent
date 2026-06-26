@@ -3,24 +3,15 @@
 Covers: M3-5 bug — `can only concatenate str (not "NoneType") to str`
 """
 
-import pytest
 from unittest.mock import patch, MagicMock
 
 
 class TestCallLlmNoneTextBlock:
     """_call_llm should handle content blocks where .text is None."""
 
-    @patch("backend.services.ai_analyst._get_client")
-    @patch("backend.services.ai_analyst.get_budget")
-    def test_thinking_block_with_none_text(self, mock_budget, mock_get_client):
+    def test_thinking_block_with_none_text(self):
         """Mimo API returns thinking blocks where block.text is None."""
-        from backend.services.ai_analyst import _call_llm
-
-        # Setup mock budget
-        mock_b = MagicMock()
-        mock_b.max_input_tokens = 10000
-        mock_b.max_output_tokens = 1024
-        mock_budget.return_value = mock_b
+        from backend.services.ai_analyst import _extract_visible_text
 
         # Setup mock response with a thinking block (text=None) + text block
         thinking_block = MagicMock()
@@ -31,39 +22,18 @@ class TestCallLlmNoneTextBlock:
         text_block.text = "SELECT * FROM sales"
         text_block.type = "text"
 
-        mock_response = MagicMock()
-        mock_response.content = [thinking_block, text_block]
-
-        mock_client = MagicMock()
-        mock_client.messages.create.return_value = mock_response
-        mock_get_client.return_value = mock_client
-
-        result = _call_llm("system prompt", "user message", max_tokens=1024)
+        result = _extract_visible_text([thinking_block, text_block])
         assert result == "SELECT * FROM sales"
 
-    @patch("backend.services.ai_analyst._get_client")
-    @patch("backend.services.ai_analyst.get_budget")
-    def test_all_blocks_have_none_text(self, mock_budget, mock_get_client):
+    def test_all_blocks_have_none_text(self):
         """All content blocks have text=None — returns empty string."""
-        from backend.services.ai_analyst import _call_llm
-
-        mock_b = MagicMock()
-        mock_b.max_input_tokens = 10000
-        mock_b.max_output_tokens = 1024
-        mock_budget.return_value = mock_b
+        from backend.services.ai_analyst import _extract_visible_text
 
         block = MagicMock()
         block.text = None
         block.type = "thinking"
 
-        mock_response = MagicMock()
-        mock_response.content = [block]
-
-        mock_client = MagicMock()
-        mock_client.messages.create.return_value = mock_response
-        mock_get_client.return_value = mock_client
-
-        result = _call_llm("system prompt", "user message", max_tokens=1024)
+        result = _extract_visible_text([block])
         # No text blocks with content → returns empty string
         assert result == ""
 

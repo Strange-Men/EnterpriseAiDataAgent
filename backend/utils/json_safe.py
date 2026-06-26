@@ -13,7 +13,6 @@ Usage:
     json.dumps(data, default=json_safe_encoder)
 """
 
-import json
 import math
 from datetime import datetime, date, time as dt_time, timedelta
 from decimal import Decimal

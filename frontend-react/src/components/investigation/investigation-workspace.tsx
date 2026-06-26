@@ -13,6 +13,7 @@ import {
 } from "@/services/api";
 import { useAnalysisStore, type AnalysisMode } from "@/stores/analysis-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 import { useDataStore } from "@/stores/data-store";
 import { useSqlHistoryStore } from "@/stores/sql-history-store";
 import { generateId } from "@/utils/id";
@@ -36,6 +37,7 @@ export function InvestigationWorkspace() {
   const activeTable = useInvestigationStore((s) => s.activeTable);
   const setActiveTable = useInvestigationStore((s) => s.setActiveTable);
   const ensureValidSelectedTable = useInvestigationStore((s) => s.ensureValidSelectedTable);
+  const llmProvider = useWorkspaceStore((s) => s.llmProvider);
 
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("ai-query");
   const [question, setQuestion] = useState("");
@@ -274,11 +276,12 @@ export function InvestigationWorkspace() {
       },
       i18n.language,
       500,
-      latestKeyFindings.length > 0 ? latestKeyFindings.slice(0, 5) : undefined
+      latestKeyFindings.length > 0 ? latestKeyFindings.slice(0, 5) : undefined,
+      llmProvider
     );
 
     abortRef.current = abort;
-  }, [question, activeTable, tables, isLoading, addRun, updateRun, i18n.language, t]);
+  }, [question, activeTable, tables, isLoading, addRun, updateRun, i18n.language, t, llmProvider]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();

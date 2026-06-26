@@ -20,6 +20,7 @@ import {
   uploadFile,
   fetchQualityReport,
   fetchStatus,
+  aiQuery,
   unwrapApiResponse,
 } from "../api";
 
@@ -214,6 +215,28 @@ describe("api service", () => {
       const res = await fetchStatus();
       expect(res.api).toBe("ok");
       expect(res.version).toBe("0.4.0");
+    });
+  });
+
+  describe("aiQuery provider config", () => {
+    it("should send selected LLM provider without API keys", async () => {
+      mockFetch.mockResolvedValueOnce(mockJsonResponse({ sql: "SELECT 1", status: "success" }));
+
+      await aiQuery("Show rows", false, false, undefined, "en", "sales", "deepseek");
+
+      expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/ai/query", expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          question: "Show rows",
+          execute: false,
+          explain: false,
+          language: "en",
+          table: "sales",
+          llm_provider: "deepseek",
+        }),
+      }));
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(Object.keys(body).join(" ")).not.toMatch(/API_KEY|api_key|secret/i);
     });
   });
 
