@@ -32,6 +32,10 @@ RC Report: `docs/reports/m4-final-release-candidate-report.md`
 - M4.9.2 Docker Compose Local Demo — merged to master
 - M4.9.3 README / README.en Rewrite — merged to master
 - M4.9.4 Deployment + Env Docs — merged to master
+- M4.9.5 Engineering Completeness Regression — merged to master
+
+下一步：
+- M4.9.6 Final Engineering Completeness Tag
 
 范围：
 - Dockerfile / docker-compose
