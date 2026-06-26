@@ -207,11 +207,18 @@ The current Docker Compose setup is a **local demo** — not production-grade.
 - `Dockerfile.frontend`: Frontend (Node.js 20 Alpine + Next.js standalone)
 - `docker-compose.yml`: Orchestrates backend + frontend with Mock LLM default
 
-Deployment documentation will be expanded in M4.9.4.
+---
+
+## 10. Documentation
+
+- [LLM Provider Configuration](docs/LLM_PROVIDER_CONFIG.md)
+- [Environment Variables](docs/ENVIRONMENT.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Docker Compose Local Demo](docs/DOCKER_DEMO.md)
 
 ---
 
-## 10. Project Boundaries
+## 11. Project Boundaries
 
 - **Not** a production-grade BI system
 - **Does not connect** to real enterprise databases
@@ -223,7 +230,7 @@ Deployment documentation will be expanded in M4.9.4.
 
 ---
 
-## 11. Validation Status
+## 12. Validation Status
 
 Most recent M4.9.2 validation results:
 
@@ -242,7 +249,7 @@ Most recent M4.9.2 validation results:
 
 ---
 
-## 12. Project Structure
+## 13. Project Structure
 
 ```text
 EnterpriseAiDataAgent/
@@ -262,10 +269,10 @@ EnterpriseAiDataAgent/
 
 ---
 
-## 13. Roadmap
+## 14. Roadmap
 
-- M4.9.3 README / README.en (this round)
-- M4.9.4 Deployment + Env Docs
+- M4.9.3 README / README.en ✅
+- M4.9.4 Deployment + Env Docs ✅
 - M4.9.5 Engineering Regression
 - M4.9.6 Engineering Tag
 

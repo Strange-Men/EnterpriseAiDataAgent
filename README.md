@@ -207,11 +207,18 @@ npm run dev
 - `Dockerfile.frontend`：Frontend（Node.js 20 Alpine + Next.js standalone）
 - `docker-compose.yml`：编排 backend + frontend，默认 Mock LLM
 
-后续部署文档将在 M4.9.4 补充。
+---
+
+## 10. 文档
+
+- [LLM Provider 配置](docs/LLM_PROVIDER_CONFIG.md)
+- [环境变量说明](docs/ENVIRONMENT.md)
+- [部署说明](docs/DEPLOYMENT.md)
+- [Docker Compose 本地 Demo](docs/DOCKER_DEMO.md)
 
 ---
 
-## 10. 项目边界
+## 11. 项目边界
 
 - **不是**生产级 BI 系统
 - **不连接**真实企业数据库
@@ -223,7 +230,7 @@ npm run dev
 
 ---
 
-## 11. 验证状态
+## 12. 验证状态
 
 最近一次 M4.9.2 验证结果：
 
@@ -242,7 +249,7 @@ npm run dev
 
 ---
 
-## 12. 目录结构
+## 13. 目录结构
 
 ```text
 EnterpriseAiDataAgent/
@@ -262,10 +269,10 @@ EnterpriseAiDataAgent/
 
 ---
 
-## 13. 后续计划
+## 14. 后续计划
 
-- M4.9.3 README / README.en（本轮）
-- M4.9.4 Deployment + Env Docs
+- M4.9.3 README / README.en ✅
+- M4.9.4 Deployment + Env Docs ✅
 - M4.9.5 Engineering Regression
 - M4.9.6 Engineering Tag
 
