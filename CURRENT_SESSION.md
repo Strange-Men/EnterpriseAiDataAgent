@@ -52,3 +52,9 @@ Do not start M5 until user confirms.
 - M5.0 design review hotfix completed on 2026-06-29.
 - LangChain is approved only as an optional lightweight harness after native EAI Agent contracts are stable.
 - M5.1 implementation has not started.
+
+## M5.0 Industrial Agent Workflow Review
+
+- M5.0 industrial agent workflow review completed on 2026-06-29.
+- Design now includes intent recognition, mode router, fallback matrix, tool guardrails, trace/evidence, and an updated M5.1-M5.6 implementation plan.
+- Implementation has not started.
