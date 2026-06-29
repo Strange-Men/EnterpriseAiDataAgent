@@ -23,6 +23,7 @@ Check:
 - `frontend-react/package.json`
 - `frontend-react/package-lock.json` if present
 - `CURRENT_SESSION.md`
+- `AGENTS.md`
 - `README.md` / `README.en.md`
 - latest release report
 
@@ -32,3 +33,4 @@ Check:
 - Release tags may include milestone suffixes for context.
 - Historical reports can keep their original version references.
 - New release docs should state both the app version and the release tag.
+- `AGENTS.md` must show the current baseline at the top so old roadmap notes do not drive new work.

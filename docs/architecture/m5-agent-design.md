@@ -1,36 +1,28 @@
 # M5 Single Data Analyst Agent Design
 
-> Status: M5.0 design + version governance lock
+> Status: M5.0 design review hotfix
 > Date: 2026-06-29
 > App version: 1.4.1
 > Release tag: `v1.4.1-m4-engineering-complete`
 
 ## 1. Why EAI Needs an Agent
 
-EAI 不需要为了“有 Agent”而加 Agent。当前项目已经有可工作的 AI pipeline：用户提出问题后，系统可以规划、生成 SQL、执行只读查询、解释结果、生成报告。这个流程已经能服务 Natural Language Analysis、Expert SQL、History 和 Analysis Detail。
+EAI 不需要为了“有 Agent”而加 Agent。当前项目已经有固定 AI pipeline：用户提出问题后，系统可以规划、生成 SQL、执行只读查询、解释结果、生成报告。它已经支撑 Natural Language Analysis、Expert SQL、History 和 Analysis Detail。
 
-真正瓶颈不在“模型会不会说话”，而在工程化执行：
+M5 的问题不是“再加一个聊天入口”，而是当前 pipeline 作为工程化执行系统仍有瓶颈：
 
-- 固定 pipeline 难以根据用户目标选择不同工具。
-- 当前 trace 更偏 LLM call 记录，不是完整 tool-call transcript。
-- 分析 run 主要靠前端 localStorage 记录，不能作为后端一等审计对象。
-- `ai_pipeline.py` / `ai_analyst.py` 已经很大，继续堆流程会扩大技术债。
-- Mock fallback 已存在，但 Agent 语境下必须显式标记 simulated，不能让用户误以为是真实 provider 洞察。
-- 当前 History / Detail 能看结果，但不能稳定回放“Agent 为什么这么做、调用了什么工具、依据是什么”。
+- 工具选择隐含在代码里，没有一等 Tool Registry。
+- Trace 主要记录 LLM call，不是完整 tool-call transcript。
+- Analysis run 主要靠前端 localStorage，不能作为后端一等审计对象。
+- `ai_pipeline.py` 和 `ai_analyst.py` 已经很大，继续堆流程会扩大技术债。
+- Mock fallback 已存在，但 Agent 语境下必须显式标记 simulated，不能伪装成真实 provider 洞察。
+- History / Detail 能看结果，但不能稳定回放“执行了哪些工具、依据是什么、哪里失败或降级”。
 
-因此，M5 Agent 的真实价值是把现有固定 AI workflow 升级为可控、可审计、可持久化的数据分析执行器。
+因此，M5 Agent 的真实价值是把现有固定 workflow 升级为可控、可审计、可持久化的数据分析执行器。
 
 ## 2. Agent Role in EAI
 
 Agent is a tool-based, auditable, persistent data analysis executor.
-
-在 EAI 中，它负责：
-
-- 根据用户目标选择合适的数据分析工具。
-- 分步骤检查表结构、生成只读 SQL、执行查询、汇总 evidence、构建报告。
-- 为每一步记录 state、input、output、trace_id、evidence、provider metadata。
-- 将 Agent run 持久化到后端，供 History / Detail / evaluation 使用。
-- 在 Mock fallback 时明确标记 `is_simulated=true`。
 
 It is not:
 
@@ -44,12 +36,35 @@ It is not:
 | Existing Feature | Agent Relationship |
 | --- | --- |
 | Natural Language Analysis | 继续保留；Agent 是更可审计的 run 模式，不替代现有入口。 |
-| Expert SQL | 继续由用户直接控制；Agent 只执行经过 readonly validation 的 SQL tool call。 |
+| Expert SQL | 继续由用户直接控制；Agent 只执行通过 readonly validation 的 SQL tool call。 |
 | History | 从前端 localStorage 结果列表升级为后端 Agent run 一等记录。 |
 | Detail | 从最终报告展示升级为 report + timeline + evidence + trace。 |
 | Mock fallback / multi-provider | Agent 统一记录 `provider_requested`、`provider_used`、`is_simulated`。 |
 
-## 3. Version and Governance Context
+## 3. Agent Job in EAI
+
+The EAI Agent is not added for branding. It exists because the current pipeline is fixed and hard to inspect as a tool-execution process.
+
+The Agent should:
+
+1. Turn a user goal into a bounded analysis plan.
+2. Select from a small set of safe data-analysis tools.
+3. Validate every tool input and output.
+4. Execute only readonly SQL.
+5. Attach evidence to every finding.
+6. Persist the full run, steps, and tool calls.
+7. Surface trace and simulated/fallback status in the UI.
+8. Produce a report that can be inspected later.
+
+The Agent should not:
+
+1. Chat freely without tool evidence.
+2. Use hidden model reasoning as the final proof.
+3. Execute write SQL.
+4. Call arbitrary tools.
+5. Hide Mock fallback as a real model result.
+
+## 4. Version and Governance Context
 
 - app version: 1.4.1
 - release tag: `v1.4.1-m4-engineering-complete`
@@ -57,19 +72,19 @@ It is not:
 
 Version governance decision:
 
-- `backend/VERSION` and frontend package version should use pure app version `1.4.1`.
+- `backend/VERSION` and frontend package version use pure app version `1.4.1`.
 - Release tags can include milestone suffixes.
 - Historical docs can keep old version references, but new docs must not introduce ad-hoc versions.
-- `AGENTS.md` still contains old v1.0.x phase language and should be treated as collaboration-rule drift, not M5 product design.
+- `AGENTS.md` now declares the current baseline first; older notes remain historical and must not drive M5 implementation.
 
-## 4. Old Agent Docs Review
+## 5. Old Agent Docs Review
 
 本轮没有发现可直接执行的根目录 `Agent.md` / `agent.md`。相关材料主要是：
 
 | Source | Current Fit |
 | --- | --- |
-| `AGENTS.md` | 仍有 v1.0.x 语义和旧阶段说明，可作为协作规则参考，不适合作为 M5 blueprint。 |
-| archived frontend rules docs | 是历史前端开发配置资料，不是产品内 Agent 设计。 |
+| `AGENTS.md` | 已补充当前基线。旧 v1.0.x 阶段内容保留为 historical notes，不作为 M5 blueprint。 |
+| archived frontend rules docs | 历史前端开发配置资料，不是产品内 Agent 设计。 |
 | M4.7 audit reports | 准确指出缺少 tool registry、Agent state、run persistence、verifier、step retry，可作为证据。 |
 | active skills | 提供 guardrails、trace、budget、evaluation、analysis workspace 的局部 checklist，但没有完整 Agent workflow skill。 |
 
@@ -80,7 +95,7 @@ Version governance decision:
 M5 需要基于当前代码、当前 M4.9 能力和 EAI 数据分析业务目标重新设计。
 ```
 
-## 5. Design Principles
+## 6. Design Principles
 
 - lowest sufficient complexity
 - single agent first
@@ -91,6 +106,7 @@ M5 需要基于当前代码、当前 M4.9 能力和 EAI 数据分析业务目标
 - mock fallback marked simulated
 - backend persistence first
 - eval transcript, not only final answer
+- optional LangChain harness only after native contracts are stable
 - no LangGraph / no RAG in M5
 
 Industrial references used as direction:
@@ -100,8 +116,10 @@ Industrial references used as direction:
 - [OpenAI Agents SDK: Guardrails](https://openai.github.io/openai-agents-python/guardrails/)
 - [OpenAI Agents SDK: Tracing](https://openai.github.io/openai-agents-python/tracing/)
 - [Microsoft Azure Architecture Center: AI agent orchestration patterns](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns)
+- [LangChain: Agents](https://docs.langchain.com/oss/python/langchain/agents)
+- [LangChain: Tools](https://docs.langchain.com/oss/python/langchain/tools)
 
-## 6. Target Architecture
+## 7. Target Architecture
 
 ```text
 User Goal
@@ -120,15 +138,15 @@ User Goal
   -> Report / History
 ```
 
-M5 不应替换当前 pipeline，而应新增一层薄 Agent runtime：
+M5 不替换当前 pipeline，而是新增薄 Agent runtime：
 
-- M5.1 先定义 contracts 和 mock tool registry。
-- M5.2 再把现有 plan / SQL / execute / summary 包装为 tools。
+- M5.1 先定义 native contracts 和 mock tool registry。
+- M5.2 再把现有 plan / SQL / execute / summary 包装为 tools，并可选引入 LangChain harness adapter。
 - M5.3 加后端 persistence 和 Agent trace。
 - M5.4 加前端 timeline / evidence / detail。
 - M5.5 加 transcript evals 和真实 provider smoke。
 
-## 7. Where Agent Lives
+## 8. Where Agent Lives
 
 Backend proposed location:
 
@@ -143,9 +161,10 @@ backend/agent/
   persistence.py
   tracing.py
   evals.py
+  langchain_adapter.py
 ```
 
-本轮不创建这些代码文件。职责建议：
+本轮不创建这些代码文件。
 
 | Module | Responsibility |
 | --- | --- |
@@ -158,6 +177,7 @@ backend/agent/
 | `persistence.py` | DuckDB repository for agent_runs, agent_steps, agent_tool_calls. |
 | `tracing.py` | Normalize trace/evidence records for tool calls. |
 | `evals.py` | Deterministic mock runs and transcript regression tests. |
+| `langchain_adapter.py` | Optional LangChain harness adapter after native contracts stabilize. |
 
 Frontend placement:
 
@@ -172,9 +192,7 @@ Detail:
   Agent report with timeline and evidence
 ```
 
-Frontend should reuse current M4 shell, panels, badge, timeline and detail visual language. It should not introduce a new visual system.
-
-## 8. Agent Workflow
+## 9. Agent Workflow
 
 Engineering workflow:
 
@@ -211,9 +229,9 @@ awaiting_approval
 
 M5 first version only uses readonly tools, so approval is reserved and not blocking.
 
-## 9. First-Version Tool Set
+## 10. First-Version Tool Set
 
-第一版只保守放已能复用或容易封装的工具：
+第一版只保守放已稳定可复用、且适合 Agent 基础链路的工具：
 
 | Tool | Purpose | Input | Output | Existing Reuse | Risk |
 | --- | --- | --- | --- | --- | --- |
@@ -224,16 +242,21 @@ M5 first version only uses readonly tools, so approval is reserved and not block
 | `summarize_findings` | summarize evidence | evidence list | findings | existing summary | medium |
 | `build_report` | build final report | steps/findings | markdown/report | existing detail/report | low |
 
-Future tools only if verified later:
+Future tools:
 
 - `detect_anomalies`
 - `suggest_chart`
 - `multi_table_join_hint`
 - `export_report`
 
-当前代码已经存在 anomaly detection 和 chart suggestion，但它们不应抢在 Agent contracts、state、persistence、evals 之前进入核心工具集。
+Capability recheck:
 
-## 10. Guardrails
+| Capability | Code Evidence | User-visible Status | M4 Current Formal Capability | M5 First Core Tool | Recommendation |
+| --- | --- | --- | --- | --- | --- |
+| anomaly detection | `backend/services/anomaly_detector.py`, `/api/ai/anomalies`, frontend anomaly mode code | Main mode is feature-flagged off | Backend implemented, UI not stable as core path | No | Keep as Future tool. |
+| chart suggestion | `/api/ai/chart-suggest`, `suggest_charts()`, chart components | Main charts mode is feature-flagged off | Backend implemented, UI not stable as core path | No | Keep as Future tool. |
+
+## 11. Guardrails
 
 Defaults:
 
@@ -256,17 +279,28 @@ SQL guardrails:
 - enforce row limit
 - only `execute_readonly_sql` can call the query executor
 
-## 11. Mock Fallback and Real LLM Testing
+## 12. Mock First, Real LLM Later
 
-Design requirements:
+M5 implementation order:
 
-- Mock is the default fallback.
-- Mock result must be marked simulated.
-- Fallback to Mock must not be displayed as real LLM insight.
-- UI must show simulated / fallback badge.
-- M5 should first complete deterministic mock agent tests.
-- Real LLM smoke should happen only after mock path is stable.
-- DeepSeek / Doubao / Mimo keys stay in backend env only.
+1. Deterministic Mock Agent run.
+2. Mock tool-call persistence.
+3. Mock timeline UI.
+4. Mock evals.
+5. Real provider smoke with DeepSeek / Doubao / Mimo.
+
+Real provider failure must not block local demo.
+
+Fallback to Mock must set:
+
+```text
+is_simulated = true
+fallback_triggered = true
+provider_requested = <real provider>
+provider_used = mock
+```
+
+The UI must show a simulated / fallback badge.
 
 Testing path:
 
@@ -279,7 +313,95 @@ contract tests
   -> real provider smoke
 ```
 
-## 12. Persistence
+## 13. LangChain Feasibility
+
+### Why Consider LangChain
+
+- It can provide a lightweight agent harness.
+- It supports tool-calling style agent loops.
+- It makes the M5 Agent implementation recognizable as an industrial Agent pattern.
+- It can wrap existing EAI tools without replacing the current FastAPI / DuckDB architecture.
+
+### Why Not Use LangChain Everywhere
+
+- EAI already has a working AI pipeline.
+- Full LangChain rewrite would increase complexity.
+- LangChain should not own persistence, UI state, or business data model.
+- M5 should keep EAI contracts and DuckDB persistence as the source of truth.
+
+### Recommended Use
+
+Use LangChain only as an optional harness inside the Agent runner:
+
+```text
+backend/agent/langchain_adapter.py
+```
+
+The adapter may:
+
+- expose EAI tools as LangChain tools
+- call a LangChain agent in Mock or real provider mode
+- return normalized EAI AgentRun / AgentStep / ToolCall contracts
+
+The adapter must not:
+
+- bypass EAI guardrails
+- bypass readonly SQL validation
+- bypass persistence
+- bypass simulated fallback marking
+- require LangSmith or hosted LangGraph
+- require real provider credentials for local demo
+
+## 14. LangChain MVP Plan
+
+### Goal
+
+Add a minimal LangChain-backed Single Data Analyst Agent path after base EAI contracts and tools are stable.
+
+### Scope
+
+- Add optional dependency only after design approval.
+- Create `backend/agent/langchain_adapter.py`.
+- Wrap 3 safe tools first:
+  - `inspect_schema`
+  - `profile_table`
+  - `execute_readonly_sql`
+- Use deterministic Mock model path first if feasible.
+- Keep EAI AgentRun contracts as the output format.
+- Persist all LangChain tool calls into EAI `agent_tool_calls`.
+- Mark mock/fallback output as `is_simulated=true`.
+
+### Non-Goals
+
+- No LangGraph graph design in M5.
+- No multi-agent.
+- No RAG.
+- No LangSmith requirement.
+- No real provider required for first pass.
+- No frontend rewrite.
+
+### Acceptance
+
+- One deterministic Agent run can call at least 2 tools.
+- Tool calls are captured in normalized AgentStep / ToolCall records.
+- SQL is still readonly validated.
+- Mock fallback is visibly simulated.
+- Existing AI analysis path remains unchanged.
+
+Recommended staging:
+
+```text
+M5.1 native contracts first.
+M5.2 optional LangChain adapter after native contracts stabilize.
+```
+
+Reason:
+
+```text
+先有自己的 AgentRun / ToolCall / Guardrails / Persistence，再让 LangChain 作为 harness 调用这些工具，避免被 LangChain 数据结构绑架。
+```
+
+## 15. Persistence
 
 DuckDB table draft:
 
@@ -340,24 +462,26 @@ Why not only localStorage:
 - Agent transcript can be larger than current analysis summary.
 - Backend needs run state for replay, debugging, evaluation and History source.
 
-## 13. Frontend UX and Style Consistency
+## 16. Frontend Style Consistency
 
-Requirements:
+M5 Agent UI must reuse the M4 visual language:
 
-- Reuse current M4 UI style.
-- Do not create a new visual system.
-- Add Agent Run mode on Analyze page.
-- Reuse existing panel/card/badge/timeline style.
-- Show:
-  - plan
-  - current step
-  - tool call timeline
-  - SQL evidence
-  - findings
-  - trace
-  - fallback/simulated badge
-- History should present Agent run using the same visual language as AI/SQL records.
-- Detail page should display Agent report without a separate style system.
+- existing page shell
+- existing cards
+- existing badges
+- existing dark theme tokens
+- existing History card pattern
+- existing Detail report layout
+- existing toast / fallback notice style
+
+No new visual system.
+
+Agent UI placement:
+
+- Analyze page: add `Agent Run` mode / tab beside existing natural language analysis.
+- Agent panel: show Plan, Current Step, Tool Calls, Evidence, Findings.
+- History page: Agent run as a first-class record using the same card style.
+- Detail page: Agent report extends current report layout with timeline/evidence sections.
 
 Suggested layout:
 
@@ -378,7 +502,7 @@ Detail
   trace
 ```
 
-## 14. Evaluation Plan
+## 17. Evaluation Plan
 
 Tests:
 
@@ -391,6 +515,7 @@ Tests:
 - transcript snapshot tests
 - frontend timeline render tests
 - real provider smoke only after mock path stable
+- LangChain harness transcript tests after optional adapter is introduced
 
 Evaluation must validate:
 
@@ -401,19 +526,20 @@ Evaluation must validate:
 - evidence references
 - provider metadata
 - simulated fallback marking
+- LangChain adapter normalization, if enabled
 
-## 15. M5 Split Plan
+## 18. M5 Split Plan
 
 | Stage | Goal | Scope | Acceptance |
 | --- | --- | --- | --- |
 | M5.0 | Design + Version Lock | docs + version fields | accepted design |
 | M5.1 | Contracts + Mock Tool Registry | backend contracts/tools only | deterministic mock run |
-| M5.2 | Existing Pipeline Tool Wrapping | plan/sql/execute/summary wrappers | no behavior regression |
+| M5.2 | Existing Pipeline Tool Wrapping + Optional LangChain Adapter | plan/sql/execute/summary wrappers; optional lightweight LangChain harness | no behavior regression; LangChain path normalized to EAI contracts if enabled |
 | M5.3 | Persistence + Trace | agent_runs/steps/tool_calls | backend run history |
 | M5.4 | Frontend Agent UI | timeline/evidence/detail | style-consistent Agent run view |
 | M5.5 | Agent Evals + Real LLM Smoke | transcript tests + provider smoke | mock stable, real LLM tested |
 
-## 16. Risks
+## 19. Risks
 
 - version drift could reappear without release checklist
 - `ai_pipeline.py` / `ai_analyst.py` complexity
@@ -422,11 +548,14 @@ Evaluation must validate:
 - static schema semantics weak for arbitrary enterprise tables
 - too much autonomy too early may reduce reliability
 - route-level orchestration may grow if Agent APIs are not thin
+- LangChain adapter could leak framework structures into EAI contracts if introduced before native contracts stabilize
 
-## 17. Final Decision
+## 20. Final Decision
 
 Proceed with Single Data Analyst Agent.
 
-Do not implement multi-agent, LangGraph, or RAG in M5.
+Use LangChain only as an optional lightweight tool-calling harness after native EAI Agent contracts are stable.
+
+Do not implement multi-agent, LangGraph orchestration, or RAG in M5.
 
 Start M5.1 only after user reviews this design.

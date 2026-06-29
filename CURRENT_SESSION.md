@@ -46,3 +46,9 @@ Do not start M5 until user confirms.
 - Implementation has not started.
 - No frontend source, backend business logic, database, Docker, or README changes were made for M5.0.
 - Start M5.1 only after design review.
+
+## M5.0 Design Review Hotfix
+
+- M5.0 design review hotfix completed on 2026-06-29.
+- LangChain is approved only as an optional lightweight harness after native EAI Agent contracts are stable.
+- M5.1 implementation has not started.

@@ -2,19 +2,33 @@
 
 This file provides guidance to Codex when working with this codebase.
 
+## Current Project Baseline
+
+Current stable release: `v1.4.1-m4-engineering-complete`.
+
+Current app version: `1.4.1`.
+
+M5 Agent work must follow:
+- `docs/VERSIONING.md`
+- `docs/architecture/m5-agent-design.md`
+- `docs/reports/m5-0-agent-design-version-lock.md`
+
+Older Agent notes in this file are historical references only and must not be used as the execution blueprint.
+
 ## Project Overview
 
-**Enterprise AI Data Agent Platform** — an enterprise-grade AI data analysis platform with DuckDB, SQL Workspace, and future AI Agent capabilities.
+**Enterprise AI Data Agent** — a local-first AI data analysis workbench with DuckDB, SQL Workspace, and planned Single Data Analyst Agent capabilities.
 
-This is NOT a demo. It is a resume-grade enterprise platform for AI data analyst roles.
+M5 must treat Agent as an auditable data-analysis executor, not as a chatbot, multi-agent system, RAG layer, or decorative AI feature.
 
 ## Current Version Status
 
-- **Current**: v1.0.2 (Audit remediation, security, runtime hardening)
-- **Phase**: v1.0.x Architecture & Product Hardening
-- **Next**: v1.0.x backend data access facade and contract hardening
+- **Current app version**: 1.4.1
+- **Current release tag**: `v1.4.1-m4-engineering-complete`
+- **Current phase**: M5.0 Agent design review, not implementation
+- **Next implementation stage**: M5.1 native Agent contracts + mock tool registry, only after design review
 
-## Scope Rules
+## Historical Scope Notes
 
 **v0.5.x completed scope**: AI Data Analyst MVP (streaming, semantics, planning, guardrails, trace, evaluation).
 **v0.6.x completed scope**: Meta Governance & Autonomous QA (language governance, templates, reports, scheduler, diff, evaluation).
@@ -93,7 +107,9 @@ Codex must NOT:
 | v0.7.x | AI Analyst Intelligence Layer | Done |
 | v0.8.x | Product Readiness & Architecture | Done |
 | v0.9.x | Security, Stability & Documentation | Done |
-| v1.0.x | Architecture Foundation & Product Hardening | Current |
+| v1.0.x | Architecture Foundation & Product Hardening | Done |
+| v1.4.1 | M4 UI/UX, LLM fallback, Docker, docs | Done |
+| M5.0 | Agent design and version governance | Current |
 
 No skipping versions. Follow the roadmap strictly.
 
