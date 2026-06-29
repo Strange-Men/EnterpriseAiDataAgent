@@ -37,3 +37,12 @@ After this tag, future work can choose either:
 - M5 Agent workflow enhancement
 
 Do not start M5 until user confirms.
+
+## M5.0 Status
+
+- M5.0 Agent Design + Version Governance Lock completed on 2026-06-29.
+- App version governance is aligned on `1.4.1`; release tag remains `v1.4.1-m4-engineering-complete`.
+- M5 target is Single Data Analyst Agent.
+- Implementation has not started.
+- No frontend source, backend business logic, database, Docker, or README changes were made for M5.0.
+- Start M5.1 only after design review.
