@@ -81,3 +81,8 @@ Do not start M5 until user confirms.
 
 - M5.1.1 Native Agent Contracts completed on 2026-06-30.
 - Router/tools/runner implementation has not started.
+
+## M5.1.2 Intent Router
+
+- M5.1.2 Intent Router completed on 2026-06-30.
+- Tools/runner/persistence implementation has not started.
