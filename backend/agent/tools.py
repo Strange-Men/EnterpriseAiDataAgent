@@ -250,6 +250,29 @@ def list_tool_names() -> list[str]:
     return [tool.name for tool in get_default_tool_registry().list_tools()]
 
 
+def execute_readonly_sql_real_path(
+    input_data: dict[str, Any],
+    *,
+    executor: Any | None = None,
+    table_name: str | None = None,
+) -> ToolResult:
+    """Explicit real-path readonly SQL helper for M5.3.2.
+
+    The default registry still uses the deterministic mock implementation.
+    Callers must opt into this helper to use an existing readonly executor.
+    """
+
+    from backend.agent.pipeline_adapter import execute_readonly_sql_with_existing_executor
+
+    payload = ExecuteReadonlySqlInput.model_validate(input_data)
+    return execute_readonly_sql_with_existing_executor(
+        sql=payload.sql,
+        table_name=table_name,
+        row_limit=payload.row_limit,
+        executor=executor,
+    )
+
+
 def _inspect_schema(input_data: BaseModel) -> InspectSchemaOutput:
     payload = _ensure_model(input_data, InspectSchemaInput)
     columns = payload.columns or _SAMPLE_COLUMNS
