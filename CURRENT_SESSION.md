@@ -119,3 +119,8 @@ Do not start M5 until user confirms.
 
 - M5.2.1 Optional LangChain Harness MVP completed on 2026-06-30.
 - LangGraph, real LLM, persistence, frontend, and pipeline wrapping have not started.
+
+## M5.2.2 LangChain Harness Merge Validation
+
+- M5.2 Optional LangChain Harness merged to master on 2026-06-30.
+- M5.3 pipeline wrapping has not started.
