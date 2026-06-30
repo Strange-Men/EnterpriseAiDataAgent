@@ -91,3 +91,8 @@ Do not start M5 until user confirms.
 
 - M5.1.3 Mock Tool Registry completed on 2026-06-30.
 - Runner/persistence/pipeline wrapping implementation has not started.
+
+## M5.1.4 Deterministic Mock Run Transcript
+
+- M5.1.4 Deterministic Mock Run Transcript completed on 2026-06-30.
+- Persistence/pipeline wrapping/frontend implementation has not started.
