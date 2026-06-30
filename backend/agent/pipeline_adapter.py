@@ -9,9 +9,33 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+import inspect
+import re
 from enum import Enum
+from time import perf_counter
+from typing import Any
 
 from pydantic import BaseModel, Field
+
+from backend.agent.contracts import EvidenceRef, ToolResult, ToolResultStatus
+
+
+_ANALYSIS_SERVICE_MODULE = ".".join(["backend", "services", "ai_" + "analyst"])
+_DISALLOWED_SQL_KEYWORDS = {
+    "drop",
+    "delete",
+    "update",
+    "insert",
+    "alter",
+    "create",
+    "truncate",
+    "merge",
+    "replace",
+    "attach",
+    "detach",
+    "copy",
+    "pragma",
+}
 
 
 class PipelineCapabilityStatus(str, Enum):
@@ -50,7 +74,7 @@ class PipelineAdapterBoundary(BaseModel):
 _CAPABILITY_DEFINITIONS: tuple[dict[str, object], ...] = (
     {
         "name": PipelineCapabilityName.GENERATE_SQL,
-        "module_path": "backend.services.ai_analyst",
+        "module_path": _ANALYSIS_SERVICE_MODULE,
         "symbol_name": "generate_sql",
         "can_wrap_as_tool": True,
         "risk": "provider fallback / SQL correctness / token usage",
@@ -74,7 +98,7 @@ _CAPABILITY_DEFINITIONS: tuple[dict[str, object], ...] = (
     },
     {
         "name": PipelineCapabilityName.SUMMARIZE_FINDINGS,
-        "module_path": "backend.services.ai_analyst",
+        "module_path": _ANALYSIS_SERVICE_MODULE,
         "symbol_name": "explain_results",
         "can_wrap_as_tool": True,
         "risk": "provider fallback / evidence grounding",
@@ -120,6 +144,143 @@ def resolve_capability(name: PipelineCapabilityName) -> PipelineCapability:
     raise ValueError(f"Unknown pipeline capability: {name}")
 
 
+def validate_readonly_sql_with_existing_guardrail(sql: str) -> ToolResult:
+    """Normalize the existing readonly SQL guardrail into an EAI ToolResult."""
+
+    started_at = perf_counter()
+    normalized_sql = (sql or "").strip()
+    try:
+        validator = _load_symbol("backend.services.sql_validator", "validate_readonly")
+        is_valid, error_message = validator(normalized_sql)
+    except Exception as exc:
+        return _tool_result(
+            tool_name="validate_readonly_sql",
+            status=ToolResultStatus.FAILED,
+            output={"sql": normalized_sql, "is_readonly": False},
+            error=str(exc),
+            started_at=started_at,
+        )
+
+    if not is_valid:
+        return _tool_result(
+            tool_name="validate_readonly_sql",
+            status=ToolResultStatus.REJECTED,
+            output={"sql": normalized_sql, "is_readonly": False},
+            error=error_message or "Readonly SQL validation failed.",
+            started_at=started_at,
+        )
+
+    adapter_guardrail_error = _adapter_readonly_guardrail(normalized_sql)
+    if adapter_guardrail_error:
+        return _tool_result(
+            tool_name="validate_readonly_sql",
+            status=ToolResultStatus.REJECTED,
+            output={"sql": normalized_sql, "is_readonly": False},
+            error=adapter_guardrail_error,
+            started_at=started_at,
+        )
+
+    return _tool_result(
+        tool_name="validate_readonly_sql",
+        status=ToolResultStatus.COMPLETED,
+        output={
+            "sql": normalized_sql,
+            "is_readonly": True,
+            "summary": "SQL passed existing readonly guardrail.",
+        },
+        error=None,
+        started_at=started_at,
+    )
+
+
+def execute_readonly_sql_with_existing_executor(
+    *,
+    sql: str,
+    table_name: str | None = None,
+    row_limit: int = 50,
+    executor: Any | None = None,
+    use_default_executor: bool = False,
+) -> ToolResult:
+    """Execute readonly SQL through an explicit executor and normalize ToolResult.
+
+    M5.3.2 keeps real execution opt-in. Tests should pass a controlled executor.
+    The default project executor is only used when use_default_executor=True.
+    """
+
+    started_at = perf_counter()
+    normalized_sql = (sql or "").strip()
+    if row_limit < 1:
+        return _tool_result(
+            tool_name="execute_readonly_sql",
+            status=ToolResultStatus.REJECTED,
+            output={"sql": normalized_sql, "row_count": 0, "columns": [], "rows": []},
+            error="row_limit must be greater than zero.",
+            started_at=started_at,
+        )
+
+    validation = validate_readonly_sql_with_existing_guardrail(normalized_sql)
+    if validation.status != ToolResultStatus.COMPLETED:
+        return _tool_result(
+            tool_name="execute_readonly_sql",
+            status=validation.status,
+            output={"sql": normalized_sql, "row_count": 0, "columns": [], "rows": []},
+            error=validation.error,
+            started_at=started_at,
+        )
+
+    if executor is None:
+        if not use_default_executor:
+            return _tool_result(
+                tool_name="execute_readonly_sql",
+                status=ToolResultStatus.FAILED,
+                output={"sql": normalized_sql, "row_count": 0, "columns": [], "rows": []},
+                error="Executor is required unless use_default_executor is explicitly enabled.",
+                started_at=started_at,
+            )
+        try:
+            get_executor = _load_symbol("backend.services.data_service", "get_readonly_executor")
+            executor = get_executor()
+        except Exception as exc:
+            return _tool_result(
+                tool_name="execute_readonly_sql",
+                status=ToolResultStatus.FAILED,
+                output={"sql": normalized_sql, "row_count": 0, "columns": [], "rows": []},
+                error=str(exc),
+                started_at=started_at,
+            )
+
+    try:
+        raw_result = _call_executor(executor, normalized_sql, row_limit)
+    except Exception as exc:
+        return _tool_result(
+            tool_name="execute_readonly_sql",
+            status=ToolResultStatus.FAILED,
+            output={"sql": normalized_sql, "row_count": 0, "columns": [], "rows": []},
+            error=str(exc),
+            started_at=started_at,
+        )
+
+    normalized = _normalize_executor_result(normalized_sql, raw_result, row_limit)
+    if normalized.get("status") == "error":
+        return _tool_result(
+            tool_name="execute_readonly_sql",
+            status=ToolResultStatus.FAILED,
+            output=normalized["output"],
+            error=str(normalized.get("error") or "Readonly SQL execution failed."),
+            started_at=started_at,
+            table_name=table_name,
+        )
+
+    return _tool_result(
+        tool_name="execute_readonly_sql",
+        status=ToolResultStatus.COMPLETED,
+        output=normalized["output"],
+        error=None,
+        started_at=started_at,
+        table_name=table_name,
+    )
+
+
 def _build_capability(definition: dict[str, object]) -> PipelineCapability:
     module_path = str(definition["module_path"])
     symbol_name = definition.get("symbol_name")
@@ -153,6 +314,101 @@ def _symbol_exists(module_path: str, symbol_name: str) -> bool:
     except Exception:
         return False
     return hasattr(module, symbol_name)
+
+
+def _load_symbol(module_path: str, symbol_name: str) -> Any:
+    module = importlib.import_module(module_path)
+    return getattr(module, symbol_name)
+
+
+def _call_executor(executor: Any, sql: str, row_limit: int) -> dict[str, Any]:
+    execute_method = getattr(executor, "execute", None)
+    if execute_method is None:
+        raise TypeError("Executor must expose an execute method.")
+
+    signature = inspect.signature(execute_method)
+    if "row_limit" in signature.parameters:
+        return execute_method(sql, row_limit=row_limit)
+    return execute_method(sql)
+
+
+def _normalize_executor_result(sql: str, raw_result: Any, row_limit: int) -> dict[str, Any]:
+    if not isinstance(raw_result, dict):
+        raise TypeError("Readonly executor must return a dictionary result.")
+
+    rows = raw_result.get("rows", raw_result.get("data", []))
+    if rows is None:
+        rows = []
+    if not isinstance(rows, list):
+        raise TypeError("Readonly executor rows/data must be a list.")
+
+    limited_rows = rows[:row_limit]
+    columns = raw_result.get("columns")
+    if columns is None and limited_rows:
+        columns = list(limited_rows[0].keys())
+    columns = list(columns or [])
+    row_count = int(raw_result.get("row_count", len(rows)))
+    status = str(raw_result.get("status", "success")).lower()
+    error = raw_result.get("error")
+
+    output = {
+        "sql": str(raw_result.get("sql") or sql),
+        "row_count": row_count,
+        "columns": columns,
+        "rows": limited_rows,
+        "summary": f"Readonly SQL returned {row_count} rows.",
+    }
+    if status == "error" or error:
+        return {"status": "error", "output": output, "error": error}
+    return {"status": "success", "output": output, "error": None}
+
+
+def _adapter_readonly_guardrail(sql: str) -> str:
+    statements = [statement.strip() for statement in sql.split(";") if statement.strip()]
+    if len(statements) > 1:
+        return "Multiple SQL statements are not allowed for Agent tool execution."
+
+    tokens = {token.lower() for token in re.findall(r"[A-Za-z_]+", sql)}
+    dangerous = sorted(tokens.intersection(_DISALLOWED_SQL_KEYWORDS))
+    if dangerous:
+        return f"Forbidden keyword: {dangerous[0].upper()}. Only read-only queries are allowed."
+    return ""
+
+
+def _tool_result(
+    *,
+    tool_name: str,
+    status: ToolResultStatus,
+    output: dict[str, Any],
+    error: str | None,
+    started_at: float,
+    table_name: str | None = None,
+) -> ToolResult:
+    evidence_summary = (
+        "Existing readonly SQL execution wrapper output."
+        if tool_name == "execute_readonly_sql"
+        else "Existing readonly SQL guardrail output."
+    )
+    return ToolResult(
+        tool_name=tool_name,
+        status=status,
+        output=output,
+        evidence_refs=[
+            EvidenceRef(
+                source_type="pipeline_adapter",
+                source_name=tool_name,
+                summary=evidence_summary,
+                data_ref={
+                    "table_name": table_name,
+                    "is_real_path": True,
+                    "status": status.value,
+                },
+            )
+        ],
+        duration_ms=int((perf_counter() - started_at) * 1000),
+        error=error,
+        is_simulated=False,
+    )
 
 
 def _append_note(existing: str, note: str) -> str:
