@@ -129,3 +129,8 @@ Do not start M5 until user confirms.
 
 - M5.3.0 Existing Pipeline Tool Wrapping Audit / Plan completed on 2026-06-30.
 - Pipeline wrapping implementation has not started.
+
+## M5.3.1 Pipeline Adapter Boundary
+
+- M5.3.1 Pipeline Adapter Boundary completed on 2026-06-30.
+- Real pipeline wrapping has not started.
