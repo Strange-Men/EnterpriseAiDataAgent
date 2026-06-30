@@ -144,3 +144,8 @@ Do not start M5 until user confirms.
 
 - M5.3.3 Wrap Existing SQL Generation completed on 2026-06-30.
 - Real LLM / summary / report wrapping has not started.
+
+## M5.3.3 SQL Generation Wrapping Merge Validation
+
+- M5.3.3 SQL Generation Wrapping merged to master on 2026-06-30.
+- M5.3.4 summary/report wrapping has not started.
