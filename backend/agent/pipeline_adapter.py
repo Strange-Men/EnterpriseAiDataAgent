@@ -281,6 +281,131 @@ def execute_readonly_sql_with_existing_executor(
     )
 
 
+def generate_sql_with_existing_pipeline(
+    *,
+    user_goal: str,
+    table_name: str | None = None,
+    schema: dict[str, object] | None = None,
+    provider_requested: str = "mock",
+    generator: Any | None = None,
+    allow_real_provider: bool = False,
+) -> ToolResult:
+    """Normalize SQL generation into ToolResult without enabling live model calls.
+
+    M5.3.3 supports injected generators only. Live provider execution remains
+    disabled until a later reviewed step explicitly enables it.
+    """
+
+    started_at = perf_counter()
+    goal = (user_goal or "").strip()
+    requested = (provider_requested or "mock").strip() or "mock"
+    fallback_triggered = requested != "mock"
+    fallback_reason = "Injected generator used mock provider path." if fallback_triggered else None
+
+    if not goal:
+        return _tool_result(
+            tool_name="generate_sql",
+            status=ToolResultStatus.REJECTED,
+            output=_sql_generation_output(
+                sql="",
+                user_goal=goal,
+                table_name=table_name,
+                provider_requested=requested,
+                fallback_triggered=fallback_triggered,
+                fallback_reason=fallback_reason,
+            ),
+            error="user_goal is required.",
+            started_at=started_at,
+            table_name=table_name,
+            is_simulated=True,
+        )
+
+    if generator is None:
+        reason = (
+            "Injected SQL generator is required; live provider execution is disabled for M5.3.3."
+            if not allow_real_provider
+            else "Live provider execution is not implemented in M5.3.3."
+        )
+        return _tool_result(
+            tool_name="generate_sql",
+            status=ToolResultStatus.REJECTED,
+            output=_sql_generation_output(
+                sql="",
+                user_goal=goal,
+                table_name=table_name,
+                provider_requested=requested,
+                fallback_triggered=fallback_triggered,
+                fallback_reason=fallback_reason,
+            ),
+            error=reason,
+            started_at=started_at,
+            table_name=table_name,
+            is_simulated=True,
+        )
+
+    try:
+        generated = generator(
+            user_goal=goal,
+            table_name=table_name,
+            schema=schema or {},
+            provider_requested=requested,
+        )
+    except Exception as exc:
+        return _tool_result(
+            tool_name="generate_sql",
+            status=ToolResultStatus.FAILED,
+            output=_sql_generation_output(
+                sql="",
+                user_goal=goal,
+                table_name=table_name,
+                provider_requested=requested,
+                fallback_triggered=fallback_triggered,
+                fallback_reason=fallback_reason,
+            ),
+            error=str(exc),
+            started_at=started_at,
+            table_name=table_name,
+            is_simulated=True,
+        )
+
+    sql = _extract_generated_sql(generated)
+    validation = validate_readonly_sql_with_existing_guardrail(sql)
+    if validation.status != ToolResultStatus.COMPLETED:
+        return _tool_result(
+            tool_name="generate_sql",
+            status=ToolResultStatus.REJECTED,
+            output=_sql_generation_output(
+                sql=sql,
+                user_goal=goal,
+                table_name=table_name,
+                provider_requested=requested,
+                fallback_triggered=fallback_triggered,
+                fallback_reason=fallback_reason,
+            ),
+            error=validation.error or "Generated SQL failed readonly validation.",
+            started_at=started_at,
+            table_name=table_name,
+            is_simulated=True,
+        )
+
+    return _tool_result(
+        tool_name="generate_sql",
+        status=ToolResultStatus.COMPLETED,
+        output=_sql_generation_output(
+            sql=sql,
+            user_goal=goal,
+            table_name=table_name,
+            provider_requested=requested,
+            fallback_triggered=fallback_triggered,
+            fallback_reason=fallback_reason,
+        ),
+        error=None,
+        started_at=started_at,
+        table_name=table_name,
+        is_simulated=True,
+    )
+
+
 def _build_capability(definition: dict[str, object]) -> PipelineCapability:
     module_path = str(definition["module_path"])
     symbol_name = definition.get("symbol_name")
@@ -363,6 +488,37 @@ def _normalize_executor_result(sql: str, raw_result: Any, row_limit: int) -> dic
     return {"status": "success", "output": output, "error": None}
 
 
+def _extract_generated_sql(generated: Any) -> str:
+    if isinstance(generated, str):
+        return generated.strip()
+    if isinstance(generated, dict):
+        candidate = generated.get("sql") or generated.get("raw_sql") or ""
+        return str(candidate).strip()
+    raise TypeError("Injected SQL generator must return a SQL string or dictionary.")
+
+
+def _sql_generation_output(
+    *,
+    sql: str,
+    user_goal: str,
+    table_name: str | None,
+    provider_requested: str,
+    fallback_triggered: bool,
+    fallback_reason: str | None,
+) -> dict[str, Any]:
+    return {
+        "sql": sql,
+        "table_name": table_name,
+        "user_goal": user_goal,
+        "provider_requested": provider_requested,
+        "provider_used": "mock",
+        "is_simulated": True,
+        "fallback_triggered": fallback_triggered,
+        "fallback_reason": fallback_reason,
+        "summary": "SQL generated through injected deterministic generator.",
+    }
+
+
 def _adapter_readonly_guardrail(sql: str) -> str:
     statements = [statement.strip() for statement in sql.split(";") if statement.strip()]
     if len(statements) > 1:
@@ -383,12 +539,9 @@ def _tool_result(
     error: str | None,
     started_at: float,
     table_name: str | None = None,
+    is_simulated: bool = False,
 ) -> ToolResult:
-    evidence_summary = (
-        "Existing readonly SQL execution wrapper output."
-        if tool_name == "execute_readonly_sql"
-        else "Existing readonly SQL guardrail output."
-    )
+    evidence_summary = _evidence_summary(tool_name)
     return ToolResult(
         tool_name=tool_name,
         status=status,
@@ -400,15 +553,25 @@ def _tool_result(
                 summary=evidence_summary,
                 data_ref={
                     "table_name": table_name,
-                    "is_real_path": True,
+                    "is_real_path": not is_simulated,
                     "status": status.value,
                 },
             )
         ],
         duration_ms=int((perf_counter() - started_at) * 1000),
         error=error,
-        is_simulated=False,
+        is_simulated=is_simulated,
     )
+
+
+def _evidence_summary(tool_name: str) -> str:
+    if tool_name == "execute_readonly_sql":
+        return "Existing readonly SQL execution wrapper output."
+    if tool_name == "validate_readonly_sql":
+        return "Existing readonly SQL guardrail output."
+    if tool_name == "generate_sql":
+        return "Injected SQL generation wrapper output."
+    return "Pipeline adapter output."
 
 
 def _append_note(existing: str, note: str) -> str:

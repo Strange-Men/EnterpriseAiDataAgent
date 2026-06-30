@@ -116,6 +116,20 @@ class ExecuteReadonlySqlOutput(BaseModel):
     summary: str
 
 
+class GenerateSqlInput(BaseModel):
+    user_goal: str = Field(min_length=1)
+    table_name: str | None = None
+    schema_payload: dict[str, Any] | None = Field(default=None, alias="schema")
+    provider_requested: str = "mock"
+
+    @field_validator("user_goal", "provider_requested", mode="before")
+    @classmethod
+    def _strip_text(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
 ToolCallable = Callable[[BaseModel], BaseModel]
 
 
@@ -270,6 +284,30 @@ def execute_readonly_sql_real_path(
         table_name=table_name,
         row_limit=payload.row_limit,
         executor=executor,
+    )
+
+
+def generate_sql_real_path(
+    input_data: dict[str, Any],
+    *,
+    generator: Any | None = None,
+) -> ToolResult:
+    """Explicit SQL generation helper for M5.3.3.
+
+    The default registry is unchanged. This helper requires an injected
+    generator and never calls a live provider by default.
+    """
+
+    from backend.agent.pipeline_adapter import generate_sql_with_existing_pipeline
+
+    payload = GenerateSqlInput.model_validate(input_data)
+    return generate_sql_with_existing_pipeline(
+        user_goal=payload.user_goal,
+        table_name=payload.table_name,
+        schema=payload.schema_payload,
+        provider_requested=payload.provider_requested,
+        generator=generator,
+        allow_real_provider=False,
     )
 
 
