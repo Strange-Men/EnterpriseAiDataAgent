@@ -102,3 +102,9 @@ Do not start M5 until user confirms.
 - M5.1.5 Agent Foundation Regression completed on 2026-06-30.
 - M5.1 foundation is ready for review.
 - M5.2 has not started.
+
+## M5.1 Agent Foundation Merge Validation
+
+- M5.1 Agent Foundation merged to master on 2026-06-30.
+- M5.1 is ready for review.
+- M5.2 has not started.
