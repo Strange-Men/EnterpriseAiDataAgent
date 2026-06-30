@@ -37,3 +37,30 @@ After this tag, future work can choose either:
 - M5 Agent workflow enhancement
 
 Do not start M5 until user confirms.
+
+## M5.0 Status
+
+- M5.0 Agent Design + Version Governance Lock completed on 2026-06-29.
+- App version governance is aligned on `1.4.1`; release tag remains `v1.4.1-m4-engineering-complete`.
+- M5 target is Single Data Analyst Agent.
+- Implementation has not started.
+- No frontend source, backend business logic, database, Docker, or README changes were made for M5.0.
+- Start M5.1 only after design review.
+
+## M5.0 Design Review Hotfix
+
+- M5.0 design review hotfix completed on 2026-06-29.
+- LangChain is approved only as an optional lightweight harness after native EAI Agent contracts are stable.
+- M5.1 implementation has not started.
+
+## M5.0 Industrial Agent Workflow Review
+
+- M5.0 industrial agent workflow review completed on 2026-06-29.
+- Design now includes intent recognition, mode router, fallback matrix, tool guardrails, trace/evidence, and an updated M5.1-M5.6 implementation plan.
+- Implementation has not started.
+
+## M5/M6 Agent Roadmap Final Design Lock
+
+- M5/M6 Agent roadmap final design lock completed on 2026-06-30.
+- M5 remains Single Data Analyst Agent MVP; M6 is reserved for multi-agent expansion.
+- Implementation has not started.
