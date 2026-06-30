@@ -70,3 +70,9 @@ Do not start M5 until user confirms.
 - M5.0 Agent design branch merged into `master` on 2026-06-30.
 - Merge validation report created at `docs/reports/m5-0-agent-design-merge-validation.md`.
 - M5.1 has not started; begin with M5.1.0 only after master CI passes.
+
+## M5.1.0 Agent Implementation Plan
+
+- M5.1.0 Agent Implementation Plan completed on 2026-06-30.
+- Agent implementation has not started.
+- Next step is M5.1.1 Native Contracts after user approval.
