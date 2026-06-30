@@ -96,3 +96,9 @@ Do not start M5 until user confirms.
 
 - M5.1.4 Deterministic Mock Run Transcript completed on 2026-06-30.
 - Persistence/pipeline wrapping/frontend implementation has not started.
+
+## M5.1.5 Agent Foundation Regression
+
+- M5.1.5 Agent Foundation Regression completed on 2026-06-30.
+- M5.1 foundation is ready for review.
+- M5.2 has not started.
