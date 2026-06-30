@@ -86,3 +86,8 @@ Do not start M5 until user confirms.
 
 - M5.1.2 Intent Router completed on 2026-06-30.
 - Tools/runner/persistence implementation has not started.
+
+## M5.1.3 Mock Tool Registry
+
+- M5.1.3 Mock Tool Registry completed on 2026-06-30.
+- Runner/persistence/pipeline wrapping implementation has not started.
