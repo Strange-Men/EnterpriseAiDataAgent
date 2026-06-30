@@ -124,3 +124,8 @@ Do not start M5 until user confirms.
 
 - M5.2 Optional LangChain Harness merged to master on 2026-06-30.
 - M5.3 pipeline wrapping has not started.
+
+## M5.3.0 Existing Pipeline Tool Wrapping Audit / Plan
+
+- M5.3.0 Existing Pipeline Tool Wrapping Audit / Plan completed on 2026-06-30.
+- Pipeline wrapping implementation has not started.
