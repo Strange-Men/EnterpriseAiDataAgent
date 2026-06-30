@@ -58,3 +58,9 @@ Do not start M5 until user confirms.
 - M5.0 industrial agent workflow review completed on 2026-06-29.
 - Design now includes intent recognition, mode router, fallback matrix, tool guardrails, trace/evidence, and an updated M5.1-M5.6 implementation plan.
 - Implementation has not started.
+
+## M5/M6 Agent Roadmap Final Design Lock
+
+- M5/M6 Agent roadmap final design lock completed on 2026-06-30.
+- M5 remains Single Data Analyst Agent MVP; M6 is reserved for multi-agent expansion.
+- Implementation has not started.

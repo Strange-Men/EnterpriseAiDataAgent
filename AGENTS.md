@@ -10,8 +10,15 @@ Current app version: `1.4.1`.
 
 M5 Agent work must follow:
 - `docs/VERSIONING.md`
+- `docs/architecture/m5-m6-agent-roadmap.md`
 - `docs/architecture/m5-agent-design.md`
 - `docs/reports/m5-0-agent-design-version-lock.md`
+
+M5/M6 Agent roadmap source of truth:
+- `docs/architecture/m5-m6-agent-roadmap.md`
+- `docs/architecture/m5-agent-design.md`
+
+M5 implementation must follow the roadmap. M6 multi-agent expansion must not be started during M5 unless explicitly approved.
 
 Older Agent notes in this file are historical references only and must not be used as the execution blueprint.
 

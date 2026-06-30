@@ -1,9 +1,15 @@
 # M5 Single Data Analyst Agent Design
 
-> Status: M5.0 industrial agent workflow review
-> Date: 2026-06-29
+> Status: M5.0 final design lock
+> Date: 2026-06-30
 > App version: 1.4.1
 > Release tag: `v1.4.1-m4-engineering-complete`
+
+Roadmap source of truth:
+
+- `docs/architecture/m5-m6-agent-roadmap.md`
+
+`docs/architecture/m5-m6-agent-roadmap.md` is the final roadmap source of truth for M5 single-agent MVP and M6 multi-agent expansion. This document keeps the detailed M5 Single Data Analyst Agent design and must remain consistent with that roadmap.
 
 ## 1. Why EAI Needs an Agent
 
@@ -161,6 +167,7 @@ M5 不替换当前 pipeline，而是新增薄 Agent runtime：
 - M5.4 加后端 persistence 和 Agent trace。
 - M5.5 加前端 mode tabs / timeline / evidence / detail。
 - M5.6 加 transcript evals 和真实 provider smoke。
+- M5.7 做 M5 final regression 和 release tag readiness，但不在设计阶段打 tag。
 
 ## 9. Where Agent Lives
 
@@ -619,6 +626,11 @@ agent_tool_calls
 `agent_runs` fields:
 
 - `run_id`
+- `root_run_id`
+- `parent_run_id`
+- `orchestrator_run_id`
+- `agent_role`
+- `agent_name`
 - `table_name`
 - `user_goal`
 - `intent`
@@ -642,9 +654,14 @@ agent_tool_calls
 
 - `step_id`
 - `run_id`
+- `root_run_id`
+- `agent_role`
+- `agent_name`
 - `step_index`
 - `state`
 - `tool_name`
+- `handoff_from`
+- `handoff_to`
 - `input_json`
 - `output_json`
 - `evidence_json`
@@ -659,6 +676,8 @@ agent_tool_calls
 - `call_id`
 - `run_id`
 - `step_id`
+- `agent_role`
+- `agent_name`
 - `tool_name`
 - `input_json`
 - `output_json`
@@ -668,6 +687,8 @@ agent_tool_calls
 - `provider_used`
 - `is_simulated`
 - `status`
+
+M5 can use `agent_role="data_analyst"` only. These fields are reserved so M6 can introduce role-specific agents without replacing the persistence model.
 
 Why not only localStorage:
 
@@ -757,6 +778,7 @@ Evaluation must validate:
 | M5.4 | Agent Persistence + Trace | agent_runs / agent_steps / agent_tool_calls | backend run history |
 | M5.5 | Frontend Agent UI | mode tabs / timeline / evidence / detail | style-consistent Agent run UX |
 | M5.6 | Agent Evals + Real LLM Smoke | transcript tests + provider smoke | mock stable, real provider tested |
+| M5.7 | M5 Final Regression + Tag Readiness | final verification and release docs | release candidate passes; tag only after explicit approval |
 
 ## 25. Risks
 
@@ -780,5 +802,7 @@ Use Intent Recognition and Mode Router before creating AgentRun.
 Use LangChain only as an optional lightweight tool-calling harness after native EAI Agent contracts are stable.
 
 Do not implement multi-agent, LangGraph orchestration, or RAG in M5.
+
+M6 may evaluate Multi-Agent expansion only after M5 contracts, persistence, trace, guardrails, UI, and evals are stable. M5 must remain future-ready through `agent_role`, `agent_name`, `parent_run_id`, `root_run_id`, handoff fields, and normalized tool-call records.
 
 Start M5.1 only after user reviews this design.
