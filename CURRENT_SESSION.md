@@ -114,3 +114,8 @@ Do not start M5 until user confirms.
 - M5.2.0 Optional LangChain Harness Plan completed on 2026-06-30.
 - LangChain has not been installed.
 - Adapter implementation has not started.
+
+## M5.2.1 Optional LangChain Harness MVP
+
+- M5.2.1 Optional LangChain Harness MVP completed on 2026-06-30.
+- LangGraph, real LLM, persistence, frontend, and pipeline wrapping have not started.
