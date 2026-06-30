@@ -139,3 +139,8 @@ Do not start M5 until user confirms.
 
 - M5.3.2 Wrap Existing Readonly SQL Execution completed on 2026-06-30.
 - SQL generation / summary / report wrapping has not started.
+
+## M5.3.3 Wrap Existing SQL Generation
+
+- M5.3.3 Wrap Existing SQL Generation completed on 2026-06-30.
+- Real LLM / summary / report wrapping has not started.
