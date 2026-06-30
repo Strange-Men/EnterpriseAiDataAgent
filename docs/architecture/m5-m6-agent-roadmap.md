@@ -173,6 +173,10 @@ business_metric_lookup
 
 `detect_anomalies` and `suggest_chart` do not enter the M5 core tool set. They remain Future tools until Agent contracts, persistence, trace, evals, and UI are stable.
 
+Future tools must remain inactive until their backend API, UI entry, trace, evidence, and eval coverage are stable.
+
+Do not restore hidden or experimental UI features during M5.1.
+
 ## 8. M5 Native Contracts
 
 M5 native contracts are the source of truth. LangChain must normalize back into these contracts and must not own EAI state.
@@ -471,6 +475,8 @@ Real LLM smoke last.
 
 ## 14. M5 Implementation Plan
 
+M5.1 can start only after this roadmap is merged into master and master CI passes.
+
 | Stage | Goal | Scope | Files Allowed | Acceptance Criteria | What Not To Do |
 | --- | --- | --- | --- | --- | --- |
 | M5.1 | Intent Router + Native Agent Contracts + Mock Tool Registry | backend contracts only | future `backend/agent/contracts.py`, `router.py`, `tools.py`, focused tests | deterministic mock route and tool-call transcript | no LangChain install, no persistence migration, no frontend source |
@@ -480,6 +486,23 @@ Real LLM smoke last.
 | M5.5 | Frontend Agent UI | mode tabs, timeline, evidence, detail | future focused Analyze / History / Detail UI files | style-consistent Agent run UX | no new visual system |
 | M5.6 | Agent Evals + Real LLM Smoke | transcript tests and provider smoke | tests and smoke docs | mock stable, real provider tested last | no provider smoke before mock path is stable |
 | M5.7 | M5 Final Regression + Tag | final verification and release docs | docs, tests, version checklist | release candidate passes and tag can be created after approval | no tag before explicit approval |
+
+### M5.1 Micro-Step Rule
+
+M5.1 must be implemented in small steps.
+
+Recommended split:
+
+| Step | Goal | Scope |
+| --- | --- | --- |
+| M5.1.0 | Implementation Plan | docs only, confirm file boundaries |
+| M5.1.1 | Native Contracts | `backend/agent/contracts.py` + tests only |
+| M5.1.2 | Intent Router | `backend/agent/router.py` + tests only |
+| M5.1.3 | Mock Tool Registry | `backend/agent/tools.py` + tests only |
+| M5.1.4 | Deterministic Mock Run Transcript | minimal runner/test harness only |
+| M5.1.5 | M5.1 Regression | backend import + focused tests + report |
+
+Do not combine contracts, router, tools, and runner into one large commit.
 
 ## 15. M6 Multi-Agent Expansion
 
