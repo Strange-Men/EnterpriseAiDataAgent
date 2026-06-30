@@ -76,3 +76,8 @@ Do not start M5 until user confirms.
 - M5.1.0 Agent Implementation Plan completed on 2026-06-30.
 - Agent implementation has not started.
 - Next step is M5.1.1 Native Contracts after user approval.
+
+## M5.1.1 Native Agent Contracts
+
+- M5.1.1 Native Agent Contracts completed on 2026-06-30.
+- Router/tools/runner implementation has not started.
