@@ -108,3 +108,9 @@ Do not start M5 until user confirms.
 - M5.1 Agent Foundation merged to master on 2026-06-30.
 - M5.1 is ready for review.
 - M5.2 has not started.
+
+## M5.2.0 Optional LangChain Harness Plan
+
+- M5.2.0 Optional LangChain Harness Plan completed on 2026-06-30.
+- LangChain has not been installed.
+- Adapter implementation has not started.
