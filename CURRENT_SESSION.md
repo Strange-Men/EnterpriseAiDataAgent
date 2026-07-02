@@ -159,3 +159,8 @@ Do not start M5 until user confirms.
 
 - M5.3.4 Summary / Report Wrapping merged to master on 2026-07-02.
 - M5.3.5 pipeline tool regression has not started.
+
+## M5.3.5 Pipeline Tool Regression
+
+- M5.3.5 Pipeline Tool Regression completed on 2026-07-02.
+- M5.3 final merge validation has not started.
