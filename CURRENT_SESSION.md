@@ -164,3 +164,8 @@ Do not start M5 until user confirms.
 
 - M5.3.5 Pipeline Tool Regression completed on 2026-07-02.
 - M5.3 final merge validation has not started.
+
+## M5.3 Final Merge Validation
+
+- M5.3 Final Merge Validation completed on 2026-07-02.
+- M5.4 has not started.
