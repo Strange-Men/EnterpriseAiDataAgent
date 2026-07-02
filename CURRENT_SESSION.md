@@ -184,3 +184,8 @@ Do not start M5 until user confirms.
 
 - M5.4.1 Agent Runtime Skeleton completed on 2026-07-02.
 - Runtime simulated chain / API / persistence / frontend have not started.
+
+## M5.4.1 Agent Runtime Skeleton Merge Validation
+
+- M5.4.1 Agent Runtime Skeleton merged to master on 2026-07-02.
+- M5.4.2 has not started.
