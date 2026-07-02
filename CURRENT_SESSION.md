@@ -194,3 +194,8 @@ Do not start M5 until user confirms.
 
 - M5.4.2 Agent Runtime Simulated Chain completed on 2026-07-02.
 - API / persistence / frontend have not started.
+
+## M5.4.2 Agent Runtime Simulated Chain Merge Validation
+
+- M5.4.2 Agent Runtime Simulated Chain merged to master on 2026-07-02.
+- M5.4.3 has not started.
