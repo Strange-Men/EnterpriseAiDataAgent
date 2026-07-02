@@ -174,3 +174,8 @@ Do not start M5 until user confirms.
 
 - M5.4.0 Agent Runtime / API / Persistence Plan completed on 2026-07-02.
 - Implementation has not started.
+
+## M5.4.0 Agent Runtime / API / Persistence Plan Merge Validation
+
+- M5.4.0 Agent Runtime / API / Persistence Plan merged to master on 2026-07-02.
+- M5.4.1 has not started.
