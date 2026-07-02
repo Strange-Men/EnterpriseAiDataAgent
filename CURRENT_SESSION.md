@@ -179,3 +179,8 @@ Do not start M5 until user confirms.
 
 - M5.4.0 Agent Runtime / API / Persistence Plan merged to master on 2026-07-02.
 - M5.4.1 has not started.
+
+## M5.4.1 Agent Runtime Skeleton
+
+- M5.4.1 Agent Runtime Skeleton completed on 2026-07-02.
+- Runtime simulated chain / API / persistence / frontend have not started.
