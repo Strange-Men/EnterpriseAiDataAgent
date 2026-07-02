@@ -406,6 +406,269 @@ def generate_sql_with_existing_pipeline(
     )
 
 
+def summarize_findings_with_existing_pipeline(
+    *,
+    user_goal: str,
+    sql: str | None = None,
+    rows: list[dict[str, object]] | None = None,
+    evidence: list[dict[str, object]] | None = None,
+    provider_requested: str = "mock",
+    summarizer: Any | None = None,
+    allow_real_provider: bool = False,
+) -> ToolResult:
+    """Normalize summary generation into ToolResult without live model calls.
+
+    M5.3.4 supports injected summarizers only. Evidence is required so the
+    Agent cannot produce an ungrounded summary.
+    """
+
+    started_at = perf_counter()
+    goal = (user_goal or "").strip()
+    normalized_evidence = _normalize_evidence(evidence)
+    provider_metadata = _mock_provider_metadata(provider_requested, "Injected summarizer used mock provider path.")
+
+    if not goal:
+        return _tool_result(
+            tool_name="summarize_findings",
+            status=ToolResultStatus.REJECTED,
+            output=_summary_output(
+                summary="",
+                findings=[],
+                user_goal=goal,
+                sql=sql,
+                rows=rows,
+                evidence=normalized_evidence,
+                provider_metadata=provider_metadata,
+            ),
+            error="user_goal is required.",
+            started_at=started_at,
+            is_simulated=True,
+        )
+
+    if not normalized_evidence:
+        return _tool_result(
+            tool_name="summarize_findings",
+            status=ToolResultStatus.REJECTED,
+            output=_summary_output(
+                summary="",
+                findings=[],
+                user_goal=goal,
+                sql=sql,
+                rows=rows,
+                evidence=normalized_evidence,
+                provider_metadata=provider_metadata,
+            ),
+            error="Evidence is required before summarizing findings.",
+            started_at=started_at,
+            is_simulated=True,
+        )
+
+    if summarizer is None:
+        reason = (
+            "Injected summarizer is required; live provider execution is disabled for M5.3.4."
+            if not allow_real_provider
+            else "Live provider execution is not implemented in M5.3.4."
+        )
+        return _tool_result(
+            tool_name="summarize_findings",
+            status=ToolResultStatus.REJECTED,
+            output=_summary_output(
+                summary="",
+                findings=[],
+                user_goal=goal,
+                sql=sql,
+                rows=rows,
+                evidence=normalized_evidence,
+                provider_metadata=provider_metadata,
+            ),
+            error=reason,
+            started_at=started_at,
+            is_simulated=True,
+        )
+
+    try:
+        raw_summary = summarizer(
+            user_goal=goal,
+            sql=sql,
+            rows=rows or [],
+            evidence=normalized_evidence,
+            provider_requested=provider_metadata["provider_requested"],
+        )
+        summary, findings = _extract_summary_payload(raw_summary)
+    except Exception as exc:
+        return _tool_result(
+            tool_name="summarize_findings",
+            status=ToolResultStatus.FAILED,
+            output=_summary_output(
+                summary="",
+                findings=[],
+                user_goal=goal,
+                sql=sql,
+                rows=rows,
+                evidence=normalized_evidence,
+                provider_metadata=provider_metadata,
+            ),
+            error=str(exc),
+            started_at=started_at,
+            is_simulated=True,
+        )
+
+    return _tool_result(
+        tool_name="summarize_findings",
+        status=ToolResultStatus.COMPLETED,
+        output=_summary_output(
+            summary=summary,
+            findings=findings,
+            user_goal=goal,
+            sql=sql,
+            rows=rows,
+            evidence=normalized_evidence,
+            provider_metadata=provider_metadata,
+        ),
+        error=None,
+        started_at=started_at,
+        is_simulated=True,
+    )
+
+
+def build_report_with_existing_pipeline(
+    *,
+    user_goal: str,
+    summary: str | None = None,
+    findings: list[dict[str, object]] | None = None,
+    evidence: list[dict[str, object]] | None = None,
+    provider_requested: str = "mock",
+    report_builder: Any | None = None,
+    allow_real_provider: bool = False,
+) -> ToolResult:
+    """Normalize report building into ToolResult without live provider calls.
+
+    M5.3.4 supports injected report builders only. Evidence plus summary or
+    findings are required before a report can be built.
+    """
+
+    started_at = perf_counter()
+    goal = (user_goal or "").strip()
+    normalized_evidence = _normalize_evidence(evidence)
+    normalized_findings = _normalize_evidence(findings)
+    provider_metadata = _mock_provider_metadata(provider_requested, "Injected report builder used mock provider path.")
+
+    if not goal:
+        return _tool_result(
+            tool_name="build_report",
+            status=ToolResultStatus.REJECTED,
+            output=_report_output(
+                report={},
+                user_goal=goal,
+                summary=summary,
+                findings=normalized_findings,
+                evidence=normalized_evidence,
+                provider_metadata=provider_metadata,
+            ),
+            error="user_goal is required.",
+            started_at=started_at,
+            is_simulated=True,
+        )
+
+    if not normalized_evidence:
+        return _tool_result(
+            tool_name="build_report",
+            status=ToolResultStatus.REJECTED,
+            output=_report_output(
+                report={},
+                user_goal=goal,
+                summary=summary,
+                findings=normalized_findings,
+                evidence=normalized_evidence,
+                provider_metadata=provider_metadata,
+            ),
+            error="Evidence is required before building a report.",
+            started_at=started_at,
+            is_simulated=True,
+        )
+
+    if not (summary or normalized_findings):
+        return _tool_result(
+            tool_name="build_report",
+            status=ToolResultStatus.REJECTED,
+            output=_report_output(
+                report={},
+                user_goal=goal,
+                summary=summary,
+                findings=normalized_findings,
+                evidence=normalized_evidence,
+                provider_metadata=provider_metadata,
+            ),
+            error="Summary or findings are required before building a report.",
+            started_at=started_at,
+            is_simulated=True,
+        )
+
+    if report_builder is None:
+        reason = (
+            "Injected report builder is required; live provider execution is disabled for M5.3.4."
+            if not allow_real_provider
+            else "Live provider execution is not implemented in M5.3.4."
+        )
+        return _tool_result(
+            tool_name="build_report",
+            status=ToolResultStatus.REJECTED,
+            output=_report_output(
+                report={},
+                user_goal=goal,
+                summary=summary,
+                findings=normalized_findings,
+                evidence=normalized_evidence,
+                provider_metadata=provider_metadata,
+            ),
+            error=reason,
+            started_at=started_at,
+            is_simulated=True,
+        )
+
+    try:
+        raw_report = report_builder(
+            user_goal=goal,
+            summary=summary,
+            findings=normalized_findings,
+            evidence=normalized_evidence,
+            provider_requested=provider_metadata["provider_requested"],
+        )
+        report = _extract_report_payload(raw_report)
+    except Exception as exc:
+        return _tool_result(
+            tool_name="build_report",
+            status=ToolResultStatus.FAILED,
+            output=_report_output(
+                report={},
+                user_goal=goal,
+                summary=summary,
+                findings=normalized_findings,
+                evidence=normalized_evidence,
+                provider_metadata=provider_metadata,
+            ),
+            error=str(exc),
+            started_at=started_at,
+            is_simulated=True,
+        )
+
+    return _tool_result(
+        tool_name="build_report",
+        status=ToolResultStatus.COMPLETED,
+        output=_report_output(
+            report=report,
+            user_goal=goal,
+            summary=summary,
+            findings=normalized_findings,
+            evidence=normalized_evidence,
+            provider_metadata=provider_metadata,
+        ),
+        error=None,
+        started_at=started_at,
+        is_simulated=True,
+    )
+
+
 def _build_capability(definition: dict[str, object]) -> PipelineCapability:
     module_path = str(definition["module_path"])
     symbol_name = definition.get("symbol_name")
@@ -519,6 +782,87 @@ def _sql_generation_output(
     }
 
 
+def _normalize_evidence(items: list[dict[str, object]] | None) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for item in items or []:
+        if isinstance(item, dict):
+            normalized.append(dict(item))
+    return normalized
+
+
+def _mock_provider_metadata(provider_requested: str, fallback_reason: str) -> dict[str, Any]:
+    requested = (provider_requested or "mock").strip() or "mock"
+    fallback_triggered = requested != "mock"
+    return {
+        "provider_requested": requested,
+        "provider_used": "mock",
+        "is_simulated": True,
+        "fallback_triggered": fallback_triggered,
+        "fallback_reason": fallback_reason if fallback_triggered else None,
+    }
+
+
+def _extract_summary_payload(raw_summary: Any) -> tuple[str, list[dict[str, Any]]]:
+    if isinstance(raw_summary, str):
+        return raw_summary.strip(), []
+    if isinstance(raw_summary, dict):
+        summary = str(raw_summary.get("summary") or raw_summary.get("text") or "").strip()
+        findings_raw = raw_summary.get("findings") or []
+        findings = _normalize_evidence(findings_raw if isinstance(findings_raw, list) else [])
+        return summary, findings
+    raise TypeError("Injected summarizer must return a string or dictionary.")
+
+
+def _extract_report_payload(raw_report: Any) -> dict[str, Any]:
+    if isinstance(raw_report, str):
+        return {"markdown": raw_report.strip()}
+    if isinstance(raw_report, dict):
+        return dict(raw_report)
+    raise TypeError("Injected report builder must return a string or dictionary.")
+
+
+def _summary_output(
+    *,
+    summary: str,
+    findings: list[dict[str, Any]],
+    user_goal: str,
+    sql: str | None,
+    rows: list[dict[str, object]] | None,
+    evidence: list[dict[str, Any]],
+    provider_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "summary": summary,
+        "findings": findings,
+        "user_goal": user_goal,
+        "sql": sql,
+        "row_count": len(rows or []),
+        "evidence": evidence,
+        **provider_metadata,
+    }
+
+
+def _report_output(
+    *,
+    report: dict[str, Any],
+    user_goal: str,
+    summary: str | None,
+    findings: list[dict[str, Any]],
+    evidence: list[dict[str, Any]],
+    provider_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "report": report,
+        "title": report.get("title"),
+        "sections": report.get("sections", []),
+        "user_goal": user_goal,
+        "summary": summary,
+        "findings": findings,
+        "evidence": evidence,
+        **provider_metadata,
+    }
+
+
 def _adapter_readonly_guardrail(sql: str) -> str:
     statements = [statement.strip() for statement in sql.split(";") if statement.strip()]
     if len(statements) > 1:
@@ -571,6 +915,10 @@ def _evidence_summary(tool_name: str) -> str:
         return "Existing readonly SQL guardrail output."
     if tool_name == "generate_sql":
         return "Injected SQL generation wrapper output."
+    if tool_name == "summarize_findings":
+        return "Injected summary wrapper output grounded in evidence."
+    if tool_name == "build_report":
+        return "Injected report wrapper output grounded in evidence."
     return "Pipeline adapter output."
 
 

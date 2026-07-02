@@ -130,6 +130,36 @@ class GenerateSqlInput(BaseModel):
         return value
 
 
+class SummarizeFindingsInput(BaseModel):
+    user_goal: str = Field(min_length=1)
+    sql: str | None = None
+    rows: list[dict[str, Any]] | None = None
+    evidence: list[dict[str, Any]] = Field(default_factory=list)
+    provider_requested: str = "mock"
+
+    @field_validator("user_goal", "provider_requested", mode="before")
+    @classmethod
+    def _strip_text(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
+class BuildReportInput(BaseModel):
+    user_goal: str = Field(min_length=1)
+    summary: str | None = None
+    findings: list[dict[str, Any]] = Field(default_factory=list)
+    evidence: list[dict[str, Any]] = Field(default_factory=list)
+    provider_requested: str = "mock"
+
+    @field_validator("user_goal", "provider_requested", mode="before")
+    @classmethod
+    def _strip_text(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
 ToolCallable = Callable[[BaseModel], BaseModel]
 
 
@@ -307,6 +337,56 @@ def generate_sql_real_path(
         schema=payload.schema_payload,
         provider_requested=payload.provider_requested,
         generator=generator,
+        allow_real_provider=False,
+    )
+
+
+def summarize_findings_real_path(
+    input_data: dict[str, Any],
+    *,
+    summarizer: Any | None = None,
+) -> ToolResult:
+    """Explicit summary helper for M5.3.4.
+
+    The default registry is unchanged. This helper requires an injected
+    summarizer and never calls a live provider by default.
+    """
+
+    from backend.agent.pipeline_adapter import summarize_findings_with_existing_pipeline
+
+    payload = SummarizeFindingsInput.model_validate(input_data)
+    return summarize_findings_with_existing_pipeline(
+        user_goal=payload.user_goal,
+        sql=payload.sql,
+        rows=payload.rows,
+        evidence=payload.evidence,
+        provider_requested=payload.provider_requested,
+        summarizer=summarizer,
+        allow_real_provider=False,
+    )
+
+
+def build_report_real_path(
+    input_data: dict[str, Any],
+    *,
+    report_builder: Any | None = None,
+) -> ToolResult:
+    """Explicit report helper for M5.3.4.
+
+    The default registry is unchanged. This helper requires an injected
+    report builder and never calls a live provider by default.
+    """
+
+    from backend.agent.pipeline_adapter import build_report_with_existing_pipeline
+
+    payload = BuildReportInput.model_validate(input_data)
+    return build_report_with_existing_pipeline(
+        user_goal=payload.user_goal,
+        summary=payload.summary,
+        findings=payload.findings,
+        evidence=payload.evidence,
+        provider_requested=payload.provider_requested,
+        report_builder=report_builder,
         allow_real_provider=False,
     )
 
