@@ -31,7 +31,7 @@ from backend.config import (
     RATE_LIMIT_REQUESTS,
     RATE_LIMIT_WINDOW_SECONDS,
 )
-from backend.routes import upload, tables, quality, query, ai, analyze
+from backend.routes import upload, tables, quality, query, ai, analyze, agent
 from backend.services.data_service import check_db_connection, get_uptime, get_db, get_system_health
 from backend.middleware.auth import APIKeyAuthMiddleware
 from backend.middleware.observability import ObservabilityMiddleware
@@ -190,6 +190,7 @@ app.include_router(quality.router, prefix="/api", tags=["quality"])
 app.include_router(query.router, prefix="/api", tags=["query"])
 app.include_router(ai.router, prefix="/api", tags=["ai"])
 app.include_router(analyze.router, prefix="/api", tags=["analyze"])
+app.include_router(agent.router)
 
 
 @app.get("/api/health")

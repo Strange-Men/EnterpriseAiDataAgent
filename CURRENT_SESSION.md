@@ -209,3 +209,8 @@ Do not start M5 until user confirms.
 
 - M5.4.3 Agent API Contract Skeleton merged to master on 2026-07-02.
 - M5.4.4 has not started.
+
+## M5.4.4 Agent API Route Skeleton
+
+- M5.4.4 Agent API Route Skeleton completed on 2026-07-02.
+- Persistence / frontend / real provider have not started.
