@@ -199,3 +199,8 @@ Do not start M5 until user confirms.
 
 - M5.4.2 Agent Runtime Simulated Chain merged to master on 2026-07-02.
 - M5.4.3 has not started.
+
+## M5.4.3 Agent API Contract Skeleton
+
+- M5.4.3 Agent API Contract Skeleton completed on 2026-07-02.
+- FastAPI route / persistence / frontend have not started.
