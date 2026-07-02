@@ -219,3 +219,8 @@ Do not start M5 until user confirms.
 
 - M5.4.4 Agent API Route Skeleton merged to master on 2026-07-03.
 - M5.4.5 has not started.
+
+## M5.4.5 Agent Memory Architecture Plan
+
+- M5.4.5 Agent Memory Architecture Plan completed on 2026-07-03.
+- Memory implementation / persistence / frontend have not started.
