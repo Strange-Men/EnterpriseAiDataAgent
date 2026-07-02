@@ -169,3 +169,8 @@ Do not start M5 until user confirms.
 
 - M5.3 Final Merge Validation completed on 2026-07-02.
 - M5.4 has not started.
+
+## M5.4.0 Agent Runtime / API / Persistence Plan
+
+- M5.4.0 Agent Runtime / API / Persistence Plan completed on 2026-07-02.
+- Implementation has not started.
