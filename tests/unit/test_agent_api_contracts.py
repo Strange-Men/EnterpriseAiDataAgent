@@ -26,6 +26,8 @@ def test_agent_run_request_defaults() -> None:
 
     assert request.provider_requested == "mock"
     assert request.mode == AgentRunMode.SKELETON
+    assert AgentRunMode.skeleton == AgentRunMode.SKELETON
+    assert AgentRunMode.simulated_chain == AgentRunMode.SIMULATED_CHAIN
     assert request.metadata == {}
     assert request.table_name is None
     assert request.dataset_id is None

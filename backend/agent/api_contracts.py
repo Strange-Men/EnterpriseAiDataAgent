@@ -19,6 +19,8 @@ from backend.agent.runtime import AgentRuntimeMode, AgentRuntimeRequest, AgentRu
 class AgentRunMode(str, Enum):
     SKELETON = "skeleton"
     SIMULATED_CHAIN = "simulated_chain"
+    skeleton = "skeleton"
+    simulated_chain = "simulated_chain"
 
 
 class AgentRunRequest(BaseModel):
