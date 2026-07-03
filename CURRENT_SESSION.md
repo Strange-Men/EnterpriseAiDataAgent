@@ -285,3 +285,8 @@ Do not start M5 until user confirms.
 - M5.4 Final Tag prepared on 2026-07-03.
 - M5.4 seals Agent Runtime + Agent API + InMemory Persistence Boundary.
 - Next stage after tag: M5.5 Frontend Agent UI Integration / Agent Run Mode.
+
+## M5.5.0 Frontend Agent UI Integration Plan
+
+- M5.5.0 Frontend Agent UI Integration Plan completed on 2026-07-03.
+- Existing UIUX consistency requirements were audited and locked. M5.5 implementation has not started.
