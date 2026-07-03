@@ -264,3 +264,8 @@ Do not start M5 until user confirms.
 
 - M5.4.9 Route-Level InMemory Store Integration completed on 2026-07-03.
 - Real DB persistence / history detail APIs / frontend have not started.
+
+## M5.4.9 Route-Level InMemory Store Integration Merge Validation
+
+- M5.4.9 Route-Level InMemory Store Integration merged to master on 2026-07-03.
+- M5.4.10 has not started.
