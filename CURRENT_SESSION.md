@@ -239,3 +239,8 @@ Do not start M5 until user confirms.
 
 - M5.4.6 Memory Schema Plan merged to master on 2026-07-03.
 - M5.4.7 has not started.
+
+## M5.4.7 AgentRun Persistence Skeleton
+
+- M5.4.7 AgentRun Persistence Skeleton completed on 2026-07-03.
+- Real DB persistence / migration / frontend have not started.
