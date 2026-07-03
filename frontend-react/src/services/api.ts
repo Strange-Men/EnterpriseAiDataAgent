@@ -109,3 +109,14 @@ export {
   streamAiExplain,
   streamAiInsights,
 } from "@/services/api/streams";
+
+export type {
+  AgentProviderRequested,
+  AgentRun,
+  AgentRunMode,
+  AgentStep,
+  AgentToolCall,
+  CreateAgentRunRequest,
+  CreateAgentRunResponse,
+} from "@/services/api/agent";
+export { createAgentRun } from "@/services/api/agent";
