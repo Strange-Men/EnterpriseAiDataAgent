@@ -269,3 +269,8 @@ Do not start M5 until user confirms.
 
 - M5.4.9 Route-Level InMemory Store Integration merged to master on 2026-07-03.
 - M5.4.10 has not started.
+
+## M5.4.10 Final Regression / Seal Candidate
+
+- M5.4.10 Final Regression / Seal Candidate completed on 2026-07-03.
+- M5.4 is ready for merge validation if tests and CI pass. Tag has not been created.
