@@ -244,3 +244,8 @@ Do not start M5 until user confirms.
 
 - M5.4.7 AgentRun Persistence Skeleton completed on 2026-07-03.
 - Real DB persistence / migration / frontend have not started.
+
+## M5.4.7 AgentRun Persistence Skeleton Merge Validation
+
+- M5.4.7 AgentRun Persistence Skeleton merged to master on 2026-07-03.
+- M5.4.8 has not started.
