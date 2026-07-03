@@ -325,3 +325,9 @@ Do not start M5 until user confirms.
 
 - M5.5.3 Agent Run Result Card merged to master on 2026-07-03.
 - M5.5.4 has not started. Tag has not been created.
+
+## M5.5.4 Product Simplification and M5 Completion Plan
+
+- M5.5.4 Product Simplification and M5 Completion Plan completed on 2026-07-03.
+- M5 final target, compressed M5.5 path, whole-site simplification, bilingual requirement, provider fallback rules, and documentation slimming plan are re-locked.
+- M5.5.5 implementation has not started. Tag has not been created.
