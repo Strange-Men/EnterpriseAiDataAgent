@@ -279,3 +279,9 @@ Do not start M5 until user confirms.
 
 - M5.4.10 Final Regression / Seal Candidate merged to master on 2026-07-03.
 - M5.4 is ready for final tag after user review. Tag has not been created.
+
+## M5.4 Final Tag
+
+- M5.4 Final Tag prepared on 2026-07-03.
+- M5.4 seals Agent Runtime + Agent API + InMemory Persistence Boundary.
+- Next stage after tag: M5.5 Frontend Agent UI Integration / Agent Run Mode.
