@@ -274,3 +274,8 @@ Do not start M5 until user confirms.
 
 - M5.4.10 Final Regression / Seal Candidate completed on 2026-07-03.
 - M5.4 is ready for merge validation if tests and CI pass. Tag has not been created.
+
+## M5.4.10 Final Regression / Seal Candidate Merge Validation
+
+- M5.4.10 Final Regression / Seal Candidate merged to master on 2026-07-03.
+- M5.4 is ready for final tag after user review. Tag has not been created.
