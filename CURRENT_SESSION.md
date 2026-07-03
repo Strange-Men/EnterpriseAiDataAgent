@@ -229,3 +229,8 @@ Do not start M5 until user confirms.
 
 - M5.4.5 Agent Memory Architecture Plan merged to master on 2026-07-03.
 - M5.4.6 has not started.
+
+## M5.4.6 Memory Schema Plan
+
+- M5.4.6 Memory Schema Plan completed on 2026-07-03.
+- Memory implementation / persistence / migration have not started.
