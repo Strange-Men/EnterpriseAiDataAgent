@@ -315,3 +315,8 @@ Do not start M5 until user confirms.
 
 - M5.5.2 Analyze Agent Run UI Skeleton merged to master on 2026-07-03.
 - M5.5.3 has not started. Tag has not been created.
+
+## M5.5.3 Agent Run Result Card
+
+- M5.5.3 Agent Run Result Card completed on 2026-07-03.
+- Full warning/fallback/unsupported state polish, history/detail UI, and real provider credential UI have not started.

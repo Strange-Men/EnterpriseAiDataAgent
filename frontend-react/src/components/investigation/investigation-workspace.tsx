@@ -5,8 +5,10 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
+  createAgentRun,
   streamAiAnalyzeMulti,
   fetchTableData,
+  type CreateAgentRunResponse,
   type MultiStreamEvent,
   type MultiStepExecuted,
   type PlanStep,
@@ -47,6 +49,9 @@ export function InvestigationWorkspace() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("ai-query");
   const [question, setQuestion] = useState("");
   const [agentQuestion, setAgentQuestion] = useState("");
+  const [isAgentRunning, setIsAgentRunning] = useState(false);
+  const [agentRunResult, setAgentRunResult] = useState<CreateAgentRunResponse | null>(null);
+  const [agentRunError, setAgentRunError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [streamStage, setStreamStage] = useState("");
   const [streamStep, setStreamStep] = useState<number | undefined>();
@@ -337,6 +342,39 @@ export function InvestigationWorkspace() {
   const handleExampleClick = useCallback((example: string) => {
     setQuestion(example);
   }, []);
+
+  const handleAgentRun = useCallback(async () => {
+    const q = agentQuestion.trim();
+    const table = activeTable || tables[0]?.name;
+
+    if (!q) {
+      setAgentRunError("Enter an Agent request before running.");
+      return;
+    }
+
+    if (!table) {
+      setAgentRunError("Select or upload a table before running Agent mode.");
+      return;
+    }
+
+    setIsAgentRunning(true);
+    setAgentRunError(null);
+    setAgentRunResult(null);
+
+    try {
+      const response = await createAgentRun({
+        user_input: q,
+        table_name: table,
+        provider_requested: "mock",
+        mode: "skeleton",
+      });
+      setAgentRunResult(response);
+    } catch (err) {
+      setAgentRunError(err instanceof Error ? err.message : "Agent run failed.");
+    } finally {
+      setIsAgentRunning(false);
+    }
+  }, [agentQuestion, activeTable, tables]);
 
   // NOTE: Intentionally NOT restoring old runs from persisted activeRunId.
   // Analyze page only shows transient results from the current session.
@@ -642,6 +680,7 @@ export function InvestigationWorkspace() {
                   placeholder="Describe the analysis task for the Agent runtime skeleton..."
                   rows={4}
                   className="!text-sm !rounded-lg !resize-none"
+                  disabled={isAgentRunning}
                 />
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -657,13 +696,84 @@ export function InvestigationWorkspace() {
                     type="button"
                     variant="primary"
                     size="md"
-                    disabled
+                    loading={isAgentRunning}
+                    disabled={!agentQuestion.trim() || !currentTableName || isAgentRunning}
+                    onClick={handleAgentRun}
                   >
-                    Run Agent
+                    {isAgentRunning ? "Running" : "Run Agent"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
+
+            {agentRunError && (
+              <div className="rounded-lg border border-[var(--error)]/30 bg-[var(--danger-subtle)] px-3 py-2">
+                <p className="text-xs font-medium text-[var(--error)]">Agent run failed</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{agentRunError}</p>
+              </div>
+            )}
+
+            {agentRunResult && (
+              <Card variant="highlighted">
+                <CardHeader>
+                  <CardTitle>Agent run result</CardTitle>
+                  <CardDescription>
+                    Skeleton run metadata returned by the Agent API.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">run_id</p>
+                      <p className="truncate text-xs font-medium text-[var(--text-primary)]">
+                        {agentRunResult.run.run_id}
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">status</p>
+                      <p className="text-xs font-medium text-[var(--text-primary)]">
+                        {agentRunResult.run.status}
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">intent</p>
+                      <p className="text-xs font-medium text-[var(--text-primary)]">
+                        {agentRunResult.run.intent ?? "not routed"}
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">provider</p>
+                      <p className="text-xs font-medium text-[var(--text-primary)]">
+                        {agentRunResult.run.provider_requested ?? "mock"} -&gt; {agentRunResult.run.provider_used ?? "mock"}
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">fallback_triggered</p>
+                      <p className="text-xs font-medium text-[var(--text-primary)]">
+                        {String(Boolean(agentRunResult.run.fallback_triggered))}
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">is_simulated</p>
+                      <p className="text-xs font-medium text-[var(--text-primary)]">
+                        {String(Boolean(agentRunResult.run.is_simulated))}
+                      </p>
+                    </div>
+                  </div>
+
+                  {agentRunResult.warnings && agentRunResult.warnings.length > 0 && (
+                    <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
+                      <p className="text-xs font-medium text-yellow-300">Warnings</p>
+                      <ul className="mt-1 space-y-1 text-xs text-yellow-200">
+                        {agentRunResult.warnings.map((warning) => (
+                          <li key={warning}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
               <p className="text-xs text-yellow-300">
