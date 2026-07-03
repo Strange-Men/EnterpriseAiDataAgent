@@ -320,3 +320,8 @@ Do not start M5 until user confirms.
 
 - M5.5.3 Agent Run Result Card completed on 2026-07-03.
 - Full warning/fallback/unsupported state polish, history/detail UI, and real provider credential UI have not started.
+
+## M5.5.3 Agent Run Result Card Merge Validation
+
+- M5.5.3 Agent Run Result Card merged to master on 2026-07-03.
+- M5.5.4 has not started. Tag has not been created.
