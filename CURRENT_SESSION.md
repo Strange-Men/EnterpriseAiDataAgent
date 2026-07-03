@@ -295,3 +295,8 @@ Do not start M5 until user confirms.
 
 - M5.5.0 Frontend Agent UI Integration Plan merged to master on 2026-07-03.
 - UIUX consistency requirements are locked. M5.5 implementation has not started.
+
+## M5.5.1 Frontend Agent API Client Contract
+
+- M5.5.1 Frontend Agent API Client Contract completed on 2026-07-03.
+- Agent UI implementation has not started.
