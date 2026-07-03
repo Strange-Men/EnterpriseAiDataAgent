@@ -249,3 +249,8 @@ Do not start M5 until user confirms.
 
 - M5.4.7 AgentRun Persistence Skeleton merged to master on 2026-07-03.
 - M5.4.8 has not started.
+
+## M5.4.8 AgentRun Store Integration Plan
+
+- M5.4.8 AgentRun Store Integration Plan completed on 2026-07-03.
+- Runtime/route store integration and real DB persistence have not started.
