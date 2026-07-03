@@ -234,3 +234,8 @@ Do not start M5 until user confirms.
 
 - M5.4.6 Memory Schema Plan completed on 2026-07-03.
 - Memory implementation / persistence / migration have not started.
+
+## M5.4.6 Memory Schema Plan Merge Validation
+
+- M5.4.6 Memory Schema Plan merged to master on 2026-07-03.
+- M5.4.7 has not started.
