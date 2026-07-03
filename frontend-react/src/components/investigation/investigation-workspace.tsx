@@ -23,10 +23,12 @@ import { StreamingIndicator } from "./ai-streaming-indicator";
 import { SqlWorkspacePanel } from "@/panels/sql-workspace-panel";
 import { Textarea, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, Code, Square } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Bot, Code, Lightbulb, Square } from "lucide-react";
 import type { TraceSnapshot } from "@/stores/analysis-store";
 
-type WorkspaceTab = "ai-query" | "expert-sql";
+type WorkspaceTab = "ai-query" | "agent-run" | "expert-sql";
 
 export function InvestigationWorkspace() {
   const { t, i18n } = useTranslation();
@@ -44,6 +46,7 @@ export function InvestigationWorkspace() {
 
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("ai-query");
   const [question, setQuestion] = useState("");
+  const [agentQuestion, setAgentQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [streamStage, setStreamStage] = useState("");
   const [streamStep, setStreamStep] = useState<number | undefined>();
@@ -102,7 +105,7 @@ export function InvestigationWorkspace() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail === "ai-query" || detail === "expert-sql") {
+      if (detail === "ai-query" || detail === "agent-run" || detail === "expert-sql") {
         setActiveTab(detail);
       }
     };
@@ -358,6 +361,17 @@ export function InvestigationWorkspace() {
           {t("workspace.tab.ai-query")}
         </button>
         <button
+          onClick={() => setActiveTab("agent-run")}
+          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+            activeTab === "agent-run"
+              ? "border-[var(--accent)] text-[var(--accent)]"
+              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          }`}
+        >
+          <Bot className="w-3.5 h-3.5" />
+          Agent Run
+        </button>
+        <button
           onClick={() => setActiveTab("expert-sql")}
           className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
             activeTab === "expert-sql"
@@ -582,6 +596,80 @@ export function InvestigationWorkspace() {
                 </div>
               </div>
             )}
+          </div>
+        ) : activeTab === "agent-run" ? (
+          <div className="p-6 max-w-3xl mx-auto space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Bot className="w-5 h-5 text-[var(--accent)]" />
+                <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                  Agent Run
+                </h2>
+                <Badge variant="accent">Skeleton</Badge>
+              </div>
+              <p className="text-sm text-[var(--text-muted)]">
+                Run the M5.4 Agent runtime boundary from the Analyze workspace. This mode keeps the existing workbench flow and uses skeleton execution only.
+              </p>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Agent request</CardTitle>
+                <CardDescription>
+                  Natural language goal and table context for the Agent API contract.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-wider text-[var(--text-muted)]">
+                      Table context
+                    </p>
+                    <p className="truncate text-sm font-medium text-[var(--text-primary)]">
+                      {currentTableName || "No table selected"}
+                    </p>
+                  </div>
+                  {currentTableMeta ? (
+                    <Badge variant="muted">{currentTableMeta.rowCount} rows</Badge>
+                  ) : (
+                    <Badge variant="warning">Required</Badge>
+                  )}
+                </div>
+
+                <Textarea
+                  value={agentQuestion}
+                  onChange={(e) => setAgentQuestion(e.target.value)}
+                  placeholder="Describe the analysis task for the Agent runtime skeleton..."
+                  rows={4}
+                  className="!text-sm !rounded-lg !resize-none"
+                />
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="info">Skeleton mode only</Badge>
+                  <Badge variant="muted">In-memory / ephemeral result</Badge>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 border-t border-[var(--border-default)] pt-3">
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Full result cards, fallback badges, warning panels, and unsupported states are reserved for the next M5.5 steps.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="md"
+                    disabled
+                  >
+                    Run Agent
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
+              <p className="text-xs text-yellow-300">
+                This skeleton does not expose simulated chain mode, durable history, run detail, real provider credentials, or persistent memory.
+              </p>
+            </div>
           </div>
         ) : (
           /* Expert SQL Tab */

@@ -305,3 +305,8 @@ Do not start M5 until user confirms.
 
 - M5.5.1 Frontend Agent API Client Contract merged to master on 2026-07-03.
 - Agent UI implementation has not started.
+
+## M5.5.2 Analyze Agent Run UI Skeleton
+
+- M5.5.2 Analyze Agent Run UI Skeleton completed on 2026-07-03.
+- Full Agent result rendering, history/detail UI, and real provider integration have not started.
