@@ -254,3 +254,8 @@ Do not start M5 until user confirms.
 
 - M5.4.8 AgentRun Store Integration Plan completed on 2026-07-03.
 - Runtime/route store integration and real DB persistence have not started.
+
+## M5.4.8 AgentRun Store Integration Plan Merge Validation
+
+- M5.4.8 AgentRun Store Integration Plan merged to master on 2026-07-03.
+- M5.4.9 has not started.
