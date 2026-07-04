@@ -2,28 +2,28 @@ import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
-describe("Data Page Header + Upload Guidance (M4-8.6.1)", () => {
+describe("Data Page Header + Upload Guidance (M5.5.6)", () => {
   describe("Data Page Header", () => {
-    it("should have Chinese data page title", () => {
-      expect(zh.translation["data.title"]).toBe("数据");
+    it("should have Chinese upload data page title", () => {
+      expect(zh.translation["data.title"]).toBe("上传数据");
     });
 
-    it("should have English data page title", () => {
-      expect(en.translation["data.title"]).toBe("Data");
+    it("should have English upload data page title", () => {
+      expect(en.translation["data.title"]).toBe("Upload Data");
     });
 
-    it("should have Chinese description mentioning CSV/Excel, table selection, and AI analysis", () => {
+    it("should have Chinese description mentioning CSV/Excel, table selection, and Agent Analysis", () => {
       const desc = zh.translation["data.description"] as string;
       expect(desc).toContain("CSV/Excel");
-      expect(desc).toContain("数据表");
-      expect(desc).toContain("AI 分析");
+      expect(desc).toContain("当前数据表");
+      expect(desc).toContain("Agent Analysis");
     });
 
-    it("should have English description mentioning CSV/Excel, table selection, and AI analysis", () => {
+    it("should have English description mentioning CSV/Excel, table selection, and Agent Analysis", () => {
       const desc = en.translation["data.description"] as string;
       expect(desc).toContain("CSV/Excel");
       expect(desc).toContain("table");
-      expect(desc).toContain("AI analysis");
+      expect(desc).toContain("Agent Analysis");
     });
   });
 
@@ -57,37 +57,39 @@ describe("Data Page Header + Upload Guidance (M4-8.6.1)", () => {
     it("should have Chinese guidance mentioning upload creates table and analysis workspace", () => {
       const text = zh.translation["upload.guidance"] as string;
       expect(text).toContain("数据表");
-      expect(text).toContain("分析工作台");
+      expect(text).toContain("Agent Analysis 工作区");
     });
 
     it("should have English guidance mentioning upload creates table and analysis workspace", () => {
       const text = en.translation["upload.guidance"] as string;
       expect(text).toContain("data table");
-      expect(text).toContain("analysis workspace");
+      expect(text).toContain("Agent Analysis workspace");
     });
 
-    it("should have Chinese flow hint showing upload → choose → analyze workflow", () => {
+    it("should have Chinese flow hint showing upload → choose → Agent Analysis → result workflow", () => {
       const text = zh.translation["upload.flow"] as string;
       expect(text).toContain("上传文件");
       expect(text).toContain("选择数据表");
-      expect(text).toContain("开始分析");
+      expect(text).toContain("Agent Analysis");
+      expect(text).toContain("查看结果");
     });
 
-    it("should have English flow hint showing upload → choose → analyze workflow", () => {
+    it("should have English flow hint showing upload → choose → Agent Analysis → result workflow", () => {
       const text = en.translation["upload.flow"] as string;
       expect(text).toContain("Upload file");
       expect(text).toContain("Choose table");
-      expect(text).toContain("Start analysis");
+      expect(text).toContain("Agent Analysis");
+      expect(text).toContain("Result");
     });
 
-    it("should have Chinese next-step hint mentioning analysis workspace", () => {
+    it("should have Chinese next-step hint mentioning Agent Analysis workspace", () => {
       const text = zh.translation["upload.next-step"] as string;
-      expect(text).toContain("分析工作台");
+      expect(text).toContain("Agent Analysis 工作区");
     });
 
-    it("should have English next-step hint mentioning analysis workspace", () => {
+    it("should have English next-step hint mentioning Agent Analysis workspace", () => {
       const text = en.translation["upload.next-step"] as string;
-      expect(text).toContain("analysis workspace");
+      expect(text).toContain("Agent Analysis workspace");
     });
   });
 

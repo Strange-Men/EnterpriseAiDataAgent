@@ -5,7 +5,7 @@ const en = {
     "app.language": "Language",
 
     "data.title": "Upload Data",
-    "data.description": "Start here: upload a CSV or Excel file, choose the current table, then ask Agent Analysis.",
+    "data.description": "Start here: upload a CSV/Excel file, choose the current table, then ask Agent Analysis.",
 
     "nav.file-upload": "File Upload",
     "nav.data-preview": "Data Preview",
@@ -22,9 +22,9 @@ const en = {
     "upload.error-hint": "Upload failed. Check the file format and size, then try again.",
     "upload.load-error-hint": "Failed to load data. Refresh the page or choose the table again.",
     "upload.formats": "CSV, XLSX, and XLS files are supported",
-    "upload.guidance": "Upload a CSV or Excel file. The app will create a table for preview and Agent Analysis.",
-    "upload.flow": "Upload file -> Preview table -> Ask Agent",
-    "upload.next-step": "After uploading, continue to Agent Analysis. Expert SQL stays available for advanced work.",
+    "upload.guidance": "Upload a CSV/Excel file. The app will create a data table for preview and the Agent Analysis workspace.",
+    "upload.flow": "Upload file -> Choose table -> Agent Analysis -> Result",
+    "upload.next-step": "After uploading, continue to the Agent Analysis workspace. Expert SQL stays available for advanced work.",
     "upload.db-tables": "Current Data Tables",
     "upload.success-count": "{{count}} file(s) uploaded",
     "upload.partial-count": "{{success}} uploaded, {{failed}} failed",

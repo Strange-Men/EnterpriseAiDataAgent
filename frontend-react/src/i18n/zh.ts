@@ -5,7 +5,7 @@ const zh = {
     "app.language": "语言",
 
     "data.title": "上传数据",
-    "data.description": "从这里开始：上传 CSV 或 Excel，选择当前表，然后进入 Agent Analysis 提问。",
+    "data.description": "从这里开始：上传 CSV/Excel 文件，选择当前数据表，然后进入 Agent Analysis 提问。",
 
     "nav.file-upload": "文件上传",
     "nav.data-preview": "数据预览",
@@ -22,9 +22,9 @@ const zh = {
     "upload.error-hint": "上传失败，请检查文件格式和大小后重试。",
     "upload.load-error-hint": "数据加载失败，请刷新页面或重新选择数据表。",
     "upload.formats": "支持 CSV、XLSX、XLS 格式",
-    "upload.guidance": "上传 CSV 或 Excel 文件。系统会创建数据表，用于预览和 Agent Analysis。",
-    "upload.flow": "上传文件 -> 预览表 -> 问 Agent",
-    "upload.next-step": "上传后进入 Agent Analysis。Expert SQL 仍保留给高级使用。",
+    "upload.guidance": "上传 CSV/Excel 文件。系统会创建数据表，用于预览和 Agent Analysis 工作区。",
+    "upload.flow": "上传文件 -> 选择数据表 -> Agent Analysis -> 查看结果",
+    "upload.next-step": "上传后进入 Agent Analysis 工作区。Expert SQL 仍保留给高级使用。",
     "upload.db-tables": "当前数据表",
     "upload.success-count": "已上传 {{count}} 个文件",
     "upload.partial-count": "{{success}} 个成功，{{failed}} 个失败",

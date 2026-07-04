@@ -357,3 +357,10 @@ Do not start M5 until user confirms.
 - Expert SQL remains as advanced mode; History and Settings are auxiliary.
 - zh-CN / en-US copy was synchronized.
 - Backend, README, package files, M5.5.7, and tag creation were not touched.
+
+## M5.5.6 Frontend CI Fix
+
+- M5.5.6 frontend CI regression tests were aligned with Upload Data / Agent Analysis / Run Agent copy on 2026-07-05.
+- CSV/Excel wording was clarified in zh-CN and en-US.
+- Targeted frontend tests and frontend build passed.
+- M5.5.6 Merge Validation has not started. Tag has not been created.
