@@ -15,15 +15,15 @@ describe("Table List / Current Table Card Polish (M4-8.6.2)", () => {
     it("should have Chinese current table card description mentioning default data source", () => {
       const desc = zh.translation["table.current-card-desc"] as string;
       expect(desc).toContain("默认数据源");
-      expect(desc).toContain("自然语言分析");
-      expect(desc).toContain("专家 SQL");
+      expect(desc).toContain("Agent 分析");
+      expect(desc).toContain("高级模式");
     });
 
     it("should have English current table card description mentioning default data source", () => {
       const desc = en.translation["table.current-card-desc"] as string;
       expect(desc).toContain("default data source");
-      expect(desc).toContain("natural language analysis");
-      expect(desc).toContain("expert SQL");
+      expect(desc).toContain("Agent Analysis");
+      expect(desc).toContain("advanced mode");
     });
 
     it("should have Chinese empty state for no selected table", () => {
@@ -37,13 +37,13 @@ describe("Table List / Current Table Card Polish (M4-8.6.2)", () => {
     it("should have Chinese empty state description mentioning upload and analysis workspace", () => {
       const desc = zh.translation["table.current-empty-desc"] as string;
       expect(desc).toContain("上传");
-      expect(desc).toContain("分析工作台");
+      expect(desc).toContain("Agent 分析");
     });
 
     it("should have English empty state description mentioning upload and analysis workspace", () => {
       const desc = en.translation["table.current-empty-desc"] as string;
       expect(desc).toContain("Upload");
-      expect(desc).toContain("analysis workspace");
+      expect(desc).toContain("Agent Analysis");
     });
   });
 
@@ -77,21 +77,21 @@ describe("Table List / Current Table Card Polish (M4-8.6.2)", () => {
 
   describe("Start Analysis Entry i18n", () => {
     it("should have Chinese start analysis text", () => {
-      expect(zh.translation["table.start-analysis"]).toBe("开始分析");
+      expect(zh.translation["table.start-analysis"]).toBe("开始 Agent 分析");
     });
 
     it("should have English start analysis text", () => {
-      expect(en.translation["table.start-analysis"]).toBe("Start Analysis");
+      expect(en.translation["table.start-analysis"]).toBe("Run Agent");
     });
   });
 
   describe("Existing table management keys preserved", () => {
     it("should still have table.management key (zh)", () => {
-      expect(zh.translation["table.management"]).toBe("表管理");
+      expect(zh.translation["table.management"]).toBe("当前表");
     });
 
     it("should still have table.management key (en)", () => {
-      expect(en.translation["table.management"]).toBe("Table Management");
+      expect(en.translation["table.management"]).toBe("Current Tables");
     });
 
     it("should still have table.no-tables key (zh)", () => {

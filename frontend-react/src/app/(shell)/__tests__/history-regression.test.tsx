@@ -6,7 +6,7 @@ import en from "@/i18n/en";
 describe("History Regression (M4-8.5.5)", () => {
   describe("1. History header exists", () => {
     it("should have history title (zh)", () => {
-      expect(zh.translation["history.title"]).toBe("历史记录");
+      expect(zh.translation["history.title"]).toBe("历史");
     });
 
     it("should have history title (en)", () => {
@@ -104,11 +104,11 @@ describe("History Regression (M4-8.5.5)", () => {
     });
 
     it("should have Start Analysis button (zh)", () => {
-      expect(zh.translation["history.no-history-action-analyze"]).toBe("开始分析");
+      expect(zh.translation["history.no-history-action-analyze"]).toBe("开始 Agent 分析");
     });
 
     it("should have Start Analysis button (en)", () => {
-      expect(en.translation["history.no-history-action-analyze"]).toBe("Start Analysis");
+      expect(en.translation["history.no-history-action-analyze"]).toBe("Run Agent");
     });
   });
 

@@ -2,28 +2,28 @@ import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
-describe("Data Page Header + Upload Guidance (M4-8.6.1)", () => {
+describe("Data Page Header + Upload Guidance (M5.5.6)", () => {
   describe("Data Page Header", () => {
-    it("should have Chinese data page title", () => {
-      expect(zh.translation["data.title"]).toBe("数据");
+    it("should have Chinese upload data page title", () => {
+      expect(zh.translation["data.title"]).toBe("上传数据");
     });
 
-    it("should have English data page title", () => {
-      expect(en.translation["data.title"]).toBe("Data");
+    it("should have English upload data page title", () => {
+      expect(en.translation["data.title"]).toBe("Upload Data");
     });
 
-    it("should have Chinese description mentioning CSV/Excel, table selection, and AI analysis", () => {
+    it("should have Chinese description mentioning CSV/Excel, table selection, and Agent analysis", () => {
       const desc = zh.translation["data.description"] as string;
       expect(desc).toContain("CSV/Excel");
-      expect(desc).toContain("数据表");
-      expect(desc).toContain("AI 分析");
+      expect(desc).toContain("当前数据表");
+      expect(desc).toContain("Agent 分析");
     });
 
-    it("should have English description mentioning CSV/Excel, table selection, and AI analysis", () => {
+    it("should have English description mentioning CSV/Excel, table selection, and Agent Analysis", () => {
       const desc = en.translation["data.description"] as string;
       expect(desc).toContain("CSV/Excel");
       expect(desc).toContain("table");
-      expect(desc).toContain("AI analysis");
+      expect(desc).toContain("Agent Analysis");
     });
   });
 
@@ -54,40 +54,42 @@ describe("Data Page Header + Upload Guidance (M4-8.6.1)", () => {
       expect(text).toContain("XLS");
     });
 
-    it("should have Chinese guidance mentioning upload creates table and analysis workspace", () => {
+    it("should have Chinese guidance matching the Upload Data to Agent Analysis flow", () => {
       const text = zh.translation["upload.guidance"] as string;
-      expect(text).toContain("数据表");
-      expect(text).toContain("分析工作台");
+      expect(text).toContain("CSV/Excel");
+      expect(text).toContain("当前数据表");
+      expect(text).toContain("Agent 分析");
     });
 
-    it("should have English guidance mentioning upload creates table and analysis workspace", () => {
+    it("should have English guidance matching the Upload Data to Agent Analysis flow", () => {
       const text = en.translation["upload.guidance"] as string;
-      expect(text).toContain("data table");
-      expect(text).toContain("analysis workspace");
+      expect(text).toContain("CSV/Excel");
+      expect(text).toContain("current table");
+      expect(text).toContain("Agent Analysis");
     });
 
-    it("should have Chinese flow hint showing upload → choose → analyze workflow", () => {
+    it("should have Chinese flow hint showing upload → Agent Analysis → result workflow", () => {
       const text = zh.translation["upload.flow"] as string;
-      expect(text).toContain("上传文件");
-      expect(text).toContain("选择数据表");
-      expect(text).toContain("开始分析");
+      expect(text).toBe("上传数据 → Agent 分析 → 查看结果");
+      expect(text).toContain("查看结果");
     });
 
-    it("should have English flow hint showing upload → choose → analyze workflow", () => {
+    it("should have English flow hint showing upload → Agent Analysis → result workflow", () => {
       const text = en.translation["upload.flow"] as string;
-      expect(text).toContain("Upload file");
-      expect(text).toContain("Choose table");
-      expect(text).toContain("Start analysis");
+      expect(text).toBe("Upload Data → Agent Analysis → Result");
+      expect(text).toContain("Result");
     });
 
-    it("should have Chinese next-step hint mentioning analysis workspace", () => {
+    it("should have Chinese next-step hint mentioning default data source and advanced mode", () => {
       const text = zh.translation["upload.next-step"] as string;
-      expect(text).toContain("分析工作台");
+      expect(text).toContain("默认数据源");
+      expect(text).toContain("高级模式");
     });
 
-    it("should have English next-step hint mentioning analysis workspace", () => {
+    it("should have English next-step hint mentioning default data source and advanced mode", () => {
       const text = en.translation["upload.next-step"] as string;
-      expect(text).toContain("analysis workspace");
+      expect(text).toContain("default data source");
+      expect(text).toContain("advanced mode");
     });
   });
 

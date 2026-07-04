@@ -349,3 +349,24 @@ Do not start M5 until user confirms.
 - M5.5.5 LangChain Single Agent Backend Loop merged to master on 2026-07-04.
 - Backend import, full pytest, changed-file ruff, smoke test, and safety search passed.
 - M5.5.6 has not started. Tag has not been created.
+
+## M5.5.6 Frontend Product Flow Simplification
+
+- M5.5.6 Frontend Product Flow Simplification completed on 2026-07-05.
+- Frontend flow is simplified around Upload Data -> Agent Analysis -> Result.
+- Expert SQL remains as advanced mode; History and Settings are auxiliary.
+- zh-CN / en-US copy was synchronized.
+- Backend, README, package files, M5.5.7, and tag creation were not touched.
+
+## M5.5.6 Frontend CI Fix
+
+- M5.5.6 frontend CI regression tests were aligned with Upload Data / Agent Analysis / Run Agent copy on 2026-07-05.
+- CSV/Excel wording was clarified in zh-CN and en-US.
+- Targeted frontend tests and frontend build passed.
+- M5.5.6 Merge Validation has not started. Tag has not been created.
+
+## M5.5.6 Frontend CI Full Fix
+
+- M5.5.6 frontend full CI regression tests were aligned with the simplified Upload Data → Agent Analysis → Results flow on 2026-07-05.
+- Full frontend tests, type check, frontend build, backend import, safety search, and visual checks were completed.
+- M5.5.6 Merge Validation has not started. M5.5.7 has not started. Tag has not been created.

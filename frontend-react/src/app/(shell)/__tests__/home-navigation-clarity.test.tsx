@@ -6,22 +6,22 @@ import en from "@/i18n/en";
 describe("Home + Navigation Clarity (M4-8.2)", () => {
   describe("Home Hero copy", () => {
     it("should have Chinese hero title", () => {
-      expect(zh.translation["home.hero-title"]).toBe("AI 数据分析工作台");
+      expect(zh.translation["home.hero-title"]).toBe("上传数据 → Agent 分析 → 分析结果");
     });
 
     it("should have English hero title", () => {
-      expect(en.translation["home.hero-title"]).toBe("AI Data Analysis Workspace");
+      expect(en.translation["home.hero-title"]).toBe("Upload Data → Agent Analysis → Results");
     });
 
-    it("should have Chinese hero subtitle mentioning natural language", () => {
+    it("should have Chinese hero subtitle mentioning product flow", () => {
       const subtitle = zh.translation["home.hero-subtitle"] as string;
-      expect(subtitle).toContain("自然语言");
+      expect(subtitle).toContain("Agent 分析");
       expect(subtitle).toContain("CSV/Excel");
     });
 
-    it("should have English hero subtitle mentioning natural language", () => {
+    it("should have English hero subtitle mentioning product flow", () => {
       const subtitle = en.translation["home.hero-subtitle"] as string;
-      expect(subtitle).toContain("natural language");
+      expect(subtitle).toContain("Agent Analysis");
       expect(subtitle).toContain("CSV/Excel");
     });
   });
@@ -36,21 +36,21 @@ describe("Home + Navigation Clarity (M4-8.2)", () => {
     });
 
     it("should have Chinese start analysis CTA", () => {
-      expect(zh.translation["home.start-analysis"]).toBe("开始分析");
+      expect(zh.translation["home.start-analysis"]).toBe("Agent 分析");
     });
 
     it("should have English start analysis CTA", () => {
-      expect(en.translation["home.start-analysis"]).toBe("Start Analysis");
+      expect(en.translation["home.start-analysis"]).toBe("Agent Analysis");
     });
 
     it("should have Chinese CTA hints", () => {
       expect(zh.translation["home.upload-hint"]).toContain("CSV/Excel");
-      expect(zh.translation["home.start-analysis-hint"]).toContain("自然语言");
+      expect(zh.translation["home.start-analysis-hint"]).toContain("Agent 分析");
     });
 
     it("should have English CTA hints", () => {
       expect(en.translation["home.upload-hint"]).toContain("CSV/Excel");
-      expect(en.translation["home.start-analysis-hint"]).toContain("Natural language");
+      expect(en.translation["home.start-analysis-hint"]).toContain("ask a question");
     });
   });
 
@@ -65,14 +65,14 @@ describe("Home + Navigation Clarity (M4-8.2)", () => {
       expect(en.translation["home.card-upload-desc"]).toContain("CSV/Excel");
     });
 
-    it("should have Chinese natural language card title and description", () => {
-      expect(zh.translation["home.card-nl-title"]).toBe("自然语言分析");
-      expect(zh.translation["home.card-nl-desc"]).toContain("AI");
+    it("should have Chinese Agent Analysis card title and description", () => {
+      expect(zh.translation["home.card-nl-title"]).toBe("Agent 分析");
+      expect(zh.translation["home.card-nl-desc"]).toContain("Agent");
     });
 
-    it("should have English natural language card title and description", () => {
-      expect(en.translation["home.card-nl-title"]).toBe("Natural Language Analysis");
-      expect(en.translation["home.card-nl-desc"]).toContain("AI");
+    it("should have English Agent Analysis card title and description", () => {
+      expect(en.translation["home.card-nl-title"]).toBe("Agent Analysis");
+      expect(en.translation["home.card-nl-desc"]).toContain("Agent");
     });
 
     it("should have Chinese expert SQL card title and description", () => {
@@ -88,11 +88,11 @@ describe("Home + Navigation Clarity (M4-8.2)", () => {
 
   describe("Sidebar brand subtitle", () => {
     it("should have Chinese brand subtitle as AI 数据分析", () => {
-      expect(zh.translation["sidebar.brand-subtitle"]).toBe("AI 数据分析");
+      expect(zh.translation["sidebar.brand-subtitle"]).toBe("上传数据 → Agent 分析 → 分析结果");
     });
 
     it("should have English brand subtitle as Data Analysis", () => {
-      expect(en.translation["sidebar.brand-subtitle"]).toBe("Data Analysis");
+      expect(en.translation["sidebar.brand-subtitle"]).toBe("Upload Data → Agent Analysis → Results");
     });
   });
 

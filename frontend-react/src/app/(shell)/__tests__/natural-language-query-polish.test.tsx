@@ -2,40 +2,40 @@ import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
-// M4-8.3.2 Natural Language Query Panel Polish
-describe("Natural Language Query Panel Polish (M4-8.3.2)", () => {
-  describe("AI Query title and subtitle", () => {
-    it("should have Chinese title mentioning natural language analysis", () => {
+// M5.5.6 Agent Analysis Panel Polish
+describe("Agent Analysis Panel Polish (M5.5.6)", () => {
+  describe("Agent Analysis title and subtitle", () => {
+    it("should have Chinese title mentioning Agent Analysis", () => {
       const title = zh.translation["workspace.ai-query-title"] as string;
-      expect(title).toContain("自然语言");
+      expect(title).toContain("Agent");
       expect(title).toContain("分析");
     });
 
-    it("should have English title mentioning natural language analysis", () => {
+    it("should have English title mentioning Agent Analysis", () => {
       const title = en.translation["workspace.ai-query-title"] as string;
-      expect(title.toLowerCase()).toContain("natural language");
+      expect(title).toContain("Agent Analysis");
     });
 
-    it("should have Chinese subtitle explaining AI behavior", () => {
+    it("should have Chinese subtitle explaining Agent behavior", () => {
       const subtitle = zh.translation["workspace.ai-query-subtitle"] as string;
-      expect(subtitle).toContain("AI");
+      expect(subtitle).toContain("Agent");
       expect(subtitle).toContain("SQL");
     });
 
-    it("should have English subtitle explaining AI behavior", () => {
+    it("should have English subtitle explaining Agent behavior", () => {
       const subtitle = en.translation["workspace.ai-query-subtitle"] as string;
-      expect(subtitle.toLowerCase()).toContain("ai");
+      expect(subtitle).toContain("Agent");
       expect(subtitle.toLowerCase()).toContain("sql");
     });
   });
 
-  describe("Generate Analysis button", () => {
-    it("should have Chinese button text as 生成分析", () => {
-      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("生成分析");
+  describe("Run Agent button", () => {
+    it("should have Chinese button text as 开始 Agent 分析", () => {
+      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("开始 Agent 分析");
     });
 
-    it("should have English button text as Generate Analysis", () => {
-      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Generate Analysis");
+    it("should have English button text as Run Agent", () => {
+      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Run Agent");
     });
   });
 

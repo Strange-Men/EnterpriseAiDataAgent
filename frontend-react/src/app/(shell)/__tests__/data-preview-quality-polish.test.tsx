@@ -123,8 +123,8 @@ describe("M4-8.6.3 Preview + Data Quality Polish — i18n keys", () => {
   it("start-analysis entry exists", () => {
     expect(ZH["preview.start-analysis"]).toBeTruthy();
     expect(EN["preview.start-analysis"]).toBeTruthy();
-    expect(ZH["preview.start-analysis"]).toMatch(/开始分析/);
-    expect(EN["preview.start-analysis"]).toMatch(/Start Analysis/i);
+    expect(ZH["preview.start-analysis"]).toBe("开始 Agent 分析 →");
+    expect(EN["preview.start-analysis"]).toBe("Run Agent →");
   });
 
   it("analysis-hint exists and is friendly", () => {

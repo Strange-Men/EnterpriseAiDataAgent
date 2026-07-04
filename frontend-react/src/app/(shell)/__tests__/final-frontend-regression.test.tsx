@@ -23,9 +23,9 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
 
     it("Home: primary CTAs exist", () => {
       expect(zh.translation["home.upload-data"]).toBe("上传数据");
-      expect(zh.translation["home.start-analysis"]).toBe("开始分析");
+      expect(zh.translation["home.start-analysis"]).toBe("Agent 分析");
       expect(en.translation["home.upload-data"]).toBe("Upload Data");
-      expect(en.translation["home.start-analysis"]).toBe("Start Analysis");
+      expect(en.translation["home.start-analysis"]).toBe("Agent Analysis");
     });
 
     it("Home: deploy notice exists", () => {
@@ -35,8 +35,8 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
 
     // ── Data ──
     it("Data: page title and description exist", () => {
-      expect(zh.translation["data.title"]).toBe("数据");
-      expect(en.translation["data.title"]).toBe("Data");
+      expect(zh.translation["data.title"]).toBe("上传数据");
+      expect(en.translation["data.title"]).toBe("Upload Data");
       expect(zh.translation["data.description"]).toBeDefined();
       expect(en.translation["data.description"]).toBeDefined();
     });
@@ -71,27 +71,27 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
 
     // ── Analyze ──
     it("Analyze: workspace title and subtitle exist", () => {
-      expect(zh.translation["inv.title"]).toBe("分析工作台");
-      expect(en.translation["inv.title"]).toBe("Analysis Workspace");
+      expect(zh.translation["inv.title"]).toBe("Agent 分析");
+      expect(en.translation["inv.title"]).toBe("Agent Analysis");
       expect(zh.translation["inv.subtitle"]).toBeDefined();
       expect(en.translation["inv.subtitle"]).toBeDefined();
     });
 
-    it("Analyze: AI query tab and Expert SQL tab exist", () => {
-      expect(zh.translation["workspace.tab.ai-query"]).toBe("自然语言查询");
+    it("Analyze: Agent Analysis tab and Expert SQL advanced tab exist", () => {
+      expect(zh.translation["workspace.tab.ai-query"]).toBe("Agent 分析");
       expect(zh.translation["workspace.tab.expert-sql"]).toBe("专家 SQL");
-      expect(en.translation["workspace.tab.ai-query"]).toBe("AI Query");
+      expect(en.translation["workspace.tab.ai-query"]).toBe("Agent Analysis");
       expect(en.translation["workspace.tab.expert-sql"]).toBe("Expert SQL");
     });
 
-    it("Analyze: generate analysis button exists", () => {
-      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("生成分析");
-      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Generate Analysis");
+    it("Analyze: Run Agent button exists", () => {
+      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("开始 Agent 分析");
+      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Run Agent");
     });
 
     it("Analyze: LLM provider selector copy exists without key fields", () => {
-      expect(zh.translation["ai.llm-provider"]).toBe("模型供应商");
-      expect(en.translation["ai.llm-provider"]).toBe("Model Provider");
+      expect(zh.translation["ai.llm-provider"]).toBe("Provider");
+      expect(en.translation["ai.llm-provider"]).toBe("Provider");
       expect(zh.translation["ai.llm-provider-mock"]).toBe("Mock LLM");
       expect(en.translation["ai.llm-provider-deepseek"]).toBe("DeepSeek");
       expect(en.translation["ai.llm-provider-doubao"]).toBe("Doubao");
@@ -135,7 +135,7 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
 
     // ── History ──
     it("History: page title and description exist", () => {
-      expect(zh.translation["history.title"]).toBe("历史记录");
+      expect(zh.translation["history.title"]).toBe("历史");
       expect(en.translation["history.title"]).toBe("History");
       expect(zh.translation["history.description"]).toBeDefined();
       expect(en.translation["history.description"]).toBeDefined();
@@ -185,8 +185,8 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
 
     it("Table select: current table and start analysis entry exist", () => {
       expect(zh.translation["table.current-card-title"]).toBeDefined();
-      expect(zh.translation["table.start-analysis"]).toBe("开始分析");
-      expect(en.translation["table.start-analysis"]).toBe("Start Analysis");
+      expect(zh.translation["table.start-analysis"]).toBe("开始 Agent 分析");
+      expect(en.translation["table.start-analysis"]).toBe("Run Agent");
     });
 
     it("Data preview: title and no-data prompt exist", () => {
@@ -197,8 +197,8 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
 
     it("Analyze: AI query input hint and run button exist", () => {
       expect(zh.translation["inv.question-placeholder"]).toBeDefined();
-      expect(zh.translation["inv.run"]).toBe("开始分析");
-      expect(en.translation["inv.run"]).toBe("Start Analysis");
+      expect(zh.translation["inv.run"]).toBe("开始 Agent 分析");
+      expect(en.translation["inv.run"]).toBe("Run Agent");
     });
 
     it("Analyze: Expert SQL execute button exists", () => {
@@ -246,7 +246,7 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
       // The three duplicate cards (card-upload, card-nl, card-sql) are NOT rendered
       // This is verified by the pre-final-ui-polish.test.tsx hotfix test
       expect(zh.translation["home.upload-data"]).toBe("上传数据");
-      expect(zh.translation["home.start-analysis"]).toBe("开始分析");
+      expect(zh.translation["home.start-analysis"]).toBe("Agent 分析");
     });
 
     // ── Issue 2: query_history table description & delete protection ──
@@ -282,7 +282,7 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
     // ── Issue 3: Analysis workspace old results residual ──
     it("Analysis workspace: empty state hint describes current-run behavior", () => {
       const zhHint = zh.translation["inv.start-hint"] as string;
-      expect(zhHint).toContain("点击生成分析后");
+      expect(zhHint).toContain("点击开始 Agent 分析后");
       expect(zhHint).toContain("本次分析结果");
       const enHint = en.translation["inv.start-hint"] as string;
       expect(enHint).toContain("current run");

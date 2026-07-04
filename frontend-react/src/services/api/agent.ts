@@ -35,6 +35,12 @@ export interface AgentRun {
   run_id: string;
   status: string;
   intent?: string | null;
+  answer?: string | null;
+  sql?: string | null;
+  evidence?: unknown;
+  result_preview?: unknown;
+  warnings?: string[];
+  trace?: unknown;
   selected_mode?: string | null;
   provider_requested?: string | null;
   provider_used?: string | null;
@@ -42,6 +48,7 @@ export interface AgentRun {
   fallback_type?: string | null;
   fallback_reason?: string | null;
   is_simulated?: boolean;
+  memory_used?: boolean;
   table_name?: string | null;
   user_goal?: string | null;
   steps?: AgentStep[];

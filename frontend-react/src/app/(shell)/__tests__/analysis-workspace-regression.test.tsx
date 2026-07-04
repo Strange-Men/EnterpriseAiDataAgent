@@ -2,17 +2,17 @@ import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
-// M4-8.3.5 Analysis Workspace Regression
-// Covers gaps not already in M4-8.3.2 / M4-8.3.3 / M4-8.3.4 tests
-describe("Analysis Workspace Regression (M4-8.3.5)", () => {
+// M5.5.6 Analysis Workspace Regression
+// Keeps stable workspace keys while locking the simplified Agent Analysis flow.
+describe("Analysis Workspace Regression (M5.5.6)", () => {
   // ── 1. Tab labels (M4-8.3.1) ──────────────────────────────────
   describe("Tab labels", () => {
-    it("should have Chinese AI query tab label", () => {
-      expect(zh.translation["workspace.tab.ai-query"]).toBe("自然语言查询");
+    it("should have Chinese Agent Analysis tab label", () => {
+      expect(zh.translation["workspace.tab.ai-query"]).toBe("Agent 分析");
     });
 
-    it("should have English AI query tab label", () => {
-      expect(en.translation["workspace.tab.ai-query"]).toBe("AI Query");
+    it("should have English Agent Analysis tab label", () => {
+      expect(en.translation["workspace.tab.ai-query"]).toBe("Agent Analysis");
     });
 
     it("should have Chinese Expert SQL tab label", () => {
@@ -45,25 +45,24 @@ describe("Analysis Workspace Regression (M4-8.3.5)", () => {
     });
   });
 
-  // ── 3. NL query copy (M4-8.3.2) ──────────────────────────────
-  describe("Natural Language Query copy", () => {
-    it("should have Chinese AI query title", () => {
+  // ── 3. Agent Analysis copy (M5.5.6) ──────────────────────────────
+  describe("Agent Analysis copy", () => {
+    it("should have Chinese Agent Analysis title", () => {
       const title = zh.translation["workspace.ai-query-title"] as string;
-      expect(title).toContain("自然语言");
-      expect(title).toContain("分析");
+      expect(title).toContain("Agent 分析");
     });
 
-    it("should have English AI query title", () => {
+    it("should have English Agent Analysis title", () => {
       const title = en.translation["workspace.ai-query-title"] as string;
-      expect(title.toLowerCase()).toContain("natural language");
+      expect(title).toBe("Agent Analysis");
     });
 
-    it("should have Chinese generate button text", () => {
-      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("生成分析");
+    it("should have Chinese Run Agent button text", () => {
+      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("开始 Agent 分析");
     });
 
-    it("should have English generate button text", () => {
-      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Generate Analysis");
+    it("should have English Run Agent button text", () => {
+      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Run Agent");
     });
 
     it("should have 4 example questions in Chinese", () => {

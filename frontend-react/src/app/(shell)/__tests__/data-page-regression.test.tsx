@@ -14,17 +14,17 @@ const enT = en.translation;
 describe("M4-8.6.5 Data Page Regression", () => {
   describe("1. Header + Upload Guidance", () => {
     it("data page title exists", () => {
-      expect(zhT["data.title"]).toBe("数据");
-      expect(enT["data.title"]).toBe("Data");
+      expect(zhT["data.title"]).toBe("上传数据");
+      expect(enT["data.title"]).toBe("Upload Data");
     });
 
     it("data page description mentions upload/choose/start", () => {
       expect(zhT["data.description"]).toContain("CSV");
       expect(zhT["data.description"]).toContain("数据表");
-      expect(zhT["data.description"]).toContain("AI 分析");
+      expect(zhT["data.description"]).toContain("Agent 分析");
       expect(enT["data.description"]).toContain("CSV");
       expect(enT["data.description"]).toContain("table");
-      expect(enT["data.description"]).toContain("AI analysis");
+      expect(enT["data.description"]).toContain("Agent Analysis");
     });
 
     it("upload formats mentions CSV/Excel support", () => {
@@ -38,13 +38,9 @@ describe("M4-8.6.5 Data Page Regression", () => {
 
     it("upload flow shows 3 steps", () => {
       expect(zhT["upload.flow"]).toContain("→");
-      expect(zhT["upload.flow"]).toContain("上传");
-      expect(zhT["upload.flow"]).toContain("选择");
-      expect(zhT["upload.flow"]).toContain("分析");
+      expect(zhT["upload.flow"]).toBe("上传数据 → Agent 分析 → 查看结果");
       expect(enT["upload.flow"]).toContain("→");
-      expect(enT["upload.flow"]).toContain("Upload");
-      expect(enT["upload.flow"]).toContain("Choose");
-      expect(enT["upload.flow"]).toContain("Start");
+      expect(enT["upload.flow"]).toBe("Upload Data → Agent Analysis → Result");
     });
 
     it("dropzone uses click, not drag", () => {
@@ -64,13 +60,14 @@ describe("M4-8.6.5 Data Page Regression", () => {
     it("current table card description mentions default data source", () => {
       expect(zhT["table.current-card-desc"]).toContain("默认数据源");
       expect(enT["table.current-card-desc"]).toContain("default data source");
+      expect(enT["table.current-card-desc"]).toContain("Agent Analysis");
     });
 
     it("current empty state is friendly", () => {
       expect(zhT["table.current-empty-title"]).toBeTruthy();
-      expect(zhT["table.current-empty-desc"]).toContain("分析工作台");
+      expect(zhT["table.current-empty-desc"]).toContain("Agent 分析");
       expect(enT["table.current-empty-title"]).toBeTruthy();
-      expect(enT["table.current-empty-desc"]).toContain("analysis workspace");
+      expect(enT["table.current-empty-desc"]).toContain("Agent Analysis");
     });
 
     it("selected badge exists", () => {
@@ -86,8 +83,8 @@ describe("M4-8.6.5 Data Page Regression", () => {
     });
 
     it("start analysis entry exists", () => {
-      expect(zhT["table.start-analysis"]).toContain("分析");
-      expect(enT["table.start-analysis"]).toContain("Analysis");
+      expect(zhT["table.start-analysis"]).toBe("开始 Agent 分析");
+      expect(enT["table.start-analysis"]).toBe("Run Agent");
     });
 
     it("table management key preserved", () => {
@@ -149,13 +146,13 @@ describe("M4-8.6.5 Data Page Regression", () => {
     });
 
     it("start analysis entry exists", () => {
-      expect(zhT["preview.start-analysis"]).toContain("分析");
-      expect(enT["preview.start-analysis"]).toContain("Analysis");
+      expect(zhT["preview.start-analysis"]).toBe("开始 Agent 分析 →");
+      expect(enT["preview.start-analysis"]).toBe("Run Agent →");
     });
 
     it("analysis hint is friendly", () => {
-      expect(zhT["preview.analysis-hint"]).toContain("分析工作台");
-      expect(enT["preview.analysis-hint"]).toContain("analysis workspace");
+      expect(zhT["preview.analysis-hint"]).toContain("Agent 分析");
+      expect(enT["preview.analysis-hint"]).toContain("Agent Analysis");
     });
   });
 
