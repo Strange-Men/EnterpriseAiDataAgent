@@ -7,7 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from backend.main import app
+from backend.main import app  # noqa: E402
 
 
 ROUTE_PATH = Path("backend/routes/agent.py")
@@ -30,7 +30,10 @@ def test_agent_run_route_registered_for_skeleton_mode() -> None:
     assert data["run"]["run_id"]
     assert data["run"]["is_simulated"] is True
     assert data["run"]["provider_used"] == "mock"
-    assert data["run"]["tool_calls"] == []
+    assert data["run"]["answer"]
+    assert data["run"]["sql"]
+    assert data["run"]["tool_calls"]
+    assert data["run"]["trace"]
 
 
 def test_agent_run_route_preserves_provider_fallback_metadata() -> None:

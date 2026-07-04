@@ -231,6 +231,16 @@ def route_intent(user_goal: str, *, table_name: str | None = None) -> IntentRout
             safety_flags=[],
         )
 
+    if normalized_table:
+        return IntentRoute(
+            intent=IntentCategory.SIMPLE_SUMMARY,
+            confidence=0.66,
+            selected_mode=SelectedMode.NATURAL_LANGUAGE,
+            route_reason="Table context is present; defaulting to a simple Agent summary.",
+            requires_agent=True,
+            safety_flags=[],
+        )
+
     return IntentRoute(
         intent=IntentCategory.AMBIGUOUS,
         confidence=0.5,
