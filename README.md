@@ -62,57 +62,23 @@ Enterprise AI Data Agent 是一个面向 Excel / CSV 数据分析场景的 AI Da
 ## 技术架构
 
 ```mermaid
-flowchart TB
-    subgraph Frontend["Frontend — Next.js 15 + React 19"]
-        Upload["数据上传"]
-        DataPreview["数据预览"]
-        AIAnalysis["AI 分析面板"]
-        ExpertSQL["Expert SQL 工作台"]
-        History["历史记录"]
-    end
-
-    subgraph Backend["Backend — FastAPI"]
-        DataAPI["Data API\n/tables /upload /query /quality"]
-        AI_API["AI API\n/ai/query /ai/analyze-multi /ai/anomalies"]
-        AgentAPI["Agent API\n/api/agent/runs"]
-    end
-
-    subgraph AgentLayer["Agent Layer"]
-        Router["Intent Router"]
-        ToolRegistry["Tool Registry\ninspect_schema / profile_table / execute_readonly_sql"]
-        Runtime["Agent Runtime"]
-        Memory["Memory Store"]
-    end
-
-    subgraph DataLayer["Data Layer"]
-        DuckDB["DuckDB"]
-        Pandas["Pandas"]
-    end
-
-    subgraph LLM["LLM Provider Layer"]
-        Mock["Mock (default)"]
-        DeepSeek["DeepSeek"]
-        Doubao["Doubao"]
-        Mimo["Mimo"]
-    end
-
-    Frontend --> Backend
-    Backend --> AgentLayer
-    Backend --> DataLayer
-    AgentLayer --> LLM
-    AgentLayer --> DataLayer
+flowchart LR
+    A[CSV / Excel Upload] --> B[Frontend · Next.js + React]
+    B --> C[Backend API · FastAPI]
+    C --> D[Agent Runtime]
+    D --> E[Tools · Schema / SQL / Profile]
+    D --> F[LLM · Mock / DeepSeek / Doubao / Mimo]
+    D --> G[Memory & Trace]
+    D --> H[(DuckDB)]
+    B --> I[Expert SQL · Monaco Editor]
+    I --> C
 ```
 
-| 层级 | 技术栈 | 说明 |
-| --- | --- | --- |
-| Frontend | Next.js 15 / React 19 / TypeScript / Tailwind CSS / Monaco Editor / Recharts | 分析工作台、SQL 编辑器、数据预览、AI 分析面板、历史记录 |
-| Backend | FastAPI / Pydantic / Uvicorn | REST API + SSE Streaming，请求校验，自动 API 文档 |
-| Data | DuckDB / Pandas / openpyxl | 嵌入式 OLAP 引擎，CSV/Excel 解析，数据质量分析 |
-| Agent | Intent Router + Tool Registry + Runtime + Memory Store | 意图分类、工具定义与调用、运行时编排、上下文记忆 |
-| LLM | Mock / DeepSeek / Doubao / Mimo (OpenAI-compatible) | 多 provider 适配，自动 fallback，默认 Mock 零配置 |
-| State | React Query (服务端) / Zustand (客户端) | 缓存与轮询 / 本地状态与持久化 |
-| Testing | pytest / Vitest / Playwright | 后端 796 测试 / 前端 1171 测试 / E2E |
-| Deployment | Docker / Docker Compose / GitHub Actions | 本地 Demo 部署 / CI 自动构建 |
+- **Frontend**：Next.js 15 + React 19，分析工作台、AI 分析面板、Expert SQL 编辑器，React Query + Zustand 管理状态。
+- **Backend API**：FastAPI，REST + SSE Streaming，请求校验，自动生成 API 文档。
+- **Agent Runtime**：Intent Router → Tool Registry → Tool Chain 执行，串联 Tools、Memory、Trace 和 LLM 调用。
+- **LLM Providers**：Mock（默认零配置）/ DeepSeek / Doubao / Mimo，OpenAI-compatible 适配，失败自动 fallback。
+- **Data Layer**：DuckDB 嵌入式 OLAP 引擎 + Pandas / openpyxl 解析 CSV/Excel，只读 SQL 执行。
 
 ## 核心工作流
 

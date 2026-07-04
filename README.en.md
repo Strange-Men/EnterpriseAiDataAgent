@@ -62,57 +62,23 @@ This is not a simple natural-language-to-SQL converter. It's a complete analysis
 ## Architecture
 
 ```mermaid
-flowchart TB
-    subgraph Frontend["Frontend — Next.js 15 + React 19"]
-        Upload["Data Upload"]
-        DataPreview["Data Preview"]
-        AIAnalysis["AI Analysis Panel"]
-        ExpertSQL["Expert SQL Workspace"]
-        History["History"]
-    end
-
-    subgraph Backend["Backend — FastAPI"]
-        DataAPI["Data API\n/tables /upload /query /quality"]
-        AI_API["AI API\n/ai/query /ai/analyze-multi /ai/anomalies"]
-        AgentAPI["Agent API\n/api/agent/runs"]
-    end
-
-    subgraph AgentLayer["Agent Layer"]
-        Router["Intent Router"]
-        ToolRegistry["Tool Registry\ninspect_schema / profile_table / execute_readonly_sql"]
-        Runtime["Agent Runtime"]
-        Memory["Memory Store"]
-    end
-
-    subgraph DataLayer["Data Layer"]
-        DuckDB["DuckDB"]
-        Pandas["Pandas"]
-    end
-
-    subgraph LLM["LLM Provider Layer"]
-        Mock["Mock (default)"]
-        DeepSeek["DeepSeek"]
-        Doubao["Doubao"]
-        Mimo["Mimo"]
-    end
-
-    Frontend --> Backend
-    Backend --> AgentLayer
-    Backend --> DataLayer
-    AgentLayer --> LLM
-    AgentLayer --> DataLayer
+flowchart LR
+    A[CSV / Excel Upload] --> B[Frontend · Next.js + React]
+    B --> C[Backend API · FastAPI]
+    C --> D[Agent Runtime]
+    D --> E[Tools · Schema / SQL / Profile]
+    D --> F[LLM · Mock / DeepSeek / Doubao / Mimo]
+    D --> G[Memory & Trace]
+    D --> H[(DuckDB)]
+    B --> I[Expert SQL · Monaco Editor]
+    I --> C
 ```
 
-| Layer | Stack | Notes |
-| --- | --- | --- |
-| Frontend | Next.js 15 / React 19 / TypeScript / Tailwind CSS / Monaco Editor / Recharts | Analysis workspace, SQL editor, data preview, AI analysis panel, history |
-| Backend | FastAPI / Pydantic / Uvicorn | REST API + SSE streaming, request validation, auto-generated API docs |
-| Data | DuckDB / Pandas / openpyxl | Embedded OLAP engine, CSV/Excel parsing, data quality analysis |
-| Agent | Intent Router + Tool Registry + Runtime + Memory Store | Intent classification, tool definitions and invocation, runtime orchestration, context memory |
-| LLM | Mock / DeepSeek / Doubao / Mimo (OpenAI-compatible) | Multi-provider adapters, automatic fallback, zero-config Mock default |
-| State | React Query (server) / Zustand (client) | Cache and polling / local state with persistence |
-| Testing | pytest / Vitest / Playwright | 796 backend tests / 1,171 frontend tests / E2E |
-| Deployment | Docker / Docker Compose / GitHub Actions | Local demo deployment / CI |
+- **Frontend** — Next.js 15 + React 19: analysis workspace, AI analysis panel, Expert SQL editor. React Query + Zustand for state management.
+- **Backend API** — FastAPI: REST + SSE streaming, request validation, auto-generated API docs.
+- **Agent Runtime** — Intent Router → Tool Registry → Tool Chain execution, orchestrating Tools, Memory, Trace, and LLM calls.
+- **LLM Providers** — Mock (default, zero-config) / DeepSeek / Doubao / Mimo: OpenAI-compatible adapters with automatic fallback.
+- **Data Layer** — DuckDB embedded OLAP engine + Pandas / openpyxl for CSV/Excel parsing; read-only SQL execution.
 
 ## Core Workflow
 
