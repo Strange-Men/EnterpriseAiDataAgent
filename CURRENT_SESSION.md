@@ -343,3 +343,9 @@ Do not start M5 until user confirms.
 - M5.5.5 LangChain Single Agent Backend Loop implementation completed on 2026-07-04.
 - `/api/agent/runs` now uses a LangChain Core single-agent tool loop while preserving the existing frontend contract.
 - M5.5.6 has not started. Tag has not been created.
+
+## M5.5.5 LangChain Single Agent Backend Loop Merge Validation
+
+- M5.5.5 LangChain Single Agent Backend Loop merged to master on 2026-07-04.
+- Backend import, full pytest, changed-file ruff, smoke test, and safety search passed.
+- M5.5.6 has not started. Tag has not been created.
