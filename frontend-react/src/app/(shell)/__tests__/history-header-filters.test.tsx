@@ -6,7 +6,7 @@ import en from "@/i18n/en";
 describe("History Header + Filters (M4-8.5.1)", () => {
   describe("Page title and description", () => {
     it("should have Chinese history title", () => {
-      expect(zh.translation["history.title"]).toBe("历史记录");
+      expect(zh.translation["history.title"]).toBe("历史");
     });
 
     it("should have English history title", () => {
@@ -120,11 +120,11 @@ describe("History Header + Filters (M4-8.5.1)", () => {
     });
 
     it("should have Chinese start analysis action", () => {
-      expect(zh.translation["history.no-history-action-analyze"]).toBe("开始分析");
+      expect(zh.translation["history.no-history-action-analyze"]).toBe("开始 Agent 分析");
     });
 
     it("should have English start analysis action", () => {
-      expect(en.translation["history.no-history-action-analyze"]).toBe("Start Analysis");
+      expect(en.translation["history.no-history-action-analyze"]).toBe("Run Agent");
     });
   });
 

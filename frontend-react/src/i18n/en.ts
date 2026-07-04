@@ -5,7 +5,7 @@ const en = {
     "app.language": "Language",
 
     "data.title": "Upload Data",
-    "data.description": "Start here: upload a CSV/Excel file, choose the current table, then ask Agent Analysis.",
+    "data.description": "Upload a CSV/Excel file, choose the current table, then start Agent Analysis.",
 
     "nav.file-upload": "File Upload",
     "nav.data-preview": "Data Preview",
@@ -22,9 +22,9 @@ const en = {
     "upload.error-hint": "Upload failed. Check the file format and size, then try again.",
     "upload.load-error-hint": "Failed to load data. Refresh the page or choose the table again.",
     "upload.formats": "CSV, XLSX, and XLS files are supported",
-    "upload.guidance": "Upload a CSV/Excel file. The app will create a data table for preview and the Agent Analysis workspace.",
-    "upload.flow": "Upload file -> Choose table -> Agent Analysis -> Result",
-    "upload.next-step": "After uploading, continue to the Agent Analysis workspace. Expert SQL stays available for advanced work.",
+    "upload.guidance": "Upload a CSV/Excel file, choose the current table, then start Agent Analysis.",
+    "upload.flow": "Upload Data → Agent Analysis → Result",
+    "upload.next-step": "This table is the default data source for Agent Analysis. Expert SQL remains available as advanced mode.",
     "upload.db-tables": "Current Data Tables",
     "upload.success-count": "{{count}} file(s) uploaded",
     "upload.partial-count": "{{success}} uploaded, {{failed}} failed",
@@ -50,7 +50,7 @@ const en = {
     "preview.rows-summary": "{{rows}} rows · {{columns}} columns",
     "preview.preview-rows": "Showing the first {{count}} preview rows",
     "preview.no-data-loaded": "No data loaded. Select a table from the left panel.",
-    "preview.start-analysis": "Ask Agent ->",
+    "preview.start-analysis": "Run Agent →",
     "preview.analysis-hint": "Once the table looks right, continue to Agent Analysis.",
 
     "quality.title": "Data Quality",
@@ -134,13 +134,13 @@ const en = {
     "table.tables-total": "tables",
     "table.rows-total": "total rows",
     "table.current-card-title": "Current Table",
-    "table.current-card-desc": "This table is the default context for Agent Analysis and Expert SQL.",
+    "table.current-card-desc": "This table is the default data source for Agent Analysis. Expert SQL remains available as advanced mode.",
     "table.current-empty-title": "No table selected",
-    "table.current-empty-desc": "Upload or choose a table, then continue to the analysis workspace.",
+    "table.current-empty-desc": "Upload or choose a table, then continue to Agent Analysis.",
     "table.current-selected-badge": "Selected",
     "table.rows-label": "rows",
     "table.cols-label": "cols",
-    "table.start-analysis": "Ask Agent",
+    "table.start-analysis": "Run Agent",
 
     // System history table (M4-8.8)
     "table.system-history-badge": "History Table",
@@ -160,10 +160,10 @@ const en = {
     "sql.rows": "rows",
     "sql.time": "time",
 
-    "history.title": "Activity",
+    "history.title": "History",
     "history.empty": "No history yet.",
     "history.empty-hint": "Run Agent Analysis or Expert SQL to see supporting records here.",
-    "history.description": "Auxiliary activity log for previous Agent analyses and Expert SQL queries. It does not replace the main flow.",
+    "history.description": "Review, reuse, and export previous Agent Analysis and Expert SQL records without replacing the main flow.",
     "history.search": "Search questions, SQL, or table names...",
     "history.filter-all": "All",
     "history.filter-success": "Success",
@@ -194,7 +194,7 @@ const en = {
     "history.no-history-title": "No History Yet",
     "history.no-history-desc": "After uploading data and running an analysis, you can review, rerun, and export results here.",
     "history.no-history-action-upload": "Upload Data",
-    "history.no-history-action-analyze": "Start Analysis",
+    "history.no-history-action-analyze": "Run Agent",
     "history.table-not-found": "The table \"{{table}}\" associated with this history record no longer exists. Please select a different table.",
     "history.stale-badge": "Table unavailable",
     "history.stale-description": "The original table no longer exists. Re-upload the data or choose another table.",
@@ -541,14 +541,14 @@ const en = {
 
     // v0.8.0+ Shell navigation
     "nav.home": "Home",
-    "nav.data": "Data",
+    "nav.data": "Upload Data",
     "nav.query": "Expert SQL",
     "nav.analyze": "Agent Analysis",
-    "nav.history": "Activity",
-    "nav.settings": "Preferences",
+    "nav.history": "History",
+    "nav.settings": "Settings",
 
     // Sidebar brand (M4-8.2)
-    "sidebar.brand-subtitle": "Upload -> Agent -> Answer",
+    "sidebar.brand-subtitle": "Upload Data → Agent Analysis → Results",
 
     // Header table status (M4-8.2)
     "header.current-table": "Current table",
@@ -556,8 +556,8 @@ const en = {
     "header.rows-count": "{{count}} rows",
 
     // Home Page (M4-1, M4-8.2)
-    "home.hero-title": "Upload Data. Ask Agent. See the Answer.",
-    "home.hero-subtitle": "A simpler flow for CSV and Excel analysis: upload a table, ask Agent Analysis in plain language, and review the answer, SQL, evidence, warnings, and tool trace.",
+    "home.hero-title": "Upload Data → Agent Analysis → Results",
+    "home.hero-subtitle": "A simpler flow for CSV/Excel analysis: upload a table, ask Agent Analysis in plain language, and review the answer, SQL, evidence, warnings, and tool trace.",
     "home.upload-data": "Upload Data",
     "home.upload-hint": "Step 1: import CSV/Excel and preview the table",
     "home.start-analysis": "Agent Analysis",
@@ -568,7 +568,7 @@ const en = {
     "home.card-nl-desc": "Ask questions directly; Agent chooses tools, runs SQL, and returns evidence.",
     "home.card-sql-title": "Expert SQL",
     "home.card-sql-desc": "Review, edit, and run SQL, then export CSV results.",
-    "home.deploy-notice": "Recommended path: Upload Data -> Agent Analysis -> Result. Expert SQL is available for advanced users.",
+    "home.deploy-notice": "Recommended path: Upload Data → Agent Analysis → Result. Expert SQL remains available as advanced mode.",
 
     // Dashboard (legacy, kept for compatibility)
     "dashboard.get-started": "Get Started",
@@ -601,7 +601,7 @@ const en = {
     "settings.version-fallback": "Version information unavailable",
 
     // v0.8.1+ Investigation Workspace
-    "inv.title": "Analysis Workspace",
+    "inv.title": "Agent Analysis",
     "inv.subtitle": "Ask questions in plain language, AI analyzes your data",
     "inv.start-hint": "Enter a question and run analysis. Results from the current run will appear here.",
     "inv.question-placeholder": "Describe what you want to analyze, e.g. What are the top performing categories by revenue?",
@@ -613,7 +613,7 @@ const en = {
     "inv.mode.insights": "Insights",
     "inv.mode.charts": "Charts",
     "inv.mode.anomalies": "Anomalies",
-    "inv.run": "Start Analysis",
+    "inv.run": "Run Agent",
     "inv.running": "Analyzing...",
     "inv.no-table-selected": "No dataset selected",
     "inv.select-table-hint": "Upload or select a dataset to start.",

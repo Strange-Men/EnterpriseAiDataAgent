@@ -364,3 +364,9 @@ Do not start M5 until user confirms.
 - CSV/Excel wording was clarified in zh-CN and en-US.
 - Targeted frontend tests and frontend build passed.
 - M5.5.6 Merge Validation has not started. Tag has not been created.
+
+## M5.5.6 Frontend CI Full Fix
+
+- M5.5.6 frontend full CI regression tests were aligned with the simplified Upload Data → Agent Analysis → Results flow on 2026-07-05.
+- Full frontend tests, type check, frontend build, backend import, safety search, and visual checks were completed.
+- M5.5.6 Merge Validation has not started. M5.5.7 has not started. Tag has not been created.

@@ -247,8 +247,8 @@ describe("Terminology consistency", () => {
     expect(enT["ai.export-md"]).toBe("Export Markdown");
   });
 
-  it("history title uses 历史记录 consistently", () => {
-    expect(zhT["history.title"]).toBe("历史记录");
+  it("history title uses 历史 consistently", () => {
+    expect(zhT["history.title"]).toBe("历史");
     expect(enT["history.title"]).toBe("History");
   });
 });

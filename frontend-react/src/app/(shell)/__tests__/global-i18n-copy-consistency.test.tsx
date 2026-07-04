@@ -239,8 +239,8 @@ describe("Terminology consistency in touched files", () => {
     expect(en.translation["ai.export-md"]).toBe("Export Markdown");
   });
 
-  it("history terminology uses 历史记录 consistently", () => {
-    expect(zh.translation["history.title"]).toBe("历史记录");
+  it("history terminology uses 历史 consistently", () => {
+    expect(zh.translation["history.title"]).toBe("历史");
     expect(en.translation["history.title"]).toBe("History");
   });
 });

@@ -8,7 +8,7 @@ describe("Analysis Workspace Regression (M5.5.6)", () => {
   // ── 1. Tab labels (M4-8.3.1) ──────────────────────────────────
   describe("Tab labels", () => {
     it("should have Chinese Agent Analysis tab label", () => {
-      expect(zh.translation["workspace.tab.ai-query"]).toBe("Agent Analysis");
+      expect(zh.translation["workspace.tab.ai-query"]).toBe("Agent 分析");
     });
 
     it("should have English Agent Analysis tab label", () => {
@@ -49,7 +49,7 @@ describe("Analysis Workspace Regression (M5.5.6)", () => {
   describe("Agent Analysis copy", () => {
     it("should have Chinese Agent Analysis title", () => {
       const title = zh.translation["workspace.ai-query-title"] as string;
-      expect(title).toContain("Agent Analysis");
+      expect(title).toContain("Agent 分析");
     });
 
     it("should have English Agent Analysis title", () => {
@@ -58,7 +58,7 @@ describe("Analysis Workspace Regression (M5.5.6)", () => {
     });
 
     it("should have Chinese Run Agent button text", () => {
-      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("Run Agent");
+      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("开始 Agent 分析");
     });
 
     it("should have English Run Agent button text", () => {
