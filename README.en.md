@@ -1,4 +1,4 @@
-# Enterprise AI Data Agent — AI-Powered Data Analysis for Excel & CSV
+# Enterprise AI Data Agent — LangChain Single-Agent Data Analysis System
 
 中文版: [README.md](README.md)
 
@@ -7,6 +7,7 @@
 ![DuckDB](https://img.shields.io/badge/DuckDB-OLAP-FFC800?logo=duckdb)
 ![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![LangChain](https://img.shields.io/badge/LangChain-Agent-3178C6?logo=langchain)
 ![Docker](https://img.shields.io/badge/Docker-Local%20Demo-2496ED?logo=docker)
 
 ## Table of Contents
@@ -27,9 +28,9 @@
 
 ## Overview
 
-Enterprise AI Data Agent is an AI-powered data analysis platform for Excel and CSV datasets. You upload a file, ask questions in plain English, and the Agent autonomously calls a tool chain — inspecting the schema, generating SQL, executing queries, and explaining results — while keeping a full memory and trace record of every step.
+Enterprise AI Data Agent is a **LangChain-based single-agent data analysis system**. You upload Excel or CSV files, ask questions in plain English, and the LangChain Single Agent autonomously understands the task, selects tools, and orchestrates a tool chain — inspecting schemas, generating SQL, executing queries, explaining results, and writing to memory — with a full trace record of every step.
 
-This is not a simple natural-language-to-SQL converter. It's a complete analysis pipeline built around: upload → schema understanding → tool calling → SQL execution → result explanation → memory → trace. Advanced users can switch to Expert SQL mode and write queries by hand.
+This is not a simple natural-language-to-SQL converter, nor a bare-bones custom runtime demo. It is a complete analysis pipeline built around: upload → schema understanding → LangChain Agent orchestration → Tool Calling → SQL execution → result explanation → memory → trace. Advanced users can switch to Expert SQL mode and write queries by hand.
 
 ## Why This Exists
 
@@ -42,11 +43,12 @@ This is not a simple natural-language-to-SQL converter. It's a complete analysis
 
 | Capability | Problem It Solves | How It Works | Status |
 | --- | --- | --- | --- |
+| LangChain Single Agent Orchestration | Letting the AI autonomously run multi-step analysis | LangChain Single Agent as the orchestration engine, managing Tool Calling, Memory read/write, Provider invocation, and Trace recording | ✅ Implemented |
 | Excel / CSV Upload | Getting local data into the system | File upload → DuckDB table creation with automatic column type inference | ✅ Implemented |
 | Schema Detection & Preview | Understanding what fields and data are in the table | Schema detection, type mapping, data preview, row count | ✅ Implemented |
 | Data Quality Reports | Spotting nulls, duplicates, and outliers | Missing values, duplicates, outlier detection, quality scoring (completeness / consistency / validity / uniqueness) | ✅ Implemented |
 | Natural Language Analysis | Analyzing data without writing SQL | User asks a question → AI generates SQL → read-only execution → results + explanation | ✅ Implemented |
-| Agent Tool Calling | Letting the AI autonomously run multi-step analysis | Agent runtime with intent routing, tool registry (inspect_schema / profile_table / execute_readonly_sql), simulated tool chain | ✅ Basic skeleton implemented; tool chain currently uses deterministic mock data |
+| Tool Calling | Agent autonomously selects and invokes tools for sub-tasks | LangChain Tool Calling: Agent invokes inspect_schema / profile_table / generate_sql / execute_readonly_sql / summarize / memory tools as needed | ✅ Basic skeleton implemented; tool chain currently uses deterministic mock data |
 | Multi-Provider with Fallback | Lowering the barrier to use real LLMs | Supports Mock / DeepSeek / Doubao / Mimo; Mock is the default zero-config mode; automatic fallback when a real provider is unavailable | ✅ Implemented |
 | Streaming Output | Seeing analysis progress in real time | SSE streaming with progressive rendering of plan, step results, and summary | ✅ Implemented |
 | Memory & Context | Remembering prior analyses across conversation turns | AI session store managing conversation history, context compression, and accumulated key findings | ✅ Implemented |
@@ -57,7 +59,7 @@ This is not a simple natural-language-to-SQL converter. It's a complete analysis
 | Anomaly Detection | Automatically spotting outliers in the data | Z-score / IQR statistical detection + LLM business interpretation | ✅ Implemented |
 | Docker Local Demo | Minimizing local setup friction | Docker Compose one-command startup, default Mock LLM mode | ✅ Implemented |
 
-> **Note**: The Agent tool calling chain currently runs in deterministic mock mode, returning sample data. The codebase includes real executor and generator injection paths (`pipeline_adapter.py`) for enabling the full Agent tool chain when a real LLM provider is configured.
+> **Note**: The Agent Tool Calling chain currently runs in deterministic mock mode, returning sample data. The codebase includes real executor and generator injection paths (`pipeline_adapter.py`) for enabling the full LangChain agent tool chain when a real LLM provider is configured.
 
 ## Architecture
 
@@ -65,10 +67,10 @@ This is not a simple natural-language-to-SQL converter. It's a complete analysis
 flowchart LR
     A[CSV / Excel Upload] --> B[Frontend · Next.js + React]
     B --> C[Backend API · FastAPI]
-    C --> D[Agent Runtime]
-    D --> E[Tools · Schema / SQL / Profile]
-    D --> F[LLM · Mock / DeepSeek / Doubao / Mimo]
-    D --> G[Memory & Trace]
+    C --> D[Agent Orchestration]
+    D --> E[Tool Layer]
+    D --> F[Provider Layer]
+    D --> G[Memory Store]
     D --> H[(DuckDB)]
     B --> I[Expert SQL · Monaco Editor]
     I --> C
@@ -76,8 +78,10 @@ flowchart LR
 
 - **Frontend** — Next.js 15 + React 19: analysis workspace, AI analysis panel, Expert SQL editor. React Query + Zustand for state management.
 - **Backend API** — FastAPI: REST + SSE streaming, request validation, auto-generated API docs.
-- **Agent Runtime** — Intent Router → Tool Registry → Tool Chain execution, orchestrating Tools, Memory, Trace, and LLM calls.
-- **LLM Providers** — Mock (default, zero-config) / DeepSeek / Doubao / Mimo: OpenAI-compatible adapters with automatic fallback.
+- **Agent Orchestration (LangChain Single Agent)** — The LangChain Single Agent handles task understanding, tool selection, and execution orchestration. The Agent autonomously decides which tools to invoke and in what order, combining memory and trace to produce a fully auditable analysis result.
+- **Tool Layer** — Schema Understanding / Profile / SQL Generation / Read-Only SQL Execution / Summary / Memory Read-Write — each tool encapsulates a single capability, invoked by the LangChain Agent via Tool Calling.
+- **Provider Layer** — DeepSeek / Doubao / OpenAI / Mock fallback — OpenAI-compatible adapters with automatic fallback. Default Mock mode runs zero-config.
+- **Memory Store** — Persists conversation context, historical SQL, key findings, and run traces, enabling multi-turn analysis and result auditability.
 - **Data Layer** — DuckDB embedded OLAP engine + Pandas / openpyxl for CSV/Excel parsing; read-only SQL execution.
 
 ## Core Workflow
@@ -87,8 +91,8 @@ The complete user journey:
 1. **Upload Data** — Upload an Excel or CSV file. The system creates a DuckDB table automatically.
 2. **Understand the Data** — Browse table structure, column types, data preview, and quality reports.
 3. **Ask a Question** — Type an analysis question in the AI Analysis panel. Pick an LLM provider (Mock is the default).
-4. **Agent Classifies Intent** — The Intent Router determines what kind of question this is: simple summary, SQL question, agent analysis, data preview, or unsupported.
-5. **Agent Calls the Tool Chain** — It runs inspect_schema → generate_sql → execute_readonly_sql → summarize → build_report in sequence.
+4. **LangChain Single Agent Understands the Question** — The Agent interprets the user's natural language question, determines the analysis intent, and plans the required steps.
+5. **Agent Selects and Invokes Tools Autonomously** — Via Tool Calling, the Agent invokes inspect_schema → generate_sql → execute_readonly_sql → summarize → memory (save context and findings) → build_report in sequence.
 6. **Full Results Returned** — The UI shows an analysis summary, key findings, the generated SQL, query results, token usage, guardrail warnings, and trace events.
 7. **Advanced Users Can Switch to Expert SQL** — Open the SQL Workspace and write queries directly in Monaco Editor with full autocomplete and multi-tab support.
 
@@ -103,11 +107,11 @@ The complete user journey:
 | Docker Compose Local Demo | **verified** | `docker compose config / build / up` pass |
 | Mock LLM Default | **Zero-config runnable** | Default `LLM_MODE=mock`, no API key required |
 | LLM Providers | **4** (Mock / DeepSeek / Doubao / Mimo) | Backend provider adapter registry |
-| Agent Tools | **3** (inspect_schema / profile_table / execute_readonly_sql) | Backend tool registry |
+| Agent Tools | **6** (inspect_schema / profile_table / generate_sql / execute_readonly_sql / summarize / memory) | Backend tool registry |
 | Supported File Formats | **2** (CSV / Excel .xlsx) | Backend file_loader module |
 | API Endpoints | **30+** | FastAPI auto-generated /docs |
 
-> **Note**: All metrics above are engineering validation data (build, test, import, Docker). They do not represent production performance benchmarks or commercial SLA figures.
+> **Note**: All metrics above are engineering validation data (build, test, import, Docker). They do not represent commercial SLA figures.
 
 ## Quick Start
 
@@ -234,8 +238,8 @@ Full API documentation: start the backend and visit http://localhost:8000/docs
 - Schema detection, data preview, and quality reports
 - Natural language → SQL generation → read-only execution → result explanation
 - Expert SQL workspace (Monaco Editor, autocomplete, multi-tab, query history, export)
+- LangChain Single Agent orchestration: task understanding, Tool Calling, Memory read/write, Trace recording
 - Multi-provider LLM support with Mock fallback — zero config runnable
-- Agent runtime skeleton: intent routing, tool registry, simulated tool chain execution
 - Analysis history, report details, analysis templates, anomaly detection
 - SSE streaming output
 - Memory / Trace / Guardrails / Token Budget
@@ -245,19 +249,19 @@ Full API documentation: start the backend and visit http://localhost:8000/docs
 ### Mock Fallback Details
 
 - **Mock LLM**: Default mode, returns deterministic simulated results. No API key required.
-- **Agent Tool Chain**: Currently runs in deterministic mock mode — tools return sample data. The `pipeline_adapter.py` module provides real executor and generator injection paths.
+- **Agent Tool Calling**: The tool chain currently runs in deterministic mock mode — tools return sample data. The `pipeline_adapter.py` module provides real executor and generator injection paths.
 - **Real Providers**: DeepSeek, Doubao, and Mimo require user-provided API keys, base URLs, and model names.
 
 ### Current Limitations & Extension Paths
 
-- **Auth**: Only an optional API key middleware and lightweight rate limiter. Not a production-grade multi-tenant auth system.
+- **Auth**: Only an optional API key middleware and lightweight rate limiter. Not a multi-tenant auth system.
 - **Data Sources**: CSV and Excel files only. No direct database connections, data lakes, or SaaS data source integrations.
-- **Agent System**: Single-agent with a deterministic tool chain skeleton. Multi-agent collaboration, dynamic tool selection, and autonomous planning are future extension areas.
+- **Agent System**: LangChain Single Agent architecture with tool chain partially in mock mode. Multi-agent collaboration and dynamic tool orchestration are future extension areas.
 - **Persistence**: Analysis results rely on browser localStorage (Zustand persist) and backend DuckDB files. Not a distributed persistence solution.
 - **Deployment**: Docker Compose is for local demo use. Not a production container orchestration setup.
 - **File Formats**: CSV and Excel only. JSON, Parquet, and direct database connections are future extension areas.
 
-> This project is not a commercial BI platform. It does not replace Tableau, Power BI, or Metabase. It is an AI agent engineering practice project for the data analysis domain.
+> This project is not a commercial BI platform. It does not replace Tableau, Power BI, or Metabase. It is a LangChain agent engineering practice project for the data analysis domain.
 
 ## FAQ
 
@@ -281,28 +285,24 @@ Uploaded CSV/Excel data is imported into a DuckDB database file (default: `data/
 
 The backend enforces a 50 MB upload limit (`MAX_UPLOAD_BYTES=52428800`). DuckDB's OLAP engine can efficiently handle queries on millions of rows.
 
-### Is this a production-grade system?
-
-No. It's an AI agent engineering practice project for the data analysis domain. It does not include production-grade auth, multi-tenant isolation, distributed deployment, or high-availability architecture.
-
 ### Are the Agent tool calls real or simulated?
 
-The Agent tool chain (inspect_schema, profile_table, execute_readonly_sql) currently runs in deterministic mock mode, returning sample data. The codebase includes real executor and generator injection paths for enabling the full tool chain with a configured LLM provider.
+The Agent Tool Calling chain (inspect_schema, profile_table, execute_readonly_sql, etc.) currently runs in deterministic mock mode, returning sample data. The codebase includes real executor and generator injection paths for enabling the full tool chain with a configured LLM provider.
 
 ### What's the difference between Expert SQL and AI Analysis?
 
-Expert SQL is a traditional SQL query workspace for users who know SQL. AI Analysis is a natural language interface where the AI generates and executes SQL for you. Both work on the same DuckDB tables and can be used together.
+Expert SQL is a traditional SQL query workspace for users who know SQL. AI Analysis is a natural language interface where the LangChain Agent generates and executes SQL for you. Both work on the same DuckDB tables and can be used together.
 
 ## Glossary
 
 | Term | Definition |
 | --- | --- |
-| Agent | An AI analysis agent that understands user intent, selects tools autonomously, and executes multi-step analysis tasks |
-| Tool Calling | The Agent invoking specific tools (e.g., inspect schema, execute SQL, generate summary) to complete sub-tasks |
-| Memory | Cross-turn conversation context including past questions, SQL, key findings, and compressed summaries |
-| AI SQL | SQL queries automatically generated by the AI from natural language questions |
+| LangChain Single Agent | The LangChain-based single-agent orchestration engine responsible for task understanding, tool selection, and execution orchestration, producing auditable analysis results with memory and trace |
+| Tool Calling | The LangChain Agent's ability to autonomously invoke specific tools (e.g., inspect schema, execute SQL, generate summary, read/write memory) based on the task at hand |
+| Memory | Cross-turn conversation context including past questions, SQL, key findings, and compressed summaries — read and written autonomously by the Agent |
+| AI SQL | SQL queries automatically generated and executed by the LangChain Agent from natural language questions |
 | DuckDB | An embedded OLAP database — no separate server process needed, ideal for local data analysis |
-| Provider Fallback | Automatic switch to a backup LLM provider (defaulting to Mock) when the preferred provider is unavailable |
+| Provider Fallback | Automatic switch to a backup LLM provider (defaulting to Mock) when the preferred provider is unavailable, managed by the LangChain Agent |
 | Trace | An auditable record of the analysis process, including latency, token usage, input context, SQL, and guardrail checks per LLM call |
 | Expert SQL | A hand-coded SQL workspace for advanced users, with Monaco Editor, autocomplete, and multi-tab editing |
 

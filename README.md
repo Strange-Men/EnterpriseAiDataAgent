@@ -1,4 +1,4 @@
-# Enterprise AI Data Agent | 面向 Excel / CSV 数据的 AI 分析 Agent
+# Enterprise AI Data Agent | 基于 LangChain 单 Agent 的数据分析系统
 
 English version: [README.en.md](README.en.md)
 
@@ -7,6 +7,7 @@ English version: [README.en.md](README.en.md)
 ![DuckDB](https://img.shields.io/badge/DuckDB-OLAP-FFC800?logo=duckdb)
 ![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![LangChain](https://img.shields.io/badge/LangChain-Agent-3178C6?logo=langchain)
 ![Docker](https://img.shields.io/badge/Docker-Local%20Demo-2496ED?logo=docker)
 
 ## 目录
@@ -27,26 +28,27 @@ English version: [README.en.md](README.en.md)
 
 ## 项目简介
 
-Enterprise AI Data Agent 是一个面向 Excel / CSV 数据分析场景的 AI Data Agent 平台。用户上传数据文件后，用自然语言向 Agent 提问，Agent 自动调用工具链完成表结构理解、SQL 生成、只读执行、结果解释和报告输出，并保留完整的 memory 与 trace 记录。
+Enterprise AI Data Agent 是一个**基于 LangChain 的单 Agent 数据分析系统**。用户上传 Excel / CSV 数据文件后，用自然语言向 Agent 提问，LangChain 单 Agent 自主理解任务、选择工具并调用工具链，完成表结构理解、SQL 生成、只读执行、结果解释和报告输出，全程保留 memory 与 trace 记录。
 
-它不是简单的自然语言转 SQL 工具，而是围绕"数据上传 → 结构理解 → 工具调用 → SQL 执行 → 结果解释 → memory → trace"构建的完整分析流程。高级用户可切换到 Expert SQL 模式手写查询。
+它不是简单的自然语言转 SQL 工具，也不是单纯的自研 Runtime Demo。它围绕"数据上传 → 结构理解 → LangChain Agent 编排 → Tool Calling → SQL 执行 → 结果解释 → memory → trace"构建完整的分析闭环。高级用户可切换到 Expert SQL 模式手写查询。
 
 ## 背景与问题
 
 - **业务人员不会 SQL**：面对 Excel / CSV 数据，想分析但缺乏 SQL 技能，传统 BI 工具学习成本高。
 - **数据表结构复杂，字段含义难理解**：仅凭列名无法快速判断字段的业务含义和分析方向。
 - **单次 AI SQL 缺少上下文、记忆和可追踪过程**：一次性问答无法记住历史分析结果，也难以追溯每一步的推理依据。
-- **普通数据分析工具不够智能，Agent Demo 又常缺少真实数据闭环**：聊完就结束，缺少数据上传、持久化查询、历史回溯、报告沉淀等工程闭环。
+- **普通数据分析工具不够智能，AI Agent 又常缺少真实数据闭环**：聊完就结束，缺少数据上传、持久化查询、历史回溯、报告沉淀等工程闭环。
 
 ## 核心能力
 
 | 能力 | 解决的问题 | 实现方式 | 当前状态 |
 | --- | --- | --- | --- |
+| LangChain 单 Agent 编排 | 让 AI 自主完成多步骤分析任务 | LangChain Single Agent 作为分析编排引擎，统一管理 Tool Calling、Memory 读写、Provider 调用和 Trace 记录 | ✅ 已实现 |
 | Excel / CSV 上传 | 用户如何把本地数据接入系统 | 文件上传 → DuckDB 自动建表，支持 `.csv` 和 `.xlsx`，自动推断列类型 | ✅ 已实现 |
 | 表结构识别与预览 | 不了解表里有什么字段和数据 | Schema 检测、字段类型映射、数据预览、行数统计 | ✅ 已实现 |
 | 数据质量报告 | 不知道数据有没有缺失值、重复、异常 | 缺失值、重复值、异常值检测，质量评分（完整性/一致性/有效性/唯一性） | ✅ 已实现 |
 | 自然语言分析 | 不会写 SQL 也能分析数据 | 用户输入自然语言问题 → AI 生成 SQL → 只读执行 → 返回结果与解释 | ✅ 已实现 |
-| Agent 工具调用 | 让 AI 自主完成多步骤分析任务 | Agent runtime 包含 intent 路由、工具注册（inspect_schema / profile_table / execute_readonly_sql）、模拟工具链执行 | ✅ 已具备基础骨架，工具链当前为 deterministic mock |
+| Tool Calling | Agent 根据任务自主选择并调用工具 | LangChain Tool Calling：Agent 调用 inspect_schema / profile_table / generate_sql / execute_readonly_sql / summarize / memory 等工具完成子任务 | ✅ 已具备基础骨架，工具链当前为 deterministic mock |
 | 多 Provider 支持与 Fallback | 降低真实 LLM 接入门槛 | 支持 Mock / DeepSeek / Doubao / Mimo；默认 Mock 零配置启动，真实 provider 不可用时自动 fallback | ✅ 已实现 |
 | Streaming 流式输出 | 避免长时间等待，实时看到分析进度 | SSE 流式传输，支持分析计划、步骤结果、摘要的渐进式渲染 | ✅ 已实现 |
 | Memory 与上下文记忆 | 多轮对话中记住之前的分析结果 | AI session store 管理对话轮次、上下文压缩、key findings 累积 | ✅ 已实现 |
@@ -57,7 +59,7 @@ Enterprise AI Data Agent 是一个面向 Excel / CSV 数据分析场景的 AI Da
 | 异常检测 | 自动发现数据中的异常值 | Z-score / IQR 统计检测 + LLM 业务解读 | ✅ 已实现 |
 | Docker 本地运行 | 降低本地环境搭建成本 | Docker Compose 一键启动前后端，默认 Mock LLM 模式 | ✅ 已实现 |
 
-> **说明**：Agent 工具调用链路当前以 deterministic mock 模式运行，返回模拟数据。项目已预留真实 executor / generator 注入路径（`pipeline_adapter.py`），可在配置真实 LLM provider 后启用完整 Agent tool chain。
+> **说明**：Agent Tool Calling 链路当前以 deterministic mock 模式运行，返回模拟数据。项目已预留真实 executor / generator 注入路径（`pipeline_adapter.py`），可在配置真实 LLM provider 后启用完整 LangChain agent tool chain。
 
 ## 技术架构
 
@@ -65,10 +67,10 @@ Enterprise AI Data Agent 是一个面向 Excel / CSV 数据分析场景的 AI Da
 flowchart LR
     A[CSV / Excel Upload] --> B[Frontend · Next.js + React]
     B --> C[Backend API · FastAPI]
-    C --> D[Agent Runtime]
-    D --> E[Tools · Schema / SQL / Profile]
-    D --> F[LLM · Mock / DeepSeek / Doubao / Mimo]
-    D --> G[Memory & Trace]
+    C --> D[Agent Orchestration]
+    D --> E[Tool Layer]
+    D --> F[Provider Layer]
+    D --> G[Memory Store]
     D --> H[(DuckDB)]
     B --> I[Expert SQL · Monaco Editor]
     I --> C
@@ -76,8 +78,10 @@ flowchart LR
 
 - **Frontend**：Next.js 15 + React 19，分析工作台、AI 分析面板、Expert SQL 编辑器，React Query + Zustand 管理状态。
 - **Backend API**：FastAPI，REST + SSE Streaming，请求校验，自动生成 API 文档。
-- **Agent Runtime**：Intent Router → Tool Registry → Tool Chain 执行，串联 Tools、Memory、Trace 和 LLM 调用。
-- **LLM Providers**：Mock（默认零配置）/ DeepSeek / Doubao / Mimo，OpenAI-compatible 适配，失败自动 fallback。
+- **Agent Orchestration（LangChain Single Agent）**：LangChain 单 Agent 负责任务理解、工具选择与执行编排。Agent 根据用户问题自主决定调用哪些工具、以什么顺序调用，并结合 memory 与 trace 输出可审计的完整分析结果。
+- **Tool Layer**：Schema Understanding / Profile / SQL Generation / Read-Only SQL Execution / Summary / Memory Read-Write — 每个工具封装单一能力，由 LangChain Agent 通过 Tool Calling 调用。
+- **Provider Layer**：DeepSeek / Doubao / OpenAI / Mock fallback — OpenAI-compatible 适配层，失败自动 fallback，默认 Mock 零配置可运行。
+- **Memory Store**：保存对话上下文、历史 SQL、关键发现（Key Findings）、run trace，支撑多轮分析和结果回溯。
 - **Data Layer**：DuckDB 嵌入式 OLAP 引擎 + Pandas / openpyxl 解析 CSV/Excel，只读 SQL 执行。
 
 ## 核心工作流
@@ -87,8 +91,8 @@ flowchart LR
 1. **上传数据** — 用户上传 Excel / CSV 文件，系统自动创建 DuckDB 数据表。
 2. **理解数据** — 查看表结构、字段类型、数据预览和质量报告，快速了解数据全貌。
 3. **提出问题** — 在 AI 分析面板用自然语言输入分析问题，选择 LLM Provider（默认 Mock）。
-4. **Agent 判断任务** — Intent Router 分类用户意图（简单汇总 / SQL 问题 / Agent 分析 / 数据预览 / 不支持的请求）。
-5. **Agent 调用工具链** — 依次调用 inspect_schema（了解表结构）→ generate_sql（生成 SQL）→ execute_readonly_sql（只读执行）→ summarize（结果解释）→ build_report（报告生成）。
+4. **LangChain 单 Agent 理解问题** — Agent 理解用户的自然语言问题，判断分析意图和所需步骤。
+5. **Agent 自主选择并调用工具** — Agent 通过 Tool Calling 依次调用 inspect_schema（了解表结构）→ generate_sql（生成 SQL）→ execute_readonly_sql（只读执行）→ summarize（结果解释）→ memory（保存上下文和发现）→ build_report（报告生成）。
 6. **返回完整结果** — 前端展示分析摘要、关键发现（Findings）、SQL 语句、查询结果、Token 消耗、Guardrail 警告和 Trace 事件。
 7. **高级用户可选 Expert SQL** — 在 SQL Workspace 中使用 Monaco Editor 手写查询，享受关键字/表名/列名自动补全和多标签页编辑。
 
@@ -103,11 +107,11 @@ flowchart LR
 | Docker Compose 本地运行 | **verified** | docker compose config / build / up 验证通过 |
 | Mock LLM 默认可用 | **零配置即可运行** | 默认 `LLM_MODE=mock`，无需任何 API Key |
 | LLM Provider 数量 | **4**（Mock / DeepSeek / Doubao / Mimo） | 后端 provider adapter 注册 |
-| Agent 工具数量 | **3**（inspect_schema / profile_table / execute_readonly_sql） | 后端 tool registry |
+| Agent 工具数量 | **6**（inspect_schema / profile_table / generate_sql / execute_readonly_sql / summarize / memory） | 后端 tool registry |
 | 支持文件格式 | **2**（CSV / Excel .xlsx） | 后端 file_loader 模块 |
 | API 端点数量 | **30+** | FastAPI 自动生成的 /docs 文档 |
 
-> **注意**：以上指标均为工程验证数据（build / test / import / Docker），不包含生产环境性能指标或商业 SLA 数据。
+> **注意**：以上指标均为工程验证数据（build / test / import / Docker），不包含商业 SLA 数据。
 
 ## 快速上手
 
@@ -234,8 +238,8 @@ curl http://localhost:8000/api/ai/status
 - 表结构识别、数据预览、质量报告
 - 自然语言 → SQL 生成 → 只读执行 → 结果解释
 - Expert SQL 工作台（Monaco Editor、自动补全、多标签页、查询历史、导出）
+- LangChain 单 Agent 编排：任务理解、Tool Calling、Memory 读写、Trace 记录
 - 多 LLM Provider 支持，Mock fallback 零配置可运行
-- Agent runtime 骨架：intent 路由、工具注册、模拟工具链执行
 - 分析历史、报告详情、分析模板、异常检测
 - SSE 流式输出
 - Memory / Trace / Guardrails / Token Budget
@@ -245,19 +249,19 @@ curl http://localhost:8000/api/ai/status
 ### Mock Fallback 说明
 
 - **Mock LLM**：默认模式，返回确定性模拟结果，不需要任何 API Key。
-- **Agent 工具链**：当前为 deterministic mock 模式，工具返回模拟数据。`pipeline_adapter.py` 已预留真实 executor / generator 注入路径。
+- **Agent Tool Calling**：当前工具链以 deterministic mock 模式运行，工具返回模拟数据。`pipeline_adapter.py` 已预留真实 executor / generator 注入路径。
 - **真实 Provider**：DeepSeek / Doubao / Mimo 需用户自行配置 API Key、Base URL 和 Model 名称。
 
 ### 当前局限与扩展方向
 
-- **权限系统**：当前仅有可选的 API Key 认证 middleware 和轻量限流，非生产级多租户权限体系。
+- **权限系统**：当前仅有可选的 API Key 认证 middleware 和轻量限流，非多租户权限体系。
 - **数据源**：当前面向 CSV / Excel 文件分析，不包含数据库直连、数据湖或 SaaS 数据源接入。
-- **Agent 系统**：当前为单 Agent + 确定性工具链骨架，不是 Multi-Agent 或自主规划系统。多 Agent 协作、动态工具选择和自主决策为后续扩展方向。
+- **Agent 系统**：当前为 LangChain 单 Agent 架构，工具链部分以 mock 模式运行。多 Agent 协作和动态工具编排为后续扩展方向。
 - **持久化**：分析结果依赖前端 localStorage（Zustand persist）和后端 DuckDB 文件，非分布式持久化方案。
-- **部署**：Docker Compose 面向本地 Demo 场景，非生产级容器编排。
+- **部署**：Docker Compose 面向本地 Demo 场景，非容器编排生产部署。
 - **文件格式**：当前支持 CSV 和 Excel，JSON / Parquet / 数据库直连为后续扩展方向。
 
-> 本项目不是商业 BI 平台，不替代 Tableau / Power BI / Metabase。它是一个面向数据分析场景的 AI Agent 工程实践项目。
+> 本项目不是商业 BI 平台，不替代 Tableau / Power BI / Metabase。它是一个面向数据分析场景的 LangChain Agent 工程实践项目。
 
 ## 常见问题
 
@@ -281,28 +285,24 @@ Mock（默认，零配置）、DeepSeek、Doubao（豆包/火山方舟）、Mimo
 
 后端上传限制 50MB（`MAX_UPLOAD_BYTES=52428800`）。DuckDB 的 OLAP 引擎可高效处理百万行级别的查询。
 
-### 这个项目是生产级系统吗？
-
-不是。它是一个面向数据分析场景的 AI Agent 工程实践项目。当前不包含生产级权限体系、多租户隔离、分布式部署和高可用架构。
-
 ### Agent 工具调用是真实的还是模拟的？
 
-当前 Agent 工具链（inspect_schema / profile_table / execute_readonly_sql）以 deterministic mock 模式运行，返回模拟数据。项目已预留真实 executor / generator 注入路径，可在配置完整环境后启用真实工具链。
+当前 Agent Tool Calling 链路（inspect_schema / profile_table / execute_readonly_sql 等）以 deterministic mock 模式运行，返回模拟数据。项目已预留真实 executor / generator 注入路径，可在配置完整环境后启用真实工具链。
 
 ### Expert SQL 和 AI 分析有什么区别？
 
-Expert SQL 是传统 SQL 查询工作台，适合会写 SQL 的高级用户。AI 分析是自然语言入口，由 AI 自动生成 SQL 并执行。两者共享同一套 DuckDB 数据表，可以混合使用。
+Expert SQL 是传统 SQL 查询工作台，适合会写 SQL 的高级用户。AI 分析是自然语言入口，由 LangChain Agent 自动生成 SQL 并执行。两者共享同一套 DuckDB 数据表，可以混合使用。
 
 ## 术语表
 
 | 术语 | 说明 |
 | --- | --- |
-| Agent | AI 分析代理，能理解用户意图、自主选择工具并执行多步骤分析任务 |
-| Tool Calling | Agent 调用具体工具（如查看表结构、执行 SQL、生成摘要）完成子任务 |
-| Memory | 跨轮次对话的上下文记忆，包括历史问题、SQL、关键发现和压缩摘要 |
-| AI SQL | 由 AI 根据自然语言问题自动生成的 SQL 查询语句 |
+| LangChain Single Agent | 基于 LangChain 框架的单 Agent 编排引擎，负责任务理解、工具选择、执行编排，结合 memory 与 trace 输出可审计的分析结果 |
+| Tool Calling | LangChain Agent 根据任务需要自主调用具体工具（如查看表结构、执行 SQL、生成摘要、读写 memory）完成子任务的能力 |
+| Memory | 跨轮次对话的上下文记忆，包括历史问题、SQL、关键发现和压缩摘要，由 Agent 自主读写 |
+| AI SQL | 由 LangChain Agent 根据自然语言问题自动生成并执行的 SQL 查询语句 |
 | DuckDB | 嵌入式 OLAP 数据库，无需独立服务进程，适合本地数据分析场景 |
-| Provider Fallback | 当首选 LLM Provider 不可用时，自动切换到备用 Provider（默认 fallback 到 Mock） |
+| Provider Fallback | 当首选 LLM Provider 不可用时，LangChain Agent 自动切换到备用 Provider（默认 fallback 到 Mock）的能力 |
 | Trace | 分析过程的可追溯记录，包括每次 LLM 调用的 latency、token 消耗、输入上下文、SQL 和 guardrail 检查结果 |
 | Expert SQL | 面向高级用户的手写 SQL 工作台，提供 Monaco Editor、自动补全和多标签页编辑 |
 
