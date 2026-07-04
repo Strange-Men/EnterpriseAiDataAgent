@@ -1,359 +1,190 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
 import {
   createAgentRun,
-  streamAiAnalyzeMulti,
-  fetchTableData,
+  type AgentProviderRequested,
+  type AgentToolCall,
   type CreateAgentRunResponse,
-  type MultiStreamEvent,
-  type MultiStepExecuted,
-  type PlanStep,
-  type LlmProvider,
 } from "@/services/api";
-import { useAnalysisStore, type AnalysisMode } from "@/stores/analysis-store";
+import { useDataStore } from "@/stores/data-store";
+import { useAnalysisStore } from "@/stores/analysis-store";
 import { useInvestigationStore } from "@/stores/investigation-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
-import { useDataStore } from "@/stores/data-store";
-import { useSqlHistoryStore } from "@/stores/sql-history-store";
-import { generateId } from "@/utils/id";
-import { StreamingOutput, type InvestigationResult } from "./streaming-output";
-import { StreamingIndicator } from "./ai-streaming-indicator";
 import { SqlWorkspacePanel } from "@/panels/sql-workspace-panel";
 import { Textarea, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Code, Lightbulb, Square } from "lucide-react";
-import type { TraceSnapshot } from "@/stores/analysis-store";
+import { Bot, Code, Database, Lightbulb, TerminalSquare } from "lucide-react";
 
-type WorkspaceTab = "ai-query" | "agent-run" | "expert-sql";
+type WorkspaceTab = "agent-analysis" | "expert-sql";
+
+const PROVIDER_OPTIONS: Array<{ value: AgentProviderRequested; labelKey: string }> = [
+  { value: "mock", labelKey: "ai.llm-provider-mock" },
+  { value: "deepseek", labelKey: "ai.llm-provider-deepseek" },
+  { value: "doubao", labelKey: "ai.llm-provider-doubao" },
+  { value: "mimo", labelKey: "ai.llm-provider-mimo" },
+  { value: "openai", labelKey: "ai.llm-provider-openai" },
+];
+
+function stringifyValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function toStringList(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map((item) => stringifyValue(item)).filter(Boolean);
+  }
+  const text = stringifyValue(value);
+  return text ? [text] : [];
+}
+
+function getRunWarnings(response: CreateAgentRunResponse | null): string[] {
+  if (!response) return [];
+  const responseWarnings = toStringList(response.warnings);
+  const runWarnings = toStringList(response.run.warnings);
+  return [...responseWarnings, ...runWarnings];
+}
+
+function JsonBlock({ value }: { value: unknown }) {
+  const text = stringifyValue(value);
+  if (!text) return null;
+  return (
+    <pre className="max-h-56 overflow-auto rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] p-3 text-xs text-[var(--text-secondary)] whitespace-pre-wrap">
+      {text}
+    </pre>
+  );
+}
+
+function ToolCallList({ calls }: { calls?: AgentToolCall[] }) {
+  const { t } = useTranslation();
+
+  if (!calls || calls.length === 0) {
+    return (
+      <p className="text-xs text-[var(--text-muted)]">
+        {t("agent.result.no-tool-calls")}
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {calls.map((call, index) => (
+        <div
+          key={call.call_id ?? `${call.tool_name ?? "tool"}-${index}`}
+          className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-medium text-[var(--text-primary)]">
+              {call.tool_name ?? t("agent.result.tool-fallback", { index: index + 1 })}
+            </p>
+            <Badge variant={call.status === "error" ? "error" : "muted"}>
+              {call.status ?? t("agent.result.status-unknown")}
+            </Badge>
+          </div>
+          {Object.keys(call).length > 0 && (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-[11px] text-[var(--text-muted)] hover:text-[var(--accent)]">
+                {t("agent.result.view-tool-payload")}
+              </summary>
+              <div className="mt-2">
+                <JsonBlock value={call} />
+              </div>
+            </details>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function InvestigationWorkspace() {
-  const { t, i18n } = useTranslation();
-  const router = useRouter();
-  const addRun = useAnalysisStore((s) => s.addRun);
-  const updateRun = useAnalysisStore((s) => s.updateRun);
+  const { t } = useTranslation();
+  const setActiveRun = useAnalysisStore((s) => s.setActiveRun);
   const tables = useDataStore((s) => s.tables);
   const activeTable = useInvestigationStore((s) => s.activeTable);
   const setActiveTable = useInvestigationStore((s) => s.setActiveTable);
   const ensureValidSelectedTable = useInvestigationStore((s) => s.ensureValidSelectedTable);
   const llmProvider = useWorkspaceStore((s) => s.llmProvider);
-  const setLlmProvider = useWorkspaceStore((s) => s.setLlmProvider);
   const pendingRerunDraft = useWorkspaceStore((s) => s.pendingRerunDraft);
   const setPendingRerunDraft = useWorkspaceStore((s) => s.setPendingRerunDraft);
 
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>("ai-query");
-  const [question, setQuestion] = useState("");
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("agent-analysis");
   const [agentQuestion, setAgentQuestion] = useState("");
+  const [agentProvider, setAgentProvider] = useState<AgentProviderRequested>(llmProvider);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const [agentRunResult, setAgentRunResult] = useState<CreateAgentRunResponse | null>(null);
   const [agentRunError, setAgentRunError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [streamStage, setStreamStage] = useState("");
-  const [streamStep, setStreamStep] = useState<number | undefined>();
-  const [streamEvent, setStreamEvent] = useState<MultiStreamEvent | null>(null);
-  const [result, setResult] = useState<InvestigationResult | null>(null);
-  const [error, setError] = useState<string | undefined>();
-  const [currentRunId, setCurrentRunId] = useState<string | null>(null);
-  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
 
-  const abortRef = useRef<AbortController | null>(null);
-  const mountedRef = useRef(true);
-  const startTimeRef = useRef<number>(0);
-
-  // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-      abortRef.current?.abort();
-    };
-  }, []);
+    setActiveRun(null);
+  }, [setActiveRun]);
 
-  // Clear stale activeRunId on mount so old results don't auto-load
   useEffect(() => {
-    useAnalysisStore.getState().setActiveRun(null);
-  }, []);
+    if (tables.length > 0) {
+      ensureValidSelectedTable(tables.map((table) => table.name));
+    }
+  }, [tables, ensureValidSelectedTable]);
 
-  // Consume pending rerun draft from History page
   useEffect(() => {
     if (!pendingRerunDraft) return;
-    const { question: draftQuestion, tableName: draftTable } = pendingRerunDraft;
-
-    // Prefill question
-    setQuestion(draftQuestion);
-
-    // If table exists, select it; otherwise warn
-    if (draftTable) {
-      const tableExists = tables.some((tbl) => tbl.name === draftTable);
-      if (tableExists) {
-        setActiveTable(draftTable);
-      } else {
-        toast(t("ai.rerun-table-missing"), { icon: "⚠️" });
-      }
+    setAgentQuestion(pendingRerunDraft.question);
+    if (pendingRerunDraft.tableName && tables.some((table) => table.name === pendingRerunDraft.tableName)) {
+      setActiveTable(pendingRerunDraft.tableName);
     }
-
-    // Switch to AI query tab
-    setActiveTab("ai-query");
-
-    // Show loaded toast
-    toast.success(t("ai.rerun-loaded"), { duration: 3000 });
-
-    // Consume draft so it doesn't re-trigger
+    setActiveTab("agent-analysis");
     setPendingRerunDraft(null);
-  }, [pendingRerunDraft, tables, setActiveTable, setPendingRerunDraft, t]);
+  }, [pendingRerunDraft, setActiveTable, setPendingRerunDraft, tables]);
 
-  // Listen for tab switch events from SqlWorkspacePanel
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail === "ai-query" || detail === "agent-run" || detail === "expert-sql") {
-        setActiveTab(detail);
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail === "expert-sql") {
+        setActiveTab("expert-sql");
       }
     };
     window.addEventListener("workspace:switch-tab", handler);
     return () => window.removeEventListener("workspace:switch-tab", handler);
   }, []);
 
-  // Validate activeTable against available tables on mount / table list change
-  useEffect(() => {
-    if (tables.length > 0) {
-      ensureValidSelectedTable(tables.map((t) => t.name));
-    }
-  }, [tables, ensureValidSelectedTable]);
+  const currentTableName = activeTable || tables[0]?.name;
+  const currentTableMeta = tables.find((table) => table.name === currentTableName);
+  const warnings = getRunWarnings(agentRunResult);
+  const resultRun = agentRunResult?.run;
+  const evidence = resultRun?.evidence ?? resultRun?.result_preview;
+  const trace = resultRun?.trace ?? agentRunResult?.trace;
+  const fallbackTriggered = Boolean(resultRun?.fallback_triggered);
 
-  // Clear transient result when active table changes
-  const prevTableRef = useRef(activeTable);
-  useEffect(() => {
-    if (prevTableRef.current !== activeTable && prevTableRef.current !== null) {
-      setResult(null);
-      setCurrentRunId(null);
-      setError(undefined);
-      setFallbackNotice(null);
-      setStreamStage("");
-      setStreamStep(undefined);
-      setStreamEvent(null);
-    }
-    prevTableRef.current = activeTable;
-  }, [activeTable]);
-
-  const handleSubmit = useCallback(async () => {
-    const q = question.trim();
-    const table = activeTable || tables[0]?.name;
-    if (!q || !table || isLoading) return;
-
-    // Abort any in-progress stream
-    abortRef.current?.abort();
-    startTimeRef.current = Date.now();
-
-    // Reset investigation context
-    const store = useInvestigationStore.getState();
-    store.clear();
-    store.reset();
-
-    setIsLoading(true);
-    setStreamStage("");
-    setStreamStep(undefined);
-    setStreamEvent(null);
-    setResult(null);
-    setError(undefined);
-    setFallbackNotice(null);
-
-    // Create run — always use "autonomous" mode internally
-    const mode: AnalysisMode = "autonomous";
-    const runId = addRun(mode, q, table);
-    setCurrentRunId(runId);
-    store.addUserTurn(q);
-    store.advance("analyzing", { table });
-
-    // Fetch table data for context
-    let columns: { name: string; dtype: string }[] = [];
-    let sampleRows: Record<string, unknown>[] = [];
-    try {
-      const { data } = await fetchTableData(table, 10);
-      sampleRows = data;
-      if (data.length > 0) {
-        columns = Object.keys(data[0]).map((key) => {
-          const val = data[0][key];
-          const dtype = typeof val === "number" ? (Number.isInteger(val) ? "INTEGER" : "DOUBLE")
-            : typeof val === "boolean" ? "BOOLEAN" : "VARCHAR";
-          return { name: key, dtype };
-        });
-      }
-    } catch {
-      // Continue without sample data
-    }
-
-    const accumulatedSteps: MultiStepExecuted[] = [];
-    let accumulatedPlan: PlanStep[] = [];
-    const accumulatedSections: { title: string; content: string; type: "markdown" | "sql" | "json" }[] = [];
-    let accumulatedSummary = "";
-    let accumulatedTrace: Record<string, unknown> | undefined;
-
-    const latestKeyFindings = useInvestigationStore.getState().keyFindings;
-    const abort = streamAiAnalyzeMulti(
-      q,
-      table,
-      columns,
-      sampleRows,
-      {
-        onPlan: (plan) => {
-          setStreamStage("plan");
-          accumulatedPlan = plan;
-          setStreamEvent({ type: "plan", plan });
-        },
-        onStepStart: (step, _purpose) => {
-          setStreamStage("step");
-          setStreamStep(step);
-        },
-        onStepRetry: (_step, _attempt, _errMsg) => {
-          // Update the step to show retry
-        },
-        onStepResult: (event) => {
-          setStreamStage("step");
-          setStreamStep(event.step);
-          setStreamEvent(event);
-          if (event.columns && event.data) {
-            accumulatedSteps.push({
-              step: event.step ?? accumulatedSteps.length + 1,
-              purpose: event.purpose ?? "",
-              status: event.status ?? "success",
-              sql: event.sql ?? "",
-              columns: event.columns,
-              data: event.data,
-              row_count: event.row_count,
-              error: event.error,
-            });
-          }
-        },
-        onSummary: (summary) => {
-          setStreamStage("summary");
-          accumulatedSummary = summary;
-        },
-        onError: (err) => {
-          if (!mountedRef.current) return;
-          setError(err.message);
-          setIsLoading(false);
-          setStreamStage("");
-          updateRun(runId, { status: "error", error: err.message });
-          useInvestigationStore.getState().advance("done");
-          toast.error(err.message);
-        },
-        onDone: (data) => {
-          if (!mountedRef.current) return;
-          setIsLoading(false);
-          setStreamStage("");
-
-          accumulatedTrace = data?.trace as Record<string, unknown> | undefined;
-
-          const finalResult: InvestigationResult = {
-            plan: accumulatedPlan,
-            steps: accumulatedSteps,
-            sections: accumulatedSections,
-            summary: accumulatedSummary,
-            trace: accumulatedTrace,
-          };
-
-          setResult(finalResult);
-
-          // Check for LLM fallback notice
-          const llmMeta = data?.llm as Record<string, unknown> | undefined;
-          if (llmMeta?.fallback_triggered && llmMeta?.fallback_reason) {
-            setFallbackNotice(t("ai.llm-fallback-notice"));
-          }
-
-          // Determine status based on step results
-          const hasErrors = accumulatedSteps.some((s) => s.status === "error");
-          const runStatus = hasErrors ? "partial" as const : "success" as const;
-
-          updateRun(runId, {
-            status: runStatus === "partial" ? "error" : "success",
-            sections: accumulatedSections,
-            multiResult: {
-              question: q,
-              plan: accumulatedPlan,
-              steps: accumulatedSteps,
-              summary: accumulatedSummary,
-              status: runStatus === "partial" ? "error" : "success",
-            },
-            trace: accumulatedTrace ? {
-              trace_id: (accumulatedTrace.trace_id as string) ?? runId,
-              total_llm_calls: (accumulatedTrace.total_llm_calls as number) ?? accumulatedSteps.length,
-              total_input_tokens: (accumulatedTrace.total_input_tokens as number) ?? 0,
-              total_output_tokens: (accumulatedTrace.total_output_tokens as number) ?? 0,
-              events: (accumulatedTrace.events as TraceSnapshot["events"]) ?? [],
-              guardrail_violations: (data?.guardrail_violations as string[]) ?? [],
-            } : null,
-          });
-
-          // Write to unified history store
-          const totalRows = accumulatedSteps.reduce((sum, s) => sum + (s.row_count ?? 0), 0);
-          const lastSql = accumulatedSteps[accumulatedSteps.length - 1]?.sql ?? "";
-          const summaryText = accumulatedSummary
-            ? accumulatedSummary.slice(0, 120) + (accumulatedSummary.length > 120 ? "..." : "")
-            : q;
-          useSqlHistoryStore.getState().addEntry({
-            id: generateId(),
-            type: "ai",
-            sql: lastSql,
-            question: q,
-            tableName: table,
-            summary: summaryText,
-            status: runStatus,
-            runtimeMs: Date.now() - startTimeRef.current,
-            rowCount: totalRows,
-            error: null,
-            timestamp: new Date().toISOString(),
-          });
-
-          const doneStore = useInvestigationStore.getState();
-          doneStore.addAssistantTurn(accumulatedSummary, accumulatedSteps[accumulatedSteps.length - 1]?.sql);
-          doneStore.advance("done");
-
-          if (accumulatedSummary) {
-            const sentences = accumulatedSummary.split(/[.!?]+/).filter((s) => s.trim().length > 10);
-            sentences.slice(0, 5).forEach((s) => doneStore.addKeyFinding(s.trim()));
-          }
-
-          setStreamEvent(data ?? null);
-          toast.success(t("inv.done"));
-        },
-      },
-      i18n.language,
-      500,
-      latestKeyFindings.length > 0 ? latestKeyFindings.slice(0, 5) : undefined,
-      llmProvider
-    );
-
-    abortRef.current = abort;
-  }, [question, activeTable, tables, isLoading, addRun, updateRun, i18n.language, t, llmProvider]);
-
-  const handleStop = useCallback(() => {
-    abortRef.current?.abort();
-    setIsLoading(false);
-    setStreamStage("");
-    setStreamStep(undefined);
-    toast(t("ai.stopped"), { icon: "⏹" });
-  }, [t]);
-
-  const handleExampleClick = useCallback((example: string) => {
-    setQuestion(example);
-  }, []);
+  const examples = useMemo(
+    () => [
+      t("workspace.example.q1"),
+      t("workspace.example.q2"),
+      t("workspace.example.q3"),
+      t("workspace.example.q4"),
+    ],
+    [t]
+  );
 
   const handleAgentRun = useCallback(async () => {
-    const q = agentQuestion.trim();
-    const table = activeTable || tables[0]?.name;
+    const question = agentQuestion.trim();
+    const table = currentTableName;
 
-    if (!q) {
-      setAgentRunError("Enter an Agent request before running.");
+    if (!question) {
+      setAgentRunError(t("agent.error.empty-question"));
       return;
     }
 
     if (!table) {
-      setAgentRunError("Select or upload a table before running Agent mode.");
+      setAgentRunError(t("agent.error.no-table"));
       return;
     }
 
@@ -363,51 +194,32 @@ export function InvestigationWorkspace() {
 
     try {
       const response = await createAgentRun({
-        user_input: q,
+        user_input: question,
         table_name: table,
-        provider_requested: "mock",
+        provider_requested: agentProvider,
         mode: "skeleton",
       });
       setAgentRunResult(response);
-    } catch (err) {
-      setAgentRunError(err instanceof Error ? err.message : "Agent run failed.");
+    } catch (error) {
+      setAgentRunError(error instanceof Error ? error.message : t("agent.error.run-failed"));
     } finally {
       setIsAgentRunning(false);
     }
-  }, [agentQuestion, activeTable, tables]);
-
-  // NOTE: Intentionally NOT restoring old runs from persisted activeRunId.
-  // Analyze page only shows transient results from the current session.
-  // Historical results are accessible via History / Detail pages.
-
-  const currentTableName = activeTable || tables[0]?.name;
-  const currentTableMeta = tables.find((tbl) => tbl.name === currentTableName);
+  }, [agentProvider, agentQuestion, currentTableName, t]);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Tab Bar */}
-      <div className="flex items-center border-b border-[var(--border-default)] bg-[var(--bg-secondary)] shrink-0">
+    <div className="flex h-full flex-col">
+      <div className="flex shrink-0 items-center border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
         <button
-          onClick={() => setActiveTab("ai-query")}
+          onClick={() => setActiveTab("agent-analysis")}
           className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-            activeTab === "ai-query"
+            activeTab === "agent-analysis"
               ? "border-[var(--accent)] text-[var(--accent)]"
               : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
           }`}
         >
-          <Lightbulb className="w-3.5 h-3.5" />
-          {t("workspace.tab.ai-query")}
-        </button>
-        <button
-          onClick={() => setActiveTab("agent-run")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-            activeTab === "agent-run"
-              ? "border-[var(--accent)] text-[var(--accent)]"
-              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-          }`}
-        >
-          <Bot className="w-3.5 h-3.5" />
-          Agent Run
+          <Bot className="h-3.5 w-3.5" />
+          {t("workspace.tab.agent-analysis")}
         </button>
         <button
           onClick={() => setActiveTab("expert-sql")}
@@ -417,281 +229,112 @@ export function InvestigationWorkspace() {
               : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
           }`}
         >
-          <Code className="w-3.5 h-3.5" />
+          <Code className="h-3.5 w-3.5" />
           {t("workspace.tab.expert-sql")}
         </button>
 
-        {/* Table info badge */}
         {currentTableName && (
           <div className="ml-auto px-3 py-1 text-xs text-[var(--text-muted)]">
             <span className="uppercase tracking-wider">{t("workspace.current-table")}:</span>{" "}
-            <span className="text-[var(--text-primary)] font-medium">{currentTableName}</span>
+            <span className="font-medium text-[var(--text-primary)]">{currentTableName}</span>
             {currentTableMeta && (
-              <span className="ml-1">({currentTableMeta.rowCount} rows)</span>
+              <span className="ml-1">({currentTableMeta.rowCount.toLocaleString()} {t("table.rows-label")})</span>
             )}
           </div>
         )}
       </div>
 
-      {/* Tab Content */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {activeTab === "ai-query" ? (
-          <div className="p-6 max-w-3xl mx-auto space-y-6">
-            {/* Header */}
-            <div className="text-center space-y-2">
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">
-                {t("workspace.ai-query-title")}
-              </h2>
-              <p className="text-sm text-[var(--text-muted)]">
-                {t("workspace.ai-query-subtitle")}
-              </p>
-            </div>
-
-            {/* Table selector */}
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-[var(--text-muted)] uppercase tracking-wider shrink-0">
-                {t("inv.table-label")}
-              </label>
-              {tables.length > 0 ? (
-                <Select
-                  value={activeTable || tables[0]?.name || ""}
-                  onChange={(e) => setActiveTable(e.target.value)}
-                  disabled={isLoading}
-                >
-                  {tables.map((tbl) => (
-                    <option key={tbl.name} value={tbl.name}>
-                      {tbl.name} ({tbl.rowCount} rows)
-                    </option>
-                  ))}
-                </Select>
-              ) : (
-                <span className="text-xs text-[var(--text-muted)] italic">
-                  {t("workspace.no-table")}
-                </span>
-              )}
-            </div>
-
-            {/* LLM Provider selector */}
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-[var(--text-muted)] uppercase tracking-wider shrink-0">
-                  {t("ai.llm-provider")}
-                </label>
-                <select
-                  value={llmProvider}
-                  onChange={(e) => setLlmProvider(e.target.value as LlmProvider)}
-                  disabled={isLoading}
-                  className="h-7 rounded border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 text-xs text-[var(--text-secondary)] outline-none hover:border-[var(--accent)] disabled:opacity-60"
-                  aria-label={t("ai.llm-provider")}
-                >
-                  <option value="mock">{t("ai.llm-provider-mock")}</option>
-                  <option value="deepseek">{t("ai.llm-provider-deepseek")}</option>
-                  <option value="doubao">{t("ai.llm-provider-doubao")}</option>
-                  <option value="mimo">{t("ai.llm-provider-mimo")}</option>
-                </select>
-              </div>
-              <p className="text-2xs text-[var(--text-muted)]">
-                {t("ai.llm-provider-hint")}
-              </p>
-            </div>
-
-            {/* Question input */}
-            <div className="space-y-3">
-              <Textarea
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmit();
-                  }
-                }}
-                placeholder={t("inv.question-placeholder")}
-                rows={4}
-                className="!text-sm !rounded-lg !resize-none"
-                disabled={isLoading}
-              />
-
-              <div className="flex items-center gap-3">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!question.trim() || !currentTableName || isLoading}
-                  variant="primary"
-                  size="md"
-                  loading={isLoading}
-                >
-                  {isLoading ? t("inv.running") : t("workspace.generate-sql-analyze")}
-                </Button>
-                {isLoading && (
-                  <Button
-                    onClick={handleStop}
-                    variant="ghost"
-                    size="md"
-                    leftIcon={<Square className="w-3.5 h-3.5" />}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                  >
-                    {t("ai.stop")}
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Example questions */}
-            {!result && !isLoading && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Lightbulb className="w-3 h-3 text-[var(--text-muted)]" />
-                  <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">
-                    {t("workspace.example-questions")}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    t("workspace.example.q1"),
-                    t("workspace.example.q2"),
-                    t("workspace.example.q3"),
-                    t("workspace.example.q4"),
-                  ].map((example) => (
-                    <button
-                      key={example}
-                      onClick={() => handleExampleClick(example)}
-                      className="px-3 py-1.5 text-xs text-[var(--text-muted)] border border-[var(--border-default)] rounded-full hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
-                    >
-                      {example}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Streaming indicator */}
-            {isLoading && streamStage && (
-              <div className="space-y-1">
-                <StreamingIndicator stage={streamStage} step={streamStep} />
-                <p className="text-[11px] text-[var(--text-muted)] ml-1">
-                  {t("inv.loading-hint")}
-                </p>
-              </div>
-            )}
-
-            {/* Loading description (before stream starts) */}
-            {isLoading && !streamStage && (
-              <div className="flex items-center gap-2 px-1">
-                <span className="inline-block w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs text-[var(--text-muted)]">{t("inv.loading-description")}</p>
-              </div>
-            )}
-
-            {/* Fallback notice */}
-            {fallbackNotice && (
-              <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                <span className="text-yellow-400 text-xs mt-0.5">⚠</span>
-                <p className="text-xs text-yellow-300">{fallbackNotice}</p>
-              </div>
-            )}
-
-            {/* Empty state — only shown when no result and not loading */}
-            {!result && !isLoading && !error && (
-              <div className="flex flex-col items-center justify-center py-12 text-center space-y-2">
-                <Lightbulb className="w-6 h-6 text-[var(--text-muted)] opacity-40" />
-                <p className="text-sm font-medium text-[var(--text-muted)]">
-                  {t("ai.waiting-title")}
-                </p>
-                <p className="text-xs text-[var(--text-muted)] max-w-sm">
-                  {t("ai.waiting-hint")}
-                </p>
-              </div>
-            )}
-
-            {/* Results */}
-            <StreamingOutput
-              result={result}
-              streamEvent={streamEvent}
-              isStreaming={isLoading}
-              streamStage={streamStage}
-              streamStep={streamStep}
-              error={error}
-              onRetry={handleSubmit}
-            />
-
-            {/* Link to run detail */}
-            {result && currentRunId && (
-              <div className="space-y-3 pt-3 border-t border-[var(--border-default)]">
-                <div className="flex items-center gap-2">
-                  <span className="text-green-400 text-sm">✓</span>
-                  <p className="text-xs text-[var(--text-primary)] font-medium">{t("inv.success-title")}</p>
-                </div>
-                <p className="text-xs text-[var(--text-muted)]">
-                  {t("inv.success-hint")}
-                </p>
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => router.push(`/analyze/${currentRunId}`)}
-                    className="px-4 py-1.5 text-xs bg-[var(--accent)] text-[var(--bg-primary)] rounded-md hover:bg-[var(--accent-hover)] transition-colors font-medium"
-                  >
-                    {t("inv.view-detail-btn")} →
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : activeTab === "agent-run" ? (
-          <div className="p-6 max-w-3xl mx-auto space-y-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-[var(--accent)]" />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {activeTab === "agent-analysis" ? (
+          <div className="mx-auto max-w-4xl space-y-6 p-6">
+            <div className="space-y-2 text-center">
+              <div className="flex items-center justify-center gap-2">
+                <Bot className="h-5 w-5 text-[var(--accent)]" />
                 <h2 className="text-lg font-bold text-[var(--text-primary)]">
-                  Agent Run
+                  {t("agent.title")}
                 </h2>
-                <Badge variant="accent">Skeleton</Badge>
               </div>
-              <p className="text-sm text-[var(--text-muted)]">
-                Run the M5.4 Agent runtime boundary from the Analyze workspace. This mode keeps the existing workbench flow and uses skeleton execution only.
+              <p className="mx-auto max-w-2xl text-sm text-[var(--text-muted)]">
+                {t("agent.subtitle")}
               </p>
             </div>
 
-            <Card>
+            <Card variant="highlighted">
               <CardHeader>
-                <CardTitle>Agent request</CardTitle>
-                <CardDescription>
-                  Natural language goal and table context for the Agent API contract.
-                </CardDescription>
+                <CardTitle>{t("agent.request.title")}</CardTitle>
+                <CardDescription>{t("agent.request.description")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-wider text-[var(--text-muted)]">
-                      Table context
-                    </p>
-                    <p className="truncate text-sm font-medium text-[var(--text-primary)]">
-                      {currentTableName || "No table selected"}
-                    </p>
+                <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+                  <div className="space-y-1.5">
+                    <label className="text-xs uppercase tracking-wider text-[var(--text-muted)]">
+                      {t("inv.table-label")}
+                    </label>
+                    {tables.length > 0 ? (
+                      <Select
+                        value={currentTableName ?? ""}
+                        onChange={(event) => setActiveTable(event.target.value)}
+                        disabled={isAgentRunning}
+                      >
+                        {tables.map((table) => (
+                          <option key={table.name} value={table.name}>
+                            {table.name} ({table.rowCount.toLocaleString()} {t("table.rows-label")})
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-xs text-[var(--text-muted)]">
+                        {t("workspace.no-table")}
+                      </div>
+                    )}
                   </div>
-                  {currentTableMeta ? (
-                    <Badge variant="muted">{currentTableMeta.rowCount} rows</Badge>
-                  ) : (
-                    <Badge variant="warning">Required</Badge>
-                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs uppercase tracking-wider text-[var(--text-muted)]">
+                      {t("agent.provider.label")}
+                    </label>
+                    <Select
+                      value={agentProvider}
+                      onChange={(event) => setAgentProvider(event.target.value)}
+                      disabled={isAgentRunning}
+                    >
+                      {PROVIDER_OPTIONS.map((provider) => (
+                        <option key={provider.value} value={provider.value}>
+                          {t(provider.labelKey)}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
                 </div>
 
                 <Textarea
                   value={agentQuestion}
-                  onChange={(e) => setAgentQuestion(e.target.value)}
-                  placeholder="Describe the analysis task for the Agent runtime skeleton..."
+                  onChange={(event) => setAgentQuestion(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      handleAgentRun();
+                    }
+                  }}
+                  placeholder={t("agent.question.placeholder")}
                   rows={4}
-                  className="!text-sm !rounded-lg !resize-none"
+                  className="!resize-none !rounded-lg !text-sm"
                   disabled={isAgentRunning}
                 />
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="info">Skeleton mode only</Badge>
-                  <Badge variant="muted">In-memory / ephemeral result</Badge>
+                  <Badge variant="info">{t("agent.badge.demo")}</Badge>
+                  <Badge variant="muted">{t("agent.badge.memory")}</Badge>
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {t("agent.provider.hint")}
+                  </span>
                 </div>
 
-                <div className="flex items-center justify-between gap-3 border-t border-[var(--border-default)] pt-3">
-                  <p className="text-xs text-[var(--text-muted)]">
-                    Full result cards, fallback badges, warning panels, and unsupported states are reserved for the next M5.5 steps.
-                  </p>
+                <div className="flex flex-col gap-3 border-t border-[var(--border-default)] pt-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                    <Database className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                    <span>{t("agent.flow-hint")}</span>
+                  </div>
                   <Button
                     type="button"
                     variant="primary"
@@ -700,94 +343,160 @@ export function InvestigationWorkspace() {
                     disabled={!agentQuestion.trim() || !currentTableName || isAgentRunning}
                     onClick={handleAgentRun}
                   >
-                    {isAgentRunning ? "Running" : "Run Agent"}
+                    {isAgentRunning ? t("agent.running") : t("agent.run")}
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {agentRunError && (
-              <div className="rounded-lg border border-[var(--error)]/30 bg-[var(--danger-subtle)] px-3 py-2">
-                <p className="text-xs font-medium text-[var(--error)]">Agent run failed</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">{agentRunError}</p>
-              </div>
-            )}
-
-            {agentRunResult && (
-              <Card variant="highlighted">
-                <CardHeader>
-                  <CardTitle>Agent run result</CardTitle>
-                  <CardDescription>
-                    Skeleton run metadata returned by the Agent API.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">run_id</p>
-                      <p className="truncate text-xs font-medium text-[var(--text-primary)]">
-                        {agentRunResult.run.run_id}
-                      </p>
-                    </div>
-                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">status</p>
-                      <p className="text-xs font-medium text-[var(--text-primary)]">
-                        {agentRunResult.run.status}
-                      </p>
-                    </div>
-                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">intent</p>
-                      <p className="text-xs font-medium text-[var(--text-primary)]">
-                        {agentRunResult.run.intent ?? "not routed"}
-                      </p>
-                    </div>
-                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">provider</p>
-                      <p className="text-xs font-medium text-[var(--text-primary)]">
-                        {agentRunResult.run.provider_requested ?? "mock"} -&gt; {agentRunResult.run.provider_used ?? "mock"}
-                      </p>
-                    </div>
-                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">fallback_triggered</p>
-                      <p className="text-xs font-medium text-[var(--text-primary)]">
-                        {String(Boolean(agentRunResult.run.fallback_triggered))}
-                      </p>
-                    </div>
-                    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">is_simulated</p>
-                      <p className="text-xs font-medium text-[var(--text-primary)]">
-                        {String(Boolean(agentRunResult.run.is_simulated))}
-                      </p>
-                    </div>
+            {!agentRunResult && !agentRunError && !isAgentRunning && (
+              <Card>
+                <CardContent className="space-y-3 py-5">
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4 text-[var(--text-muted)]" />
+                    <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                      {t("workspace.example-questions")}
+                    </p>
                   </div>
-
-                  {agentRunResult.warnings && agentRunResult.warnings.length > 0 && (
-                    <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
-                      <p className="text-xs font-medium text-yellow-300">Warnings</p>
-                      <ul className="mt-1 space-y-1 text-xs text-yellow-200">
-                        {agentRunResult.warnings.map((warning) => (
-                          <li key={warning}>{warning}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {examples.map((example) => (
+                      <button
+                        key={example}
+                        onClick={() => setAgentQuestion(example)}
+                        className="rounded-full border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                      >
+                        {example}
+                      </button>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             )}
 
-            <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
-              <p className="text-xs text-yellow-300">
-                This skeleton does not expose simulated chain mode, durable history, run detail, real provider credentials, or persistent memory.
-              </p>
-            </div>
+            {agentRunError && (
+              <div className="rounded-lg border border-[var(--error)]/30 bg-[var(--danger-subtle)] px-3 py-2">
+                <p className="text-xs font-medium text-[var(--error)]">{t("agent.error.title")}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{agentRunError}</p>
+              </div>
+            )}
+
+            {isAgentRunning && (
+              <div className="flex items-center gap-2 px-1">
+                <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+                <p className="text-xs text-[var(--text-muted)]">{t("agent.loading")}</p>
+              </div>
+            )}
+
+            {resultRun && (
+              <Card variant="highlighted">
+                <CardHeader>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <CardTitle>{t("agent.result.title")}</CardTitle>
+                      <CardDescription>{t("agent.result.description")}</CardDescription>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant={resultRun.status === "completed" ? "success" : "muted"}>
+                        {resultRun.status}
+                      </Badge>
+                      {fallbackTriggered && <Badge variant="warning">{t("agent.result.fallback")}</Badge>}
+                      {resultRun.memory_used && <Badge variant="info">{t("agent.result.memory-used")}</Badge>}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <Metric label="run_id" value={resultRun.run_id} />
+                    <Metric label={t("agent.result.intent")} value={resultRun.intent ?? t("agent.result.not-routed")} />
+                    <Metric label={t("agent.result.provider-requested")} value={resultRun.provider_requested ?? agentProvider} />
+                    <Metric label={t("agent.result.provider-used")} value={resultRun.provider_used ?? "mock"} />
+                    <Metric label={t("agent.result.fallback-reason")} value={resultRun.fallback_reason ?? t("agent.result.none")} />
+                    <Metric label={t("agent.result.record-type")} value={resultRun.is_simulated ? t("agent.result.demo-record") : t("agent.result.live-record")} />
+                  </div>
+
+                  {resultRun.answer && (
+                    <section className="space-y-2">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
+                        {t("agent.result.answer")}
+                      </h3>
+                      <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-sm leading-6 text-[var(--text-primary)]">
+                        {resultRun.answer}
+                      </div>
+                    </section>
+                  )}
+
+                  {resultRun.sql && (
+                    <section className="space-y-2">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
+                        {t("agent.result.sql")}
+                      </h3>
+                      <pre className="overflow-auto rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] p-3 text-xs text-[var(--text-secondary)]">
+                        {resultRun.sql}
+                      </pre>
+                    </section>
+                  )}
+
+                  {evidence !== undefined && evidence !== null && (
+                    <section className="space-y-2">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
+                        {t("agent.result.evidence")}
+                      </h3>
+                      <JsonBlock value={evidence} />
+                    </section>
+                  )}
+
+                  {warnings.length > 0 && (
+                    <section className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
+                      <h3 className="text-xs font-medium text-yellow-300">{t("agent.result.warnings")}</h3>
+                      <ul className="mt-1 space-y-1 text-xs text-yellow-200">
+                        {warnings.map((warning, index) => (
+                          <li key={`${warning}-${index}`}>{warning}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+
+                  <section className="space-y-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
+                      {t("agent.result.tool-calls")}
+                    </h3>
+                    <ToolCallList calls={resultRun.tool_calls} />
+                  </section>
+
+                  {trace !== undefined && trace !== null && (
+                    <section className="space-y-2">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
+                        {t("agent.result.trace")}
+                      </h3>
+                      <JsonBlock value={trace} />
+                    </section>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         ) : (
-          /* Expert SQL Tab */
-          <div className="flex flex-col h-full p-4">
+          <div className="flex h-full flex-col p-4">
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-2">
+              <TerminalSquare className="mt-0.5 h-4 w-4 text-[var(--text-muted)]" />
+              <div>
+                <p className="text-xs font-medium text-[var(--text-primary)]">{t("workspace.expert-sql-title")}</p>
+                <p className="text-xs text-[var(--text-muted)]">{t("workspace.expert-sql-hint")}</p>
+              </div>
+            </div>
             <SqlWorkspacePanel />
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{label}</p>
+      <p className="truncate text-xs font-medium text-[var(--text-primary)]">{value}</p>
     </div>
   );
 }
