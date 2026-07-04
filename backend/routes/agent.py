@@ -11,8 +11,8 @@ from backend.agent.api_contracts import (
     api_response_from_runtime_result,
     runtime_request_from_api_request,
 )
+from backend.agent.langchain_single_agent import run_langchain_single_agent
 from backend.agent.memory_store import AgentRunRecord, InMemoryAgentRunStore
-from backend.agent.runtime import run_agent_runtime_skeleton
 
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
@@ -43,7 +43,7 @@ def start_agent_run(
         )
 
     runtime_request = runtime_request_from_api_request(request)
-    runtime_result = run_agent_runtime_skeleton(runtime_request)
+    runtime_result = run_langchain_single_agent(runtime_request, memory_store=store)
     response = api_response_from_runtime_result(runtime_result)
     _save_agent_run_record(response=response, store=store)
     return response

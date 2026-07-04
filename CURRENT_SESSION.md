@@ -337,3 +337,9 @@ Do not start M5 until user confirms.
 - M5.5.4 Product Simplification and M5 Completion Plan merged to master on 2026-07-04.
 - README documentation commits on the source branch were preserved.
 - M5.5.5 implementation has not started. Tag has not been created.
+
+## M5.5.5 LangChain Single Agent Backend Loop
+
+- M5.5.5 LangChain Single Agent Backend Loop implementation completed on 2026-07-04.
+- `/api/agent/runs` now uses a LangChain Core single-agent tool loop while preserving the existing frontend contract.
+- M5.5.6 has not started. Tag has not been created.

@@ -212,6 +212,13 @@ class AgentRun(BaseModel):
     fallback_type: FallbackType = FallbackType.NONE
     fallback_reason: str | None = None
     status: AgentStatus = AgentStatus.CREATED
+    answer: str | None = None
+    sql: str | None = None
+    evidence: list[dict[str, Any]] = Field(default_factory=list)
+    result_preview: dict[str, Any] | None = None
+    warnings: list[str] = Field(default_factory=list)
+    trace: dict[str, Any] = Field(default_factory=dict)
+    memory_used: bool = False
     trace_id: str = Field(default_factory=lambda: _new_id("trace"), min_length=1)
     steps: list[AgentStep] = Field(default_factory=list)
     tool_calls: list[ToolCall] = Field(default_factory=list)
