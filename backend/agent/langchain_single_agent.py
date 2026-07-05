@@ -84,6 +84,7 @@ class LangChainSingleAgentService:
             "memory_write",
         ]
         self._schema_cache: dict[str, Any] = {}
+        self._profile_cache: dict[str, Any] = {}
         self._memory_notes: list[dict[str, Any]] = []
         self._warnings: list[str] = []
         self._used_default_executor = False
@@ -236,6 +237,9 @@ class LangChainSingleAgentService:
     def _profile_table(self, **kwargs: Any) -> dict[str, Any]:
         started = perf_counter()
         payload = ProfileTableInput.model_validate(kwargs)
+        if payload.table_name in self._profile_cache:
+            cached = self._profile_cache[payload.table_name]
+            return self._tool_result("profile_table", dict(cached), started, table_name=payload.table_name).model_dump(mode="json")
         try:
             quality = get_quality_report(payload.table_name)
             output = {
@@ -252,12 +256,14 @@ class LangChainSingleAgentService:
                 "summary": f"Table {payload.table_name} profile loaded from data quality service.",
                 "source": "data_service.get_quality_report",
             }
+            self._profile_cache[payload.table_name] = dict(output)
             return self._tool_result("profile_table", output, started, table_name=payload.table_name).model_dump(mode="json")
         except Exception as exc:
             self._warnings.append(f"profile_table_fallback_mock: {exc}")
             columns = self._schema_cache.get(payload.table_name)
             registry = get_default_tool_registry()
             result = registry.call_tool("profile_table", {"table_name": payload.table_name, "columns": columns})
+            self._profile_cache[payload.table_name] = dict(result.output)
             return self._with_duration(result, started).model_dump(mode="json")
 
     def _generate_sql(self, *, request: AgentRuntimeRequest, **kwargs: Any) -> dict[str, Any]:
@@ -290,6 +296,32 @@ class LangChainSingleAgentService:
                 "summary": f"Requested field {missing_field} was not found in the current schema.",
                 "llm": llm_metadata,
                 **llm_metadata,
+            }
+            return self._tool_result("generate_sql", output, started, table_name=payload.table_name).model_dump(mode="json")
+        fast_path_sql = self._fast_path_sql(
+            payload.table_name,
+            user_goal=payload.user_goal,
+            schema_columns=schema_columns,
+        )
+        if fast_path_sql:
+            llm_metadata = {
+                "mode": "real" if payload.provider_requested != "mock" else "mock",
+                "provider_requested": payload.provider_requested,
+                "provider_used": payload.provider_requested if payload.provider_requested in SUPPORTED_LLM_PROVIDERS else "mock",
+                "fallback_triggered": payload.provider_requested not in SUPPORTED_LLM_PROVIDERS,
+                "fallback_reason": None if payload.provider_requested in SUPPORTED_LLM_PROVIDERS else "unsupported_provider",
+                "calls": 0,
+                "fast_path": True,
+            }
+            metadata = self._metadata_from_llm_events(payload.provider_requested, llm_metadata)
+            output = {
+                "sql": fast_path_sql,
+                "table_name": payload.table_name,
+                "user_goal": payload.user_goal,
+                "summary": "SQL selected by schema-aware fast path before LLM summarization.",
+                "fast_path": True,
+                "llm": llm_metadata,
+                **metadata,
             }
             return self._tool_result("generate_sql", output, started, table_name=payload.table_name).model_dump(mode="json")
         try:
@@ -358,13 +390,31 @@ class LangChainSingleAgentService:
         registry = get_default_tool_registry()
         fallback_payload = payload.model_dump()
         fallback_payload["row_limit"] = row_limit
-        fallback = registry.call_tool("execute_readonly_sql", fallback_payload)
-        return self._with_duration(fallback, started).model_dump(mode="json")
+        try:
+            fallback = registry.call_tool("execute_readonly_sql", fallback_payload)
+            return self._with_duration(fallback, started).model_dump(mode="json")
+        except Exception as exc:
+            output = {
+                "sql": payload.sql,
+                "columns": [],
+                "rows": [],
+                "row_count": 0,
+                "summary": "SQL execution did not complete; the Agent returned a controlled warning instead of failing.",
+                "warning": str(exc),
+            }
+            self._warnings.append(f"execute_readonly_sql_failed: {exc}")
+            return self._tool_result(
+                "execute_readonly_sql",
+                output,
+                started,
+                status=ToolResultStatus.FAILED,
+                error=str(exc),
+            ).model_dump(mode="json")
 
     def _summarize_findings(self, *, request: AgentRuntimeRequest, **kwargs: Any) -> dict[str, Any]:
         started = perf_counter()
         payload = SummarizeFindingsInput.model_validate(kwargs)
-        rows = payload.rows or []
+        rows = (payload.rows or [])[:20]
         metadata = self._resolve_provider(payload.provider_requested)
         try:
             if payload.provider_requested != "mock" and payload.provider_requested in SUPPORTED_LLM_PROVIDERS:
@@ -533,7 +583,7 @@ class LangChainSingleAgentService:
                     user_goal=request.user_input,
                     schema_columns=self._schema_cache.get(table_name, []),
                 ),
-                "row_limit": 50,
+                "row_limit": 20,
             }
         if tool_name == "summarize_findings":
             return {
@@ -560,6 +610,8 @@ class LangChainSingleAgentService:
             context["evidence"].append({"type": "profile", "summary": output.get("summary"), "row_count": output.get("row_count")})
         elif result.tool_name == "generate_sql":
             context["sql"] = output.get("sql")
+            context["sql_fast_path"] = bool(output.get("fast_path") or context.get("sql_fast_path"))
+            self._merge_provider_context(context=context, output=output)
         elif result.tool_name == "execute_readonly_sql":
             context["rows"] = output.get("rows", [])
             context["result_preview"] = {
@@ -570,9 +622,7 @@ class LangChainSingleAgentService:
             context["evidence"].append({"type": "result_preview", "summary": output.get("summary"), "rows": output.get("rows", [])})
         elif result.tool_name == "summarize_findings":
             context["answer"] = output.get("summary")
-            if output.get("fallback_triggered"):
-                context["provider_used"] = output.get("provider_used")
-                context["fallback_reason"] = output.get("fallback_reason")
+            self._merge_provider_context(context=context, output=output)
         elif result.tool_name in {"memory_read", "memory_write"}:
             context["memory_used"] = bool(output.get("memory_used") or context.get("memory_used"))
 
@@ -589,10 +639,18 @@ class LangChainSingleAgentService:
         run.result_preview = context.get("result_preview") or {"columns": [], "rows": [], "row_count": 0}
         run.memory_used = bool(context.get("memory_used") or self._memory_notes)
         run.provider_used = str(context.get("provider_used") or provider_metadata["provider_used"])
-        if run.provider_used == "mock" and run.provider_requested != "mock":
-            run.fallback_triggered = True
-            run.fallback_type = FallbackType.PROVIDER
-            run.fallback_reason = str(context.get("fallback_reason") or provider_metadata.get("fallback_reason") or "provider_fallback_to_mock")
+        run.is_simulated = run.provider_used == "mock"
+        run.fallback_triggered = bool(
+            context.get("fallback_triggered")
+            if "fallback_triggered" in context
+            else run.provider_used == "mock" and run.provider_requested != "mock"
+        )
+        run.fallback_type = FallbackType.PROVIDER if run.fallback_triggered else FallbackType.NONE
+        run.fallback_reason = (
+            str(context.get("fallback_reason") or provider_metadata.get("fallback_reason") or "provider_fallback_to_mock")
+            if run.fallback_triggered
+            else None
+        )
         run.trace.update(
             {
                 "tool_calls": [
@@ -604,9 +662,31 @@ class LangChainSingleAgentService:
                     for call in run.tool_calls
                 ],
                 "memory": self._memory_notes,
+                "provider": {
+                    "provider_requested": run.provider_requested,
+                    "provider_used": run.provider_used,
+                    "fallback_triggered": run.fallback_triggered,
+                    "fallback_reason": run.fallback_reason,
+                },
                 "used_default_readonly_executor": self._used_default_executor,
+                "sql_fast_path": bool(context.get("sql_fast_path")),
+                "llm_calls": context.get("llm_calls", 0),
             }
         )
+
+    def _merge_provider_context(self, *, context: dict[str, Any], output: dict[str, Any]) -> None:
+        if output.get("provider_used"):
+            context["provider_used"] = output.get("provider_used")
+        if "fallback_triggered" in output:
+            context["fallback_triggered"] = bool(output.get("fallback_triggered"))
+        if "fallback_reason" in output:
+            context["fallback_reason"] = output.get("fallback_reason")
+        llm = output.get("llm")
+        if isinstance(llm, dict):
+            context["llm_calls"] = int(context.get("llm_calls") or 0) + self._coerce_non_negative_int(
+                llm.get("calls"),
+                default=0,
+            )
 
     def _finalize_run(self, *, run: AgentRun, warnings: list[str]) -> None:
         run.warnings = list(dict.fromkeys(warnings))
@@ -675,6 +755,22 @@ class LangChainSingleAgentService:
             lines.append(f"- {name}: {dtype}")
         return "\n".join(lines)
 
+    def _fast_path_sql(
+        self,
+        table_name: str | None,
+        *,
+        user_goal: str | None = None,
+        schema_columns: list[dict[str, Any]] | None = None,
+    ) -> str | None:
+        """Return deterministic SQL for clear common questions to avoid one LLM call."""
+
+        sql = self._deterministic_sql(table_name, user_goal=user_goal, schema_columns=schema_columns)
+        generic_preview_sql = f"select * from {self._quote_identifier(table_name or self._default_table_name()).lower()} limit 100;"
+        normalized_sql = re.sub(r"\s+", " ", sql).strip().lower()
+        if normalized_sql == generic_preview_sql:
+            return None
+        return sql
+
     def _deterministic_sql(
         self,
         table_name: str | None,
@@ -692,11 +788,21 @@ class LangChainSingleAgentService:
             columns,
             ["sales_amount", "sales", "revenue", "amount", "total_amount", "gmv", "销售额", "收入", "金额"],
         )
+        product_column = self._find_column(columns, ["product", "sku", "item", "category", "商品", "产品", "品类"])
         refund_rate_column = self._find_column(columns, ["refund_rate", "refundrate", "退款率", "退货率"])
         refund_amount_column = self._find_column(columns, ["refund_amount", "refund amount", "refund_amt", "refund_value", "退款金额", "退款额"])
         refund_count_column = self._find_column(columns, ["refund_count", "refunds", "refund", "退款数", "退款"])
         order_count_column = self._find_column(columns, ["order_count", "orders", "order_num", "订单数", "订单"])
 
+        if (
+            "多少行" in goal
+            or "有多少行" in goal
+            or "row count" in goal
+            or "how many rows" in goal
+            or ("fields" in goal and "row" in goal)
+            or ("columns" in goal and "row" in goal)
+        ):
+            return f"SELECT COUNT(*) AS row_count\nFROM {table};"
         if "偶数" in goal or "even row" in goal or "even rows" in goal:
             return (
                 "SELECT *\n"
@@ -729,7 +835,23 @@ class LangChainSingleAgentService:
                     "LIMIT 100;"
                 )
             return f"SELECT SUM({sales_column}) AS total_sales\nFROM {table};"
-        if "销售额最高" in goal or "highest sales" in goal or "highest revenue" in goal or "top sales" in goal:
+        if (
+            "销售额最高" in goal
+            or "highest sales" in goal
+            or "highest revenue" in goal
+            or "top sales" in goal
+            or "top n" in goal
+            or "top 5" in goal
+        ):
+            limit = self._extract_top_n(goal, default=5 if ("top" in goal or "前 5" in goal or "前5" in goal) else 100)
+            if sales_column and product_column and ("商品" in goal or "产品" in goal or "product" in goal or "item" in goal):
+                return (
+                    f"SELECT {product_column} AS product, SUM({sales_column}) AS total_sales\n"
+                    f"FROM {table}\n"
+                    f"GROUP BY {product_column}\n"
+                    "ORDER BY total_sales DESC\n"
+                    f"LIMIT {limit};"
+                )
             if sales_column:
                 return f"SELECT *\nFROM {table}\nORDER BY {sales_column} DESC\nLIMIT 100;"
             return f"SELECT *\nFROM {table}\nLIMIT 100;"
@@ -841,6 +963,20 @@ class LangChainSingleAgentService:
         except (TypeError, ValueError):
             coerced = default
         return max(1, coerced)
+
+    def _coerce_non_negative_int(self, value: Any, *, default: int) -> int:
+        try:
+            coerced = int(value)
+        except (TypeError, ValueError):
+            coerced = default
+        return max(0, coerced)
+
+    def _extract_top_n(self, goal: str, *, default: int) -> int:
+        for pattern in [r"top\s+(\d+)", r"前\s*(\d+)"]:
+            match = re.search(pattern, goal)
+            if match:
+                return self._coerce_positive_int(match.group(1), default=default)
+        return default
 
     def _default_table_name(self) -> str:
         try:
