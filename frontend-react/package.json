@@ -2,6 +2,9 @@
   "name": "enterprise-ai-data-agent",
   "version": "1.4.1",
   "private": true,
+  "astryx": {
+    "theme": "@astryxdesign/theme-neutral"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:clean": "rm -rf .next && next dev",
@@ -14,6 +17,9 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@astryxdesign/cli": "0.1.3",
+    "@astryxdesign/core": "0.1.3",
+    "@astryxdesign/theme-neutral": "0.1.3",
     "@monaco-editor/react": "^4.7.0",
     "@tanstack/react-query": "^5.100.13",
     "@tanstack/react-table": "^8.21.0",

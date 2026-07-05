@@ -425,3 +425,12 @@ Do not start M5 until user confirms.
 - M5.5.6 frontend full CI regression tests were aligned with the simplified Upload Data → Agent Analysis → Results flow on 2026-07-05.
 - Full frontend tests, type check, frontend build, backend import, safety search, and visual checks were completed.
 - M5.5.6 Merge Validation has not started. M5.5.7 has not started. Tag has not been created.
+
+## M5 Final Astryx UX Redesign
+
+- M5 Final Astryx UX Redesign completed on 2026-07-06.
+- Astryx was installed from `facebook/astryx` npm packages and cached on D drive.
+- Frontend default experience was redesigned into a business data Agent workbench.
+- SQL, trace, provider metadata, memory details, run id, and raw payload are folded by default.
+- Backend import, pytest with `PYTHONPATH=.`, frontend tests, frontend build, Astryx doctor, and browser visual check passed.
+- M6 has not started. Tag has not been created.

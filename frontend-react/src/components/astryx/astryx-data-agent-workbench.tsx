@@ -1,0 +1,732 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  AlertCircle,
+  BarChart3,
+  ChevronDown,
+  Database,
+  FileSpreadsheet,
+  History,
+  Languages,
+  Loader2,
+  Moon,
+  Settings,
+  Sparkles,
+  Upload,
+} from "lucide-react";
+import {
+  createAgentRun,
+  fetchQualityReport,
+  fetchTableData,
+  fetchTables,
+  uploadFile,
+  type AgentProviderRequested,
+  type AgentRun,
+  type LlmProvider,
+} from "@/services/api";
+import { useDataStore } from "@/stores/data-store";
+import { useInvestigationStore } from "@/stores/investigation-store";
+import { useAstryxWorkbenchStore, type BusinessAnalysisRecord } from "@/stores/astryx-workbench-store";
+import { useWorkspaceStore } from "@/stores/workspace-store";
+import { useLanguage } from "@/hooks/use-language";
+import { useThemeStore } from "@/hooks/use-theme";
+import { SqlWorkspacePanel } from "@/panels/sql-workspace-panel";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea, Select } from "@/components/ui/input";
+import { cn } from "@/utils/cn";
+
+type WorkbenchFocus = "workbench" | "upload" | "results" | "history" | "settings" | "expert";
+
+const PROVIDERS: Array<{ value: AgentProviderRequested; label: string }> = [
+  { value: "mock", label: "Mock" },
+  { value: "doubao", label: "Doubao" },
+  { value: "deepseek", label: "DeepSeek" },
+  { value: "openai", label: "OpenAI" },
+  { value: "mimo", label: "Mimo" },
+];
+
+const WORKSPACE_PROVIDERS = new Set<LlmProvider>(["mock", "deepseek", "doubao", "mimo"]);
+
+function stringify(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function toStringList(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((item) => stringify(item)).filter(Boolean);
+  const text = stringify(value);
+  return text ? [text] : [];
+}
+
+function toRows(value: unknown): Record<string, unknown>[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object");
+  }
+  if (typeof value === "object") {
+    const objectValue = value as Record<string, unknown>;
+    const nested = objectValue.data ?? objectValue.rows ?? objectValue.result ?? objectValue.preview;
+    if (Array.isArray(nested)) return toRows(nested);
+    return [objectValue];
+  }
+  return [];
+}
+
+function firstMeaningfulSentence(text: string): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  const match = normalized.match(/^(.+?[。.!?！？])\s/);
+  return match?.[1] ?? normalized.slice(0, 180);
+}
+
+function buildRecord(
+  run: AgentRun,
+  question: string,
+  tableName: string | null,
+  responseWarnings: string[],
+  nextSteps: string[]
+): BusinessAnalysisRecord {
+  const answer = run.answer?.trim()
+    || firstMeaningfulSentence(run.intent ?? "")
+    || "Analysis completed. Review the related data and warnings before making a decision.";
+  const findings = [
+    ...toStringList(run.findings),
+    ...toStringList(run.key_findings),
+    ...(run.intent ? [run.intent] : []),
+  ].slice(0, 5);
+  const warnings = [...responseWarnings, ...toStringList(run.warnings)].filter(Boolean);
+  const evidencePreview = toRows(run.evidence ?? run.result_preview).slice(0, 10);
+
+  return {
+    runId: run.run_id,
+    question,
+    tableName,
+    answer,
+    findings: findings.length > 0 ? findings : [firstMeaningfulSentence(answer)],
+    evidencePreview,
+    sql: run.sql ?? null,
+    warnings,
+    nextSteps,
+    providerRequested: run.provider_requested ?? null,
+    providerUsed: run.provider_used ?? null,
+    fallbackTriggered: Boolean(run.fallback_triggered),
+    fallbackReason: run.fallback_reason ?? null,
+    status: run.status,
+    createdAt: new Date().toISOString(),
+    rawRun: run,
+  };
+}
+
+function formatDate(value: string): string {
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return value;
+  }
+}
+
+export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: WorkbenchFocus }) {
+  const { t } = useTranslation();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const tables = useDataStore((s) => s.tables);
+  const setTables = useDataStore((s) => s.setTables);
+  const currentData = useDataStore((s) => s.currentData);
+  const currentColumns = useDataStore((s) => s.currentColumns);
+  const setCurrentData = useDataStore((s) => s.setCurrentData);
+  const qualityReport = useDataStore((s) => s.qualityReport);
+  const setQualityReport = useDataStore((s) => s.setQualityReport);
+  const uploadedFiles = useDataStore((s) => s.uploadedFiles);
+  const setUploadedFiles = useDataStore((s) => s.setUploadedFiles);
+  const activeTable = useInvestigationStore((s) => s.activeTable);
+  const setActiveTable = useInvestigationStore((s) => s.setActiveTable);
+  const storeProvider = useAstryxWorkbenchStore((s) => s.provider);
+  const setStoreProvider = useAstryxWorkbenchStore((s) => s.setProvider);
+  const records = useAstryxWorkbenchStore((s) => s.records);
+  const activeRunId = useAstryxWorkbenchStore((s) => s.activeRunId);
+  const setActiveRunId = useAstryxWorkbenchStore((s) => s.setActiveRunId);
+  const addRecord = useAstryxWorkbenchStore((s) => s.addRecord);
+  const llmProvider = useWorkspaceStore((s) => s.llmProvider);
+  const setLlmProvider = useWorkspaceStore((s) => s.setLlmProvider);
+  const { language, toggleLanguage } = useLanguage();
+  const { theme, toggleTheme } = useThemeStore();
+
+  const [question, setQuestion] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const tableName = activeTable || tables[0]?.name || null;
+  const currentTable = tables.find((table) => table.name === tableName);
+  const activeRecord = records.find((record) => record.runId === activeRunId) ?? records[0] ?? null;
+  const nextSteps = useMemo(
+    () => [
+      t("astryx.next.month"),
+      t("astryx.next.risk"),
+      t("astryx.next.export"),
+    ],
+    [t]
+  );
+  const examples = useMemo(
+    () => [
+      t("astryx.example.region"),
+      t("astryx.example.top"),
+      t("astryx.example.refund"),
+      t("astryx.example.even"),
+    ],
+    [t]
+  );
+
+  useEffect(() => {
+    if (!storeProvider && llmProvider) setStoreProvider(llmProvider);
+  }, [llmProvider, setStoreProvider, storeProvider]);
+
+  const refreshTables = useCallback(async () => {
+    const nextTables = await fetchTables();
+    setTables(nextTables);
+    if (!tableName && nextTables.length > 0) setActiveTable(nextTables[0].name);
+  }, [setActiveTable, setTables, tableName]);
+
+  useEffect(() => {
+    if (tables.length > 0 && !tableName) setActiveTable(tables[0].name);
+  }, [setActiveTable, tableName, tables]);
+
+  const loadTableContext = useCallback(async (name: string) => {
+    setError(null);
+    setActiveTable(name);
+    try {
+      const [preview, quality] = await Promise.all([
+        fetchTableData(name, 10),
+        fetchQualityReport(name).catch(() => null),
+      ]);
+      setCurrentData(preview.data, preview.columns);
+      setQualityReport(quality, name);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : t("astryx.error.table-load"));
+    }
+  }, [setActiveTable, setCurrentData, setQualityReport, t]);
+
+  const handleFile = useCallback(async (file: File) => {
+    setIsUploading(true);
+    setError(null);
+    try {
+      const uploaded = await uploadFile(file);
+      setUploadedFiles([
+        {
+          name: file.name,
+          size: `${(file.size / 1024).toFixed(1)} KB`,
+          type: file.type || "spreadsheet",
+          uploadedAt: new Date().toISOString(),
+          tableName: uploaded.tableName,
+          rowCount: uploaded.rowCount,
+          columnCount: uploaded.columnCount,
+          status: "success",
+        },
+        ...uploadedFiles,
+      ]);
+      await refreshTables();
+      await loadTableContext(uploaded.tableName);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : t("astryx.error.upload"));
+    } finally {
+      setIsUploading(false);
+    }
+  }, [loadTableContext, refreshTables, setUploadedFiles, t, uploadedFiles]);
+
+  const handleAnalyze = useCallback(async () => {
+    const trimmed = question.trim();
+    if (!trimmed) {
+      setError(t("astryx.error.question"));
+      return;
+    }
+    if (!tableName) {
+      setError(t("astryx.error.no-table"));
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setError(null);
+    try {
+      const response = await createAgentRun({
+        user_input: trimmed,
+        table_name: tableName,
+        provider_requested: storeProvider || "mock",
+        mode: "skeleton",
+      });
+      const record = buildRecord(response.run, trimmed, tableName, toStringList(response.warnings), nextSteps);
+      addRecord(record);
+    } catch (runError) {
+      setError(runError instanceof Error ? runError.message : t("astryx.error.analysis"));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [addRecord, nextSteps, question, storeProvider, tableName, t]);
+
+  const updateProvider = useCallback((provider: AgentProviderRequested) => {
+    setStoreProvider(provider);
+    if (WORKSPACE_PROVIDERS.has(provider as LlmProvider)) {
+      setLlmProvider(provider as LlmProvider);
+    }
+  }, [setLlmProvider, setStoreProvider]);
+
+  const initialHistoryOpen = focus === "history" || focus === "results";
+  const initialSettingsOpen = focus === "settings";
+  const initialExpertOpen = focus === "expert";
+
+  return (
+    <div data-astryx-workbench className="min-h-full bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_34%),var(--bg-primary)]">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-6 lg:px-8">
+        <section className="grid gap-5 rounded-2xl border border-[var(--astryx-line)] bg-[var(--astryx-panel)] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)] lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-5">
+            <div className="space-y-3">
+              <Badge variant="accent" size="md">{t("astryx.brand-pill")}</Badge>
+              <div className="max-w-2xl space-y-3">
+                <h1 className="text-2xl font-semibold leading-tight text-[var(--text-primary)] md:text-3xl">
+                  {t("astryx.hero.title")}
+                </h1>
+                <p className="text-sm leading-6 text-[var(--text-muted)]">
+                  {t("astryx.hero.subtitle")}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="lg"
+                variant="primary"
+                leftIcon={<Upload className="h-4 w-4" />}
+                onClick={() => fileInputRef.current?.click()}
+                loading={isUploading}
+              >
+                {t("astryx.upload.cta")}
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                variant="secondary"
+                leftIcon={<Sparkles className="h-4 w-4" />}
+                onClick={() => document.getElementById("astryx-question")?.focus()}
+              >
+                {t("astryx.analysis.cta")}
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <StatusTile icon={<FileSpreadsheet className="h-4 w-4" />} label={t("astryx.metric.table")} value={currentTable?.name ?? t("astryx.empty.table")} />
+            <StatusTile icon={<Database className="h-4 w-4" />} label={t("astryx.metric.rows")} value={currentTable ? currentTable.rowCount.toLocaleString() : "0"} />
+            <StatusTile icon={<BarChart3 className="h-4 w-4" />} label={t("astryx.metric.records")} value={records.length.toLocaleString()} />
+          </div>
+        </section>
+
+        {error && (
+          <div className="flex items-start gap-2 rounded-xl border border-[var(--error)]/30 bg-[var(--danger-subtle)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--error)]" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <main className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+          <aside className="space-y-4">
+            <Panel title={t("astryx.data.title")} icon={<Upload className="h-4 w-4" />}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void handleFile(file);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex w-full flex-col items-center justify-center rounded-xl border border-dashed border-[var(--astryx-line)] bg-[var(--astryx-soft)] px-4 py-6 text-center transition-colors hover:border-[var(--accent)]"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
+                ) : (
+                  <FileSpreadsheet className="h-7 w-7 text-[var(--accent)]" />
+                )}
+                <span className="mt-3 text-sm font-medium text-[var(--text-primary)]">{t("astryx.data.drop-title")}</span>
+                <span className="mt-1 text-xs text-[var(--text-muted)]">{t("astryx.data.drop-desc")}</span>
+              </button>
+
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-[var(--text-muted)]">{t("astryx.data.current")}</label>
+                {tables.length > 0 ? (
+                  <Select
+                    value={tableName ?? ""}
+                    onChange={(event) => void loadTableContext(event.target.value)}
+                  >
+                    {tables.map((table) => (
+                      <option key={table.name} value={table.name}>
+                        {table.name} ({table.rowCount.toLocaleString()})
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <p className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-xs text-[var(--text-muted)]">
+                    {t("astryx.data.empty")}
+                  </p>
+                )}
+              </div>
+
+              {currentTable && (
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <MiniStat label={t("astryx.data.columns")} value={currentTable.columnCount.toLocaleString()} />
+                  <MiniStat label={t("astryx.data.rows")} value={currentTable.rowCount.toLocaleString()} />
+                </div>
+              )}
+
+              <QualitySummary score={qualityReport?.overallScore ?? null} warnings={qualityReport?.warnings ?? []} />
+            </Panel>
+
+            <Panel title={t("astryx.settings.title")} icon={<Settings className="h-4 w-4" />} defaultOpen={initialSettingsOpen}>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-[var(--text-muted)]">{t("astryx.settings.provider")}</label>
+                  <Select value={storeProvider} onChange={(event) => updateProvider(event.target.value)}>
+                    {PROVIDERS.map((provider) => (
+                      <option key={provider.value} value={provider.value}>{provider.label}</option>
+                    ))}
+                  </Select>
+                  <p className="text-xs leading-5 text-[var(--text-muted)]">{t("astryx.settings.provider-hint")}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="secondary" size="sm" onClick={toggleLanguage} leftIcon={<Languages className="h-3.5 w-3.5" />}>
+                    {language === "zh" ? "English" : "中文"}
+                  </Button>
+                  <Button type="button" variant="secondary" size="sm" onClick={toggleTheme} leftIcon={<Moon className="h-3.5 w-3.5" />}>
+                    {theme === "dark" ? t("astryx.settings.light") : t("astryx.settings.dark")}
+                  </Button>
+                </div>
+              </div>
+            </Panel>
+          </aside>
+
+          <section className="space-y-5">
+            <Panel title={t("astryx.ask.title")} icon={<Sparkles className="h-4 w-4" />} defaultOpen={focus !== "results" && focus !== "history" && focus !== "settings"}>
+              <div className="space-y-4">
+                <Textarea
+                  id="astryx-question"
+                  value={question}
+                  disabled={isAnalyzing}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  placeholder={t("astryx.ask.placeholder")}
+                  rows={5}
+                  className="min-h-[132px] !resize-none !rounded-xl !text-sm"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {examples.map((example) => (
+                    <button
+                      key={example}
+                      type="button"
+                      onClick={() => setQuestion(example)}
+                      className="rounded-full border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-col gap-3 border-t border-[var(--border-default)] pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs leading-5 text-[var(--text-muted)]">{t("astryx.ask.helper")}</p>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="lg"
+                    loading={isAnalyzing}
+                    disabled={isAnalyzing || !question.trim() || !tableName}
+                    onClick={handleAnalyze}
+                    leftIcon={<Sparkles className="h-4 w-4" />}
+                  >
+                    {isAnalyzing ? t("astryx.ask.running") : t("astryx.ask.submit")}
+                  </Button>
+                </div>
+              </div>
+            </Panel>
+
+            <BusinessResult record={activeRecord} rows={currentData ?? []} columns={currentColumns} />
+
+            <Panel title={t("astryx.history.title")} icon={<History className="h-4 w-4" />} defaultOpen={initialHistoryOpen}>
+              {records.length === 0 ? (
+                <p className="text-sm text-[var(--text-muted)]">{t("astryx.history.empty")}</p>
+              ) : (
+                <div className="grid gap-2">
+                  {records.slice(0, 8).map((record) => (
+                    <button
+                      key={record.runId}
+                      type="button"
+                      onClick={() => setActiveRunId(record.runId)}
+                      className={cn(
+                        "rounded-xl border px-3 py-3 text-left transition-colors",
+                        activeRecord?.runId === record.runId
+                          ? "border-[var(--accent)] bg-[var(--accent-subtle)]"
+                          : "border-[var(--border-default)] bg-[var(--bg-primary)] hover:border-[var(--accent)]"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-[var(--text-primary)]">{record.question}</p>
+                          <p className="mt-1 text-xs text-[var(--text-muted)]">
+                            {record.tableName ?? t("astryx.empty.table")} · {formatDate(record.createdAt)}
+                          </p>
+                        </div>
+                        <Badge variant={record.status === "completed" ? "success" : record.status === "failed" ? "error" : "muted"}>
+                          {record.status === "completed" ? t("astryx.status.completed") : record.status}
+                        </Badge>
+                      </div>
+                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--text-secondary)]">{record.answer}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Panel>
+
+            <Panel title={t("astryx.expert.title")} icon={<Database className="h-4 w-4" />} defaultOpen={initialExpertOpen}>
+              <p className="mb-3 text-xs leading-5 text-[var(--text-muted)]">{t("astryx.expert.desc")}</p>
+              <div className="min-h-[560px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
+                <SqlWorkspacePanel />
+              </div>
+            </Panel>
+          </section>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function Panel({
+  title,
+  icon,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  return (
+    <details
+      open={defaultOpen}
+      className="rounded-2xl border border-[var(--astryx-line)] bg-[var(--astryx-panel-strong)] shadow-[0_12px_40px_rgba(0,0,0,0.18)]"
+    >
+      <summary className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3">
+        <span className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+          <span className="text-[var(--accent)]">{icon}</span>
+          {title}
+        </span>
+        <ChevronDown className="h-4 w-4 text-[var(--text-muted)]" />
+      </summary>
+      <div className="space-y-4 border-t border-[var(--astryx-line)] px-4 py-4">
+        {children}
+      </div>
+    </details>
+  );
+}
+
+function StatusTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-3">
+      <div className="flex items-center gap-2 text-[var(--text-muted)]">
+        {icon}
+        <span className="text-xs">{label}</span>
+      </div>
+      <p className="mt-2 truncate text-sm font-semibold text-[var(--text-primary)]">{value}</p>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{value}</p>
+    </div>
+  );
+}
+
+function QualitySummary({ score, warnings }: { score: number | null; warnings: string[] }) {
+  const { t } = useTranslation();
+  if (score === null && warnings.length === 0) {
+    return <p className="text-xs leading-5 text-[var(--text-muted)]">{t("astryx.quality.empty")}</p>;
+  }
+
+  return (
+    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-[var(--text-muted)]">{t("astryx.quality.title")}</span>
+        {score !== null && <Badge variant={score >= 80 ? "success" : score >= 60 ? "warning" : "error"}>{score}</Badge>}
+      </div>
+      {warnings.length > 0 && (
+        <ul className="mt-2 space-y-1 text-xs leading-5 text-[var(--text-muted)]">
+          {warnings.slice(0, 3).map((warning, index) => (
+            <li key={`${warning}-${index}`}>{warning}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function BusinessResult({
+  record,
+  rows,
+  columns,
+}: {
+  record: BusinessAnalysisRecord | null;
+  rows: Record<string, unknown>[];
+  columns: string[];
+}) {
+  const { t } = useTranslation();
+  if (!record) {
+    return (
+      <Panel title={t("astryx.result.title")} icon={<BarChart3 className="h-4 w-4" />}>
+        <div className="rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-8 text-center">
+          <p className="text-sm font-medium text-[var(--text-primary)]">{t("astryx.result.empty-title")}</p>
+          <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">{t("astryx.result.empty-desc")}</p>
+        </div>
+      </Panel>
+    );
+  }
+
+  const previewRows = record.evidencePreview.length > 0 ? record.evidencePreview : rows.slice(0, 5);
+  const previewColumns = previewRows.length > 0
+    ? Object.keys(previewRows[0]).slice(0, 6)
+    : columns.slice(0, 6);
+
+  return (
+    <Panel title={t("astryx.result.title")} icon={<BarChart3 className="h-4 w-4" />}>
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={record.status === "completed" ? "success" : record.status === "failed" ? "error" : "muted"}>
+            {record.status === "completed" ? t("astryx.status.completed") : record.status}
+          </Badge>
+          {record.fallbackTriggered && <Badge variant="warning">{t("astryx.status.demo")}</Badge>}
+          <span className="text-xs text-[var(--text-muted)]">{formatDate(record.createdAt)}</span>
+        </div>
+
+        <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--accent)]">{t("astryx.result.answer")}</p>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--text-primary)]">{record.answer}</p>
+        </section>
+
+        <section className="grid gap-3 lg:grid-cols-2">
+          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{t("astryx.result.findings")}</p>
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
+              {record.findings.slice(0, 5).map((finding, index) => (
+                <li key={`${finding}-${index}`} className="flex gap-2">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
+                  <span>{finding}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{t("astryx.result.next")}</p>
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
+              {record.nextSteps.map((step) => (
+                <li key={step} className="flex gap-2">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{t("astryx.result.data")}</p>
+          {previewRows.length > 0 && previewColumns.length > 0 ? (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[520px] text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--border-default)] text-[var(--text-muted)]">
+                    {previewColumns.map((column) => (
+                      <th key={column} className="px-2 py-2 font-medium">{column}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewRows.slice(0, 8).map((row, rowIndex) => (
+                    <tr key={rowIndex} className="border-b border-[var(--border-default)]/60 last:border-0">
+                      {previewColumns.map((column) => (
+                        <td key={column} className="max-w-[220px] truncate px-2 py-2 text-[var(--text-secondary)]">
+                          {stringify(row[column]) || "-"}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-[var(--text-muted)]">{t("astryx.result.no-data")}</p>
+          )}
+        </section>
+
+        {record.warnings.length > 0 && (
+          <section className="rounded-xl border border-[var(--warning)]/30 bg-[var(--warning-subtle)] px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wider text-[var(--warning)]">{t("astryx.result.warnings")}</p>
+            <ul className="mt-2 space-y-1 text-xs leading-5 text-[var(--text-secondary)]">
+              {record.warnings.map((warning, index) => (
+                <li key={`${warning}-${index}`}>{warning}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <details className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
+          <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-[var(--text-primary)]">
+            {t("astryx.result.sql")}
+            <ChevronDown className="h-4 w-4 text-[var(--text-muted)]" />
+          </summary>
+          <pre className="max-h-72 overflow-auto border-t border-[var(--border-default)] p-4 text-xs leading-5 text-[var(--text-secondary)]">
+            {record.sql || t("astryx.result.no-sql")}
+          </pre>
+        </details>
+
+        <details className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
+          <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-[var(--text-primary)]">
+            {t("astryx.result.technical")}
+            <ChevronDown className="h-4 w-4 text-[var(--text-muted)]" />
+          </summary>
+          <div className="space-y-3 border-t border-[var(--border-default)] p-4 text-xs text-[var(--text-secondary)]">
+            <div className="grid gap-2 md:grid-cols-2">
+              <MiniStat label={t("astryx.result.provider-requested")} value={record.providerRequested ?? "-"} />
+              <MiniStat label={t("astryx.result.provider-used")} value={record.providerUsed ?? "-"} />
+              <MiniStat label={t("astryx.result.fallback-reason")} value={record.fallbackReason ?? t("astryx.result.none")} />
+              <MiniStat label={t("astryx.result.record")} value={record.runId} />
+            </div>
+            <pre className="max-h-72 overflow-auto rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3">
+              {JSON.stringify(
+                {
+                  tool_calls: record.rawRun.tool_calls ?? [],
+                  trace: record.rawRun.trace ?? null,
+                  memory_used: record.rawRun.memory_used ?? false,
+                  raw: record.rawRun,
+                },
+                null,
+                2
+              )}
+            </pre>
+          </div>
+        </details>
+      </div>
+    </Panel>
+  );
+}

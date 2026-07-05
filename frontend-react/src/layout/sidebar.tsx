@@ -2,20 +2,21 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import type { ReactNode } from "react";
 import { cn } from "@/utils/cn";
 import { useDataStore } from "@/stores/data-store";
-import { BarChart3, Database, MonitorPlay, Clock, Settings } from "lucide-react";
+import { BarChart3, Database, Sparkles, Clock, Settings } from "lucide-react";
 
 interface NavItem {
   id: string;
   labelKey: string;
   href: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { id: "data", labelKey: "nav.data", href: "/data", icon: <Database className="w-4 h-4" /> },
-  { id: "analyze", labelKey: "nav.analyze", href: "/analyze", icon: <MonitorPlay className="w-4 h-4" /> },
+  { id: "analyze", labelKey: "nav.analyze", href: "/analyze", icon: <Sparkles className="w-4 h-4" /> },
   { id: "results", labelKey: "nav.results", href: "/results", icon: <BarChart3 className="w-4 h-4" /> },
   { id: "history", labelKey: "nav.history", href: "/history", icon: <Clock className="w-4 h-4" /> },
   { id: "settings", labelKey: "nav.settings", href: "/settings", icon: <Settings className="w-4 h-4" /> },
@@ -34,7 +35,7 @@ export function Sidebar() {
         <h1 className="text-sm font-bold text-[var(--accent)] tracking-wide truncate">
           EAI
         </h1>
-        <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
+        <p className="text-xs text-[var(--text-muted)] truncate mt-0.5" title={t("sidebar.brand-subtitle")}>
           {t("sidebar.brand-subtitle")}
         </p>
       </div>
