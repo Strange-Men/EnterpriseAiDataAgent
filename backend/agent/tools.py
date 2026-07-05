@@ -107,6 +107,11 @@ class ExecuteReadonlySqlInput(BaseModel):
             return value.strip()
         return value
 
+    @field_validator("row_limit", mode="before")
+    @classmethod
+    def _coerce_row_limit(cls, value: Any) -> int:
+        return _coerce_positive_int(value, default=50)
+
 
 class ExecuteReadonlySqlOutput(BaseModel):
     sql: str
@@ -426,7 +431,8 @@ def _profile_table(input_data: BaseModel) -> ProfileTableOutput:
 
 def _execute_readonly_sql(input_data: BaseModel) -> ExecuteReadonlySqlOutput:
     payload = _ensure_model(input_data, ExecuteReadonlySqlInput)
-    rows = _SAMPLE_ROWS[: payload.row_limit]
+    row_limit = _coerce_positive_int(payload.row_limit, default=50)
+    rows = _SAMPLE_ROWS[:row_limit]
     columns = list(rows[0].keys()) if rows else []
     return ExecuteReadonlySqlOutput(
         sql=payload.sql,
@@ -441,6 +447,14 @@ def _ensure_model(value: BaseModel, expected_type: type[BaseModel]) -> Any:
     if isinstance(value, expected_type):
         return value
     raise ToolExecutionError(f"Expected {expected_type.__name__}.")
+
+
+def _coerce_positive_int(value: Any, *, default: int) -> int:
+    try:
+        coerced = int(value)
+    except (TypeError, ValueError):
+        coerced = default
+    return coerced
 
 
 def _strip_sql_comments(sql: str) -> str:

@@ -2,7 +2,7 @@
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
-describe("Data Page Header + Upload Guidance (M5.5.6)", () => {
+describe("Data Page Header + Upload Guidance", () => {
   describe("Data Page Header", () => {
     it("should have Chinese upload data page title", () => {
       expect(zh.translation["data.title"]).toBe("上传数据");
@@ -68,16 +68,14 @@ describe("Data Page Header + Upload Guidance (M5.5.6)", () => {
       expect(text).toContain("Agent Analysis");
     });
 
-    it("should have Chinese flow hint showing upload → Agent Analysis → result workflow", () => {
+    it("should have Chinese flow hint as a short business tagline", () => {
       const text = zh.translation["upload.flow"] as string;
-      expect(text).toBe("上传数据 → Agent 分析 → 查看结果");
-      expect(text).toContain("查看结果");
+      expect(text).toBe("上传表格，直接提问，快速得到分析答案。");
     });
 
-    it("should have English flow hint showing upload → Agent Analysis → result workflow", () => {
+    it("should have English flow hint as a short business tagline", () => {
       const text = en.translation["upload.flow"] as string;
-      expect(text).toBe("Upload Data → Agent Analysis → Result");
-      expect(text).toContain("Result");
+      expect(text).toBe("Upload a spreadsheet, ask a question, and get an answer.");
     });
 
     it("should have Chinese next-step hint mentioning default data source and advanced mode", () => {

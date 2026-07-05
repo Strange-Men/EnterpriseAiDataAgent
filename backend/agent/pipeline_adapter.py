@@ -18,6 +18,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from backend.agent.contracts import EvidenceRef, ToolResult, ToolResultStatus
+from backend.utils.json_safe import normalize_for_response
 
 
 _ANALYSIS_SERVICE_MODULE = ".".join(["backend", "services", "ai_" + "analyst"])
@@ -209,7 +210,11 @@ def execute_readonly_sql_with_existing_executor(
 
     started_at = perf_counter()
     normalized_sql = (sql or "").strip()
-    if row_limit < 1:
+    try:
+        raw_row_limit = int(row_limit)
+    except (TypeError, ValueError):
+        raw_row_limit = 50
+    if raw_row_limit < 1:
         return _tool_result(
             tool_name="execute_readonly_sql",
             status=ToolResultStatus.REJECTED,
@@ -217,6 +222,7 @@ def execute_readonly_sql_with_existing_executor(
             error="row_limit must be greater than zero.",
             started_at=started_at,
         )
+    row_limit = _coerce_positive_int(raw_row_limit, default=50)
 
     validation = validate_readonly_sql_with_existing_guardrail(normalized_sql)
     if validation.status != ToolResultStatus.COMPLETED:
@@ -723,6 +729,7 @@ def _call_executor(executor: Any, sql: str, row_limit: int) -> dict[str, Any]:
 def _normalize_executor_result(sql: str, raw_result: Any, row_limit: int) -> dict[str, Any]:
     if not isinstance(raw_result, dict):
         raise TypeError("Readonly executor must return a dictionary result.")
+    row_limit = _coerce_positive_int(row_limit, default=50)
 
     rows = raw_result.get("rows", raw_result.get("data", []))
     if rows is None:
@@ -739,16 +746,24 @@ def _normalize_executor_result(sql: str, raw_result: Any, row_limit: int) -> dic
     status = str(raw_result.get("status", "success")).lower()
     error = raw_result.get("error")
 
-    output = {
+    output = normalize_for_response({
         "sql": str(raw_result.get("sql") or sql),
         "row_count": row_count,
         "columns": columns,
         "rows": limited_rows,
         "summary": f"Readonly SQL returned {row_count} rows.",
-    }
+    })
     if status == "error" or error:
         return {"status": "error", "output": output, "error": error}
     return {"status": "success", "output": output, "error": None}
+
+
+def _coerce_positive_int(value: Any, *, default: int) -> int:
+    try:
+        coerced = int(value)
+    except (TypeError, ValueError):
+        coerced = default
+    return max(1, coerced)
 
 
 def _extract_generated_sql(generated: Any) -> str:

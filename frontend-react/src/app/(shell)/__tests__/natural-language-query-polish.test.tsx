@@ -2,8 +2,7 @@
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
-// M5.5.6 Agent Analysis Panel Polish
-describe("Agent Analysis Panel Polish (M5.5.6)", () => {
+describe("Agent Analysis Panel Polish", () => {
   describe("Agent Analysis title and subtitle", () => {
     it("should have Chinese title mentioning Agent Analysis", () => {
       const title = zh.translation["workspace.ai-query-title"] as string;

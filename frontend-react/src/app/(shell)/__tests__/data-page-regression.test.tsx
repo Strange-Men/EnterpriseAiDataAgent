@@ -36,11 +36,9 @@ describe("M4-8.6.5 Data Page Regression", () => {
       expect(enT["upload.formats"]).toContain("XLS");
     });
 
-    it("upload flow shows 3 steps", () => {
-      expect(zhT["upload.flow"]).toContain("→");
-      expect(zhT["upload.flow"]).toBe("上传数据 → Agent 分析 → 查看结果");
-      expect(enT["upload.flow"]).toContain("→");
-      expect(enT["upload.flow"]).toBe("Upload Data → Agent Analysis → Result");
+    it("upload flow uses a short business tagline", () => {
+      expect(zhT["upload.flow"]).toBe("上传表格，直接提问，快速得到分析答案。");
+      expect(enT["upload.flow"]).toBe("Upload a spreadsheet, ask a question, and get an answer.");
     });
 
     it("dropzone uses click, not drag", () => {
@@ -146,8 +144,8 @@ describe("M4-8.6.5 Data Page Regression", () => {
     });
 
     it("start analysis entry exists", () => {
-      expect(zhT["preview.start-analysis"]).toBe("开始分析 →");
-      expect(enT["preview.start-analysis"]).toBe("Start Analysis →");
+      expect(zhT["preview.start-analysis"]).toBe("开始分析");
+      expect(enT["preview.start-analysis"]).toBe("Start Analysis");
     });
 
     it("analysis hint is friendly", () => {

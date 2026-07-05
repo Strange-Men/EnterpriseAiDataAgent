@@ -25,7 +25,7 @@ const en = {
     "upload.load-error-hint": "Failed to load data. Refresh the page or choose the table again.",
     "upload.formats": "CSV, XLSX, and XLS files are supported",
     "upload.guidance": "Upload a CSV/Excel file, choose the current table, then start Agent Analysis.",
-    "upload.flow": "Upload Data → Agent Analysis → Result",
+    "upload.flow": "Upload a spreadsheet, ask a question, and get an answer.",
     "upload.next-step": "This table is the default data source for Agent Analysis. Use advanced SQL only when you need direct query control.",
     "upload.db-tables": "Current Data Tables",
     "upload.success-count": "{{count}} file(s) uploaded",
@@ -52,7 +52,7 @@ const en = {
     "preview.rows-summary": "{{rows}} rows · {{columns}} columns",
     "preview.preview-rows": "Showing the first {{count}} preview rows",
     "preview.no-data-loaded": "No data loaded. Select a table from the left panel.",
-    "preview.start-analysis": "Start Analysis →",
+    "preview.start-analysis": "Start Analysis",
     "preview.analysis-hint": "Once the table looks right, continue to Agent Analysis.",
 
     "quality.title": "Data Quality",
@@ -551,7 +551,7 @@ const en = {
     "nav.settings": "Settings",
 
     // Sidebar brand (M4-8.2)
-    "sidebar.brand-subtitle": "Upload Data → Agent Analysis → Results",
+    "sidebar.brand-subtitle": "Ask your data directly",
 
     // Header table status (M4-8.2)
     "header.current-table": "Current table",
@@ -738,7 +738,7 @@ const en = {
     "agent.result.key-findings": "Key Findings",
     "agent.result.technical-details": "Technical Details",
     "agent.result.record-id": "Record ID",
-    "agent.result.mock-answer": "The selected provider was unavailable, so a Mock fallback answer was prepared for review. Check the SQL, related data, and warnings below before making decisions.",
+    "agent.result.mock-answer": "A demo analysis result was prepared from the current table. Review the SQL, related data, and warnings below; if the sample is not enough, upload a more complete table and run the analysis again. This result uses the demo model, and a configured real provider can produce a more precise answer.",
     "agent.result.yes": "Yes",
     "agent.result.no": "No",
     "agent.result.sql": "SQL",
@@ -754,7 +754,10 @@ const en = {
     "agent.result.not-routed": "not routed",
     "agent.result.provider-requested": "Requested provider",
     "agent.result.provider-used": "Provider used",
-    "agent.result.fallback": "Fallback",
+    "agent.result.fallback": "Demo model",
+    "agent.result.status-completed": "Completed",
+    "agent.result.status-failed": "Failed",
+    "agent.result.status-running": "Analyzing",
     "agent.result.fallback-reason": "Fallback reason",
     "agent.result.none": "none",
     "agent.result.memory-used": "Session context used",
