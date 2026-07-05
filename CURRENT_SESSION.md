@@ -434,3 +434,9 @@ Do not start M5 until user confirms.
 - SQL, trace, provider metadata, memory details, run id, and raw payload are folded by default.
 - Backend import, pytest with `PYTHONPATH=.`, frontend tests, frontend build, Astryx doctor, and browser visual check passed.
 - M6 has not started. Tag has not been created.
+
+## M5 Final Astryx UX Redesign Merge Validation
+
+- M5 Final Astryx UX Redesign merged to master on 2026-07-06.
+- Backend import, pytest with `PYTHONPATH=.`, frontend tests, frontend build, Astryx doctor, D-drive cache check, and safety search passed after merge.
+- M5 Final Tag is recommended after master CI passes. M6 has not started. Tag has not been created.
