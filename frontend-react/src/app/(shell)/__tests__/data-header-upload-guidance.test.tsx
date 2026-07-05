@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
@@ -83,13 +83,13 @@ describe("Data Page Header + Upload Guidance (M5.5.6)", () => {
     it("should have Chinese next-step hint mentioning default data source and advanced mode", () => {
       const text = zh.translation["upload.next-step"] as string;
       expect(text).toContain("默认数据源");
-      expect(text).toContain("高级模式");
+      expect(text).toContain("高级 SQL");
     });
 
     it("should have English next-step hint mentioning default data source and advanced mode", () => {
       const text = en.translation["upload.next-step"] as string;
       expect(text).toContain("default data source");
-      expect(text).toContain("advanced mode");
+      expect(text).toContain("advanced SQL");
     });
   });
 
@@ -155,3 +155,4 @@ describe("Data Page Header + Upload Guidance (M5.5.6)", () => {
     });
   });
 });
+

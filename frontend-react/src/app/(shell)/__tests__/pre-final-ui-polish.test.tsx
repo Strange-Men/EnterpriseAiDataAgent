@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
@@ -15,11 +15,11 @@ describe("M4-8.8 Pre-final UI Polish", () => {
     });
 
     it("should still have Chinese start-analysis CTA", () => {
-      expect(zh.translation["home.start-analysis"]).toBe("Agent 分析");
+      expect(zh.translation["home.start-analysis"]).toBe("开始分析");
     });
 
     it("should still have English start-analysis CTA", () => {
-      expect(en.translation["home.start-analysis"]).toBe("Agent Analysis");
+      expect(en.translation["home.start-analysis"]).toBe("Start Analysis");
     });
 
     // Card i18n keys still exist (not deleted from locale) but are not rendered
@@ -79,7 +79,7 @@ describe("M4-8.8 Pre-final UI Polish", () => {
   describe("Analysis workspace empty state copy", () => {
     it("should have Chinese empty state hint", () => {
       const hint = zh.translation["inv.start-hint"] as string;
-      expect(hint).toContain("点击开始 Agent 分析后");
+      expect(hint).toContain("点击开始分析后");
       expect(hint).toContain("本次分析结果");
     });
 
@@ -116,3 +116,5 @@ describe("M4-8.8 Pre-final UI Polish", () => {
     });
   });
 });
+
+

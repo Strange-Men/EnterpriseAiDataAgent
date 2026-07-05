@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
@@ -23,9 +23,9 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
 
     it("Home: primary CTAs exist", () => {
       expect(zh.translation["home.upload-data"]).toBe("上传数据");
-      expect(zh.translation["home.start-analysis"]).toBe("Agent 分析");
+      expect(zh.translation["home.start-analysis"]).toBe("开始分析");
       expect(en.translation["home.upload-data"]).toBe("Upload Data");
-      expect(en.translation["home.start-analysis"]).toBe("Agent Analysis");
+      expect(en.translation["home.start-analysis"]).toBe("Start Analysis");
     });
 
     it("Home: deploy notice exists", () => {
@@ -84,9 +84,9 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
       expect(en.translation["workspace.tab.expert-sql"]).toBe("Expert SQL");
     });
 
-    it("Analyze: Run Agent button exists", () => {
-      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("开始 Agent 分析");
-      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Run Agent");
+    it("Analyze: Start Analysis button exists", () => {
+      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("开始分析");
+      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Start Analysis");
     });
 
     it("Analyze: LLM provider selector copy exists without key fields", () => {
@@ -185,8 +185,8 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
 
     it("Table select: current table and start analysis entry exist", () => {
       expect(zh.translation["table.current-card-title"]).toBeDefined();
-      expect(zh.translation["table.start-analysis"]).toBe("开始 Agent 分析");
-      expect(en.translation["table.start-analysis"]).toBe("Run Agent");
+      expect(zh.translation["table.start-analysis"]).toBe("开始分析");
+      expect(en.translation["table.start-analysis"]).toBe("Start Analysis");
     });
 
     it("Data preview: title and no-data prompt exist", () => {
@@ -197,8 +197,8 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
 
     it("Analyze: AI query input hint and run button exist", () => {
       expect(zh.translation["inv.question-placeholder"]).toBeDefined();
-      expect(zh.translation["inv.run"]).toBe("开始 Agent 分析");
-      expect(en.translation["inv.run"]).toBe("Run Agent");
+      expect(zh.translation["inv.run"]).toBe("开始分析");
+      expect(en.translation["inv.run"]).toBe("Start Analysis");
     });
 
     it("Analyze: Expert SQL execute button exists", () => {
@@ -246,7 +246,7 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
       // The three duplicate cards (card-upload, card-nl, card-sql) are NOT rendered
       // This is verified by the pre-final-ui-polish.test.tsx hotfix test
       expect(zh.translation["home.upload-data"]).toBe("上传数据");
-      expect(zh.translation["home.start-analysis"]).toBe("Agent 分析");
+      expect(zh.translation["home.start-analysis"]).toBe("开始分析");
     });
 
     // ── Issue 2: query_history table description & delete protection ──
@@ -282,7 +282,7 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
     // ── Issue 3: Analysis workspace old results residual ──
     it("Analysis workspace: empty state hint describes current-run behavior", () => {
       const zhHint = zh.translation["inv.start-hint"] as string;
-      expect(zhHint).toContain("点击开始 Agent 分析后");
+      expect(zhHint).toContain("点击开始分析后");
       expect(zhHint).toContain("本次分析结果");
       const enHint = en.translation["inv.start-hint"] as string;
       expect(enHint).toContain("current run");
@@ -391,7 +391,7 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
     });
 
     it("Sidebar: navigation labels exist in zh and en", () => {
-      const navKeys = ["nav.home", "nav.data", "nav.analyze", "nav.history", "nav.settings"];
+      const navKeys = ["nav.data", "nav.analyze", "nav.results", "nav.history", "nav.settings"];
       const zhT = zh.translation as Record<string, string>;
       const enT = en.translation as Record<string, string>;
       for (const key of navKeys) {
@@ -408,9 +408,9 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
   describe("5. Disabled experimental features", () => {
     // Sidebar should only have 5 items: home, data, analyze, history, settings
     it("Sidebar has exactly 5 navigation items (no Templates/Scheduler/etc)", () => {
-      // The sidebar NAV_ITEMS array has: home, data, analyze, history, settings
+      // The sidebar NAV_ITEMS array has: data, analyze, results, history, settings
       // No templates, scheduler, charts, anomalies, diff, timeline entries
-      const navKeys = ["nav.home", "nav.data", "nav.analyze", "nav.history", "nav.settings"];
+      const navKeys = ["nav.data", "nav.analyze", "nav.results", "nav.history", "nav.settings"];
       const zhT = zh.translation as Record<string, string>;
       const enT = en.translation as Record<string, string>;
       for (const key of navKeys) {
@@ -456,9 +456,9 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
 
     // Charts: feature-flag controlled — nav.charts key exists in locale but is NOT rendered in sidebar
     it("Charts: nav.charts key exists but is not one of the 5 sidebar items", () => {
-      // The sidebar only renders: nav.home, nav.data, nav.analyze, nav.history, nav.settings
+      // The sidebar only renders: nav.data, nav.analyze, nav.results, nav.history, nav.settings
       // nav.charts exists in locale for legacy reasons but is not in sidebar NAV_ITEMS
-      const sidebarKeys = ["nav.home", "nav.data", "nav.analyze", "nav.history", "nav.settings"];
+      const sidebarKeys = ["nav.data", "nav.analyze", "nav.results", "nav.history", "nav.settings"];
       expect(sidebarKeys).not.toContain("nav.charts");
     });
 
@@ -673,3 +673,5 @@ describe("Final Frontend Regression (M4-8.8.1)", () => {
     });
   });
 });
+
+

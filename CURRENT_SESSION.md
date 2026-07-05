@@ -2,6 +2,15 @@
 
 > Last updated: 2026-06-26
 
+## M5.5.6.1 Frontend UX Hard Simplification
+
+- M5.5.6.1 Frontend UX Hard Simplification completed.
+- Frontend now prioritizes business-user flow: Upload Data -> Agent Analysis -> Results.
+- Primary navigation is Upload Data / Agent Analysis / Results / History / Settings.
+- Technical Agent details are hidden by default behind Technical Details.
+- M5.5.7 has not started.
+- Tag has not been created.
+
 ## Current Version
 
 - **Version**: v1.4.1-m4-engineering-complete

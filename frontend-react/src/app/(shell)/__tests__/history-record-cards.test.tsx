@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import { formatRuntime } from "@/utils/datetime";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
@@ -90,11 +90,11 @@ describe("History Record Cards (M4-8.5.2)", () => {
     });
 
     it("should have Chinese unnamed SQL fallback", () => {
-      expect(zh.translation["history.unnamed-sql"]).toBe("未命名 SQL 查询");
+      expect(zh.translation["history.unnamed-sql"]).toBe("未命名分析记录");
     });
 
     it("should have English unnamed SQL fallback", () => {
-      expect(en.translation["history.unnamed-sql"]).toBe("Untitled SQL query");
+      expect(en.translation["history.unnamed-sql"]).toBe("Untitled analysis record");
     });
   });
 
@@ -159,3 +159,4 @@ describe("History Record Cards (M4-8.5.2)", () => {
     });
   });
 });
+

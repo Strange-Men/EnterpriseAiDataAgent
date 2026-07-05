@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/utils/cn";
 import { useDataStore } from "@/stores/data-store";
-import { House, Database, MonitorPlay, Clock, Settings } from "lucide-react";
+import { BarChart3, Database, MonitorPlay, Clock, Settings } from "lucide-react";
 
 interface NavItem {
   id: string;
@@ -14,9 +14,9 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: "home", labelKey: "nav.home", href: "/", icon: <House className="w-4 h-4" /> },
   { id: "data", labelKey: "nav.data", href: "/data", icon: <Database className="w-4 h-4" /> },
   { id: "analyze", labelKey: "nav.analyze", href: "/analyze", icon: <MonitorPlay className="w-4 h-4" /> },
+  { id: "results", labelKey: "nav.results", href: "/results", icon: <BarChart3 className="w-4 h-4" /> },
   { id: "history", labelKey: "nav.history", href: "/history", icon: <Clock className="w-4 h-4" /> },
   { id: "settings", labelKey: "nav.settings", href: "/settings", icon: <Settings className="w-4 h-4" /> },
 ];
