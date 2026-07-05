@@ -10,6 +10,7 @@ agents, graph orchestration, embedding memory, or frontend behavior.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from time import perf_counter
 from typing import Any
 
@@ -264,9 +265,33 @@ class LangChainSingleAgentService:
         payload = GenerateSqlInput.model_validate(kwargs)
         schema_context = self._schema_context(payload.table_name)
         schema_columns = self._schema_cache.get(payload.table_name or "") or []
+        missing_field = self._requested_unknown_field(payload.user_goal, self._column_names(schema_columns))
         metadata = self._resolve_provider(payload.provider_requested)
         sql = ""
         error: str | None = None
+        if missing_field:
+            available = ", ".join(self._column_names(schema_columns)[:8]) or "unknown"
+            sql = (
+                "SELECT "
+                f"{self._sql_string_literal(f'Requested field {missing_field} was not found. Available fields include: {available}.')} "
+                "AS message;"
+            )
+            self._warnings.append(f"requested_field_not_found: {missing_field}")
+            llm_metadata = {
+                "provider_requested": payload.provider_requested,
+                "provider_used": "mock",
+                "fallback_triggered": payload.provider_requested != "mock",
+                "fallback_reason": "requested_field_not_found",
+            }
+            output = {
+                "sql": sql,
+                "table_name": payload.table_name,
+                "user_goal": payload.user_goal,
+                "summary": f"Requested field {missing_field} was not found in the current schema.",
+                "llm": llm_metadata,
+                **llm_metadata,
+            }
+            return self._tool_result("generate_sql", output, started, table_name=payload.table_name).model_dump(mode="json")
         try:
             if payload.provider_requested != "mock" and payload.provider_requested in SUPPORTED_LLM_PROVIDERS:
                 with llm_context(payload.provider_requested):
@@ -668,6 +693,7 @@ class LangChainSingleAgentService:
             ["sales_amount", "sales", "revenue", "amount", "total_amount", "gmv", "销售额", "收入", "金额"],
         )
         refund_rate_column = self._find_column(columns, ["refund_rate", "refundrate", "退款率", "退货率"])
+        refund_amount_column = self._find_column(columns, ["refund_amount", "refund amount", "refund_amt", "refund_value", "退款金额", "退款额"])
         refund_count_column = self._find_column(columns, ["refund_count", "refunds", "refund", "退款数", "退款"])
         order_count_column = self._find_column(columns, ["order_count", "orders", "order_num", "订单数", "订单"])
 
@@ -707,6 +733,28 @@ class LangChainSingleAgentService:
             if sales_column:
                 return f"SELECT *\nFROM {table}\nORDER BY {sales_column} DESC\nLIMIT 100;"
             return f"SELECT *\nFROM {table}\nLIMIT 100;"
+        if (
+            "退款金额" in goal
+            or "退款额" in goal
+            or "refund amount" in goal
+            or "refund_amount" in goal
+            or ("refund" in goal and "amount" in goal)
+        ):
+            if refund_amount_column and region_column:
+                return (
+                    f"SELECT {region_column} AS region, SUM({refund_amount_column}) AS total_refund_amount\n"
+                    f"FROM {table}\n"
+                    f"GROUP BY {region_column}\n"
+                    "ORDER BY total_refund_amount DESC\n"
+                    "LIMIT 100;"
+                )
+            if refund_amount_column:
+                return f"SELECT *\nFROM {table}\nORDER BY {refund_amount_column} DESC\nLIMIT 100;"
+            return (
+                "SELECT "
+                f"{self._sql_string_literal('Refund amount field was not found in the current table schema.')} "
+                "AS message;"
+            )
         if "退款率最高" in goal or "highest refund" in goal or "refund rate" in goal:
             if refund_rate_column:
                 return f"SELECT *\nFROM {table}\nORDER BY {refund_rate_column} DESC\nLIMIT 100;"
@@ -770,8 +818,19 @@ class LangChainSingleAgentService:
                 return self._quote_identifier(column)
         return None
 
+    def _requested_unknown_field(self, user_goal: str | None, columns: list[str]) -> str | None:
+        column_names = {column.lower() for column in columns}
+        for token in re.findall(r"\b[A-Za-z][A-Za-z0-9_]{2,}\b", user_goal or ""):
+            lowered = token.lower()
+            if "_" in lowered and lowered not in column_names:
+                return token
+        return None
+
     def _quote_identifier(self, identifier: str) -> str:
         return f'"{identifier.replace(chr(34), chr(34) + chr(34))}"'
+
+    def _sql_string_literal(self, value: str) -> str:
+        return f"'{value.replace(chr(39), chr(39) + chr(39))}'"
 
     def _looks_chinese(self, value: str) -> bool:
         return any("\u4e00" <= char <= "\u9fff" for char in value)

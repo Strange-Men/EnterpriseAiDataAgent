@@ -42,6 +42,43 @@ def test_mock_agent_generates_region_sales_ranking_sql() -> None:
     assert "ORDER BY total_sales DESC" in sql
 
 
+def test_mock_agent_generates_region_refund_amount_sql() -> None:
+    service = LangChainSingleAgentService()
+
+    sql = service._deterministic_sql(
+        "uploaded_sales",
+        user_goal="\u54ea\u4e9b\u5730\u533a\u9000\u6b3e\u91d1\u989d\u6bd4\u8f83\u9ad8\uff1f",
+        schema_columns=[
+            {"name": "region"},
+            {"name": "revenue"},
+            {"name": "refund_amount"},
+        ],
+    )
+
+    assert "SUM(" in sql
+    assert "total_refund_amount" in sql
+    assert "GROUP BY" in sql
+    assert "ORDER BY total_refund_amount DESC" in sql
+
+
+def test_mock_agent_handles_unknown_requested_field_with_controlled_message() -> None:
+    service = LangChainSingleAgentService()
+
+    result = service.run(
+        AgentRuntimeRequest(
+            user_input="\u7528\u4e0d\u5b58\u5728\u7684\u5b57\u6bb5 abc_xyz \u5206\u6790\u9500\u552e\u989d\u3002",
+            table_name="demo_sales",
+            provider_requested="mock",
+        )
+    )
+
+    sql = result.run.sql or ""
+    assert "abc_xyz" in sql
+    assert "was not found" in sql
+    assert not sql.strip().upper().startswith("SELECT *")
+    assert any("requested_field_not_found: abc_xyz" in warning for warning in result.warnings)
+
+
 def test_readonly_sql_row_limit_float_is_coerced_for_mock_and_pipeline() -> None:
     payload = ExecuteReadonlySqlInput.model_validate({"sql": "SELECT * FROM sales", "row_limit": 2.0})
     assert payload.row_limit == 2
