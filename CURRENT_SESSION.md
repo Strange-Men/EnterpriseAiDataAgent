@@ -2,6 +2,13 @@
 
 > Last updated: 2026-06-26
 
+## M5 Final Global QA Regression Merge Validation
+
+- M5 Final Global QA Regression merged to master.
+- Merge validation confirmed backend import, full pytest with `PYTHONPATH=.`, frontend tests, frontend build, Docker Compose config, Agent API smoke, and safety search.
+- Master CI is checked after push. Render Doubao Real Provider QA is recommended next if CI passes.
+- M6 has not started. Tag has not been created.
+
 ## M5 Final Global QA Regression
 
 - M5 Final Global QA Regression completed on branch `m5-final-global-qa-regression`.
