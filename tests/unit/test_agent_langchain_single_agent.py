@@ -109,6 +109,68 @@ def test_real_provider_metadata_overrides_initial_mock_fallback_marker() -> None
     assert run.trace["provider"]["provider_used"] == "doubao"
 
 
+def test_real_provider_fast_path_skips_sql_llm_and_preserves_provider_metadata(monkeypatch) -> None:
+    service = LangChainSingleAgentService()
+    service._schema_cache["sales"] = [  # noqa: SLF001 - direct cache setup for fast-path regression coverage.
+        {"name": "region"},
+        {"name": "product"},
+        {"name": "sales_amount"},
+        {"name": "refund_amount"},
+    ]
+
+    def fail_generate_sql(*_args, **_kwargs):
+        raise AssertionError("fast-path SQL should not call the SQL LLM")
+
+    monkeypatch.setattr("backend.agent.langchain_single_agent.ai_analyst.generate_sql", fail_generate_sql)
+
+    result = service._generate_sql(  # noqa: SLF001 - covers internal fast-path branch.
+        request=AgentRuntimeRequest(
+            user_input="找出销售额最高的前 5 个商品。",
+            table_name="sales",
+            provider_requested="doubao",
+        ),
+        user_goal="找出销售额最高的前 5 个商品。",
+        table_name="sales",
+        provider_requested="doubao",
+    )
+
+    output = result["output"]
+    assert output["fast_path"] is True
+    assert output["provider_requested"] == "doubao"
+    assert output["provider_used"] == "doubao"
+    assert output["fallback_triggered"] is False
+    assert output["llm"]["calls"] == 0
+    assert "SUM(" in output["sql"]
+    assert "GROUP BY" in output["sql"]
+    assert "LIMIT 5" in output["sql"]
+
+
+def test_basic_row_count_question_uses_fast_path_sql() -> None:
+    service = LangChainSingleAgentService()
+
+    sql = service._fast_path_sql(  # noqa: SLF001 - regression coverage for real-provider speed path.
+        "sales",
+        user_goal="这个表有多少行？有哪些字段？",
+        schema_columns=[{"name": "region"}, {"name": "sales_amount"}],
+    )
+
+    assert sql == 'SELECT COUNT(*) AS row_count\nFROM "sales";'
+
+
+def test_execute_readonly_sql_failure_is_controlled_warning() -> None:
+    service = LangChainSingleAgentService()
+
+    result = service._execute_readonly_sql(  # noqa: SLF001 - regression coverage for route-level 500 prevention.
+        sql="-- CANNOT_ANSWER: Model returned non-SQL text.",
+        row_limit=20,
+    )
+
+    assert result["status"] == "failed"
+    assert result["output"]["row_count"] == 0
+    assert result["error"]
+    assert any("execute_readonly_sql_failed" in warning for warning in service._warnings)  # noqa: SLF001
+
+
 def test_agent_route_response_keeps_frontend_compatibility_fields() -> None:
     response = TestClient(app).post(
         "/api/agent/runs",
