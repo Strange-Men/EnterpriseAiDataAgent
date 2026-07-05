@@ -2,9 +2,8 @@
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
-// M5.5.6 Analysis Workspace Regression
 // Keeps stable workspace keys while locking the simplified Agent Analysis flow.
-describe("Analysis Workspace Regression (M5.5.6)", () => {
+describe("Analysis Workspace Regression", () => {
   // ── 1. Tab labels (M4-8.3.1) ──────────────────────────────────
   describe("Tab labels", () => {
     it("should have Chinese Agent Analysis tab label", () => {
@@ -45,7 +44,7 @@ describe("Analysis Workspace Regression (M5.5.6)", () => {
     });
   });
 
-  // ── 3. Agent Analysis copy (M5.5.6) ──────────────────────────────
+  // ── 3. Agent Analysis copy ──────────────────────────────
   describe("Agent Analysis copy", () => {
     it("should have Chinese Agent Analysis title", () => {
       const title = zh.translation["workspace.ai-query-title"] as string;

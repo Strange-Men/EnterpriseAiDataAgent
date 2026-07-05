@@ -228,6 +228,8 @@ class LangChainSingleAgentService:
             self._warnings.append(f"inspect_schema_fallback_mock: {exc}")
             registry = get_default_tool_registry()
             result = registry.call_tool("inspect_schema", payload.model_dump())
+            if result.output.get("columns"):
+                self._schema_cache[payload.table_name] = result.output.get("columns")
             return self._with_duration(result, started).model_dump(mode="json")
 
     def _profile_table(self, **kwargs: Any) -> dict[str, Any]:
@@ -261,11 +263,12 @@ class LangChainSingleAgentService:
         started = perf_counter()
         payload = GenerateSqlInput.model_validate(kwargs)
         schema_context = self._schema_context(payload.table_name)
+        schema_columns = self._schema_cache.get(payload.table_name or "") or []
         metadata = self._resolve_provider(payload.provider_requested)
         sql = ""
         error: str | None = None
         try:
-            if payload.provider_requested in SUPPORTED_LLM_PROVIDERS:
+            if payload.provider_requested != "mock" and payload.provider_requested in SUPPORTED_LLM_PROVIDERS:
                 with llm_context(payload.provider_requested):
                     generated = ai_analyst.generate_sql(
                         payload.user_goal,
@@ -277,12 +280,16 @@ class LangChainSingleAgentService:
                 if generated.get("status") == "error" or not sql:
                     error = str(generated.get("error") or "SQL generation returned no SQL.")
             else:
-                error = "unsupported_provider"
+                error = "mock_provider" if payload.provider_requested == "mock" else "unsupported_provider"
         except (LLMProviderSelectionError, Exception) as exc:
             error = str(exc)
 
         if not sql:
-            sql = self._deterministic_sql(payload.table_name)
+            sql = self._deterministic_sql(
+                payload.table_name,
+                user_goal=payload.user_goal,
+                schema_columns=schema_columns,
+            )
             metadata = {
                 "provider_requested": payload.provider_requested,
                 "provider_used": "mock",
@@ -307,12 +314,13 @@ class LangChainSingleAgentService:
     def _execute_readonly_sql(self, **kwargs: Any) -> dict[str, Any]:
         started = perf_counter()
         payload = ExecuteReadonlySqlInput.model_validate(kwargs)
+        row_limit = self._coerce_positive_int(payload.row_limit, default=50)
         try:
             from backend.agent.pipeline_adapter import execute_readonly_sql_with_existing_executor
 
             result = execute_readonly_sql_with_existing_executor(
                 sql=payload.sql,
-                row_limit=payload.row_limit,
+                row_limit=row_limit,
                 executor=get_readonly_executor(),
             )
             if result.status == ToolResultStatus.COMPLETED:
@@ -323,7 +331,9 @@ class LangChainSingleAgentService:
             self._warnings.append(f"execute_readonly_sql_fallback_mock: {exc}")
 
         registry = get_default_tool_registry()
-        fallback = registry.call_tool("execute_readonly_sql", payload.model_dump())
+        fallback_payload = payload.model_dump()
+        fallback_payload["row_limit"] = row_limit
+        fallback = registry.call_tool("execute_readonly_sql", fallback_payload)
         return self._with_duration(fallback, started).model_dump(mode="json")
 
     def _summarize_findings(self, *, request: AgentRuntimeRequest, **kwargs: Any) -> dict[str, Any]:
@@ -332,7 +342,7 @@ class LangChainSingleAgentService:
         rows = payload.rows or []
         metadata = self._resolve_provider(payload.provider_requested)
         try:
-            if payload.provider_requested in SUPPORTED_LLM_PROVIDERS:
+            if payload.provider_requested != "mock" and payload.provider_requested in SUPPORTED_LLM_PROVIDERS:
                 with llm_context(payload.provider_requested):
                     explanation = ai_analyst.explain_results(
                         payload.user_goal,
@@ -492,7 +502,14 @@ class LangChainSingleAgentService:
                 "provider_requested": request.provider_requested,
             }
         if tool_name == "execute_readonly_sql":
-            return {"sql": context.get("sql") or self._deterministic_sql(table_name), "row_limit": 50}
+            return {
+                "sql": context.get("sql") or self._deterministic_sql(
+                    table_name,
+                    user_goal=request.user_input,
+                    schema_columns=self._schema_cache.get(table_name, []),
+                ),
+                "row_limit": 50,
+            }
         if tool_name == "summarize_findings":
             return {
                 "user_goal": request.user_input,
@@ -614,7 +631,7 @@ class LangChainSingleAgentService:
 
     def _plan_for_route(self, intent: IntentCategory | None) -> list[str]:
         if intent == IntentCategory.DATA_PREVIEW:
-            return ["memory_read", "inspect_schema", "profile_table", "memory_write"]
+            return ["memory_read", "inspect_schema", "profile_table", "generate_sql", "execute_readonly_sql", "summarize_findings", "memory_write"]
         if intent == IntentCategory.SIMPLE_SUMMARY:
             return ["memory_read", "inspect_schema", "profile_table", "generate_sql", "execute_readonly_sql", "summarize_findings", "memory_write"]
         if intent in {IntentCategory.SQL_QUESTION, IntentCategory.AGENT_ANALYSIS}:
@@ -633,15 +650,138 @@ class LangChainSingleAgentService:
             lines.append(f"- {name}: {dtype}")
         return "\n".join(lines)
 
-    def _deterministic_sql(self, table_name: str | None) -> str:
-        table = table_name or self._default_table_name()
-        safe_table = table.replace('"', '""')
-        return f'SELECT * FROM "{safe_table}" LIMIT 50'
+    def _deterministic_sql(
+        self,
+        table_name: str | None,
+        *,
+        user_goal: str | None = None,
+        schema_columns: list[dict[str, Any]] | None = None,
+    ) -> str:
+        table = self._quote_identifier(table_name or self._default_table_name())
+        goal = (user_goal or "").strip().lower()
+        columns = self._column_names(schema_columns or [])
+        region_column = self._find_column(columns, ["region", "area", "province", "city", "channel", "地区", "区域", "城市", "渠道"])
+        if region_column is None and table_name == "demo_sales":
+            region_column = self._quote_identifier("channel")
+        sales_column = self._find_column(
+            columns,
+            ["sales_amount", "sales", "revenue", "amount", "total_amount", "gmv", "销售额", "收入", "金额"],
+        )
+        refund_rate_column = self._find_column(columns, ["refund_rate", "refundrate", "退款率", "退货率"])
+        refund_count_column = self._find_column(columns, ["refund_count", "refunds", "refund", "退款数", "退款"])
+        order_count_column = self._find_column(columns, ["order_count", "orders", "order_num", "订单数", "订单"])
+
+        if "偶数" in goal or "even row" in goal or "even rows" in goal:
+            return (
+                "SELECT *\n"
+                "FROM (\n"
+                "  SELECT *, ROW_NUMBER() OVER () AS row_num\n"
+                f"  FROM {table}\n"
+                ") t\n"
+                "WHERE row_num % 2 = 0\n"
+                "LIMIT 100;"
+            )
+        if "奇数" in goal or "odd row" in goal or "odd rows" in goal:
+            return (
+                "SELECT *\n"
+                "FROM (\n"
+                "  SELECT *, ROW_NUMBER() OVER () AS row_num\n"
+                f"  FROM {table}\n"
+                ") t\n"
+                "WHERE row_num % 2 = 1\n"
+                "LIMIT 100;"
+            )
+        if "前 10" in goal or "前十" in goal or "top 10" in goal or "first 10" in goal:
+            return f"SELECT *\nFROM {table}\nLIMIT 10;"
+        if ("按地区" in goal or "不同地区" in goal or "by region" in goal or "regional" in goal) and sales_column:
+            if region_column:
+                return (
+                    f"SELECT {region_column} AS region, SUM({sales_column}) AS total_sales\n"
+                    f"FROM {table}\n"
+                    f"GROUP BY {region_column}\n"
+                    "ORDER BY total_sales DESC\n"
+                    "LIMIT 100;"
+                )
+            return f"SELECT SUM({sales_column}) AS total_sales\nFROM {table};"
+        if "销售额最高" in goal or "highest sales" in goal or "highest revenue" in goal or "top sales" in goal:
+            if sales_column:
+                return f"SELECT *\nFROM {table}\nORDER BY {sales_column} DESC\nLIMIT 100;"
+            return f"SELECT *\nFROM {table}\nLIMIT 100;"
+        if "退款率最高" in goal or "highest refund" in goal or "refund rate" in goal:
+            if refund_rate_column:
+                return f"SELECT *\nFROM {table}\nORDER BY {refund_rate_column} DESC\nLIMIT 100;"
+            if refund_count_column and order_count_column:
+                return (
+                    f"SELECT *, {refund_count_column} * 1.0 / NULLIF({order_count_column}, 0) AS refund_rate\n"
+                    f"FROM {table}\n"
+                    "ORDER BY refund_rate DESC\n"
+                    "LIMIT 100;"
+                )
+            return f"SELECT *\nFROM {table}\nLIMIT 100;"
+        return f"SELECT *\nFROM {table}\nLIMIT 100;"
 
     def _deterministic_summary(self, user_goal: str, sql: str | None, rows: list[dict[str, Any]]) -> str:
         row_count = len(rows or [])
-        sql_text = f" SQL: {sql}" if sql else ""
-        return f"Agent completed a mock-fallback analysis for: {user_goal}. Result preview contains {row_count} rows.{sql_text}"
+        goal = (user_goal or "the question").strip()
+        if self._looks_chinese(goal):
+            if "偶数" in goal:
+                lead = f"已按你的要求筛选偶数行，本次预览返回 {row_count} 行相关数据。"
+            elif "奇数" in goal:
+                lead = f"已按你的要求筛选奇数行，本次预览返回 {row_count} 行相关数据。"
+            elif "销售" in goal or "收入" in goal:
+                lead = f"已围绕销售问题生成演示分析，本次预览返回 {row_count} 行相关数据。"
+            else:
+                lead = f"已根据问题“{goal}”生成演示分析，本次预览返回 {row_count} 行相关数据。"
+            return (
+                f"{lead} 你可以先查看下方 SQL、相关数据和风险提示来判断结果是否符合预期。"
+                "当前使用演示模型生成结果；配置真实模型后，可获得更准确的业务解读。"
+            )
+        if "even" in goal.lower():
+            lead = f"Even rows were selected, and the preview returned {row_count} related rows."
+        elif "odd" in goal.lower():
+            lead = f"Odd rows were selected, and the preview returned {row_count} related rows."
+        elif "sales" in goal.lower() or "revenue" in goal.lower():
+            lead = f"A demo sales analysis was prepared, and the preview returned {row_count} related rows."
+        else:
+            lead = f"A demo analysis was prepared for '{goal}', with {row_count} preview rows."
+        return (
+            f"{lead} Review the SQL, related data, and warnings below before making decisions. "
+            "This result uses the demo model; configuring a real provider can produce a more precise business answer."
+        )
+
+    def _column_names(self, columns: list[dict[str, Any]]) -> list[str]:
+        names: list[str] = []
+        for column in columns:
+            if isinstance(column, dict):
+                raw_name = column.get("name") or column.get("column_name") or column.get("field")
+                if raw_name:
+                    names.append(str(raw_name))
+        return names
+
+    def _find_column(self, columns: list[str], candidates: list[str]) -> str | None:
+        normalized = {column.lower(): column for column in columns}
+        for candidate in candidates:
+            lowered = candidate.lower()
+            if lowered in normalized:
+                return self._quote_identifier(normalized[lowered])
+        for column in columns:
+            lowered = column.lower()
+            if any(candidate.lower() in lowered for candidate in candidates):
+                return self._quote_identifier(column)
+        return None
+
+    def _quote_identifier(self, identifier: str) -> str:
+        return f'"{identifier.replace(chr(34), chr(34) + chr(34))}"'
+
+    def _looks_chinese(self, value: str) -> bool:
+        return any("\u4e00" <= char <= "\u9fff" for char in value)
+
+    def _coerce_positive_int(self, value: Any, *, default: int) -> int:
+        try:
+            coerced = int(value)
+        except (TypeError, ValueError):
+            coerced = default
+        return max(1, coerced)
 
     def _default_table_name(self) -> str:
         try:

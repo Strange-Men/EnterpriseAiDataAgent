@@ -150,6 +150,13 @@ export function InvestigationWorkspace() {
   const fallbackTriggered = Boolean(resultRun?.fallback_triggered);
   const userReadableAnswer = resultRun?.answer
     || (fallbackTriggered ? t("agent.result.mock-answer") : "");
+  const statusLabel = resultRun?.status === "completed"
+    ? t("agent.result.status-completed")
+    : resultRun?.status === "failed"
+      ? t("agent.result.status-failed")
+      : resultRun?.status === "running"
+        ? t("agent.result.status-running")
+        : resultRun?.status;
 
   const examples = useMemo(
     () => [
@@ -365,7 +372,7 @@ export function InvestigationWorkspace() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant={resultRun.status === "completed" ? "success" : "muted"}>
-                        {resultRun.status}
+                        {statusLabel}
                       </Badge>
                       {fallbackTriggered && <Badge variant="warning">{t("agent.result.fallback")}</Badge>}
                     </div>
@@ -468,8 +475,8 @@ export function InvestigationWorkspace() {
                   <span className="mt-0.5 block font-normal text-[var(--text-muted)]">{t("workspace.expert-sql-hint")}</span>
                 </span>
               </summary>
-              <div className="border-t border-[var(--border-default)] p-4">
-                <div className="h-[640px] min-h-[520px]">
+              <div className="min-w-0 border-t border-[var(--border-default)] p-4">
+                <div className="min-h-[560px] overflow-hidden rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)]">
                   <SqlWorkspacePanel />
                 </div>
               </div>

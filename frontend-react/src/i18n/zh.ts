@@ -25,7 +25,7 @@ const zh = {
     "upload.load-error-hint": "数据加载失败，请刷新页面或重新选择数据表。",
     "upload.formats": "支持 CSV、XLSX、XLS 格式",
     "upload.guidance": "上传 CSV/Excel 文件，选择当前数据表，然后进入 Agent 分析。",
-    "upload.flow": "上传数据 → Agent 分析 → 查看结果",
+    "upload.flow": "上传表格，直接提问，快速得到分析答案。",
     "upload.next-step": "当前表会作为 Agent 分析的默认数据源。需要直接控制查询时，再使用高级 SQL。",
     "upload.db-tables": "当前数据表",
     "upload.success-count": "已上传 {{count}} 个文件",
@@ -52,7 +52,7 @@ const zh = {
     "preview.rows-summary": "共 {{rows}} 行 · {{columns}} 列",
     "preview.preview-rows": "当前显示前 {{count}} 行预览",
     "preview.no-data-loaded": "暂无数据，请在左侧选择一张数据表。",
-    "preview.start-analysis": "开始分析 →",
+    "preview.start-analysis": "开始分析",
     "preview.analysis-hint": "表数据确认无误后，进入 Agent 分析。",
 
     "quality.title": "数据质量",
@@ -261,7 +261,7 @@ const zh = {
 
     // AI Analysis
     "ai.run": "分析",
-    "ai.ready": "点击分析开始 AI 分析",
+    "ai.ready": "点击分析开始 Agent 分析",
     "ai.error": "分析错误",
     "ai.retry": "重试",
     "ai.explain-title": "AI 解释",
@@ -300,7 +300,7 @@ const zh = {
     "ai.exported-md": "已导出为 Markdown",
     "ai.exported-json": "已导出为 JSON",
     "ai.analysis-failed": "分析失败，请重试。",
-    "ai.analyze-btn": "AI 分析",
+    "ai.analyze-btn": "Agent 分析",
     "ai.explain-btn": "AI 解释",
     "ai.insights-btn": "AI 洞察",
     "ai.analyzing": "分析中...",
@@ -414,7 +414,7 @@ const zh = {
     "analysis.section-fallback": "分析段落",
 
     // SQL Workspace AI
-    "sql.ai-analyze": "AI 分析",
+    "sql.ai-analyze": "Agent 分析",
     "sql.ai-explain": "AI 解释",
     "sql.ai-insights": "AI 洞察",
 
@@ -551,7 +551,7 @@ const zh = {
     "nav.settings": "设置",
 
     // Sidebar brand (M4-8.2)
-    "sidebar.brand-subtitle": "上传数据 → Agent 分析 → 分析结果",
+    "sidebar.brand-subtitle": "上传表格，直接提问",
 
     // Header table status (M4-8.2)
     "header.current-table": "当前数据表",
@@ -738,7 +738,7 @@ const zh = {
     "agent.result.key-findings": "关键发现",
     "agent.result.technical-details": "技术细节",
     "agent.result.record-id": "记录编号",
-    "agent.result.mock-answer": "所选 provider 暂不可用，系统已生成 Mock 兜底答案供预览。请结合 SQL、相关数据和风险提示一起判断。",
+    "agent.result.mock-answer": "已基于当前表生成演示分析结果。请先查看下方 SQL、相关数据和风险提示；如果数据样本不足，建议补充字段或上传更完整的表后再运行一次。当前使用演示模型生成结果，配置真实模型后可获得更准确分析。",
     "agent.result.yes": "是",
     "agent.result.no": "否",
     "agent.result.sql": "SQL",
@@ -754,7 +754,10 @@ const zh = {
     "agent.result.not-routed": "未识别",
     "agent.result.provider-requested": "请求的 provider",
     "agent.result.provider-used": "实际 provider",
-    "agent.result.fallback": "Fallback",
+    "agent.result.fallback": "演示模型",
+    "agent.result.status-completed": "已完成",
+    "agent.result.status-failed": "失败",
+    "agent.result.status-running": "分析中",
     "agent.result.fallback-reason": "Fallback 原因",
     "agent.result.none": "无",
     "agent.result.memory-used": "已使用会话上下文",
@@ -871,7 +874,7 @@ const zh = {
     "onboarding.step.ask-ai.description": "用自然语言向 AI 提问，自动分析数据。",
     "onboarding.step.ask-ai.tooltip": "输入问题后点击「开始调查」。",
     "onboarding.step.view-analysis.title": "查看分析",
-    "onboarding.step.view-analysis.description": "查看 AI 分析结果、洞察和图表。",
+    "onboarding.step.view-analysis.description": "查看 Agent 分析结果、洞察和图表。",
     "onboarding.step.view-analysis.tooltip": "分析完成后，结果会显示在此处。",
   },
 };

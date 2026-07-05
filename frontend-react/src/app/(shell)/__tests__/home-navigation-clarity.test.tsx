@@ -88,11 +88,11 @@ describe("Home + Navigation Clarity (M4-8.2)", () => {
 
   describe("Sidebar brand subtitle", () => {
     it("should have Chinese brand subtitle as AI 数据分析", () => {
-      expect(zh.translation["sidebar.brand-subtitle"]).toBe("上传数据 → Agent 分析 → 分析结果");
+      expect(zh.translation["sidebar.brand-subtitle"]).toBe("上传表格，直接提问");
     });
 
     it("should have English brand subtitle as Data Analysis", () => {
-      expect(en.translation["sidebar.brand-subtitle"]).toBe("Upload Data → Agent Analysis → Results");
+      expect(en.translation["sidebar.brand-subtitle"]).toBe("Ask your data directly");
     });
   });
 

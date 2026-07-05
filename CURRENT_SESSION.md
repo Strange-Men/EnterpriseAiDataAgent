@@ -12,6 +12,15 @@
 - M5.5.7 has not started.
 - Tag has not been created.
 
+## M5.5.6.2 Frontend UX + Mock Answer Polish
+
+- M5.5.6.2 Frontend UX + Mock Answer Polish completed.
+- Mock fallback now returns readable business answers and better deterministic SQL for common questions such as even rows and regional sales ranking.
+- Agent results keep technical details folded by default; status badges and Expert SQL advanced mode were visually polished.
+- Backend pytest, frontend tests, frontend build, route smoke, safety search, and browser visual check passed.
+- M5.5.7 has not started.
+- Tag has not been created.
+
 ## Current Version
 
 - **Version**: v1.4.1-m4-engineering-complete
