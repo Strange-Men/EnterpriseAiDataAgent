@@ -2,6 +2,15 @@
 
 > Last updated: 2026-06-26
 
+## M5 Render Doubao Real LLM Agent QA
+
+- M5 Render Doubao Real LLM Agent QA completed on branch `m5-render-doubao-real-llm-agent-qa`.
+- Render `/api/status` and `/api/ai/status` were reachable. `/api/ai/insights` with `llm_provider=doubao` proved Render can read Doubao env and return `provider_used=doubao`, `fallback_triggered=false`.
+- Remote `/api/agent/runs` produced readable real-model-quality answers, SQL, evidence, warnings, trace, and tool_calls, but deployed Agent metadata still reported `provider_used=mock` and fallback.
+- A minimal backend fix now lets successful tool-level real-provider metadata override the initial mock fallback marker in the final AgentRun.
+- Backend import, focused tests, full pytest, and changed-file ruff passed. Merge/deploy this branch before M5 Final Tag.
+- M6 has not started. Tag has not been created.
+
 ## M5 Final Global QA Regression Merge Validation
 
 - M5 Final Global QA Regression merged to master.

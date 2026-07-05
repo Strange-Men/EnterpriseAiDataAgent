@@ -560,6 +560,7 @@ class LangChainSingleAgentService:
             context["evidence"].append({"type": "profile", "summary": output.get("summary"), "row_count": output.get("row_count")})
         elif result.tool_name == "generate_sql":
             context["sql"] = output.get("sql")
+            self._merge_provider_context(context=context, output=output)
         elif result.tool_name == "execute_readonly_sql":
             context["rows"] = output.get("rows", [])
             context["result_preview"] = {
@@ -570,9 +571,7 @@ class LangChainSingleAgentService:
             context["evidence"].append({"type": "result_preview", "summary": output.get("summary"), "rows": output.get("rows", [])})
         elif result.tool_name == "summarize_findings":
             context["answer"] = output.get("summary")
-            if output.get("fallback_triggered"):
-                context["provider_used"] = output.get("provider_used")
-                context["fallback_reason"] = output.get("fallback_reason")
+            self._merge_provider_context(context=context, output=output)
         elif result.tool_name in {"memory_read", "memory_write"}:
             context["memory_used"] = bool(output.get("memory_used") or context.get("memory_used"))
 
@@ -589,10 +588,18 @@ class LangChainSingleAgentService:
         run.result_preview = context.get("result_preview") or {"columns": [], "rows": [], "row_count": 0}
         run.memory_used = bool(context.get("memory_used") or self._memory_notes)
         run.provider_used = str(context.get("provider_used") or provider_metadata["provider_used"])
-        if run.provider_used == "mock" and run.provider_requested != "mock":
-            run.fallback_triggered = True
-            run.fallback_type = FallbackType.PROVIDER
-            run.fallback_reason = str(context.get("fallback_reason") or provider_metadata.get("fallback_reason") or "provider_fallback_to_mock")
+        run.is_simulated = run.provider_used == "mock"
+        run.fallback_triggered = bool(
+            context.get("fallback_triggered")
+            if "fallback_triggered" in context
+            else run.provider_used == "mock" and run.provider_requested != "mock"
+        )
+        run.fallback_type = FallbackType.PROVIDER if run.fallback_triggered else FallbackType.NONE
+        run.fallback_reason = (
+            str(context.get("fallback_reason") or provider_metadata.get("fallback_reason") or "provider_fallback_to_mock")
+            if run.fallback_triggered
+            else None
+        )
         run.trace.update(
             {
                 "tool_calls": [
@@ -604,9 +611,23 @@ class LangChainSingleAgentService:
                     for call in run.tool_calls
                 ],
                 "memory": self._memory_notes,
+                "provider": {
+                    "provider_requested": run.provider_requested,
+                    "provider_used": run.provider_used,
+                    "fallback_triggered": run.fallback_triggered,
+                    "fallback_reason": run.fallback_reason,
+                },
                 "used_default_readonly_executor": self._used_default_executor,
             }
         )
+
+    def _merge_provider_context(self, *, context: dict[str, Any], output: dict[str, Any]) -> None:
+        if output.get("provider_used"):
+            context["provider_used"] = output.get("provider_used")
+        if "fallback_triggered" in output:
+            context["fallback_triggered"] = bool(output.get("fallback_triggered"))
+        if "fallback_reason" in output:
+            context["fallback_reason"] = output.get("fallback_reason")
 
     def _finalize_run(self, *, run: AgentRun, warnings: list[str]) -> None:
         run.warnings = list(dict.fromkeys(warnings))
