@@ -75,33 +75,54 @@ Validated output behavior:
 - frontend build: passed with existing lint warnings
 - changed-file ruff: passed before merge
 - safety search: broad search has benign historical docs / dependency / environment-variable-name matches; changed M5 Render QA scope contains no real key, token, `.env`, or private content
-- master CI: pending after push
+- master CI: passed, GitHub Actions run `28746312758`
+- post-push Render re-smoke: passed after Render picked up merged master
 
-## 8. Remaining Non-Blocking Issues
+## 8. Post-Push Render Re-Smoke
 
-- Render deployment needs to pick up merged master before online Agent route re-smoke.
+After master push and CI success, Render was re-smoked with the deployed backend.
+
+Regional sales:
+
+- HTTP status: `200`
+- elapsed: `22.547s`
+- `provider_requested=doubao`
+- `provider_used=doubao`
+- `fallback_triggered=false`
+- `fallback_reason=null`
+- `trace.sql_fast_path=true`
+- `trace.llm_calls=1`
+- SQL used `customer_region`, `SUM(sales_amount)`, `GROUP BY`, and `ORDER BY`
+
+Even rows:
+
+- HTTP status: `200`
+- elapsed: `19.845s`
+- `provider_used=doubao`
+- `fallback_triggered=false`
+- `trace.sql_fast_path=true`
+- `trace.llm_calls=1`
+- SQL used `ROW_NUMBER()` and `row_num % 2 = 0`
+
+Invalid field:
+
+- HTTP status: `200`
+- elapsed: `16.597s`
+- `provider_used=doubao`
+- `fallback_triggered=false`
+- warnings count: `1`
+- SQL contained controlled `abc_xyz` missing-field handling
+- no 500
+
+## 9. Remaining Non-Blocking Issues
+
 - Doubao latency remains variable; optimized local stress average met the 15-20s target, but one scenario outlier was observed during scenario testing.
 - `/api/ai/status` still reports default provider status, not per-provider Doubao readiness.
 
-## 9. Recommendation
+## 10. Recommendation
 
-After master CI passes and Render deploys this merge, run a short online Agent route re-smoke:
+Master CI and the short post-deploy Render Agent route re-smoke both passed.
 
-```text
-provider_requested=doubao
-regional sales question
-even-row question
-invalid-field question
-```
-
-Expected:
-
-- `provider_used=doubao`
-- `fallback_triggered=false`
-- `trace.sql_fast_path=true` for common deterministic SQL questions
-- `trace.llm_calls=1` for common fast-path questions
-- answer / SQL / evidence / warnings / trace / tool_calls present
-
-If that post-deploy smoke passes, M5 can proceed to Final Tag.
+M5 can proceed to Final Tag after user review.
 
 M6 has not started. No tag was created.
