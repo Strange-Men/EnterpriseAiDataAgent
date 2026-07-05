@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
@@ -29,13 +29,13 @@ describe("Agent Analysis Panel Polish (M5.5.6)", () => {
     });
   });
 
-  describe("Run Agent button", () => {
+  describe("Start Analysis button", () => {
     it("should have Chinese button text as 开始 Agent 分析", () => {
-      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("开始 Agent 分析");
+      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("开始分析");
     });
 
-    it("should have English button text as Run Agent", () => {
-      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Run Agent");
+    it("should have English button text as Start Analysis", () => {
+      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Start Analysis");
     });
   });
 
@@ -103,3 +103,5 @@ describe("Agent Analysis Panel Polish (M5.5.6)", () => {
     });
   });
 });
+
+

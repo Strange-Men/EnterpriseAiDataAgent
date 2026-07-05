@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
@@ -57,12 +57,12 @@ describe("Analysis Workspace Regression (M5.5.6)", () => {
       expect(title).toBe("Agent Analysis");
     });
 
-    it("should have Chinese Run Agent button text", () => {
-      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("开始 Agent 分析");
+    it("should have Chinese Start Analysis button text", () => {
+      expect(zh.translation["workspace.generate-sql-analyze"]).toBe("开始分析");
     });
 
-    it("should have English Run Agent button text", () => {
-      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Run Agent");
+    it("should have English Start Analysis button text", () => {
+      expect(en.translation["workspace.generate-sql-analyze"]).toBe("Start Analysis");
     });
 
     it("should have 4 example questions in Chinese", () => {
@@ -405,3 +405,5 @@ describe("Analysis Workspace Regression (M5.5.6)", () => {
     });
   });
 });
+
+

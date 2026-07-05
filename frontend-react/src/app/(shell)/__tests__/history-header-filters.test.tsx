@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
@@ -37,20 +37,20 @@ describe("History Header + Filters (M4-8.5.1)", () => {
       expect(en.translation["history.filter-all"]).toBe("All");
     });
 
-    it("should have Chinese AI Analysis filter", () => {
-      expect(zh.translation["history.type-ai"]).toBe("AI 分析");
+    it("should have Chinese Analysis Record filter", () => {
+      expect(zh.translation["history.type-ai"]).toBe("分析记录");
     });
 
-    it("should have English AI Analysis filter", () => {
-      expect(en.translation["history.type-ai"]).toBe("AI Analysis");
+    it("should have English Analysis Record filter", () => {
+      expect(en.translation["history.type-ai"]).toBe("Analysis Record");
     });
 
-    it("should have Chinese Expert SQL filter", () => {
-      expect(zh.translation["history.type-sql"]).toBe("专家 SQL");
+    it("should have Chinese Analysis Record filter", () => {
+      expect(zh.translation["history.type-sql"]).toBe("分析记录");
     });
 
-    it("should have English Expert SQL filter", () => {
-      expect(en.translation["history.type-sql"]).toBe("Expert SQL");
+    it("should have English Analysis Record filter", () => {
+      expect(en.translation["history.type-sql"]).toBe("Analysis Record");
     });
   });
 
@@ -120,11 +120,11 @@ describe("History Header + Filters (M4-8.5.1)", () => {
     });
 
     it("should have Chinese start analysis action", () => {
-      expect(zh.translation["history.no-history-action-analyze"]).toBe("开始 Agent 分析");
+      expect(zh.translation["history.no-history-action-analyze"]).toBe("开始分析");
     });
 
     it("should have English start analysis action", () => {
-      expect(en.translation["history.no-history-action-analyze"]).toBe("Run Agent");
+      expect(en.translation["history.no-history-action-analyze"]).toBe("Start Analysis");
     });
   });
 
@@ -184,3 +184,5 @@ describe("History Header + Filters (M4-8.5.1)", () => {
     });
   });
 });
+
+

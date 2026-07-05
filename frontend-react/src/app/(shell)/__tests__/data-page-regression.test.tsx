@@ -1,4 +1,4 @@
-/**
+﻿/**
  * M4-8.6.5 Data Page Regression
  *
  * 确认 M4-8.6.1 到 M4-8.6.4 的 Data Page UX 改造没有破坏数据页主链路。
@@ -83,8 +83,8 @@ describe("M4-8.6.5 Data Page Regression", () => {
     });
 
     it("start analysis entry exists", () => {
-      expect(zhT["table.start-analysis"]).toBe("开始 Agent 分析");
-      expect(enT["table.start-analysis"]).toBe("Run Agent");
+      expect(zhT["table.start-analysis"]).toBe("开始分析");
+      expect(enT["table.start-analysis"]).toBe("Start Analysis");
     });
 
     it("table management key preserved", () => {
@@ -146,8 +146,8 @@ describe("M4-8.6.5 Data Page Regression", () => {
     });
 
     it("start analysis entry exists", () => {
-      expect(zhT["preview.start-analysis"]).toBe("开始 Agent 分析 →");
-      expect(enT["preview.start-analysis"]).toBe("Run Agent →");
+      expect(zhT["preview.start-analysis"]).toBe("开始分析 →");
+      expect(enT["preview.start-analysis"]).toBe("Start Analysis →");
     });
 
     it("analysis hint is friendly", () => {
@@ -293,3 +293,5 @@ describe("M4-8.6.5 Data Page Regression", () => {
     });
   });
 });
+
+

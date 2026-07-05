@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
@@ -16,14 +16,14 @@ describe("Table List / Current Table Card Polish (M4-8.6.2)", () => {
       const desc = zh.translation["table.current-card-desc"] as string;
       expect(desc).toContain("默认数据源");
       expect(desc).toContain("Agent 分析");
-      expect(desc).toContain("高级模式");
+      expect(desc).toContain("高级 SQL");
     });
 
     it("should have English current table card description mentioning default data source", () => {
       const desc = en.translation["table.current-card-desc"] as string;
       expect(desc).toContain("default data source");
       expect(desc).toContain("Agent Analysis");
-      expect(desc).toContain("advanced mode");
+      expect(desc).toContain("advanced SQL");
     });
 
     it("should have Chinese empty state for no selected table", () => {
@@ -77,11 +77,11 @@ describe("Table List / Current Table Card Polish (M4-8.6.2)", () => {
 
   describe("Start Analysis Entry i18n", () => {
     it("should have Chinese start analysis text", () => {
-      expect(zh.translation["table.start-analysis"]).toBe("开始 Agent 分析");
+      expect(zh.translation["table.start-analysis"]).toBe("开始分析");
     });
 
     it("should have English start analysis text", () => {
-      expect(en.translation["table.start-analysis"]).toBe("Run Agent");
+      expect(en.translation["table.start-analysis"]).toBe("Start Analysis");
     });
   });
 
@@ -139,3 +139,5 @@ describe("Table List / Current Table Card Polish (M4-8.6.2)", () => {
     });
   });
 });
+
+

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
@@ -6,11 +6,11 @@ import en from "@/i18n/en";
 describe("Home + Navigation Clarity (M4-8.2)", () => {
   describe("Home Hero copy", () => {
     it("should have Chinese hero title", () => {
-      expect(zh.translation["home.hero-title"]).toBe("上传数据 → Agent 分析 → 分析结果");
+      expect(zh.translation["home.hero-title"]).toBe("上传表格，向 Agent 提问，查看答案");
     });
 
     it("should have English hero title", () => {
-      expect(en.translation["home.hero-title"]).toBe("Upload Data → Agent Analysis → Results");
+      expect(en.translation["home.hero-title"]).toBe("Upload a spreadsheet. Ask a question. Get an answer.");
     });
 
     it("should have Chinese hero subtitle mentioning product flow", () => {
@@ -36,11 +36,11 @@ describe("Home + Navigation Clarity (M4-8.2)", () => {
     });
 
     it("should have Chinese start analysis CTA", () => {
-      expect(zh.translation["home.start-analysis"]).toBe("Agent 分析");
+      expect(zh.translation["home.start-analysis"]).toBe("开始分析");
     });
 
     it("should have English start analysis CTA", () => {
-      expect(en.translation["home.start-analysis"]).toBe("Agent Analysis");
+      expect(en.translation["home.start-analysis"]).toBe("Start Analysis");
     });
 
     it("should have Chinese CTA hints", () => {
@@ -50,7 +50,7 @@ describe("Home + Navigation Clarity (M4-8.2)", () => {
 
     it("should have English CTA hints", () => {
       expect(en.translation["home.upload-hint"]).toContain("CSV/Excel");
-      expect(en.translation["home.start-analysis-hint"]).toContain("ask a question");
+      expect(en.translation["home.start-analysis-hint"]).toContain("Ask a question");
     });
   });
 
@@ -76,12 +76,12 @@ describe("Home + Navigation Clarity (M4-8.2)", () => {
     });
 
     it("should have Chinese expert SQL card title and description", () => {
-      expect(zh.translation["home.card-sql-title"]).toBe("专家 SQL");
+      expect(zh.translation["home.card-sql-title"]).toBe("高级 SQL");
       expect(zh.translation["home.card-sql-desc"]).toContain("SQL");
     });
 
     it("should have English expert SQL card title and description", () => {
-      expect(en.translation["home.card-sql-title"]).toBe("Expert SQL");
+      expect(en.translation["home.card-sql-title"]).toBe("Advanced SQL");
       expect(en.translation["home.card-sql-desc"]).toContain("SQL");
     });
   });
@@ -148,3 +148,5 @@ describe("Home + Navigation Clarity (M4-8.2)", () => {
     });
   });
 });
+
+

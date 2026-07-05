@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import zh from "@/i18n/zh";
 import en from "@/i18n/en";
 
@@ -37,20 +37,20 @@ describe("History Regression (M4-8.5.5)", () => {
       expect(en.translation["history.filter-all"]).toBe("All");
     });
 
-    it("should have AI Analysis filter (zh)", () => {
-      expect(zh.translation["history.type-ai"]).toBe("AI 分析");
+    it("should have Analysis Record filter (zh)", () => {
+      expect(zh.translation["history.type-ai"]).toBe("分析记录");
     });
 
-    it("should have AI Analysis filter (en)", () => {
-      expect(en.translation["history.type-ai"]).toBe("AI Analysis");
+    it("should have Analysis Record filter (en)", () => {
+      expect(en.translation["history.type-ai"]).toBe("Analysis Record");
     });
 
-    it("should have Expert SQL filter (zh)", () => {
-      expect(zh.translation["history.type-sql"]).toBe("专家 SQL");
+    it("should have Analysis Record filter (zh)", () => {
+      expect(zh.translation["history.type-sql"]).toBe("分析记录");
     });
 
-    it("should have Expert SQL filter (en)", () => {
-      expect(en.translation["history.type-sql"]).toBe("Expert SQL");
+    it("should have Analysis Record filter (en)", () => {
+      expect(en.translation["history.type-sql"]).toBe("Analysis Record");
     });
   });
 
@@ -104,31 +104,31 @@ describe("History Regression (M4-8.5.5)", () => {
     });
 
     it("should have Start Analysis button (zh)", () => {
-      expect(zh.translation["history.no-history-action-analyze"]).toBe("开始 Agent 分析");
+      expect(zh.translation["history.no-history-action-analyze"]).toBe("开始分析");
     });
 
     it("should have Start Analysis button (en)", () => {
-      expect(en.translation["history.no-history-action-analyze"]).toBe("Run Agent");
+      expect(en.translation["history.no-history-action-analyze"]).toBe("Start Analysis");
     });
   });
 
   describe("5. AI record badge exists", () => {
-    it("should have AI Analysis badge (zh)", () => {
-      expect(zh.translation["history.type-ai"]).toBe("AI 分析");
+    it("should have Analysis Record badge (zh)", () => {
+      expect(zh.translation["history.type-ai"]).toBe("分析记录");
     });
 
-    it("should have AI Analysis badge (en)", () => {
-      expect(en.translation["history.type-ai"]).toBe("AI Analysis");
+    it("should have Analysis Record badge (en)", () => {
+      expect(en.translation["history.type-ai"]).toBe("Analysis Record");
     });
   });
 
   describe("6. SQL record badge exists", () => {
-    it("should have Expert SQL badge (zh)", () => {
-      expect(zh.translation["history.type-sql"]).toBe("专家 SQL");
+    it("should have Analysis Record badge (zh)", () => {
+      expect(zh.translation["history.type-sql"]).toBe("分析记录");
     });
 
-    it("should have Expert SQL badge (en)", () => {
-      expect(en.translation["history.type-sql"]).toBe("Expert SQL");
+    it("should have Analysis Record badge (en)", () => {
+      expect(en.translation["history.type-sql"]).toBe("Analysis Record");
     });
   });
 
@@ -341,9 +341,9 @@ describe("History Regression (M4-8.5.5)", () => {
 
     it("should have fallback title keys", () => {
       expect(zh.translation["history.unnamed-analysis"]).toBe("未命名分析");
-      expect(zh.translation["history.unnamed-sql"]).toBe("未命名 SQL 查询");
+      expect(zh.translation["history.unnamed-sql"]).toBe("未命名分析记录");
       expect(en.translation["history.unnamed-analysis"]).toBe("Untitled analysis");
-      expect(en.translation["history.unnamed-sql"]).toBe("Untitled SQL query");
+      expect(en.translation["history.unnamed-sql"]).toBe("Untitled analysis record");
     });
 
     it("should have search placeholder with table names", () => {
@@ -352,3 +352,5 @@ describe("History Regression (M4-8.5.5)", () => {
     });
   });
 });
+
+

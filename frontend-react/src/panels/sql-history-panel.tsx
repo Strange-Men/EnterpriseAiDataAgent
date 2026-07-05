@@ -24,7 +24,6 @@ export function SqlHistoryPanel() {
     removeEntry, clearHistory,
     searchQuery, setSearchQuery,
     filterStatus, setFilterStatus,
-    filterType, setFilterType,
     getFiltered,
     fetchHistory,
   } = useSqlHistoryStore();
@@ -204,23 +203,6 @@ export function SqlHistoryPanel() {
           className="w-full px-3 py-1.5 text-sm bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-md focus:border-[var(--accent)] focus:outline-none mb-2"
         />
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Type filter chips */}
-          <div className="flex items-center gap-1">
-            {(["all", "ai", "sql"] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setFilterType(v)}
-                className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
-                  filterType === v
-                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                    : "bg-[var(--bg-primary)] text-[var(--text-muted)] border-[var(--border-default)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                }`}
-              >
-                {v === "all" ? t("history.filter-all") : v === "ai" ? t("history.type-ai") : t("history.type-sql")}
-              </button>
-            ))}
-          </div>
-          <span className="text-[var(--border-default)]">|</span>
           {/* Status filter chips */}
           <div className="flex items-center gap-1">
             {(["all", "success", "error"] as const).map((v) => (
@@ -292,7 +274,7 @@ export function SqlHistoryPanel() {
             const isAi = (entry.type || "sql") === "ai";
             const displayTitle = isAi
               ? (entry.question || t("history.unnamed-analysis"))
-              : (entry.sql.split("\n")[0].trim() || t("history.unnamed-sql"));
+              : (entry.question || entry.summary || t("history.unnamed-sql"));
             const truncatedTitle = displayTitle.length > 100 ? displayTitle.slice(0, 100) + "..." : displayTitle;
             const statusKey = entry.status === "success" ? "history.status-success"
               : entry.status === "partial" ? "history.status-partial" : "history.status-error";
@@ -304,20 +286,16 @@ export function SqlHistoryPanel() {
                 key={entry.id}
                 className="group relative px-4 py-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] hover:shadow-sm transition-all"
               >
-                {/* Header: Type badge + Status badge + Time */}
+                {/* Header: Unified record badge + Status badge + Time */}
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                    isAi
-                      ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
-                      : "bg-blue-500/15 text-blue-400 border border-blue-500/30"
-                  }`}>
-                    {isAi ? t("history.type-ai") : t("history.type-sql")}
+                  <span className="inline-flex items-center rounded border border-indigo-500/25 bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-200">
+                    {t("history.type-ai")}
                   </span>
                   <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${
-                    entry.status === "success" ? "text-green-400" : entry.status === "partial" ? "text-amber-400" : "text-red-400"
+                    entry.status === "success" ? "text-emerald-300" : entry.status === "partial" ? "text-amber-300" : "text-red-300"
                   }`}>
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${
-                      entry.status === "success" ? "bg-green-400" : entry.status === "partial" ? "bg-amber-400" : "bg-red-400"
+                      entry.status === "success" ? "bg-emerald-300" : entry.status === "partial" ? "bg-amber-300" : "bg-red-300"
                     }`} />
                     {t(statusKey)}
                   </span>
@@ -332,7 +310,7 @@ export function SqlHistoryPanel() {
                   </span>
                 </div>
 
-                {/* Title: Question or SQL summary */}
+                {/* Title: Question or analysis summary */}
                 <p
                   className="text-sm font-medium text-[var(--text-primary)] leading-snug mb-1.5"
                   title={entry.question || entry.sql}
@@ -380,7 +358,7 @@ export function SqlHistoryPanel() {
                 )}
 
                 {/* AI Summary (if exists) */}
-                {entry.summary && isAi && (
+                {entry.summary && (
                   <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed line-clamp-2">
                     {entry.summary}
                   </p>
@@ -397,7 +375,7 @@ export function SqlHistoryPanel() {
                     <>
                       <button
                         onClick={() => handleOpenDetail(entry.id)}
-                        className="px-3 py-1 text-xs font-medium text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded hover:bg-purple-500/20 transition-colors"
+                        className="px-3 py-1 text-xs font-medium text-indigo-200 bg-indigo-500/10 border border-indigo-500/20 rounded hover:bg-indigo-500/20 transition-colors"
                       >
                         {t("history.open-detail")}
                       </button>
@@ -456,7 +434,7 @@ export function SqlHistoryPanel() {
                         className={`px-3 py-1 text-xs font-medium border rounded transition-colors ${
                           stale
                             ? "text-[var(--text-muted)] bg-[var(--bg-tertiary)] border-[var(--border-default)] opacity-60 cursor-not-allowed"
-                            : "text-blue-400 bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20"
+                            : "text-indigo-200 bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/20"
                         }`}
                         disabled={stale}
                       >

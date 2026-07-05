@@ -17,9 +17,7 @@ import { Textarea, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Code, Database, Lightbulb, TerminalSquare } from "lucide-react";
-
-type WorkspaceTab = "agent-analysis" | "expert-sql";
+import { Bot, Database, Lightbulb, TerminalSquare } from "lucide-react";
 
 const PROVIDER_OPTIONS: Array<{ value: AgentProviderRequested; labelKey: string }> = [
   { value: "mock", labelKey: "ai.llm-provider-mock" },
@@ -118,7 +116,6 @@ export function InvestigationWorkspace() {
   const pendingRerunDraft = useWorkspaceStore((s) => s.pendingRerunDraft);
   const setPendingRerunDraft = useWorkspaceStore((s) => s.setPendingRerunDraft);
 
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>("agent-analysis");
   const [agentQuestion, setAgentQuestion] = useState("");
   const [agentProvider, setAgentProvider] = useState<AgentProviderRequested>(llmProvider);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
@@ -141,20 +138,8 @@ export function InvestigationWorkspace() {
     if (pendingRerunDraft.tableName && tables.some((table) => table.name === pendingRerunDraft.tableName)) {
       setActiveTable(pendingRerunDraft.tableName);
     }
-    setActiveTab("agent-analysis");
     setPendingRerunDraft(null);
   }, [pendingRerunDraft, setActiveTable, setPendingRerunDraft, tables]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent).detail;
-      if (detail === "expert-sql") {
-        setActiveTab("expert-sql");
-      }
-    };
-    window.addEventListener("workspace:switch-tab", handler);
-    return () => window.removeEventListener("workspace:switch-tab", handler);
-  }, []);
 
   const currentTableName = activeTable || tables[0]?.name;
   const currentTableMeta = tables.find((table) => table.name === currentTableName);
@@ -163,6 +148,8 @@ export function InvestigationWorkspace() {
   const evidence = resultRun?.evidence ?? resultRun?.result_preview;
   const trace = resultRun?.trace ?? agentRunResult?.trace;
   const fallbackTriggered = Boolean(resultRun?.fallback_triggered);
+  const userReadableAnswer = resultRun?.answer
+    || (fallbackTriggered ? t("agent.result.mock-answer") : "");
 
   const examples = useMemo(
     () => [
@@ -210,28 +197,10 @@ export function InvestigationWorkspace() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 items-center border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
-        <button
-          onClick={() => setActiveTab("agent-analysis")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-            activeTab === "agent-analysis"
-              ? "border-[var(--accent)] text-[var(--accent)]"
-              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-          }`}
-        >
+        <div className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-[var(--accent)]">
           <Bot className="h-3.5 w-3.5" />
           {t("workspace.tab.agent-analysis")}
-        </button>
-        <button
-          onClick={() => setActiveTab("expert-sql")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-            activeTab === "expert-sql"
-              ? "border-[var(--accent)] text-[var(--accent)]"
-              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-          }`}
-        >
-          <Code className="h-3.5 w-3.5" />
-          {t("workspace.tab.expert-sql")}
-        </button>
+        </div>
 
         {currentTableName && (
           <div className="ml-auto px-3 py-1 text-xs text-[var(--text-muted)]">
@@ -245,7 +214,6 @@ export function InvestigationWorkspace() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {activeTab === "agent-analysis" ? (
           <div className="mx-auto max-w-4xl space-y-6 p-6">
             <div className="space-y-2 text-center">
               <div className="flex items-center justify-center gap-2">
@@ -259,7 +227,7 @@ export function InvestigationWorkspace() {
               </p>
             </div>
 
-            <Card variant="highlighted">
+            <Card>
               <CardHeader>
                 <CardTitle>{t("agent.request.title")}</CardTitle>
                 <CardDescription>{t("agent.request.description")}</CardDescription>
@@ -388,7 +356,7 @@ export function InvestigationWorkspace() {
             )}
 
             {resultRun && (
-              <Card variant="highlighted">
+              <Card>
                 <CardHeader>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -400,27 +368,28 @@ export function InvestigationWorkspace() {
                         {resultRun.status}
                       </Badge>
                       {fallbackTriggered && <Badge variant="warning">{t("agent.result.fallback")}</Badge>}
-                      {resultRun.memory_used && <Badge variant="info">{t("agent.result.memory-used")}</Badge>}
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-2 md:grid-cols-2">
-                    <Metric label="run_id" value={resultRun.run_id} />
-                    <Metric label={t("agent.result.intent")} value={resultRun.intent ?? t("agent.result.not-routed")} />
-                    <Metric label={t("agent.result.provider-requested")} value={resultRun.provider_requested ?? agentProvider} />
-                    <Metric label={t("agent.result.provider-used")} value={resultRun.provider_used ?? "mock"} />
-                    <Metric label={t("agent.result.fallback-reason")} value={resultRun.fallback_reason ?? t("agent.result.none")} />
-                    <Metric label={t("agent.result.record-type")} value={resultRun.is_simulated ? t("agent.result.demo-record") : t("agent.result.live-record")} />
-                  </div>
-
-                  {resultRun.answer && (
+                  {userReadableAnswer && (
                     <section className="space-y-2">
                       <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
                         {t("agent.result.answer")}
                       </h3>
                       <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-sm leading-6 text-[var(--text-primary)]">
-                        {resultRun.answer}
+                        {userReadableAnswer}
+                      </div>
+                    </section>
+                  )}
+
+                  {resultRun.intent && (
+                    <section className="space-y-2">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
+                        {t("agent.result.key-findings")}
+                      </h3>
+                      <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-secondary)]">
+                        {resultRun.intent}
                       </div>
                     </section>
                   )}
@@ -456,37 +425,56 @@ export function InvestigationWorkspace() {
                     </section>
                   )}
 
-                  <section className="space-y-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
-                      {t("agent.result.tool-calls")}
-                    </h3>
-                    <ToolCallList calls={resultRun.tool_calls} />
-                  </section>
+                  <details className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
+                    <summary className="cursor-pointer text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--accent)]">
+                      {t("agent.result.technical-details")}
+                    </summary>
+                    <div className="mt-3 space-y-4">
+                      <div className="grid gap-2 md:grid-cols-2">
+                        <Metric label={t("agent.result.record-id")} value={resultRun.run_id} />
+                        <Metric label={t("agent.result.provider-requested")} value={resultRun.provider_requested ?? agentProvider} />
+                        <Metric label={t("agent.result.provider-used")} value={resultRun.provider_used ?? "mock"} />
+                        <Metric label={t("agent.result.fallback-reason")} value={resultRun.fallback_reason ?? t("agent.result.none")} />
+                        <Metric label={t("agent.result.record-type")} value={resultRun.is_simulated ? t("agent.result.demo-record") : t("agent.result.live-record")} />
+                        <Metric label={t("agent.result.memory-used")} value={resultRun.memory_used ? t("agent.result.yes") : t("agent.result.no")} />
+                      </div>
 
-                  {trace !== undefined && trace !== null && (
-                    <section className="space-y-2">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
-                        {t("agent.result.trace")}
-                      </h3>
-                      <JsonBlock value={trace} />
-                    </section>
-                  )}
+                      <section className="space-y-2">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                          {t("agent.result.tool-calls")}
+                        </h3>
+                        <ToolCallList calls={resultRun.tool_calls} />
+                      </section>
+
+                      {trace !== undefined && trace !== null && (
+                        <section className="space-y-2">
+                          <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                            {t("agent.result.trace")}
+                          </h3>
+                          <JsonBlock value={trace} />
+                        </section>
+                      )}
+                    </div>
+                  </details>
                 </CardContent>
               </Card>
             )}
-          </div>
-        ) : (
-          <div className="flex h-full flex-col p-4">
-            <div className="mb-3 flex items-start gap-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-2">
-              <TerminalSquare className="mt-0.5 h-4 w-4 text-[var(--text-muted)]" />
-              <div>
-                <p className="text-xs font-medium text-[var(--text-primary)]">{t("workspace.expert-sql-title")}</p>
-                <p className="text-xs text-[var(--text-muted)]">{t("workspace.expert-sql-hint")}</p>
+
+            <details className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)]">
+              <summary className="flex cursor-pointer items-start gap-2 px-3 py-3 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--accent)]">
+                <TerminalSquare className="mt-0.5 h-4 w-4 text-[var(--text-muted)]" />
+                <span>
+                  <span className="block text-[var(--text-primary)]">{t("workspace.expert-sql-title")}</span>
+                  <span className="mt-0.5 block font-normal text-[var(--text-muted)]">{t("workspace.expert-sql-hint")}</span>
+                </span>
+              </summary>
+              <div className="border-t border-[var(--border-default)] p-4">
+                <div className="h-[640px] min-h-[520px]">
+                  <SqlWorkspacePanel />
+                </div>
               </div>
-            </div>
-            <SqlWorkspacePanel />
+            </details>
           </div>
-        )}
       </div>
     </div>
   );

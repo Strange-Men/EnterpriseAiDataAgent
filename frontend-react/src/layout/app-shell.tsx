@@ -18,8 +18,8 @@ import type { ReactNode } from "react";
 const PAGE_TITLES: Record<string, string> = {
   "/": "nav.home",
   "/data": "nav.data",
-  "/query": "nav.query",
-  "/analyze": "nav.analyze",  // 分析工作台
+  "/analyze": "nav.analyze",
+  "/results": "nav.results",
   "/history": "nav.history",
   "/settings": "nav.settings",
 };
