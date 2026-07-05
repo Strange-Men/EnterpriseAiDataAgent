@@ -1,13 +1,5 @@
-"use client";
-
-import dynamic from "next/dynamic";
-import { PanelSkeleton } from "@/components/ui/skeleton";
-
-const InvestigationWorkspace = dynamic(
-  () => import("@/components/investigation/investigation-workspace").then((m) => ({ default: m.InvestigationWorkspace })),
-  { loading: () => <PanelSkeleton /> }
-);
+import { AstryxDataAgentWorkbench } from "@/components/astryx/astryx-data-agent-workbench";
 
 export default function AnalyzePage() {
-  return <InvestigationWorkspace />;
+  return <AstryxDataAgentWorkbench />;
 }
