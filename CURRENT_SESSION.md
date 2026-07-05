@@ -4,13 +4,13 @@
 
 ## M5 Render Doubao Real LLM Agent QA
 
-- M5 Render Doubao Real LLM Agent QA completed on branch `m5-render-doubao-real-llm-agent-qa`.
+- M5 Render Doubao Real LLM Agent QA completed on branch `m5-render-doubao-real-llm-agent-qa` and merged to master.
 - Render `/api/status` and `/api/ai/status` were reachable. `/api/ai/insights` with `llm_provider=doubao` proved Render can read Doubao env and return `provider_used=doubao`, `fallback_triggered=false`.
 - Remote `/api/agent/runs` produced readable real-model-quality answers, SQL, evidence, warnings, trace, and tool_calls, but deployed Agent metadata still reported `provider_used=mock` and fallback.
 - A minimal backend fix now lets successful tool-level real-provider metadata override the initial mock fallback marker in the final AgentRun.
 - Speed/output QA continuation added schema-aware SQL fast paths, run-scope profile cache, 20-row evidence limits, LLM call counting, and controlled invalid-SQL execution fallback.
 - Local true-provider stress improved from the Render baseline average `24.760s` to `17.054s`, with `provider_used=doubao`, `fallback_triggered=false`, and no 500s after the fix.
-- Backend import, focused tests, full pytest, frontend tests/build, changed-file ruff, and safety search passed. Merge/deploy this branch before M5 Final Tag.
+- Backend import, focused tests, full pytest, frontend tests/build, changed-file ruff, and safety search passed. Wait for master CI and Render deploy, then run short online Agent route re-smoke before M5 Final Tag.
 - M6 has not started. Tag has not been created.
 
 ## M5 Final Global QA Regression Merge Validation
