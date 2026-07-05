@@ -2,6 +2,15 @@
 
 > Last updated: 2026-06-26
 
+## M5 Final Global QA Regression
+
+- M5 Final Global QA Regression completed on branch `m5-final-global-qa-regression`.
+- M1-M5 core flow was validated: upload CSV/Excel, create DuckDB tables, inspect schema, preview data, run LangChain Single Agent analysis, call tools, use mock/provider fallback, read/write memory, and return answer / SQL / evidence / warnings / trace / tool_calls.
+- Necessary small fixes were made for refund amount SQL generation and controlled unknown-field handling.
+- Backend import, full pytest, changed-file ruff, API smoke, frontend tests, frontend build, frontend HTTP page checks, docker compose config, old-copy search, and safety search were completed.
+- Full-repo ruff still has historical/legacy issues; changed files pass. Local Playwright browser launch was unavailable because the browser binary is not installed, so page checks used the local dev server HTTP routes.
+- M5 Final Global QA Merge Validation is recommended next. M6 has not started. Tag has not been created.
+
 ## M5.5.7 Final Regression / Seal Candidate
 
 - M5.5.7 Final Regression / Seal Candidate completed on branch `m5-5-7-final-regression-seal-candidate`.
