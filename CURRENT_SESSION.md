@@ -7,7 +7,8 @@
 - M5.5.7 Final Regression / Seal Candidate completed on branch `m5-5-7-final-regression-seal-candidate`.
 - M5 main path is validated: Upload Excel/CSV -> Agent Analysis -> business result, with LangChain Single Agent tools, provider selection, mock fallback, SQL, evidence, warnings, trace, and folded technical details.
 - Backend import, full pytest, frontend tests, frontend build, Agent API smoke, source safety search, and browser visual checks passed.
-- M5.5.7 Merge Validation is the next step. M6 has not started. Tag has not been created.
+- M5.5.7 Final Regression / Seal Candidate merged to master and merge validation prepared.
+- M5 Final Tag is the recommended next step after master CI passes. M6 has not started. Tag has not been created.
 
 ## M5.5.6.1 Frontend UX Hard Simplification
 
