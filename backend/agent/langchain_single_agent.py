@@ -16,6 +16,17 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from database.db_manager import DatabaseManager
+
+from backend.agent.business_orchestration import (
+    build_analysis_plan,
+    build_business_report,
+    build_memory_summary,
+    classify_business_question,
+    render_business_answer,
+    should_use_business_orchestration,
+    summarize_prior_record,
+)
 from backend.agent.contracts import (
     AgentRun,
     AgentStatus,
@@ -39,6 +50,40 @@ from backend.agent.tools import (
     ProfileTableInput,
     SummarizeFindingsInput,
     get_default_tool_registry,
+)
+from backend.business_tools import (
+    channel_effectiveness_analysis,
+    compare_by_dimension,
+    compute_overall_kpis,
+    customer_profile_analysis,
+    data_quality_check,
+    discount_risk_analysis,
+    map_business_terms,
+    opportunity_finder,
+    profitability_analysis,
+    recommendation_builder,
+    refund_risk_analysis,
+    risk_priority_scoring,
+    root_cause_hypothesis,
+    shipping_efficiency_analysis,
+    top_bottom_analysis,
+    trend_analysis,
+    validate_fields,
+)
+from backend.business_tools.models import (
+    BusinessTermMappingInput,
+    ChannelEffectivenessInput,
+    CustomerProfileInput,
+    DataQualityInput,
+    DimensionAnalysisInput,
+    FieldValidationInput,
+    MultiDimensionInput,
+    OpportunityFinderInput,
+    RecommendationInput,
+    RiskPriorityInput,
+    RootCauseInput,
+    TableMetricsInput,
+    TrendAnalysisInput,
 )
 from backend.services import ai_analyst
 from backend.services.data_service import get_quality_report, get_readonly_executor, get_table_schema
@@ -72,8 +117,9 @@ class MemoryWriteInput(BaseModel):
 class LangChainSingleAgentService:
     """Small single-agent loop using LangChain Core tools."""
 
-    def __init__(self, *, memory_store: AgentRunMemoryStore | None = None) -> None:
+    def __init__(self, *, memory_store: AgentRunMemoryStore | None = None, db_manager: DatabaseManager | None = None) -> None:
         self.memory_store = memory_store
+        self.db_manager = db_manager
         self.tool_names = [
             "inspect_schema",
             "profile_table",
@@ -82,6 +128,23 @@ class LangChainSingleAgentService:
             "summarize_findings",
             "memory_read",
             "memory_write",
+            "validate_fields",
+            "map_business_terms",
+            "compute_overall_kpis",
+            "compare_by_dimension",
+            "trend_analysis",
+            "top_bottom_analysis",
+            "refund_risk_analysis",
+            "discount_risk_analysis",
+            "profitability_analysis",
+            "shipping_efficiency_analysis",
+            "customer_profile_analysis",
+            "channel_effectiveness_analysis",
+            "data_quality_check",
+            "risk_priority_scoring",
+            "opportunity_finder",
+            "root_cause_hypothesis",
+            "recommendation_builder",
         ]
         self._schema_cache: dict[str, Any] = {}
         self._profile_cache: dict[str, Any] = {}
@@ -135,6 +198,23 @@ class LangChainSingleAgentService:
             return self._runtime_result(run=run, route=route, warnings=warnings)
 
         tools = self._build_tools(request)
+        previous_run_id = request.metadata.get("previous_run_id") if isinstance(request.metadata, dict) else None
+        prior_record = self.memory_store.get_run(str(previous_run_id)) if self.memory_store is not None and previous_run_id else None
+        prior_memory = summarize_prior_record(prior_record)
+        business_classification = classify_business_question(request.user_input, has_prior_memory=prior_memory is not None)
+        if should_use_business_orchestration(str(business_classification.get("question_type"))):
+            result = self._run_business_orchestration(
+                request=request,
+                run=run,
+                route=route,
+                tools=tools,
+                provider_metadata=provider_metadata,
+                classification=business_classification,
+                prior_memory=prior_memory,
+                warnings=warnings,
+            )
+            return result
+
         context: dict[str, Any] = {
             "table_name": request.table_name or self._default_table_name(),
             "provider_requested": provider_metadata["provider_requested"],
@@ -210,19 +290,126 @@ class LangChainSingleAgentService:
                 description="Stage current AgentRun memory metadata.",
                 args_schema=MemoryWriteInput,
             ),
+            "validate_fields": StructuredTool.from_function(
+                func=self._business_validate_fields,
+                name="validate_fields",
+                description="Validate requested business fields against the active schema.",
+                args_schema=FieldValidationInput,
+            ),
+            "map_business_terms": StructuredTool.from_function(
+                func=self._business_map_business_terms,
+                name="map_business_terms",
+                description="Map business terms in a question to fields and metrics.",
+                args_schema=BusinessTermMappingInput,
+            ),
+            "compute_overall_kpis": StructuredTool.from_function(
+                func=self._business_compute_overall_kpis,
+                name="compute_overall_kpis",
+                description="Compute overall business KPI metrics.",
+                args_schema=TableMetricsInput,
+            ),
+            "compare_by_dimension": StructuredTool.from_function(
+                func=self._business_compare_by_dimension,
+                name="compare_by_dimension",
+                description="Compare KPI metrics by one business dimension.",
+                args_schema=DimensionAnalysisInput,
+            ),
+            "trend_analysis": StructuredTool.from_function(
+                func=self._business_trend_analysis,
+                name="trend_analysis",
+                description="Aggregate business metrics by month.",
+                args_schema=TrendAnalysisInput,
+            ),
+            "top_bottom_analysis": StructuredTool.from_function(
+                func=self._business_top_bottom_analysis,
+                name="top_bottom_analysis",
+                description="Find top and bottom business objects.",
+                args_schema=DimensionAnalysisInput,
+            ),
+            "refund_risk_analysis": StructuredTool.from_function(
+                func=self._business_refund_risk_analysis,
+                name="refund_risk_analysis",
+                description="Identify refund risk objects.",
+                args_schema=MultiDimensionInput,
+            ),
+            "discount_risk_analysis": StructuredTool.from_function(
+                func=self._business_discount_risk_analysis,
+                name="discount_risk_analysis",
+                description="Identify discount dependency risk.",
+                args_schema=MultiDimensionInput,
+            ),
+            "profitability_analysis": StructuredTool.from_function(
+                func=self._business_profitability_analysis,
+                name="profitability_analysis",
+                description="Identify high-sales low-profit objects.",
+                args_schema=MultiDimensionInput,
+            ),
+            "shipping_efficiency_analysis": StructuredTool.from_function(
+                func=self._business_shipping_efficiency_analysis,
+                name="shipping_efficiency_analysis",
+                description="Identify shipping efficiency and fulfillment risks.",
+                args_schema=MultiDimensionInput,
+            ),
+            "customer_profile_analysis": StructuredTool.from_function(
+                func=self._business_customer_profile_analysis,
+                name="customer_profile_analysis",
+                description="Analyze customer profile fields.",
+                args_schema=CustomerProfileInput,
+            ),
+            "channel_effectiveness_analysis": StructuredTool.from_function(
+                func=self._business_channel_effectiveness_analysis,
+                name="channel_effectiveness_analysis",
+                description="Analyze channel volume and experience quality.",
+                args_schema=ChannelEffectivenessInput,
+            ),
+            "data_quality_check": StructuredTool.from_function(
+                func=self._business_data_quality_check,
+                name="data_quality_check",
+                description="Check predefined data quality anomalies.",
+                args_schema=DataQualityInput,
+            ),
+            "risk_priority_scoring": StructuredTool.from_function(
+                func=self._business_risk_priority_scoring,
+                name="risk_priority_scoring",
+                description="Score risk evidence by impact, severity, and confidence.",
+                args_schema=RiskPriorityInput,
+            ),
+            "opportunity_finder": StructuredTool.from_function(
+                func=self._business_opportunity_finder,
+                name="opportunity_finder",
+                description="Find growth opportunity candidates.",
+                args_schema=OpportunityFinderInput,
+            ),
+            "root_cause_hypothesis": StructuredTool.from_function(
+                func=self._business_root_cause_hypothesis,
+                name="root_cause_hypothesis",
+                description="Generate possible root-cause hypotheses from risk evidence.",
+                args_schema=RootCauseInput,
+            ),
+            "recommendation_builder": StructuredTool.from_function(
+                func=self._business_recommendation_builder,
+                name="recommendation_builder",
+                description="Build actionable recommendations from risks and opportunities.",
+                args_schema=RecommendationInput,
+            ),
         }
 
     def _inspect_schema(self, **kwargs: Any) -> dict[str, Any]:
         started = perf_counter()
         payload = InspectSchemaInput.model_validate(kwargs)
         try:
-            columns = get_table_schema(payload.table_name)
+            if self.db_manager is not None:
+                columns = self.db_manager.get_table_info(payload.table_name).get("columns", [])
+                source = "injected_db_manager.get_table_info"
+            else:
+                columns = get_table_schema(payload.table_name)
+                source = "data_service.get_table_schema"
             output = {
                 "table_name": payload.table_name,
                 "columns": columns,
                 "column_count": len(columns),
                 "summary": f"Table {payload.table_name} has {len(columns)} columns from the active database.",
-                "source": "data_service.get_table_schema",
+                "source": source,
             }
             self._schema_cache[payload.table_name] = columns
             return self._tool_result("inspect_schema", output, started, table_name=payload.table_name).model_dump(mode="json")
@@ -241,21 +428,35 @@ class LangChainSingleAgentService:
             cached = self._profile_cache[payload.table_name]
             return self._tool_result("profile_table", dict(cached), started, table_name=payload.table_name).model_dump(mode="json")
         try:
-            quality = get_quality_report(payload.table_name)
-            output = {
-                "table_name": payload.table_name,
-                "row_count": quality.get("totalRows", 0),
-                "column_count": quality.get("totalColumns", 0),
-                "missing_values_summary": {"null_cells": quality.get("nullCells", 0)},
-                "numeric_columns": [
-                    field.get("name")
-                    for field in quality.get("fieldHealth", [])
-                    if str(field.get("dtype", "")).lower() in {"int", "integer", "float", "double", "decimal", "numeric"}
-                ],
-                "warnings": quality.get("warnings", []),
-                "summary": f"Table {payload.table_name} profile loaded from data quality service.",
-                "source": "data_service.get_quality_report",
-            }
+            if self.db_manager is not None:
+                df = self.db_manager.execute_query(f'SELECT * FROM "{payload.table_name}" LIMIT 10000')
+                numeric_columns = [str(column) for column in df.select_dtypes(include="number").columns]
+                output = {
+                    "table_name": payload.table_name,
+                    "row_count": len(df),
+                    "column_count": len(df.columns),
+                    "missing_values_summary": {"null_cells": int(df.isna().sum().sum())},
+                    "numeric_columns": numeric_columns,
+                    "warnings": [],
+                    "summary": f"Table {payload.table_name} profile loaded from injected database manager.",
+                    "source": "injected_db_manager.execute_query",
+                }
+            else:
+                quality = get_quality_report(payload.table_name)
+                output = {
+                    "table_name": payload.table_name,
+                    "row_count": quality.get("totalRows", 0),
+                    "column_count": quality.get("totalColumns", 0),
+                    "missing_values_summary": {"null_cells": quality.get("nullCells", 0)},
+                    "numeric_columns": [
+                        field.get("name")
+                        for field in quality.get("fieldHealth", [])
+                        if str(field.get("dtype", "")).lower() in {"int", "integer", "float", "double", "decimal", "numeric"}
+                    ],
+                    "warnings": quality.get("warnings", []),
+                    "summary": f"Table {payload.table_name} profile loaded from data quality service.",
+                    "source": "data_service.get_quality_report",
+                }
             self._profile_cache[payload.table_name] = dict(output)
             return self._tool_result("profile_table", output, started, table_name=payload.table_name).model_dump(mode="json")
         except Exception as exc:
@@ -485,6 +686,293 @@ class LangChainSingleAgentService:
         self._memory_notes.append(output)
         return self._tool_result("memory_write", output, started, table_name=payload.table_name).model_dump(mode="json")
 
+    def _business_validate_fields(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("validate_fields", validate_fields, FieldValidationInput, kwargs)
+
+    def _business_map_business_terms(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("map_business_terms", map_business_terms, BusinessTermMappingInput, kwargs)
+
+    def _business_compute_overall_kpis(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("compute_overall_kpis", compute_overall_kpis, TableMetricsInput, kwargs)
+
+    def _business_compare_by_dimension(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("compare_by_dimension", compare_by_dimension, DimensionAnalysisInput, kwargs)
+
+    def _business_trend_analysis(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("trend_analysis", trend_analysis, TrendAnalysisInput, kwargs)
+
+    def _business_top_bottom_analysis(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("top_bottom_analysis", top_bottom_analysis, DimensionAnalysisInput, kwargs)
+
+    def _business_refund_risk_analysis(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("refund_risk_analysis", refund_risk_analysis, MultiDimensionInput, kwargs)
+
+    def _business_discount_risk_analysis(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("discount_risk_analysis", discount_risk_analysis, MultiDimensionInput, kwargs)
+
+    def _business_profitability_analysis(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("profitability_analysis", profitability_analysis, MultiDimensionInput, kwargs)
+
+    def _business_shipping_efficiency_analysis(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("shipping_efficiency_analysis", shipping_efficiency_analysis, MultiDimensionInput, kwargs)
+
+    def _business_customer_profile_analysis(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("customer_profile_analysis", customer_profile_analysis, CustomerProfileInput, kwargs)
+
+    def _business_channel_effectiveness_analysis(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("channel_effectiveness_analysis", channel_effectiveness_analysis, ChannelEffectivenessInput, kwargs)
+
+    def _business_data_quality_check(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("data_quality_check", data_quality_check, DataQualityInput, kwargs)
+
+    def _business_risk_priority_scoring(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("risk_priority_scoring", risk_priority_scoring, RiskPriorityInput, kwargs)
+
+    def _business_opportunity_finder(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("opportunity_finder", opportunity_finder, OpportunityFinderInput, kwargs)
+
+    def _business_root_cause_hypothesis(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("root_cause_hypothesis", root_cause_hypothesis, RootCauseInput, kwargs)
+
+    def _business_recommendation_builder(self, **kwargs: Any) -> dict[str, Any]:
+        return self._business_tool_result("recommendation_builder", recommendation_builder, RecommendationInput, kwargs)
+
+    def _business_tool_result(self, tool_name: str, func: Any, input_model: type[BaseModel], kwargs: dict[str, Any]) -> dict[str, Any]:
+        started = perf_counter()
+        payload = input_model.model_validate(kwargs)
+        output_model = func(payload, db_manager=self.db_manager)
+        output = output_model.model_dump(mode="json")
+        return self._tool_result(tool_name, output, started).model_dump(mode="json")
+
+    def _run_business_orchestration(
+        self,
+        *,
+        request: AgentRuntimeRequest,
+        run: AgentRun,
+        route: Any,
+        tools: dict[str, Any],
+        provider_metadata: dict[str, Any],
+        classification: dict[str, Any],
+        prior_memory: dict[str, Any] | None,
+        warnings: list[str],
+    ) -> AgentRuntimeResult:
+        table_name = request.table_name or self._default_table_name()
+        context: dict[str, Any] = {
+            "table_name": table_name,
+            "business_results": [],
+            "business_risks": [],
+            "business_opportunities": [],
+            "business_recommendations": [],
+            "evidence_rows": [],
+            "evidence": [],
+            "memory_used": prior_memory is not None,
+        }
+
+        schema_result = self._invoke_tool(tool=tools["inspect_schema"], input_json={"table_name": table_name})
+        self._append_tool_result(run=run, result=schema_result, input_json={"table_name": table_name})
+        self._merge_tool_context(context=context, result=schema_result)
+        available_fields = self._column_names(context.get("schema") or [])
+
+        question_type = str(classification.get("question_type") or "business_health_check")
+        plan = build_analysis_plan(question_type, request.user_input, available_fields, prior_memory=prior_memory)
+        run.trace["business_question_type"] = question_type
+        run.trace["business_classification"] = classification
+        run.trace["analysis_plan"] = plan
+
+        for tool_name in plan.get("business_tools_to_call", []):
+            if tool_name not in tools:
+                warnings.append(f"business_tool_not_registered: {tool_name}")
+                continue
+            input_json = self._input_for_business_tool(
+                tool_name=tool_name,
+                request=request,
+                run=run,
+                context=context,
+                plan=plan,
+                available_fields=available_fields,
+                prior_memory=prior_memory,
+                classification=classification,
+            )
+            try:
+                tool_result = self._invoke_tool(tool=tools[tool_name], input_json=input_json)
+            except Exception as exc:
+                tool_result = self._failed_business_tool_result(tool_name, str(exc))
+            self._append_tool_result(run=run, result=tool_result, input_json=input_json)
+            self._merge_business_context(context=context, result=tool_result)
+            if tool_result.status != ToolResultStatus.COMPLETED:
+                warnings.append(tool_result.error or f"{tool_name} did not complete.")
+                run.status = AgentStatus.PARTIAL
+                break
+
+        report = build_business_report(
+            question=request.user_input,
+            question_type=question_type,
+            evidence_results=context.get("business_results") or [],
+            prior_memory=prior_memory,
+        )
+        memory_summary = build_memory_summary(
+            table_name=table_name,
+            question_type=question_type,
+            plan=plan,
+            report=report,
+            evidence_results=context.get("business_results") or [],
+        )
+        run.business_report = report
+        context["answer"] = render_business_answer(report)
+        context["business_report"] = report
+        context["business_memory_summary"] = memory_summary
+        context["provider_used"] = provider_metadata["provider_used"]
+        context["fallback_triggered"] = provider_metadata["fallback_triggered"]
+        context["fallback_reason"] = provider_metadata["fallback_reason"]
+
+        if run.status == AgentStatus.RUNNING:
+            run.status = AgentStatus.COMPLETED
+        self._populate_final_output(run=run, context=context, provider_metadata=provider_metadata)
+        run.trace["business_memory_summary"] = memory_summary
+        run.trace["business_tool_count"] = len(
+            [call for call in run.tool_calls if call.tool_name not in {"inspect_schema", "memory_read", "memory_write"}]
+        )
+        self._finalize_run(run=run, warnings=warnings)
+        return self._runtime_result(run=run, route=route, warnings=warnings)
+
+    def _input_for_business_tool(
+        self,
+        *,
+        tool_name: str,
+        request: AgentRuntimeRequest,
+        run: AgentRun,
+        context: dict[str, Any],
+        plan: dict[str, Any],
+        available_fields: list[str],
+        prior_memory: dict[str, Any] | None,
+        classification: dict[str, Any],
+    ) -> dict[str, Any]:
+        table_name = str(context.get("table_name") or request.table_name or self._default_table_name())
+        dimension = self._preferred_dimension(request.user_input, plan, available_fields, prior_memory)
+        if tool_name == "memory_read":
+            previous_run_id = request.metadata.get("previous_run_id") if isinstance(request.metadata, dict) else None
+            return {"run_id": previous_run_id, "table_name": table_name}
+        if tool_name == "memory_write":
+            return {"run_id": run.run_id, "table_name": table_name, "summary": context.get("answer") or "business report summary stored"}
+        if tool_name == "validate_fields":
+            requested = list(classification.get("requested_missing_fields") or []) or list(plan.get("required_fields") or [])
+            return {"requested_fields": requested, "table_schema": available_fields}
+        if tool_name == "map_business_terms":
+            return {"question": request.user_input, "terms": [], "available_fields": available_fields}
+        if tool_name == "compute_overall_kpis":
+            return {"table_name": table_name, "metric_set": plan.get("metrics") or []}
+        if tool_name == "compare_by_dimension":
+            return {"table_name": table_name, "dimension": dimension, "metrics": plan.get("metrics") or [], "n": 5}
+        if tool_name == "trend_analysis":
+            return {"table_name": table_name, "date_field": "order_date", "granularity": "month", "metrics": plan.get("metrics") or []}
+        if tool_name == "top_bottom_analysis":
+            top_dimension = "product" if "product" in available_fields and ("商品" in request.user_input or "产品" in request.user_input) else dimension
+            return {"table_name": table_name, "dimension": top_dimension, "metrics": ["total_sales"], "n": 5}
+        if tool_name == "refund_risk_analysis":
+            return {"table_name": table_name, "dimensions": [dimension if dimension in available_fields else "region"], "n": 5}
+        if tool_name == "discount_risk_analysis":
+            return {"table_name": table_name, "dimensions": ["category" if "category" in available_fields else dimension], "n": 5}
+        if tool_name == "profitability_analysis":
+            return {"table_name": table_name, "dimensions": ["product" if "product" in available_fields else dimension], "n": 5}
+        if tool_name == "shipping_efficiency_analysis":
+            ship_dimension = "region" if "region" in available_fields else dimension
+            return {"table_name": table_name, "dimensions": [ship_dimension], "n": 5}
+        if tool_name == "customer_profile_analysis":
+            fields = [field for field in ["customer_age", "customer_segment", "customer_gender", "city_level"] if field in available_fields]
+            return {"table_name": table_name, "fields": fields or ["customer_segment"], "n": 5}
+        if tool_name == "channel_effectiveness_analysis":
+            return {"table_name": table_name, "channel_field": "ad_channel", "n": 5}
+        if tool_name == "data_quality_check":
+            return {"table_name": table_name}
+        if tool_name == "risk_priority_scoring":
+            return {"risks": context.get("business_risks") or []}
+        if tool_name == "opportunity_finder":
+            rows = context.get("evidence_rows") or []
+            return {"evidence_rows": rows[:50], "object_type": dimension, "n": 5}
+        if tool_name == "root_cause_hypothesis":
+            return {"risks": context.get("business_risks") or [], "evidence_rows": (context.get("evidence_rows") or [])[:50]}
+        if tool_name == "recommendation_builder":
+            return {
+                "risks": context.get("business_risks") or [],
+                "opportunities": context.get("business_opportunities") or [],
+            }
+        raise ValueError(f"Unknown business tool: {tool_name}")
+
+    def _merge_business_context(self, *, context: dict[str, Any], result: ToolResult) -> None:
+        output = dict(result.output)
+        if result.tool_name in {"memory_read", "memory_write"}:
+            self._merge_tool_context(context=context, result=result)
+            return
+        context["business_results"].append(output)
+        context["evidence"].append({"type": "business_tool", "tool_name": result.tool_name, "summary": output.get("evidence_summary")})
+        context["business_risks"].extend(output.get("risks") or [])
+        context["business_opportunities"].extend(output.get("opportunities") or [])
+        context["business_recommendations"].extend(output.get("recommendations") or [])
+        data = output.get("data") or {}
+        for key in ["grouped_metrics", "top_risk_objects", "risk_objects", "high_sales_low_profit_objects", "slow_shipping_objects", "channel_quality_summary", "segment_metrics"]:
+            rows = data.get(key)
+            if isinstance(rows, list):
+                context["evidence_rows"].extend(row for row in rows if isinstance(row, dict))
+        if result.tool_name == "risk_priority_scoring" and output.get("risks"):
+            context["business_risks"] = list(output.get("risks") or [])
+        if result.tool_name == "opportunity_finder" and output.get("opportunities"):
+            context["business_opportunities"] = list(output.get("opportunities") or [])
+        if result.tool_name == "recommendation_builder" and output.get("recommendations"):
+            context["business_recommendations"] = list(output.get("recommendations") or [])
+
+    def _preferred_dimension(
+        self,
+        question: str,
+        plan: dict[str, Any],
+        available_fields: list[str],
+        prior_memory: dict[str, Any] | None,
+    ) -> str:
+        text = question or ""
+        candidates: list[str] = []
+        if "品类" in text or "商品" in text or "产品" in text:
+            candidates.extend(["category", "product"])
+        if "渠道" in text or "广告" in text or "投放" in text:
+            candidates.append("ad_channel")
+        if "城市等级" in text or "三四线" in text or "一线" in text:
+            candidates.append("city_level")
+        if "地区" in text or "区域" in text or "华南" in text or "华东" in text:
+            candidates.append("region")
+        if prior_memory:
+            candidates.extend(str(item) for item in prior_memory.get("focus_dimensions") or [])
+        candidates.extend(str(item) for item in plan.get("dimensions") or [])
+        candidates.extend(["region", "category", "ad_channel", "city_level", "product"])
+        for candidate in candidates:
+            if candidate in available_fields:
+                return candidate
+        return available_fields[0] if available_fields else "region"
+
+    def _failed_business_tool_result(self, tool_name: str, error: str) -> ToolResult:
+        output = {
+            "tool_name": tool_name,
+            "status": "partial",
+            "evidence_summary": f"{tool_name} 未能完成，已受控降级。",
+            "missing_fields": [],
+            "fallback_message": f"{tool_name} 暂时不可用：{error}",
+            "can_continue": True,
+            "data": {},
+        }
+        return ToolResult(
+            tool_name=tool_name,
+            status=ToolResultStatus.FAILED,
+            output=output,
+            evidence_refs=[
+                EvidenceRef(
+                    source_type="langchain_single_agent",
+                    source_name=tool_name,
+                    summary=output["evidence_summary"],
+                    data_ref={"controlled_failure": True},
+                )
+            ],
+            duration_ms=0,
+            error=error,
+            is_simulated=True,
+        )
+
     def _invoke_tool(self, *, tool: Any, input_json: dict[str, Any]) -> ToolResult:
         payload = tool.invoke(input_json)
         return ToolResult.model_validate(payload)
@@ -634,6 +1122,8 @@ class LangChainSingleAgentService:
         provider_metadata: dict[str, Any],
     ) -> None:
         run.answer = str(context.get("answer") or self._deterministic_summary(run.user_goal, context.get("sql"), context.get("rows") or []))
+        if isinstance(context.get("business_report"), dict):
+            run.business_report = context.get("business_report")
         run.sql = str(context.get("sql") or "")
         run.evidence = list(context.get("evidence") or [])
         run.result_preview = context.get("result_preview") or {"columns": [], "rows": [], "row_count": 0}
@@ -979,6 +1469,13 @@ class LangChainSingleAgentService:
         return default
 
     def _default_table_name(self) -> str:
+        if self.db_manager is not None:
+            try:
+                tables = self.db_manager.list_tables()
+                if tables:
+                    return str(tables[0].get("name") or "mock_sales")
+            except Exception:
+                pass
         try:
             from backend.services.data_service import list_tables
 
@@ -1007,7 +1504,7 @@ class LangChainSingleAgentService:
                 EvidenceRef(
                     source_type="langchain_single_agent",
                     source_name=tool_name,
-                    summary=str(output.get("summary") or f"{tool_name} completed."),
+                    summary=str(output.get("summary") or output.get("evidence_summary") or f"{tool_name} completed."),
                     data_ref={"table_name": table_name, "status": status.value},
                 )
             ],
@@ -1024,8 +1521,9 @@ def run_langchain_single_agent(
     request: AgentRuntimeRequest,
     *,
     memory_store: AgentRunMemoryStore | None = None,
+    db_manager: DatabaseManager | None = None,
 ) -> AgentRuntimeResult:
-    service = LangChainSingleAgentService(memory_store=memory_store)
+    service = LangChainSingleAgentService(memory_store=memory_store, db_manager=db_manager)
     return service.run(request)
 
 

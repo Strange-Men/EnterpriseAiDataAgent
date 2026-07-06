@@ -2,6 +2,18 @@
 
 > Last updated: 2026-06-26
 
+## M6.5 LangChain Business Agent Orchestration
+
+- M6.5 LangChain Agent orchestration enhancement completed on branch `m6-langchain-business-agent-orchestration`.
+- Before M6.5, `origin/m6-business-analysis-tools` was merged into `master`, validated, and pushed.
+- Added `backend/agent/business_orchestration.py` for business question classification, analysis plan generation, Business Report assembly, anti-hallucination field handling, and compact memory summaries.
+- Wrapped and registered M6.4 business analysis tools as LangChain `StructuredTool` entries in the existing Single Agent backend loop.
+- Extended `AgentRun` with a backward-compatible `business_report` field while preserving `answer`, `sql`, `evidence`, `warnings`, `trace`, and `tool_calls`.
+- Added focused tests in `tests/test_m6_langchain_business_agent_orchestration.py`.
+- Added M6.5 report at `docs/reports/m6-langchain-business-agent-orchestration.md`.
+- Backend import, M6.5 orchestration tests, M6.4 business tools tests, M6.3 semantic layer tests, M6.2 demo dataset tests, and existing LangChain Single Agent regression passed.
+- M6.6 Business Report frontend adaptation has not started. M6.7/M6.8 have not started. Frontend UI was not changed. Multi-Agent, LangGraph, and RAG were not added. Tag has not been created.
+
 ## M6.4 Business Analysis Tools
 
 - M6.4 Business Analysis Tools completed on branch `m6-business-analysis-tools`.
