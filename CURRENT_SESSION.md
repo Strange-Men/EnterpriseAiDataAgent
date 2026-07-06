@@ -2,6 +2,18 @@
 
 > Last updated: 2026-06-26
 
+## M6 Business Analyst Agent Architecture Docs
+
+- M6.1 planning documentation prepared on branch `m6-business-analyst-agent-architecture-docs`.
+- This round only documents the M6 Business Analyst Agent architecture; no frontend source, backend source, demoExcel, CSV, XLSX, tag, or master merge work was done.
+- M6 direction is calibrated from plain Text-to-SQL toward a Business Analyst Agent: understand question -> decompose metrics -> query evidence -> judge risks/opportunities -> propose actions -> support follow-up.
+- Added main report: `docs/reports/m6-business-analyst-agent-architecture.md`.
+- Added research report: `docs/reports/m6-business-capability-research.md`.
+- Added demo dataset redesign spec: `docs/reports/m6-demo-dataset-redesign-spec.md`.
+- Added pressure test plan: `docs/reports/m6-pressure-test-plan.md`.
+- Updated `docs/DEV_STATUS.md` and `docs/PROJECT_CONTEXT.md`.
+- M6 implementation has not started. Multi-Agent, LangGraph, and RAG have not started. Tag has not been created.
+
 ## M5 Render Doubao Real LLM Agent QA
 
 - M5 Render Doubao Real LLM Agent QA completed on branch `m5-render-doubao-real-llm-agent-qa` and merged to master.
