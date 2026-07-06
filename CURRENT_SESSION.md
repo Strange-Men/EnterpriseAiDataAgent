@@ -2,6 +2,16 @@
 
 > Last updated: 2026-06-26
 
+## M6.3 Business Semantic Layer
+
+- M6.3 Business Semantic Layer completed on branch `m6-business-semantic-layer`.
+- Before M6.3, `origin/m6-business-analyst-agent-architecture-docs` and `origin/m6-demo-business-dataset-redesign` were merged into `master`, validated, and pushed.
+- Added `backend/semantic/` with field dictionary, business term mapping, metric definitions, default thresholds, dynamic quantile thresholds, missing-field fallback, and analysis templates.
+- Added focused tests in `tests/test_m6_business_semantic_layer.py`.
+- Added M6.3 report at `docs/reports/m6-business-semantic-layer.md`.
+- Backend import, semantic layer tests, and demo dataset tests passed.
+- M6.4 Business Analysis Tools has not started. M6.5/M6.6/M6.7/M6.8 have not started. Frontend UI and Agent orchestration were not changed. Tag has not been created.
+
 ## M6 Business Analyst Agent Architecture Docs
 
 - M6.1 planning documentation prepared on branch `m6-business-analyst-agent-architecture-docs`.
