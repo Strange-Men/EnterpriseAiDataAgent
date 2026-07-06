@@ -440,3 +440,11 @@ Do not start M5 until user confirms.
 - M5 Final Astryx UX Redesign merged to master on 2026-07-06.
 - Backend import, pytest with `PYTHONPATH=.`, frontend tests, frontend build, Astryx doctor, D-drive cache check, and safety search passed after merge.
 - M5 Final Tag is recommended after master CI passes. M6 has not started. Tag has not been created.
+
+## M5 Final Astryx UX Redesign Hard Fix
+
+- M5 Final Astryx UX Redesign Hard Fix completed on 2026-07-06.
+- The visible left sidebar and five-entry main navigation were removed from the default frontend experience.
+- The app now opens directly into a single business data analysis workbench with History and Settings as top-right drawers.
+- Backend import, pytest with `PYTHONPATH=.`, frontend tests, frontend build, Astryx doctor, browser visual check, old-structure search, and safety search passed.
+- M6 has not started. Tag has not been created.
