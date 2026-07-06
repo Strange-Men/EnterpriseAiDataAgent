@@ -14,6 +14,18 @@
 - Updated `docs/DEV_STATUS.md` and `docs/PROJECT_CONTEXT.md`.
 - M6 implementation has not started. Multi-Agent, LangGraph, and RAG have not started. Tag has not been created.
 
+## M6.2 Demo Business Dataset Redesign
+
+- M6.2 demoExcel redesign completed on branch `m6-demo-business-dataset-redesign`.
+- Generated `testExcel/demo_sales_business_50k.csv` and `testExcel/demo_sales_business_50k.xlsx` with 50,000 rows and 28 required fields.
+- Added reusable generator script at `scripts/generate_demo_sales_business_dataset.py` using faker + conditional logic with seed `20260706`.
+- Added schema manifest at `docs/reports/m6-demo-sales-business-schema-manifest.json`.
+- Added profile summary at `docs/reports/m6-demo-sales-business-profile-summary.md`.
+- Added M6.2 report at `docs/reports/m6-demo-business-dataset-redesign.md`.
+- Added lightweight generator tests in `tests/test_m6_demo_business_dataset.py`.
+- CSV/XLSX consistency, required fields, order id uniqueness, anomaly ratios, upload/schema/profile verification, backend import and focused tests passed.
+- M6.3 Business Semantic Layer has not started. M6.4/M6.5 have not started. No frontend/backend Agent implementation was changed. Tag has not been created.
+
 ## M5 Render Doubao Real LLM Agent QA
 
 - M5 Render Doubao Real LLM Agent QA completed on branch `m5-render-doubao-real-llm-agent-qa` and merged to master.
