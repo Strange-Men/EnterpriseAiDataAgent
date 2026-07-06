@@ -4,12 +4,12 @@
 
 ## Current Branch
 
-- Branch: `m6-business-semantic-layer`
-- Stage: M6.3 Business Semantic Layer
+- Branch: `m6-business-analysis-tools`
+- Stage: M6.4 Business Analysis Tools
 
 ## Current Work
 
-M6.3 Business Semantic Layer is complete and ready for review.
+M6.4 Business Analysis Tools is complete and ready for review.
 
 Completed:
 
@@ -27,12 +27,15 @@ Completed:
 - Added `backend/semantic/` field dictionary, business term mapping, metric definitions, thresholds, dynamic threshold helper, missing-field fallback, and analysis templates.
 - Added `tests/test_m6_business_semantic_layer.py`.
 - Added `docs/reports/m6-business-semantic-layer.md`.
+- Merged M6.3 Business Semantic Layer into master.
+- Added `backend/business_tools/` typed business analysis tools.
+- Added `tests/test_m6_business_analysis_tools.py`.
+- Added `docs/reports/m6-business-analysis-tools.md`.
 
 ## Boundaries
 
 This branch does not:
 
-- Start M6.4 Business Analysis Tools.
 - Start M6.5 LangChain Agent orchestration changes.
 - Start M6.6 Business Report frontend adaptation.
 - Start M6.7 pressure testing.
@@ -44,4 +47,4 @@ This branch does not:
 
 ## Next Step
 
-Wait for user review. If approved, the next stage is M6.4 Business Analysis Tools.
+Wait for user review. If approved, the next stage is M6.5 LangChain Agent orchestration enhancement.
