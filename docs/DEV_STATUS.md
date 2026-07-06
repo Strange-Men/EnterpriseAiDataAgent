@@ -4,12 +4,12 @@
 
 ## Current Branch
 
-- Branch: `master`
-- Stage: M6.1 and M6.2 merge baseline
+- Branch: `m6-business-semantic-layer`
+- Stage: M6.3 Business Semantic Layer
 
 ## Current Work
 
-M6.1 planning documentation and M6.2 demo business dataset have been merged into the master baseline for M6.3 preparation.
+M6.3 Business Semantic Layer is complete and ready for review.
 
 Completed:
 
@@ -24,14 +24,19 @@ Completed:
 - Added schema manifest and profile summary reports.
 - Added M6.2 completion report.
 - Added lightweight generator tests.
+- Added `backend/semantic/` field dictionary, business term mapping, metric definitions, thresholds, dynamic threshold helper, missing-field fallback, and analysis templates.
+- Added `tests/test_m6_business_semantic_layer.py`.
+- Added `docs/reports/m6-business-semantic-layer.md`.
 
 ## Boundaries
 
 This branch does not:
 
-- Start M6.3 Business Semantic Layer.
 - Start M6.4 Business Analysis Tools.
 - Start M6.5 LangChain Agent orchestration changes.
+- Start M6.6 Business Report frontend adaptation.
+- Start M6.7 pressure testing.
+- Start M6.8 final QA.
 - Modify frontend UI.
 - Modify Agent orchestration.
 - Add Multi-Agent, LangGraph, or RAG.
@@ -39,4 +44,4 @@ This branch does not:
 
 ## Next Step
 
-Create the M6.3 branch from latest master and implement Business Semantic Layer only.
+Wait for user review. If approved, the next stage is M6.4 Business Analysis Tools.

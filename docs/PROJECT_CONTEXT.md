@@ -7,7 +7,7 @@
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
 - Current product state: M5 Agent main path is runnable after the final Astryx UX simplification and Doubao provider QA.
-- Current stage: M6.2 merged baseline, preparing M6.3 Business Semantic Layer.
+- Current stage: M6.3 Business Semantic Layer completed for review.
 
 ## M6 Direction
 
@@ -17,7 +17,7 @@ M6 is being planned as a Business Analyst Agent upgrade:
 understand question -> decompose metrics -> query evidence -> judge risk -> find opportunity -> recommend action -> support follow-up
 ```
 
-M6.1 is documentation only. M6.2 adds the synthetic business demo dataset. M6.3 will add the backend Business Semantic Layer only.
+M6.1 is documentation only. M6.2 adds the synthetic business demo dataset. M6.3 adds the backend Business Semantic Layer only.
 
 ## Important Boundary
 
@@ -40,6 +40,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - `docs/reports/m6-demo-business-dataset-redesign.md`
 - `docs/reports/m6-demo-sales-business-schema-manifest.json`
 - `docs/reports/m6-demo-sales-business-profile-summary.md`
+- `docs/reports/m6-business-semantic-layer.md`
 
 ## M6.2 Dataset
 
@@ -52,4 +53,4 @@ The dataset supports Business Analyst Agent pressure-test scenarios such as busi
 
 ## Next Stage
 
-M6.3 Business Semantic Layer is the next implementation stage. It should define field dictionary, business term mapping, metric definitions, default thresholds, dynamic quantile thresholds, missing-field fallback, and analysis templates without Agent orchestration or frontend changes.
+M6.4 Business Analysis Tools is the next implementation stage after user review. M6.3 did not change Agent orchestration or frontend UI.
