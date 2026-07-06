@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
@@ -15,6 +15,7 @@ import {
   Settings,
   Sparkles,
   Upload,
+  X,
 } from "lucide-react";
 import {
   createAgentRun,
@@ -84,7 +85,7 @@ function toRows(value: unknown): Record<string, unknown>[] {
 function firstMeaningfulSentence(text: string): string {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (!normalized) return "";
-  const match = normalized.match(/^(.+?[。.!?！？])\s/);
+  const match = normalized.match(/^(.+?[.!?])\s/);
   return match?.[1] ?? normalized.slice(0, 180);
 }
 
@@ -163,10 +164,14 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(focus === "history" || focus === "results");
+  const [settingsOpen, setSettingsOpen] = useState(focus === "settings");
 
   const tableName = activeTable || tables[0]?.name || null;
   const currentTable = tables.find((table) => table.name === tableName);
   const activeRecord = records.find((record) => record.runId === activeRunId) ?? records[0] ?? null;
+  const provider = storeProvider || "mock";
+  const initialExpertOpen = focus === "expert";
   const nextSteps = useMemo(
     () => [
       t("astryx.next.month"),
@@ -188,6 +193,11 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
   useEffect(() => {
     if (!storeProvider && llmProvider) setStoreProvider(llmProvider);
   }, [llmProvider, setStoreProvider, storeProvider]);
+
+  useEffect(() => {
+    if (focus === "history" || focus === "results") setHistoryOpen(true);
+    if (focus === "settings") setSettingsOpen(true);
+  }, [focus]);
 
   const refreshTables = useCallback(async () => {
     const nextTables = await fetchTables();
@@ -241,6 +251,13 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
     }
   }, [loadTableContext, refreshTables, setUploadedFiles, t, uploadedFiles]);
 
+  const updateProvider = useCallback((nextProvider: AgentProviderRequested) => {
+    setStoreProvider(nextProvider);
+    if (WORKSPACE_PROVIDERS.has(nextProvider as LlmProvider)) {
+      setLlmProvider(nextProvider as LlmProvider);
+    }
+  }, [setLlmProvider, setStoreProvider]);
+
   const handleAnalyze = useCallback(async () => {
     const trimmed = question.trim();
     if (!trimmed) {
@@ -258,7 +275,7 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
       const response = await createAgentRun({
         user_input: trimmed,
         table_name: tableName,
-        provider_requested: storeProvider || "mock",
+        provider_requested: provider,
         mode: "skeleton",
       });
       const record = buildRecord(response.run, trimmed, tableName, toStringList(response.warnings), nextSteps);
@@ -268,56 +285,48 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
     } finally {
       setIsAnalyzing(false);
     }
-  }, [addRecord, nextSteps, question, storeProvider, tableName, t]);
-
-  const updateProvider = useCallback((provider: AgentProviderRequested) => {
-    setStoreProvider(provider);
-    if (WORKSPACE_PROVIDERS.has(provider as LlmProvider)) {
-      setLlmProvider(provider as LlmProvider);
-    }
-  }, [setLlmProvider, setStoreProvider]);
-
-  const initialHistoryOpen = focus === "history" || focus === "results";
-  const initialSettingsOpen = focus === "settings";
-  const initialExpertOpen = focus === "expert";
+  }, [addRecord, nextSteps, provider, question, tableName, t]);
 
   return (
-    <div data-astryx-workbench className="min-h-full bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_34%),var(--bg-primary)]">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-6 lg:px-8">
-        <section className="grid gap-5 rounded-2xl border border-[var(--astryx-line)] bg-[var(--astryx-panel)] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)] lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-5">
-            <div className="space-y-3">
-              <Badge variant="accent" size="md">{t("astryx.brand-pill")}</Badge>
-              <div className="max-w-2xl space-y-3">
-                <h1 className="text-2xl font-semibold leading-tight text-[var(--text-primary)] md:text-3xl">
-                  {t("astryx.hero.title")}
-                </h1>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  {t("astryx.hero.subtitle")}
-                </p>
-              </div>
+    <div data-astryx-workbench className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_34%),var(--bg-primary)]">
+      <header className="sticky top-0 z-30 border-b border-[var(--astryx-line)] bg-[var(--bg-primary)]/92 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-subtle)] text-sm font-bold text-[var(--accent)]">
+              EAI
             </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{t("astryx.app-title")}</p>
+              <p className="truncate text-xs text-[var(--text-muted)]">
+                {t("astryx.header.table")}: {currentTable?.name ?? t("astryx.empty.table")}
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setHistoryOpen(true)} leftIcon={<History className="h-3.5 w-3.5" />}>
+              {t("astryx.history.button")}
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setSettingsOpen(true)} leftIcon={<Settings className="h-3.5 w-3.5" />}>
+              {t("astryx.settings.button")}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={toggleLanguage} leftIcon={<Languages className="h-3.5 w-3.5" />}>
+              {t(language === "zh" ? "astryx.language.en" : "astryx.language.zh")}
+            </Button>
+          </div>
+        </div>
+      </header>
 
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                size="lg"
-                variant="primary"
-                leftIcon={<Upload className="h-4 w-4" />}
-                onClick={() => fileInputRef.current?.click()}
-                loading={isUploading}
-              >
-                {t("astryx.upload.cta")}
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                variant="secondary"
-                leftIcon={<Sparkles className="h-4 w-4" />}
-                onClick={() => document.getElementById("astryx-question")?.focus()}
-              >
-                {t("astryx.analysis.cta")}
-              </Button>
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-6 lg:px-8">
+        <section className="grid gap-5 rounded-2xl border border-[var(--astryx-line)] bg-[var(--astryx-panel)] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)] lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-4">
+            <Badge variant="accent" size="md">{t("astryx.brand-pill")}</Badge>
+            <div className="max-w-3xl space-y-3">
+              <h1 className="text-2xl font-semibold leading-tight text-[var(--text-primary)] md:text-3xl">
+                {t("astryx.hero.title")}
+              </h1>
+              <p className="text-sm leading-6 text-[var(--text-muted)]">
+                {t("astryx.hero.subtitle")}
+              </p>
             </div>
           </div>
 
@@ -336,7 +345,7 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
         )}
 
         <main className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <aside className="space-y-4">
+          <section className="space-y-4">
             <Panel title={t("astryx.data.title")} icon={<Upload className="h-4 w-4" />}>
               <input
                 ref={fileInputRef}
@@ -392,32 +401,10 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
 
               <QualitySummary score={qualityReport?.overallScore ?? null} warnings={qualityReport?.warnings ?? []} />
             </Panel>
-
-            <Panel title={t("astryx.settings.title")} icon={<Settings className="h-4 w-4" />} defaultOpen={initialSettingsOpen}>
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[var(--text-muted)]">{t("astryx.settings.provider")}</label>
-                  <Select value={storeProvider} onChange={(event) => updateProvider(event.target.value)}>
-                    {PROVIDERS.map((provider) => (
-                      <option key={provider.value} value={provider.value}>{provider.label}</option>
-                    ))}
-                  </Select>
-                  <p className="text-xs leading-5 text-[var(--text-muted)]">{t("astryx.settings.provider-hint")}</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="secondary" size="sm" onClick={toggleLanguage} leftIcon={<Languages className="h-3.5 w-3.5" />}>
-                    {language === "zh" ? "English" : "中文"}
-                  </Button>
-                  <Button type="button" variant="secondary" size="sm" onClick={toggleTheme} leftIcon={<Moon className="h-3.5 w-3.5" />}>
-                    {theme === "dark" ? t("astryx.settings.light") : t("astryx.settings.dark")}
-                  </Button>
-                </div>
-              </div>
-            </Panel>
-          </aside>
+          </section>
 
           <section className="space-y-5">
-            <Panel title={t("astryx.ask.title")} icon={<Sparkles className="h-4 w-4" />} defaultOpen={focus !== "results" && focus !== "history" && focus !== "settings"}>
+            <Panel title={t("astryx.ask.title")} icon={<Sparkles className="h-4 w-4" />}>
               <div className="space-y-4">
                 <Textarea
                   id="astryx-question"
@@ -440,8 +427,20 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
                     </button>
                   ))}
                 </div>
-                <div className="flex flex-col gap-3 border-t border-[var(--border-default)] pt-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs leading-5 text-[var(--text-muted)]">{t("astryx.ask.helper")}</p>
+                <div className="flex flex-col gap-3 border-t border-[var(--border-default)] pt-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <p className="text-xs leading-5 text-[var(--text-muted)]">{t("astryx.ask.helper")}</p>
+                    <Select
+                      value={provider}
+                      onChange={(event) => updateProvider(event.target.value)}
+                      className="max-w-[150px] !py-1"
+                      aria-label={t("astryx.settings.provider")}
+                    >
+                      {PROVIDERS.map((item) => (
+                        <option key={item.value} value={item.value}>{item.label}</option>
+                      ))}
+                    </Select>
+                  </div>
                   <Button
                     type="button"
                     variant="primary"
@@ -459,41 +458,6 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
 
             <BusinessResult record={activeRecord} rows={currentData ?? []} columns={currentColumns} />
 
-            <Panel title={t("astryx.history.title")} icon={<History className="h-4 w-4" />} defaultOpen={initialHistoryOpen}>
-              {records.length === 0 ? (
-                <p className="text-sm text-[var(--text-muted)]">{t("astryx.history.empty")}</p>
-              ) : (
-                <div className="grid gap-2">
-                  {records.slice(0, 8).map((record) => (
-                    <button
-                      key={record.runId}
-                      type="button"
-                      onClick={() => setActiveRunId(record.runId)}
-                      className={cn(
-                        "rounded-xl border px-3 py-3 text-left transition-colors",
-                        activeRecord?.runId === record.runId
-                          ? "border-[var(--accent)] bg-[var(--accent-subtle)]"
-                          : "border-[var(--border-default)] bg-[var(--bg-primary)] hover:border-[var(--accent)]"
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-[var(--text-primary)]">{record.question}</p>
-                          <p className="mt-1 text-xs text-[var(--text-muted)]">
-                            {record.tableName ?? t("astryx.empty.table")} · {formatDate(record.createdAt)}
-                          </p>
-                        </div>
-                        <Badge variant={record.status === "completed" ? "success" : record.status === "failed" ? "error" : "muted"}>
-                          {record.status === "completed" ? t("astryx.status.completed") : record.status}
-                        </Badge>
-                      </div>
-                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--text-secondary)]">{record.answer}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </Panel>
-
             <Panel title={t("astryx.expert.title")} icon={<Database className="h-4 w-4" />} defaultOpen={initialExpertOpen}>
               <p className="mb-3 text-xs leading-5 text-[var(--text-muted)]">{t("astryx.expert.desc")}</p>
               <div className="min-h-[560px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
@@ -503,6 +467,100 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
           </section>
         </main>
       </div>
+
+      <WorkbenchDrawer
+        open={historyOpen}
+        title={t("astryx.history.title")}
+        icon={<History className="h-4 w-4" />}
+        onClose={() => setHistoryOpen(false)}
+      >
+        <HistoryList
+          records={records}
+          activeRunId={activeRecord?.runId ?? null}
+          onSelect={(runId) => {
+            setActiveRunId(runId);
+            setHistoryOpen(false);
+          }}
+        />
+      </WorkbenchDrawer>
+
+      <WorkbenchDrawer
+        open={settingsOpen}
+        title={t("astryx.settings.title")}
+        icon={<Settings className="h-4 w-4" />}
+        onClose={() => setSettingsOpen(false)}
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-[var(--text-muted)]">{t("astryx.settings.provider")}</label>
+            <Select value={provider} onChange={(event) => updateProvider(event.target.value)}>
+              {PROVIDERS.map((item) => (
+                <option key={item.value} value={item.value}>{item.label}</option>
+              ))}
+            </Select>
+            <p className="text-xs leading-5 text-[var(--text-muted)]">{t("astryx.settings.provider-hint")}</p>
+          </div>
+          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-3">
+            <p className="text-xs font-medium text-[var(--text-primary)]">{t("astryx.settings.fallback")}</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">{t("astryx.settings.fallback-desc")}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={toggleLanguage} leftIcon={<Languages className="h-3.5 w-3.5" />}>
+              {t(language === "zh" ? "astryx.language.en" : "astryx.language.zh")}
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={toggleTheme} leftIcon={<Moon className="h-3.5 w-3.5" />}>
+              {theme === "dark" ? t("astryx.settings.light") : t("astryx.settings.dark")}
+            </Button>
+          </div>
+        </div>
+      </WorkbenchDrawer>
+    </div>
+  );
+}
+
+function WorkbenchDrawer({
+  open,
+  title,
+  icon,
+  children,
+  onClose,
+}: {
+  open: boolean;
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+      <button
+        type="button"
+        aria-label={t("astryx.drawer.close")}
+        className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <section className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-[var(--astryx-line)] bg-[var(--bg-secondary)] shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--astryx-line)] px-5 py-4">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+            <span className="text-[var(--accent)]">{icon}</span>
+            {title}
+          </h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            aria-label={t("astryx.drawer.close")}
+            leftIcon={<X className="h-3.5 w-3.5" />}
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">
+          {children}
+        </div>
+      </section>
     </div>
   );
 }
@@ -514,8 +572,8 @@ function Panel({
   defaultOpen = true,
 }: {
   title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
+  icon: ReactNode;
+  children: ReactNode;
   defaultOpen?: boolean;
 }) {
   return (
@@ -537,7 +595,7 @@ function Panel({
   );
 }
 
-function StatusTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function StatusTile({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-3">
       <div className="flex items-center gap-2 text-[var(--text-muted)]">
@@ -553,7 +611,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
       <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{value}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-[var(--text-primary)]">{value}</p>
     </div>
   );
 }
@@ -728,5 +786,51 @@ function BusinessResult({
         </details>
       </div>
     </Panel>
+  );
+}
+
+function HistoryList({
+  records,
+  activeRunId,
+  onSelect,
+}: {
+  records: BusinessAnalysisRecord[];
+  activeRunId: string | null;
+  onSelect: (runId: string) => void;
+}) {
+  const { t } = useTranslation();
+  if (records.length === 0) {
+    return <p className="text-sm text-[var(--text-muted)]">{t("astryx.history.empty")}</p>;
+  }
+
+  return (
+    <div className="grid gap-2">
+      {records.slice(0, 12).map((record) => (
+        <button
+          key={record.runId}
+          type="button"
+          onClick={() => onSelect(record.runId)}
+          className={cn(
+            "rounded-xl border px-3 py-3 text-left transition-colors",
+            activeRunId === record.runId
+              ? "border-[var(--accent)] bg-[var(--accent-subtle)]"
+              : "border-[var(--border-default)] bg-[var(--bg-primary)] hover:border-[var(--accent)]"
+          )}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-[var(--text-primary)]">{record.question}</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                {record.tableName ?? t("astryx.empty.table")} · {formatDate(record.createdAt)}
+              </p>
+            </div>
+            <Badge variant={record.status === "completed" ? "success" : record.status === "failed" ? "error" : "muted"}>
+              {record.status === "completed" ? t("astryx.status.completed") : record.status}
+            </Badge>
+          </div>
+          <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--text-secondary)]">{record.answer}</p>
+        </button>
+      ))}
+    </div>
   );
 }
