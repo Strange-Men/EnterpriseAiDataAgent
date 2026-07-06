@@ -2,6 +2,16 @@
 
 > Last updated: 2026-06-26
 
+## M6.4 Business Analysis Tools
+
+- M6.4 Business Analysis Tools completed on branch `m6-business-analysis-tools`.
+- Before M6.4, `origin/m6-business-semantic-layer` was merged into `master`, validated, and pushed.
+- Added `backend/business_tools/` with typed models, read-only table loading helpers, KPI tools, dimension tools, trend tools, risk tools, opportunity tools, quality tools, and recommendation tools.
+- Added focused tests in `tests/test_m6_business_analysis_tools.py`.
+- Added M6.4 report at `docs/reports/m6-business-analysis-tools.md`.
+- Backend import, M6.4 business tools tests, M6.3 semantic layer tests, and M6.2 demo dataset tests passed.
+- M6.5 LangChain Agent orchestration enhancement has not started. M6.6/M6.7/M6.8 have not started. Frontend UI and Agent run flow were not changed. Tag has not been created.
+
 ## M6.3 Business Semantic Layer
 
 - M6.3 Business Semantic Layer completed on branch `m6-business-semantic-layer`.

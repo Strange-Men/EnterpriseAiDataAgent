@@ -7,7 +7,7 @@
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
 - Current product state: M5 Agent main path is runnable after the final Astryx UX simplification and Doubao provider QA.
-- Current stage: M6.3 Business Semantic Layer completed for review.
+- Current stage: M6.4 Business Analysis Tools completed for review.
 
 ## M6 Direction
 
@@ -17,7 +17,7 @@ M6 is being planned as a Business Analyst Agent upgrade:
 understand question -> decompose metrics -> query evidence -> judge risk -> find opportunity -> recommend action -> support follow-up
 ```
 
-M6.1 is documentation only. M6.2 adds the synthetic business demo dataset. M6.3 adds the backend Business Semantic Layer only.
+M6.1 is documentation only. M6.2 adds the synthetic business demo dataset. M6.3 adds the backend Business Semantic Layer. M6.4 adds deterministic backend Business Analysis Tools.
 
 ## Important Boundary
 
@@ -26,7 +26,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - M6.1 focuses on Business Analyst Agent architecture.
 - M6.2 focuses on demoExcel / demo CSV redesign.
 - M6.3 focuses on Business Semantic Layer.
-- M6.4 Business Analysis Tools have not started.
+- M6.4 focuses on Business Analysis Tools.
 - M6.5 LangChain Agent orchestration enhancement has not started.
 - Frontend Business Report adaptation, Multi-Agent, LangGraph, and RAG have not started.
 - Any future Multi-Agent expansion must be separately reviewed and approved.
@@ -41,6 +41,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - `docs/reports/m6-demo-sales-business-schema-manifest.json`
 - `docs/reports/m6-demo-sales-business-profile-summary.md`
 - `docs/reports/m6-business-semantic-layer.md`
+- `docs/reports/m6-business-analysis-tools.md`
 
 ## M6.2 Dataset
 
@@ -53,4 +54,4 @@ The dataset supports Business Analyst Agent pressure-test scenarios such as busi
 
 ## Next Stage
 
-M6.4 Business Analysis Tools is the next implementation stage after user review. M6.3 did not change Agent orchestration or frontend UI.
+M6.5 LangChain Agent orchestration enhancement is the next implementation stage after user review. M6.4 did not register LangChain tools, change Agent orchestration, or touch frontend UI.
