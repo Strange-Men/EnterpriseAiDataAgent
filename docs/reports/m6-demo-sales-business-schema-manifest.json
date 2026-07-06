@@ -1,0 +1,208 @@
+{
+  "dataset": "demo_sales_business_50k",
+  "seed": 20260706,
+  "row_count": 50000,
+  "column_count": 28,
+  "columns": [
+    {
+      "name": "order_id",
+      "type": "string",
+      "business_meaning": "Unique synthetic order identifier.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "order_date",
+      "type": "date",
+      "business_meaning": "Order date in ISO format.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "ship_date",
+      "type": "date",
+      "business_meaning": "Shipment date in ISO format.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "shipping_days",
+      "type": "integer",
+      "business_meaning": "Days between order and shipment.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "region",
+      "type": "string",
+      "business_meaning": "Business region.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "province",
+      "type": "string",
+      "business_meaning": "Province-level market.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "city",
+      "type": "string",
+      "business_meaning": "City market.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "city_level",
+      "type": "string",
+      "business_meaning": "City tier.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "customer_id",
+      "type": "string",
+      "business_meaning": "Synthetic repeatable customer identifier.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "customer_segment",
+      "type": "string",
+      "business_meaning": "Customer segment.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "customer_age",
+      "type": "integer",
+      "business_meaning": "Synthetic customer age.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "customer_gender",
+      "type": "string",
+      "business_meaning": "Synthetic customer gender bucket.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "ad_channel",
+      "type": "string",
+      "business_meaning": "Acquisition channel.",
+      "missing_rate": 0.01
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "business_meaning": "Product category.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "subcategory",
+      "type": "string",
+      "business_meaning": "Product subcategory.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "product",
+      "type": "string",
+      "business_meaning": "Product name.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "sales_amount",
+      "type": "decimal(2)",
+      "business_meaning": "Order sales amount.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "quantity",
+      "type": "integer",
+      "business_meaning": "Order quantity.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "unit_price",
+      "type": "decimal(2)",
+      "business_meaning": "Unit price before discount.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "discount",
+      "type": "decimal(4)",
+      "business_meaning": "Discount rate.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "cost_amount",
+      "type": "decimal(2)",
+      "business_meaning": "Order cost amount.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "profit_amount",
+      "type": "decimal(2)",
+      "business_meaning": "Order profit after cost and refund.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "refund_amount",
+      "type": "decimal(2)",
+      "business_meaning": "Refund amount.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "is_returned",
+      "type": "boolean",
+      "business_meaning": "Return flag.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "return_reason",
+      "type": "string",
+      "business_meaning": "Return reason when returned.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "satisfaction_score",
+      "type": "decimal(2)",
+      "business_meaning": "Customer satisfaction score from 1 to 5.",
+      "missing_rate": 0.02
+    },
+    {
+      "name": "complaint_count",
+      "type": "integer",
+      "business_meaning": "Complaint count for the order.",
+      "missing_rate": 0.0
+    },
+    {
+      "name": "payment_method",
+      "type": "string",
+      "business_meaning": "Payment method.",
+      "missing_rate": 0.0
+    }
+  ],
+  "anomaly_profile": {
+    "sales_amount_non_positive": {
+      "count": 175,
+      "rate": 0.0035
+    },
+    "quantity_non_positive": {
+      "count": 90,
+      "rate": 0.0018
+    },
+    "discount_out_of_range": {
+      "count": 175,
+      "rate": 0.0035
+    },
+    "ship_before_order": {
+      "count": 100,
+      "rate": 0.002
+    },
+    "refund_exceeds_sales": {
+      "count": 100,
+      "rate": 0.002
+    },
+    "missing_satisfaction_score": {
+      "count": 1000,
+      "rate": 0.02
+    },
+    "missing_ad_channel": {
+      "count": 500,
+      "rate": 0.01
+    }
+  },
+  "anti_hallucination_absent_field_count": 8,
+  "anti_hallucination_absent_field_total": 8
+}

@@ -23,6 +23,7 @@ docstring_parser==0.18.0
 duckdb==1.5.3
 durationpy==0.10
 filelock==3.29.0
+Faker==39.1.0
 flatbuffers==25.12.19
 fonttools==4.63.0
 frozenlist==1.8.0
