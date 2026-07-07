@@ -10,8 +10,11 @@ import {
   FileSpreadsheet,
   History,
   Languages,
+  Lightbulb,
+  ListChecks,
   Loader2,
   Moon,
+  ShieldAlert,
   Settings,
   Sparkles,
   Upload,
@@ -23,8 +26,10 @@ import {
   fetchTableData,
   fetchTables,
   uploadFile,
+  type AgentBusinessReport,
   type AgentProviderRequested,
   type AgentRun,
+  type BusinessReportItem,
   type LlmProvider,
 } from "@/services/api";
 import { useDataStore } from "@/stores/data-store";
@@ -82,6 +87,102 @@ function toRows(value: unknown): Record<string, unknown>[] {
   return [];
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function reportItems(value: unknown): BusinessReportItem[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.filter(
+      (item): item is BusinessReportItem =>
+        typeof item === "string" ||
+        typeof item === "number" ||
+        typeof item === "boolean" ||
+        isPlainRecord(item)
+    );
+  }
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    isPlainRecord(value)
+  ) {
+    return [value];
+  }
+  return [];
+}
+
+function hasBusinessReport(report: AgentBusinessReport | null | undefined): report is AgentBusinessReport {
+  if (!report) return false;
+  if (typeof report.executive_summary === "string" && report.executive_summary.trim()) return true;
+  return [
+    report.key_findings,
+    report.evidence_summary,
+    report.risk_priorities,
+    report.recommendations,
+    report.next_questions,
+    report.limitations,
+  ].some((items) => reportItems(items).length > 0);
+}
+
+function reportItemTitle(item: BusinessReportItem): string {
+  if (!isPlainRecord(item)) return stringify(item);
+  const keys = [
+    "title",
+    "summary",
+    "finding",
+    "risk_name",
+    "recommendation",
+    "action",
+    "question",
+    "limitation",
+    "metric",
+    "object",
+    "target_object",
+    "name",
+  ];
+  for (const key of keys) {
+    const value = item[key];
+    if (value !== null && value !== undefined && stringify(value).trim()) return stringify(value);
+  }
+  return Object.entries(item)
+    .slice(0, 3)
+    .map(([key, value]) => `${key}: ${stringify(value)}`)
+    .join(" · ");
+}
+
+function reportItemDetails(item: BusinessReportItem): string[] {
+  if (!isPlainRecord(item)) return [];
+  const detailKeys = [
+    "reason",
+    "evidence",
+    "supporting_evidence",
+    "risk_reminder",
+    "monitoring_metric",
+    "expected_action_window",
+    "fallback_message",
+    "confidence",
+    "score",
+  ];
+  return detailKeys
+    .map((key) => {
+      const value = item[key];
+      if (value === null || value === undefined || value === "") return "";
+      return `${key.replaceAll("_", " ")}: ${stringify(value)}`;
+    })
+    .filter(Boolean);
+}
+
+function riskLevel(item: BusinessReportItem): "high" | "medium" | "low" | "other" {
+  if (!isPlainRecord(item)) return "other";
+  const raw = stringify(item.risk_level ?? item.level ?? item.priority ?? "").toLowerCase();
+  if (raw.includes("high")) return "high";
+  if (raw.includes("medium")) return "medium";
+  if (raw.includes("low")) return "low";
+  return "other";
+}
+
 function firstMeaningfulSentence(text: string): string {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (!normalized) return "";
@@ -100,6 +201,7 @@ function buildRecord(
     || firstMeaningfulSentence(run.intent ?? "")
     || "Analysis completed. Review the related data and warnings before making a decision.";
   const findings = [
+    ...reportItems(run.business_report?.key_findings).map(reportItemTitle),
     ...toStringList(run.findings),
     ...toStringList(run.key_findings),
     ...(run.intent ? [run.intent] : []),
@@ -112,6 +214,7 @@ function buildRecord(
     question,
     tableName,
     answer,
+    businessReport: run.business_report ?? null,
     findings: findings.length > 0 ? findings : [firstMeaningfulSentence(answer)],
     evidencePreview,
     sql: run.sql ?? null,
@@ -639,7 +742,7 @@ function QualitySummary({ score, warnings }: { score: number | null; warnings: s
   );
 }
 
-function BusinessResult({
+export function BusinessResult({
   record,
   rows,
   columns,
@@ -649,6 +752,7 @@ function BusinessResult({
   columns: string[];
 }) {
   const { t } = useTranslation();
+  const [technicalOpen, setTechnicalOpen] = useState(false);
   if (!record) {
     return (
       <Panel title={t("astryx.result.title")} icon={<BarChart3 className="h-4 w-4" />}>
@@ -664,6 +768,7 @@ function BusinessResult({
   const previewColumns = previewRows.length > 0
     ? Object.keys(previewRows[0]).slice(0, 6)
     : columns.slice(0, 6);
+  const businessReport = hasBusinessReport(record.businessReport) ? record.businessReport : null;
 
   return (
     <Panel title={t("astryx.result.title")} icon={<BarChart3 className="h-4 w-4" />}>
@@ -676,36 +781,11 @@ function BusinessResult({
           <span className="text-xs text-[var(--text-muted)]">{formatDate(record.createdAt)}</span>
         </div>
 
-        <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
-          <p className="text-xs font-medium uppercase tracking-wider text-[var(--accent)]">{t("astryx.result.answer")}</p>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--text-primary)]">{record.answer}</p>
-        </section>
-
-        <section className="grid gap-3 lg:grid-cols-2">
-          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{t("astryx.result.findings")}</p>
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
-              {record.findings.slice(0, 5).map((finding, index) => (
-                <li key={`${finding}-${index}`} className="flex gap-2">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
-                  <span>{finding}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{t("astryx.result.next")}</p>
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
-              {record.nextSteps.map((step) => (
-                <li key={step} className="flex gap-2">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        {businessReport ? (
+          <BusinessReportView report={businessReport} />
+        ) : (
+          <LegacyAnswerView record={record} />
+        )}
 
         <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
           <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{t("astryx.result.data")}</p>
@@ -748,44 +828,252 @@ function BusinessResult({
           </section>
         )}
 
-        <details className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
-          <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-[var(--text-primary)]">
-            {t("astryx.result.sql")}
-            <ChevronDown className="h-4 w-4 text-[var(--text-muted)]" />
-          </summary>
-          <pre className="max-h-72 overflow-auto border-t border-[var(--border-default)] p-4 text-xs leading-5 text-[var(--text-secondary)]">
-            {record.sql || t("astryx.result.no-sql")}
-          </pre>
-        </details>
-
-        <details className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
-          <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-[var(--text-primary)]">
+        <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
+          <button
+            type="button"
+            className="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]"
+            onClick={() => setTechnicalOpen((open) => !open)}
+            aria-expanded={technicalOpen}
+          >
             {t("astryx.result.technical")}
-            <ChevronDown className="h-4 w-4 text-[var(--text-muted)]" />
-          </summary>
-          <div className="space-y-3 border-t border-[var(--border-default)] p-4 text-xs text-[var(--text-secondary)]">
-            <div className="grid gap-2 md:grid-cols-2">
-              <MiniStat label={t("astryx.result.provider-requested")} value={record.providerRequested ?? "-"} />
-              <MiniStat label={t("astryx.result.provider-used")} value={record.providerUsed ?? "-"} />
-              <MiniStat label={t("astryx.result.fallback-reason")} value={record.fallbackReason ?? t("astryx.result.none")} />
-              <MiniStat label={t("astryx.result.record")} value={record.runId} />
+            <ChevronDown className={cn("h-4 w-4 text-[var(--text-muted)] transition-transform", technicalOpen && "rotate-180")} />
+          </button>
+          {technicalOpen && (
+            <div className="space-y-3 border-t border-[var(--border-default)] p-4 text-xs text-[var(--text-secondary)]">
+              <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3">
+                <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{t("astryx.result.sql")}</p>
+                <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-5 text-[var(--text-secondary)]">
+                  {record.sql || t("astryx.result.no-sql")}
+                </pre>
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">
+                <MiniStat label={t("astryx.result.provider-requested")} value={record.providerRequested ?? "-"} />
+                <MiniStat label={t("astryx.result.provider-used")} value={record.providerUsed ?? "-"} />
+                <MiniStat label={t("astryx.result.fallback-reason")} value={record.fallbackReason ?? t("astryx.result.none")} />
+                <MiniStat label={t("astryx.result.record")} value={record.runId} />
+              </div>
+              <pre className="max-h-72 overflow-auto rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3">
+                {JSON.stringify(
+                  {
+                    tool_calls: record.rawRun.tool_calls ?? [],
+                    trace: record.rawRun.trace ?? null,
+                    memory_used: record.rawRun.memory_used ?? false,
+                    raw: record.rawRun,
+                  },
+                  null,
+                  2
+                )}
+              </pre>
             </div>
-            <pre className="max-h-72 overflow-auto rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3">
-              {JSON.stringify(
-                {
-                  tool_calls: record.rawRun.tool_calls ?? [],
-                  trace: record.rawRun.trace ?? null,
-                  memory_used: record.rawRun.memory_used ?? false,
-                  raw: record.rawRun,
-                },
-                null,
-                2
-              )}
-            </pre>
-          </div>
-        </details>
+          )}
+        </section>
       </div>
     </Panel>
+  );
+}
+
+function BusinessReportView({ report }: { report: AgentBusinessReport }) {
+  const { t } = useTranslation();
+  const findings = reportItems(report.key_findings);
+  const evidence = reportItems(report.evidence_summary);
+  const risks = reportItems(report.risk_priorities);
+  const recommendations = reportItems(report.recommendations);
+  const nextQuestions = reportItems(report.next_questions);
+  const limitations = reportItems(report.limitations);
+
+  return (
+    <div className="space-y-4" data-testid="business-report-view">
+      {report.executive_summary && (
+        <section className="rounded-xl border border-[var(--accent)]/35 bg-[var(--accent-subtle)] px-4 py-4">
+          <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-[var(--accent)]">
+            <Sparkles className="h-3.5 w-3.5" />
+            {t("astryx.result.executive-summary")}
+          </p>
+          <p className="mt-3 whitespace-pre-wrap text-base font-semibold leading-7 text-[var(--text-primary)]">
+            {report.executive_summary}
+          </p>
+        </section>
+      )}
+
+      {findings.length > 0 && (
+        <ReportListSection
+          title={t("astryx.result.key-findings")}
+          icon={<ListChecks className="h-3.5 w-3.5" />}
+          items={findings}
+          accent="accent"
+        />
+      )}
+
+      {evidence.length > 0 && (
+        <ReportListSection
+          title={t("astryx.result.evidence-summary")}
+          icon={<BarChart3 className="h-3.5 w-3.5" />}
+          items={evidence}
+          accent="muted"
+          grid
+        />
+      )}
+
+      {risks.length > 0 && <RiskPriorityPanel risks={risks} />}
+
+      {recommendations.length > 0 && (
+        <ReportListSection
+          title={t("astryx.result.recommendations")}
+          icon={<Lightbulb className="h-3.5 w-3.5" />}
+          items={recommendations}
+          accent="success"
+        />
+      )}
+
+      {limitations.length > 0 && (
+        <ReportListSection
+          title={t("astryx.result.limitations")}
+          icon={<ShieldAlert className="h-3.5 w-3.5" />}
+          items={limitations}
+          accent="warning"
+        />
+      )}
+
+      {nextQuestions.length > 0 && (
+        <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{t("astryx.result.next-questions")}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {nextQuestions.map((item, index) => (
+              <button
+                key={`${reportItemTitle(item)}-${index}`}
+                type="button"
+                className="rounded-full border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--text-secondary)]"
+              >
+                {reportItemTitle(item)}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function LegacyAnswerView({ record }: { record: BusinessAnalysisRecord }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
+        <p className="text-xs font-medium uppercase tracking-wider text-[var(--accent)]">{t("astryx.result.answer")}</p>
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--text-primary)]">{record.answer}</p>
+      </section>
+
+      <section className="grid gap-3 lg:grid-cols-2">
+        <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{t("astryx.result.findings")}</p>
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
+            {record.findings.slice(0, 5).map((finding, index) => (
+              <li key={`${finding}-${index}`} className="flex gap-2">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
+                <span>{finding}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{t("astryx.result.next")}</p>
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
+            {record.nextSteps.map((step) => (
+              <li key={step} className="flex gap-2">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
+                <span>{step}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function ReportListSection({
+  title,
+  icon,
+  items,
+  accent,
+  grid = false,
+}: {
+  title: string;
+  icon: ReactNode;
+  items: BusinessReportItem[];
+  accent: "accent" | "muted" | "success" | "warning";
+  grid?: boolean;
+}) {
+  const color = accent === "accent"
+    ? "text-[var(--accent)]"
+    : accent === "success"
+      ? "text-[var(--success)]"
+      : accent === "warning"
+        ? "text-[var(--warning)]"
+        : "text-[var(--text-muted)]";
+  return (
+    <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
+      <p className={cn("flex items-center gap-2 text-xs font-medium uppercase tracking-wider", color)}>
+        {icon}
+        {title}
+      </p>
+      <ul className={cn("mt-3 gap-3", grid ? "grid md:grid-cols-2" : "space-y-3")}>
+        {items.map((item, index) => (
+          <li key={`${reportItemTitle(item)}-${index}`} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-3">
+            <p className="text-sm font-medium leading-6 text-[var(--text-primary)]">{reportItemTitle(item)}</p>
+            {reportItemDetails(item).length > 0 && (
+              <ul className="mt-2 space-y-1 text-xs leading-5 text-[var(--text-muted)]">
+                {reportItemDetails(item).slice(0, 3).map((detail) => (
+                  <li key={detail}>{detail}</li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function RiskPriorityPanel({ risks }: { risks: BusinessReportItem[] }) {
+  const { t } = useTranslation();
+  const grouped = {
+    high: risks.filter((item) => riskLevel(item) === "high"),
+    medium: risks.filter((item) => riskLevel(item) === "medium"),
+    low: risks.filter((item) => riskLevel(item) === "low"),
+    other: risks.filter((item) => riskLevel(item) === "other"),
+  };
+  type RiskGroupKey = keyof typeof grouped;
+  const riskGroups: Array<{ key: RiskGroupKey; label: string; tone: string }> = [
+    { key: "high", label: t("astryx.result.risk-high"), tone: "text-[var(--error)]" },
+    { key: "medium", label: t("astryx.result.risk-medium"), tone: "text-[var(--warning)]" },
+    { key: "low", label: t("astryx.result.risk-low"), tone: "text-[var(--success)]" },
+    { key: "other", label: t("astryx.result.risk-other"), tone: "text-[var(--text-muted)]" },
+  ];
+  const groups = riskGroups.filter((group) => grouped[group.key].length > 0);
+
+  return (
+    <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-4">
+      <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-[var(--warning)]">
+        <ShieldAlert className="h-3.5 w-3.5" />
+        {t("astryx.result.risk-priorities")}
+      </p>
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        {groups.map((group) => (
+          <div key={group.key} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-3">
+            <p className={cn("text-xs font-semibold uppercase tracking-wider", group.tone)}>{group.label}</p>
+            <ul className="mt-2 space-y-2">
+              {grouped[group.key].map((risk, index) => (
+                <li key={`${reportItemTitle(risk)}-${index}`} className="text-sm leading-6 text-[var(--text-secondary)]">
+                  {reportItemTitle(risk)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

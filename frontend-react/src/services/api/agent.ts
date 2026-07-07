@@ -31,11 +31,26 @@ export interface AgentToolCall {
   [key: string]: unknown;
 }
 
+export type BusinessReportItem = string | number | boolean | Record<string, unknown>;
+
+export interface AgentBusinessReport {
+  executive_summary?: string | null;
+  key_findings?: BusinessReportItem[] | null;
+  evidence_summary?: BusinessReportItem[] | null;
+  risk_priorities?: BusinessReportItem[] | null;
+  opportunities?: BusinessReportItem[] | null;
+  recommendations?: BusinessReportItem[] | null;
+  next_questions?: BusinessReportItem[] | null;
+  limitations?: BusinessReportItem[] | null;
+  [key: string]: unknown;
+}
+
 export interface AgentRun {
   run_id: string;
   status: string;
   intent?: string | null;
   answer?: string | null;
+  business_report?: AgentBusinessReport | null;
   sql?: string | null;
   evidence?: unknown;
   result_preview?: unknown;

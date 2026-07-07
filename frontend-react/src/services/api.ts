@@ -111,11 +111,13 @@ export {
 } from "@/services/api/streams";
 
 export type {
+  AgentBusinessReport,
   AgentProviderRequested,
   AgentRun,
   AgentRunMode,
   AgentStep,
   AgentToolCall,
+  BusinessReportItem,
   CreateAgentRunRequest,
   CreateAgentRunResponse,
 } from "@/services/api/agent";

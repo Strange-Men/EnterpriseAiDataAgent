@@ -4,14 +4,14 @@
 
 ## Current Branch
 
-- Branch: `m6-langchain-business-agent-orchestration`
-- Stage: M6.5 LangChain Agent orchestration enhancement
+- Branch: `m6-business-report-frontend-adaptation`
+- Stage: M6.6 Business Report frontend adaptation
 
 ## Current Work
 
-M6.5 LangChain Agent orchestration enhancement is complete and ready for review.
+M6.6 Business Report frontend adaptation is complete and ready for review.
 
-M6.5 backend CI fix is complete. GitHub Actions backend failed because an old LangChain Single Agent regression still expected deterministic SQL in `run.sql` for a region sales ranking question. The M6.5 business orchestration path now keeps `business_report` while also filling the legacy-compatible SQL field from the existing deterministic SQL helper.
+M6.5 GitHub Actions run `28835705148` passed before M6.6 started. M6.5 was merged into `master`, validated, and pushed. M6.6 keeps the single-page Astryx workbench and adapts the main Agent answer area to show `business_report` by default while keeping SQL and technical internals collapsed.
 
 Completed:
 
@@ -42,20 +42,26 @@ Completed:
 - Added `docs/reports/m6-langchain-business-agent-orchestration.md`.
 - Added M6.5 CI Fix notes to `docs/reports/m6-langchain-business-agent-orchestration.md`.
 - Full backend CI command passed locally: `python -m pytest tests/ -x -q --ignore=tests/ai` -> `852 passed`.
+- Merged M6.5 LangChain Business Agent orchestration into master.
+- Added frontend `business_report` API and workbench record types.
+- Updated `frontend-react/src/components/astryx/astryx-data-agent-workbench.tsx` to render Business Report by default.
+- Added a collapsed Technical Details section for SQL, trace, tool_calls, provider, run_id, memory, raw JSON, and fallback reason.
+- Added `frontend-react/src/components/astryx/__tests__/business-report-view.test.tsx`.
+- Added `docs/reports/m6-business-report-frontend-adaptation.md`.
+- Frontend CI commands passed locally: `npm ci`, `npx tsc --noEmit`, `npm run test`, `npm run build`.
 
 ## Boundaries
 
 This branch does not:
 
-- Start M6.6 Business Report frontend adaptation.
 - Start M6.7 pressure testing.
 - Start M6.8 final QA.
-- Modify frontend UI.
-- Do M6.6 frontend Business Report rendering.
 - Do formal 25-question M6.7 scoring.
+- Restore Sidebar.
+- Restore five-tab navigation.
 - Add Multi-Agent, LangGraph, or RAG.
 - Create a tag.
 
 ## Next Step
 
-Wait for GitHub Actions to rerun on the pushed M6.5 CI fix. If CI passes and the user approves, the next stage is M6.6 Business Report frontend adaptation.
+Wait for M6.6 branch CI and user review. The next stage is M6.7 comprehensive business capability pressure testing.
