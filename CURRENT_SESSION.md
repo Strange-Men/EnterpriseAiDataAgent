@@ -2,6 +2,19 @@
 
 > Last updated: 2026-07-07
 
+## M6 Manual Regression Hotfix
+
+- Created branch `m6-manual-regression-default-table-upload-qa` from latest `master`.
+- Completed an M6 manual regression hotfix without adding M6.9 and without creating a tag.
+- Fixed the default demo table regression so `demo_sales_business_50k` is guaranteed through both `/api/tables` and `/api/session/current`, with 50,000-row / 28-column metadata available to the frontend.
+- Diagnosed the large upload `signal timed out` issue as a frontend initial-upload timeout and task-final-state normalization problem, not a pure network or DuckDB calculation issue.
+- Increased the initial upload task request timeout, added transient polling retry behavior, and normalized stale `stage=done` / `progress=100` upload tasks to `success`.
+- Added regression tests in `tests/test_m6_manual_regression_default_table_upload_qa.py`.
+- Ran five hard business questions against the default `demo_sales_business_50k` table with `provider=mock`; all passed structure, speed, provider-state, and anti-hallucination checks.
+- Added report: `docs/reports/m6-manual-regression-default-table-upload-qa.md`.
+- Verification passed: backend import, new regression tests, Manual Fix 1 / 2 / 3 focused tests, M6.7/M6.5 regressions, full backend CI (`892 passed`), frontend `npm ci`, `npx tsc --noEmit`, full Vitest (`50 files`, `1193 tests`), and `npm run build`.
+- Next step remains renewed user manual testing from `master`; if it passes, the next user-approved step can be an M6 final tag.
+
 ## M6 Manual Fix 3 Provider Transparency / Next Questions
 
 - Confirmed latest `master` GitHub Actions was green before starting Fix 3.

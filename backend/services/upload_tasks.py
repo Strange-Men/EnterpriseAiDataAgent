@@ -119,6 +119,23 @@ def get_upload_task_status(task_id: str, *, apply_timeout: bool = True) -> dict[
     payload = _task_payload(task_id)
     if payload is None:
         return None
+    if apply_timeout and payload["status"] in {"pending", "running"} and payload.get("stage") == "done" and payload.get("table_name"):
+        return update_upload_task(
+            task_id,
+            status="success",
+            progress=100,
+            stage="done",
+            finished_at=payload.get("finished_at") or _now_iso(),
+        )
+    if apply_timeout and payload["status"] in {"pending", "running"} and payload.get("stage") == "failed":
+        return update_upload_task(
+            task_id,
+            status="failed",
+            progress=100,
+            stage="failed",
+            error_message=payload.get("error_message") or "Upload failed",
+            finished_at=payload.get("finished_at") or _now_iso(),
+        )
     if apply_timeout and payload["status"] == "running":
         started = _parse_iso(payload.get("started_at"))
         if started is not None:

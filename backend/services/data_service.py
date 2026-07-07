@@ -48,6 +48,10 @@ _UPLOAD_TIMESTAMPS: dict[str, str] = {}  # table_name → ISO 8601 upload timest
 APP_DEFAULT_TABLE = "demo_sales_business_50k"
 
 
+class DefaultTableUnavailableError(RuntimeError):
+    """Raised when the built-in M6 business demo table cannot be prepared."""
+
+
 def get_db() -> DatabaseManager:
     """Lazy-init DatabaseManager singleton (thread-safe)."""
     global _db
@@ -183,6 +187,7 @@ def get_system_health() -> dict:
 
 
 def list_tables() -> list[dict]:
+    ensure_default_business_table()
     tables = [tbl for tbl in get_db().list_tables() if not str(tbl.get("name", "")).startswith("__eai_")]
     for tbl in tables:
         tbl["uploadTime"] = _UPLOAD_TIMESTAMPS.get(tbl["name"])
@@ -226,12 +231,38 @@ def ensure_default_business_table() -> str:
     root = Path(__file__).resolve().parents[2]
     csv_path = root / "testExcel" / f"{APP_DEFAULT_TABLE}.csv"
     if not csv_path.exists():
-        return APP_DEFAULT_TABLE
+        raise DefaultTableUnavailableError(
+            f"Default demo table '{APP_DEFAULT_TABLE}' is unavailable: missing {csv_path}."
+        )
 
-    df = pd.read_csv(csv_path)
-    get_db().import_dataframe(df, table_name=APP_DEFAULT_TABLE)
-    set_upload_timestamp(APP_DEFAULT_TABLE)
+    try:
+        df = pd.read_csv(csv_path)
+        get_db().import_dataframe(df, table_name=APP_DEFAULT_TABLE)
+        set_upload_timestamp(APP_DEFAULT_TABLE)
+    except Exception as exc:
+        raise DefaultTableUnavailableError(
+            f"Default demo table '{APP_DEFAULT_TABLE}' could not be loaded from {csv_path}."
+        ) from exc
     return APP_DEFAULT_TABLE
+
+
+def get_table_summary(table_name: str) -> dict:
+    """Return lightweight table availability metadata for startup/session UI."""
+    try:
+        info = get_db().get_table_info(table_name)
+        return {
+            "name": table_name,
+            "exists": True,
+            "row_count": int(info.get("row_count") or 0),
+            "column_count": int(info.get("column_count") or 0),
+        }
+    except Exception:
+        return {
+            "name": table_name,
+            "exists": False,
+            "row_count": 0,
+            "column_count": 0,
+        }
 
 
 def get_table_preview(table_name: str, limit: int = 100) -> dict:

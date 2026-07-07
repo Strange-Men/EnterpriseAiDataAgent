@@ -5,7 +5,14 @@ import logging
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from backend.services.data_service import get_db, list_tables, get_table_preview, get_table_schema, delete_table
+from backend.services.data_service import (
+    DefaultTableUnavailableError,
+    get_db,
+    list_tables,
+    get_table_preview,
+    get_table_schema,
+    delete_table,
+)
 from backend.utils.json_safe import normalize_for_response
 from backend.utils.validation import validate_table_name
 
@@ -34,6 +41,9 @@ async def get_tables():
                 "uploadTime": tbl.get("uploadTime"),
             })
         return normalize_for_response(result)
+    except DefaultTableUnavailableError as e:
+        logger.error("Default demo table unavailable: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.error(f"List tables error: {e}")
         raise HTTPException(status_code=500, detail="Failed to list tables")

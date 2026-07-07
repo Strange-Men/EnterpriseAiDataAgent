@@ -17,12 +17,18 @@ export interface SessionTableState {
   app_default_table: string;
   current_table: string;
   user_active_table: string;
+  current_table_exists?: boolean;
+  current_table_row_count?: number;
+  current_table_column_count?: number;
+  app_default_table_exists?: boolean;
+  app_default_table_row_count?: number;
+  app_default_table_column_count?: number;
 }
 
 export async function startUploadTask(file: File): Promise<UploadTaskResponse> {
   const formData = new FormData();
   formData.append("file", file);
-  return apiFetch<UploadTaskResponse>("/upload", { method: "POST", body: formData });
+  return apiFetch<UploadTaskResponse>("/upload", { method: "POST", body: formData, timeoutMs: 310_000 });
 }
 
 export async function fetchUploadTaskStatus(taskId: string): Promise<UploadTaskResponse> {

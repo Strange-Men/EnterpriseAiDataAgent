@@ -870,7 +870,7 @@ const en = {
     "astryx.data.drop-title": "Upload CSV/Excel",
     "astryx.data.drop-desc": "Choose a public test or business spreadsheet.",
     "astryx.data.current": "Current table",
-    "astryx.data.empty": "Upload a CSV/Excel file to start.",
+    "astryx.data.empty": "Default demo table is not available. Please check backend startup and the testExcel demo dataset.",
     "astryx.data.columns": "Fields",
     "astryx.data.rows": "Rows",
     "astryx.quality.title": "Quality brief",

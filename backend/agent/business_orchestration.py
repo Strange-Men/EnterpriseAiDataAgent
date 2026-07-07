@@ -121,6 +121,29 @@ def classify_business_question(question: str, *, has_prior_memory: bool = False)
     text = (question or "").strip()
     lowered = text.lower()
     requested_missing_fields = requested_unsupported_fields(text)
+    if not requested_missing_fields and _contains_any(text, ("刚才", "上一轮", "上次", "基于上", "继续看", "换成看", "刚刚")):
+        return {
+            "question_type": "follow_up_drilldown",
+            "confidence": 0.9 if has_prior_memory else 0.76,
+            "reason": "question references previous evidence or asks for drill-down",
+            "requested_missing_fields": [],
+        }
+    if not requested_missing_fields:
+        normalized_rules: tuple[tuple[str, float, str, tuple[str, ...]], ...] = (
+            ("business_health_check", 0.94, "question asks for overall business health", ("经营健康", "健康度", "整体经营", "总体表现", "完整的业务健康度", "诊断报告")),
+            ("risk_diagnosis", 0.92, "question asks for risks or hidden issues", ("风险", "危险", "隐患", "异常", "问题", "排查", "高风险", "中风险", "低风险")),
+            ("business_review_summary", 0.92, "question asks for review or executive brief", ("复盘", "汇报", "简报", "老板", "经营简报")),
+            ("growth_opportunity", 0.88, "question asks for growth or investment opportunities", ("机会", "增长", "加大投入", "下季度", "值得投入")),
+            ("shipping_efficiency_analysis", 0.88, "question asks about shipping or fulfillment", ("发货", "物流", "履约", "配送", "发货慢")),
+            ("data_quality_check", 0.9, "question asks for data quality", ("数据质量", "脏数据", "缺失", "异常值", "质量问题")),
+            ("channel_analysis", 0.87, "question asks about channel quality", ("渠道", "广告", "投放", "流量", "直播", "信息流")),
+            ("category_product_analysis", 0.86, "question asks about category or product", ("商品", "品类", "产品", "SKU", "销量", "退款原因")),
+            ("region_analysis", 0.86, "question asks about regions", ("地区", "区域", "省份", "城市", "华南", "华东")),
+            ("trend_analysis", 0.84, "question asks about trend", ("趋势", "最近", "月份", "环比", "变好", "变差")),
+        )
+        for question_type, confidence, reason, keywords in normalized_rules:
+            if _contains_any(text, keywords):
+                return _classification(question_type, confidence, reason)
 
     if requested_missing_fields:
         return {
@@ -221,6 +244,16 @@ def build_analysis_plan(question_type: str, question: str, available_fields: lis
 
 def requested_unsupported_fields(question: str) -> list[str]:
     fields: list[str] = []
+    normalized_rules: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
+        (("ad_spend", "campaign_cost"), ("roi", "ROI", "广告花费", "投放成本")),
+        (("membership_level",), ("会员等级", "会员级别")),
+        (("neighborhood", "address", "latitude", "longitude"), ("小区", "地址", "门店", "经纬度")),
+        (("campaign_creative",), ("广告创意", "创意素材")),
+        (("service_ticket_text",), ("客服工单", "投诉原文", "工单文本", "客服文本")),
+    )
+    for rule_fields, patterns in normalized_rules:
+        if _contains_any(question, patterns):
+            fields.extend(rule_fields)
     for rule in UNSUPPORTED_FIELD_RULES:
         if _contains_any(question, rule.patterns):
             fields.extend(rule.fields)

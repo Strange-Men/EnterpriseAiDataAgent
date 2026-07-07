@@ -475,7 +475,11 @@ class LangChainSingleAgentService:
         payload = GenerateSqlInput.model_validate(kwargs)
         schema_context = self._schema_context(payload.table_name)
         schema_columns = self._schema_cache.get(payload.table_name or "") or []
-        missing_field = self._requested_unknown_field(payload.user_goal, self._column_names(schema_columns))
+        missing_field = self._requested_unknown_field(
+            payload.user_goal,
+            self._column_names(schema_columns),
+            table_name=payload.table_name,
+        )
         metadata = self._resolve_provider(payload.provider_requested)
         sql = ""
         error: str | None = None
@@ -1476,10 +1480,13 @@ class LangChainSingleAgentService:
                 return self._quote_identifier(column)
         return None
 
-    def _requested_unknown_field(self, user_goal: str | None, columns: list[str]) -> str | None:
+    def _requested_unknown_field(self, user_goal: str | None, columns: list[str], *, table_name: str | None = None) -> str | None:
         column_names = {column.lower() for column in columns}
+        ignored_tokens = {str(table_name or "").lower(), "demo_sales_business_50k"}
         for token in re.findall(r"\b[A-Za-z][A-Za-z0-9_]{2,}\b", user_goal or ""):
             lowered = token.lower()
+            if lowered in ignored_tokens:
+                continue
             if "_" in lowered and lowered not in column_names:
                 return token
         return None

@@ -22,12 +22,13 @@ export function apiUrl(path: string): string {
 
 export async function apiFetch<T>(
   path: string,
-  options?: RequestInit & { signal?: AbortSignal }
+  options?: RequestInit & { signal?: AbortSignal; timeoutMs?: number }
 ): Promise<T> {
-  const signal = options?.signal ?? AbortSignal.timeout(60_000);
+  const { timeoutMs, ...fetchOptions } = options ?? {};
+  const signal = fetchOptions.signal ?? AbortSignal.timeout(timeoutMs ?? 60_000);
   const url = apiUrl(path);
   const res = await fetch(url, {
-    ...options,
+    ...fetchOptions,
     signal,
   });
   if (!res.ok) {
