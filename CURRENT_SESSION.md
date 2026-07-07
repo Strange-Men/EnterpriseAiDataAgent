@@ -2,6 +2,19 @@
 
 > Last updated: 2026-07-07
 
+## M6 Manual Fix 2 Business Report Readability
+
+- Confirmed latest `master` GitHub Actions was green before starting Fix 2.
+- Created implementation branch `m6-manual-fix-2-business-report-readable` from `master` commit `13d7209b4eeef6c69a1cf0ba3735bbec87f1900a`.
+- Completed Manual Fix 2 only: upgraded `business_report.recommendations`, added backend Recommendation Schema Validator, improved Business Report wording, reordered frontend report sections, added business recommendation cards, and moved related data into collapsed technical details / data evidence.
+- Added `BusinessRecommendation` and `validate_business_recommendations()` in `backend/agent/contracts.py`.
+- Updated `backend/agent/business_orchestration.py` so recommendation output is never empty and main evidence summaries avoid tool names / raw rows.
+- Updated frontend Business Report rendering in `frontend-react/src/components/astryx/astryx-data-agent-workbench.tsx`.
+- Added tests: `tests/test_m6_manual_fix2_business_report_contract.py` and updated `frontend-react/src/components/astryx/__tests__/business-report-view.test.tsx`.
+- Added report: `docs/reports/m6-manual-fix-2-business-report-readable.md`.
+- Verification passed: backend import, Fix 2 tests (`13 passed`), M6 focused regression (`54 passed`), full backend CI (`878 passed`), frontend `npm ci`, `npx tsc --noEmit`, full Vitest (`50 files`, `1184 tests`), and `npm run build`.
+- Manual Fix 3 has not started. M6.9 has not been added. Tag has not been created.
+
 ## M6 Manual Fix 1 Default State / Async Upload / Session Table State
 
 - Merged `origin/m6-manual-fix-plan-docs` into `master` and pushed `master`.

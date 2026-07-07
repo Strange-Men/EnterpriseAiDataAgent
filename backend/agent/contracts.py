@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 def _utc_now() -> datetime:
@@ -108,6 +108,196 @@ class RiskLevel(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+
+
+DEFAULT_RECOMMENDATION = {
+    "priority": "medium",
+    "action": "优先排查退款和投诉较高的业务对象",
+    "why": "当前数据提示部分渠道、地区或品类可能存在退款和体验压力，需要进一步确认。",
+    "how": "先导出相关订单明细，按渠道、地区、品类和退货原因分组，找出问题最集中的对象。",
+    "metrics": ["退款率", "投诉率", "满意度", "退货原因"],
+    "deadline": "建议 1 周内完成初步排查",
+    "owner_hint": "运营 / 售后 / 商品负责人",
+}
+
+
+_METRIC_LABELS = {
+    "sales_amount": "销售额",
+    "total_sales": "销售额",
+    "order_count": "订单数",
+    "avg_order_value": "客单价",
+    "refund_amount": "退款金额",
+    "refund_rate": "退款率",
+    "return_rate": "退货率",
+    "gross_margin_rate": "毛利率",
+    "avg_discount": "平均折扣",
+    "discount": "折扣",
+    "avg_shipping_days": "平均发货周期",
+    "shipping_days": "发货周期",
+    "complaint_rate": "投诉率",
+    "complaint_count": "投诉量",
+    "avg_satisfaction_score": "满意度",
+    "satisfaction_score": "满意度",
+    "return_reason": "退货原因",
+    "monthly_sales": "月销售额",
+    "anomaly_count": "异常数据量",
+    "missing_rate": "缺失率",
+}
+
+
+def _truncate_text(value: str, *, limit: int = 180) -> str:
+    text = " ".join(str(value or "").split())
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"
+
+
+def _looks_like_bare_field(value: str) -> bool:
+    text = str(value or "").strip()
+    if not text:
+        return True
+    if text in _METRIC_LABELS:
+        return True
+    return bool(__import__("re").fullmatch(r"[a-z_]+(?:\s*[+,/]\s*[a-z_]+)*", text))
+
+
+def _humanize_metric(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if text in _METRIC_LABELS:
+        return _METRIC_LABELS[text]
+    return text
+
+
+def _metric_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        raw_items = value
+    elif isinstance(value, str):
+        raw_items = [part.strip() for part in __import__("re").split(r"[+,/，、]", value) if part.strip()]
+    else:
+        raw_items = []
+    metrics = [_humanize_metric(item) for item in raw_items if _humanize_metric(item)]
+    return metrics[:6] or list(DEFAULT_RECOMMENDATION["metrics"])
+
+
+def _priority_label(value: Any) -> str:
+    raw = str(value or "").strip().lower()
+    if raw in {"p0", "critical", "high", "高", "高优先级"}:
+        return "high"
+    if raw in {"p2", "low", "低", "低优先级"}:
+        return "low"
+    return "medium"
+
+
+def _default_recommendation(action: str | None = None) -> dict[str, Any]:
+    data = dict(DEFAULT_RECOMMENDATION)
+    data["metrics"] = list(DEFAULT_RECOMMENDATION["metrics"])
+    if action and not _looks_like_bare_field(action):
+        data["action"] = _truncate_text(action, limit=140)
+    return data
+
+
+class BusinessRecommendation(BaseModel):
+    """Stable user-facing recommendation contract for Business Report output."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    priority: str = "medium"
+    action: str
+    why: str
+    how: str
+    metrics: list[str]
+    deadline: str
+    owner_hint: str
+    target_object: str | None = None
+    reason: str | None = None
+    monitoring_metric: str | None = None
+    expected_action_window: str | None = None
+
+    @field_validator("priority", mode="before")
+    @classmethod
+    def _normalize_priority(cls, value: Any) -> str:
+        return _priority_label(value)
+
+    @field_validator("action", mode="before")
+    @classmethod
+    def _validate_action(cls, value: Any) -> str:
+        text = _truncate_text(str(value or ""), limit=140)
+        if len(text) < 4 or _looks_like_bare_field(text):
+            return str(DEFAULT_RECOMMENDATION["action"])
+        return text
+
+    @field_validator("why", mode="before")
+    @classmethod
+    def _validate_why(cls, value: Any) -> str:
+        text = _truncate_text(str(value or ""), limit=220)
+        if len(text) < 12 or _looks_like_bare_field(text):
+            return str(DEFAULT_RECOMMENDATION["why"])
+        return text
+
+    @field_validator("how", mode="before")
+    @classmethod
+    def _validate_how(cls, value: Any) -> str:
+        text = _truncate_text(str(value or ""), limit=240)
+        if len(text) < 12 or _looks_like_bare_field(text):
+            return str(DEFAULT_RECOMMENDATION["how"])
+        return text
+
+    @field_validator("metrics", mode="before")
+    @classmethod
+    def _validate_metrics(cls, value: Any) -> list[str]:
+        return _metric_list(value)
+
+    @field_validator("deadline", mode="before")
+    @classmethod
+    def _validate_deadline(cls, value: Any) -> str:
+        text = _truncate_text(str(value or ""), limit=80)
+        return text if len(text) >= 3 and not _looks_like_bare_field(text) else str(DEFAULT_RECOMMENDATION["deadline"])
+
+    @field_validator("owner_hint", mode="before")
+    @classmethod
+    def _validate_owner(cls, value: Any) -> str:
+        text = _truncate_text(str(value or ""), limit=80)
+        return text if len(text) >= 2 and not _looks_like_bare_field(text) else str(DEFAULT_RECOMMENDATION["owner_hint"])
+
+
+def validate_business_recommendations(raw: Any) -> list[dict[str, Any]]:
+    """Normalize recommendation-like output into a non-empty user-safe list."""
+
+    if isinstance(raw, str):
+        stripped = raw.strip()
+        if stripped and not _looks_like_bare_field(stripped):
+            raw_items: list[Any] = [_default_recommendation(stripped)]
+        else:
+            raw_items = [_default_recommendation()]
+    elif isinstance(raw, dict):
+        raw_items = [raw]
+    elif isinstance(raw, list):
+        raw_items = raw
+    else:
+        raw_items = []
+
+    normalized: list[dict[str, Any]] = []
+    for item in raw_items:
+        if isinstance(item, str):
+            candidate = _default_recommendation(item.strip() or None)
+        elif isinstance(item, dict):
+            candidate = dict(item)
+            candidate.setdefault("action", candidate.get("recommendation") or candidate.get("title") or DEFAULT_RECOMMENDATION["action"])
+            candidate.setdefault("why", candidate.get("why") or candidate.get("reason") or DEFAULT_RECOMMENDATION["why"])
+            candidate.setdefault("how", candidate.get("how") or DEFAULT_RECOMMENDATION["how"])
+            candidate.setdefault("metrics", candidate.get("metrics") or candidate.get("monitoring_metric") or DEFAULT_RECOMMENDATION["metrics"])
+            candidate.setdefault("deadline", candidate.get("deadline") or candidate.get("expected_action_window") or DEFAULT_RECOMMENDATION["deadline"])
+            candidate.setdefault("owner_hint", candidate.get("owner_hint") or DEFAULT_RECOMMENDATION["owner_hint"])
+        else:
+            continue
+        try:
+            normalized.append(BusinessRecommendation.model_validate(candidate).model_dump(mode="json", exclude_none=True))
+        except Exception:
+            normalized.append(BusinessRecommendation.model_validate(_default_recommendation()).model_dump(mode="json", exclude_none=True))
+
+    return normalized[:6] or [BusinessRecommendation.model_validate(_default_recommendation()).model_dump(mode="json", exclude_none=True)]
 
 
 class EvidenceRef(BaseModel):

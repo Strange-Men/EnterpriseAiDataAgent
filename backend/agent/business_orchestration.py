@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import re
 from typing import Any
 
+from backend.agent.contracts import validate_business_recommendations
 from backend.semantic import ANALYSIS_TEMPLATES, HIDDEN_TECHNICAL_FIELDS
 
 
@@ -243,6 +244,7 @@ def build_business_report(
     risk_priorities = _rank_risks(risks)
     if not recommendations and question_type != "anti_hallucination_field_check":
         recommendations = _fallback_recommendations(question_type, evidence_summary, limitations)
+    recommendations = validate_business_recommendations(recommendations)
 
     if question_type == "anti_hallucination_field_check":
         executive_summary = _anti_hallucination_summary(evidence_results, limitations)
@@ -288,9 +290,9 @@ def render_business_answer(report: dict[str, Any]) -> str:
     recommendations = report.get("recommendations") or []
     if recommendations:
         lines.append("")
-        lines.append("建议动作：")
+        lines.append("优先行动建议：")
         for rec in recommendations[:3]:
-            lines.append(f"- {rec.get('priority', 'P1')} {rec.get('target_object')}: {rec.get('action')}")
+            lines.append(f"- {rec.get('priority', 'medium')}: {rec.get('action')}")
     limitations = report.get("limitations") or []
     if limitations:
         lines.append("")
@@ -326,7 +328,9 @@ def build_memory_summary(
             {
                 "priority": rec.get("priority"),
                 "target_object": rec.get("target_object"),
-                "monitoring_metric": rec.get("monitoring_metric"),
+                "action": rec.get("action"),
+                "metrics": rec.get("metrics"),
+                "deadline": rec.get("deadline"),
             }
             for rec in list(report.get("recommendations") or [])[:5]
         ],
@@ -475,20 +479,9 @@ def _collect_limitations(evidence_results: list[dict[str, Any]]) -> list[str]:
 def _collect_evidence_summary(evidence_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     evidence: list[dict[str, Any]] = []
     for result in evidence_results:
-        item = {
-            "tool_name": result.get("tool_name"),
-            "summary": result.get("evidence_summary") or "",
-        }
-        tables = result.get("evidence_tables") or []
-        if tables:
-            first_table = tables[0]
-            if isinstance(first_table, dict):
-                item["table_title"] = first_table.get("title")
-                item["top_rows"] = list(first_table.get("rows") or [])[:3]
-        metrics = result.get("metrics") or []
-        if metrics:
-            item["metrics"] = list(metrics)[:5]
-        evidence.append(item)
+        summary = _humanize_business_text(str(result.get("evidence_summary") or "").strip())
+        if summary:
+            evidence.append({"summary": summary})
     return evidence
 
 
@@ -570,51 +563,86 @@ def _fallback_recommendations(
     reason = first_summary or "The recommendation is based on the current deterministic evidence summary."
     defaults: dict[str, dict[str, str]] = {
         "customer_profile_analysis": {
-            "target_object": "customer segments",
-            "action": "Compare the top customer segment by sales and satisfaction, then run a small controlled promotion before expanding budget.",
+            "target_object": "客户分层",
+            "action": "优先比较贡献最高的客户分层，并先做小范围运营试点",
             "monitoring_metric": "sales_amount + avg_order_value + refund_rate + avg_satisfaction_score",
-            "expected_action_window": "next 2 weeks",
+            "expected_action_window": "建议 2 周内完成试点复盘",
         },
         "trend_analysis": {
-            "target_object": "latest trend period",
-            "action": "Review the latest month against the prior month and set weekly monitoring for sales, refund rate, and gross margin.",
+            "target_object": "最近经营趋势",
+            "action": "优先复盘最近一个月相对上月的变化，并建立每周监控",
             "monitoring_metric": "monthly_sales + refund_rate + gross_margin_rate",
-            "expected_action_window": "within 7 days",
+            "expected_action_window": "建议 1 周内完成初查",
         },
         "data_quality_check": {
-            "target_object": "quality anomalies",
-            "action": "Clean invalid sales, quantity, discount, shipping date, refund, satisfaction, and channel records before executive decisions.",
+            "target_object": "数据质量异常",
+            "action": "先清理会影响经营判断的异常订单和缺失字段",
             "monitoring_metric": "anomaly_count + missing_rate",
-            "expected_action_window": "within 3 days",
+            "expected_action_window": "建议 3 天内完成清理",
         },
         "business_review_summary": {
-            "target_object": "review focus areas",
-            "action": "Use the evidence summary to align revenue, risk, fulfillment, and customer experience owners before the review meeting.",
+            "target_object": "复盘重点事项",
+            "action": "会前先让收入、风险、履约和客户体验负责人对齐证据口径",
             "monitoring_metric": "total_sales + refund_rate + avg_shipping_days + avg_satisfaction_score",
-            "expected_action_window": "before next business review",
+            "expected_action_window": "建议下次经营会前完成",
         },
     }
     selected = defaults.get(
         question_type,
         {
-            "target_object": "business evidence",
-            "action": "Pick the top evidence item, assign an owner, and track sales, profit, refund, satisfaction, and fulfillment metrics together.",
+            "target_object": "本轮关键证据",
+            "action": "选择最重要的证据对象分配负责人，并建立销售、利润、退款、体验和履约联动监控",
             "monitoring_metric": "sales_amount + gross_margin_rate + refund_rate + avg_satisfaction_score + avg_shipping_days",
-            "expected_action_window": "within 7 days",
+            "expected_action_window": "建议 1 周内完成初步排查",
         },
     )
     if limitations:
-        reason = f"{reason} Data limitations should be checked before final decisions."
+        reason = f"{reason} 正式决策前需要先确认这些数据限制。"
     return [
         {
-            "priority": "P1",
+            "priority": "medium",
             "target_object": selected["target_object"],
             "action": selected["action"],
+            "why": reason,
+            "how": "先把本轮证据中排名靠前的对象列成排查清单，分配负责人，并在复盘前确认销售、退款、利润、履约和体验指标是否同步改善。",
+            "metrics": selected["monitoring_metric"],
+            "deadline": selected["expected_action_window"],
+            "owner_hint": "运营 / 商品 / 数据分析负责人",
             "monitoring_metric": selected["monitoring_metric"],
             "expected_action_window": selected["expected_action_window"],
             "reason": reason,
         }
     ]
+
+
+def _humanize_business_text(text: str) -> str:
+    replacements = {
+        "sales_amount": "销售额",
+        "total_sales": "销售额",
+        "order_count": "订单数",
+        "avg_order_value": "客单价",
+        "refund_amount": "退款金额",
+        "refund_rate": "退款率",
+        "return_rate": "退货率",
+        "gross_margin_rate": "毛利率",
+        "avg_discount": "平均折扣",
+        "discount": "折扣",
+        "avg_shipping_days": "平均发货周期",
+        "shipping_days": "发货周期",
+        "complaint_rate": "投诉率",
+        "complaint_count": "投诉量",
+        "avg_satisfaction_score": "满意度",
+        "satisfaction_score": "满意度",
+        "ad_channel": "渠道",
+        "city_level": "城市等级",
+        "return_reason": "退货原因",
+        "business_tool": "业务分析工具",
+    }
+    result = text
+    for raw, label in replacements.items():
+        result = result.replace(raw, label)
+    result = re.sub(r"\b(tool_name|tool_calls|trace|run_id|provider_used|provider_requested)\b", "", result)
+    return " ".join(result.split())
 
 
 def _find_result(evidence_results: list[dict[str, Any]], tool_name: str) -> dict[str, Any] | None:

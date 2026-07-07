@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 RiskLevel = Literal["high", "medium", "low"]
-Priority = Literal["P0", "P1", "P2"]
+Priority = Literal["P0", "P1", "P2", "high", "medium", "low"]
 
 
 class JsonSafeModel(BaseModel):
@@ -59,6 +59,11 @@ class RecommendationItem(JsonSafeModel):
     priority: Priority
     target_object: str
     action: str
+    why: str
+    how: str
+    metrics: list[str]
+    deadline: str
+    owner_hint: str
     monitoring_metric: str
     expected_action_window: str
     reason: str

@@ -4,17 +4,27 @@
 
 ## Current Branch
 
-- Branch: `m6-manual-fix-1-default-state-async-upload`
-- Stage: M6 Manual Fix 1 default state / async upload / session table state
+- Branch: `m6-manual-fix-2-business-report-readable`
+- Stage: M6 Manual Fix 2 business report output contract / recommendation validation / report reorder
 
 ## Current Work
 
-M6 Manual Fix 1 is complete locally as an implementation follow-up to M6.8 manual testing.
+M6 Manual Fix 2 is complete locally as an implementation follow-up to M6.8 manual testing.
 
-Manual Fix 1 addresses the default product state and upload/session issues found during manual testing. It does not implement Manual Fix 2 or Manual Fix 3, does not add M6.9, and does not create a tag.
+Manual Fix 2 addresses the business report readability issues found during manual testing. It upgrades recommendation output, validates recommendation shape defensively, reorders the frontend report to show conclusion and action first, and hides related data inside technical details / data evidence. It does not implement Manual Fix 3, does not add M6.9, and does not create a tag.
 
 Completed:
 
+- Confirmed latest master CI passed before starting Fix 2.
+- Created implementation branch `m6-manual-fix-2-business-report-readable`.
+- Added `BusinessRecommendation`, `DEFAULT_RECOMMENDATION`, and `validate_business_recommendations()` in `backend/agent/contracts.py`.
+- Updated `backend/business_tools/recommendation_tools.py` and `backend/business_tools/models.py` so business recommendations include action, why, how, metrics, deadline, and owner hint while retaining legacy compatibility fields.
+- Updated `backend/agent/business_orchestration.py` so `business_report.recommendations` is normalized through the validator, evidence summaries avoid tool names/raw rows, and rendered answers say "priority actions" instead of technical recommendation fragments.
+- Updated `frontend-react/src/components/astryx/astryx-data-agent-workbench.tsx` to render priority action cards before risks, findings, and evidence.
+- Moved related data preview into collapsed Technical details / Data evidence.
+- Added/updated tests for recommendation contract and frontend report order/legacy compatibility.
+- Added `docs/reports/m6-manual-fix-2-business-report-readable.md`.
+- Backend import, Fix 2 tests, M6 focused regression, full backend CI, frontend install, typecheck, full Vitest, and Next build passed locally.
 - Merged `origin/m6-manual-fix-plan-docs` into `master` and pushed `master`.
 - Created implementation branch `m6-manual-fix-1-default-state-async-upload`.
 - Forced dark-only frontend behavior and removed the Astryx light-mode entry from Settings.
@@ -82,12 +92,10 @@ Completed:
 This branch does not:
 
 - Start M6.9.
-- Implement Manual Fix 2.
 - Implement Manual Fix 3.
-- Change business report output contract.
-- Change recommendation schema or report order.
 - Change provider status/fallback transparency.
 - Implement next-question click-to-fill.
+- Change async upload task logic.
 - Restore Sidebar.
 - Restore five-tab navigation.
 - Add Multi-Agent, LangGraph, or RAG.
@@ -95,4 +103,4 @@ This branch does not:
 
 ## Next Step
 
-After Manual Fix 1 is merged back to `master`, the user can continue manual testing. If approved, the next stage is Manual Fix 2: business report output contract, recommendation validator, and report reorder.
+After Manual Fix 2 is merged back to `master`, the user can continue manual testing. If approved, the next stage is Manual Fix 3: provider transparency, next-question click-to-fill interaction, and final regression.

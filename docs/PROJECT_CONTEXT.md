@@ -6,8 +6,8 @@
 
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
-- Current product state: M6 Business Analyst Agent is ready for manual testing, with Manual Fix 1 default-state and async-upload repairs implemented.
-- Current stage: M6 Manual Fix 1 implementation complete locally; Manual Fix 2 and Manual Fix 3 have not started.
+- Current product state: M6 Business Analyst Agent is ready for manual testing, with Manual Fix 1 default-state repairs and Manual Fix 2 business-report readability repairs implemented.
+- Current stage: M6 Manual Fix 2 implementation complete locally; Manual Fix 3 has not started.
 
 ## M6 Direction
 
@@ -17,7 +17,7 @@ M6 is being planned as a Business Analyst Agent upgrade:
 understand question -> decompose metrics -> query evidence -> judge risk -> find opportunity -> recommend action -> support follow-up
 ```
 
-M6.1 is documentation only. M6.2 adds the synthetic business demo dataset. M6.3 adds the backend Business Semantic Layer. M6.4 adds deterministic backend Business Analysis Tools. M6.5 connects the semantic layer and business tools into the LangChain Single Agent backend orchestration. M6.6 adapts the frontend single-page workbench to show the backend `business_report` as the default user-facing answer. M6.7 validates the integrated Business Analyst Agent capability with deterministic pressure tests. M6.8 prepares `master` for user manual testing. Manual Fix 1 repairs the manual-test issues around default dark state, async upload, clean homepage state, and session table recovery.
+M6.1 is documentation only. M6.2 adds the synthetic business demo dataset. M6.3 adds the backend Business Semantic Layer. M6.4 adds deterministic backend Business Analysis Tools. M6.5 connects the semantic layer and business tools into the LangChain Single Agent backend orchestration. M6.6 adapts the frontend single-page workbench to show the backend `business_report` as the default user-facing answer. M6.7 validates the integrated Business Analyst Agent capability with deterministic pressure tests. M6.8 prepares `master` for user manual testing. Manual Fix 1 repairs the manual-test issues around default dark state, async upload, clean homepage state, and session table recovery. Manual Fix 2 repairs business-report recommendation depth, validator safety, report ordering, and related-data folding.
 
 ## Important Boundary
 
@@ -32,7 +32,8 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - M6.7 focuses on comprehensive business capability pressure testing.
 - M6.8 focuses on Final QA / Manual Test Ready.
 - M6 Manual Fix 1 focuses on default dark state, async upload, clean homepage state, and session table recovery.
-- M6 Manual Fix 2 and Manual Fix 3 have not started.
+- M6 Manual Fix 2 focuses on Business Report output contract, recommendation validation, report order, and technical data folding.
+- M6 Manual Fix 3 has not started.
 - M6.9, Multi-Agent, LangGraph, and RAG have not started.
 - Any future Multi-Agent expansion must be separately reviewed and approved.
 
@@ -53,6 +54,8 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - `docs/reports/m6-manual-test-guide.md`
 - `docs/reports/m6-final-qa-manual-test-ready.md`
 - `docs/reports/m6-manual-fix-plan.md`
+- `docs/reports/m6-manual-fix-1-default-state-async-upload.md`
+- `docs/reports/m6-manual-fix-2-business-report-readable.md`
 
 ## M6.2 Dataset
 
@@ -167,6 +170,21 @@ Manual Fix 1 implements the first approved repair set from `docs/reports/m6-manu
 
 Manual Fix 1 does not change the business report output contract, recommendation schema, provider transparency contract, Doubao fallback logic, next-question chip behavior, or any M6.9 scope.
 
+## M6 Manual Fix 2
+
+Manual Fix 2 implements the second approved repair set from `docs/reports/m6-manual-fix-plan.md`:
+
+- upgrades `business_report.recommendations` to a stable action-oriented contract with action, why, how, metrics, deadline, and owner hint;
+- adds backend Recommendation Schema Validator in `backend/agent/contracts.py`;
+- ensures malformed, empty, string, or legacy recommendations never crash the frontend and never produce an empty recommendation list;
+- keeps old recommendation fields for compatibility while making the new fields the primary path;
+- removes tool names, raw rows, and technical evidence objects from main `business_report.evidence_summary`;
+- reorders the frontend report to show overall judgment and priority actions before evidence;
+- renders business recommendation cards for non-technical users;
+- moves related data preview into collapsed Technical details / Data evidence.
+
+Manual Fix 2 does not change provider status transparency, Doubao fallback investigation, next-question click-to-fill behavior, async upload, or any M6.9 scope.
+
 ## Next Stage
 
-After Manual Fix 1 is merged back to `master`, the user can continue manual testing. If Fix 1 passes, the next approved stage is Manual Fix 2: business report output contract, recommendation validation, and report ordering.
+After Manual Fix 2 is merged back to `master`, the user can continue manual testing. If Fix 2 passes, the next approved stage is Manual Fix 3: provider transparency, next-question click-to-fill interaction, and final regression.
