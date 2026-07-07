@@ -17,7 +17,14 @@ vi.mock("react-i18next", () => ({
         "astryx.result.key-findings": "Key findings",
         "astryx.result.evidence-summary": "Evidence summary",
         "astryx.result.risk-priorities": "Risk priorities",
+        "astryx.result.opportunities": "Growth opportunities",
         "astryx.result.recommendations": "Recommendations",
+        "astryx.result.priority-actions": "Priority actions",
+        "astryx.result.recommendation-why": "Why",
+        "astryx.result.recommendation-how": "How",
+        "astryx.result.recommendation-metrics": "Metrics to watch",
+        "astryx.result.recommendation-deadline": "Timeline",
+        "astryx.result.recommendation-owner": "Suggested owner",
         "astryx.result.limitations": "Limitations",
         "astryx.result.next-questions": "Next questions",
         "astryx.result.risk-high": "High risk",
@@ -27,12 +34,12 @@ vi.mock("react-i18next", () => ({
         "astryx.result.answer": "Analysis conclusion",
         "astryx.result.findings": "Key findings",
         "astryx.result.next": "Next questions",
-        "astryx.result.data": "Related data",
+        "astryx.result.data": "Data evidence",
         "astryx.result.no-data": "No data",
         "astryx.result.warnings": "Risk notes",
         "astryx.result.sql": "View SQL",
         "astryx.result.no-sql": "No SQL",
-        "astryx.result.technical": "Technical Details",
+        "astryx.result.technical": "Technical details / Data evidence",
         "astryx.result.provider-requested": "Requested model",
         "astryx.result.provider-used": "Model used",
         "astryx.result.fallback-reason": "Fallback reason",
@@ -62,7 +69,18 @@ const businessReport: AgentBusinessReport = {
     { risk_name: "Promotion dependency", risk_level: "medium", reason: "High discount with low margin." },
   ],
   recommendations: [
-    { action: "Audit the top refund products in South China this week.", monitoring_metric: "refund_rate" },
+    {
+      priority: "high",
+      action: "Audit the top refund products in South China this week.",
+      why: "South China has strong sales but weaker refund and complaint indicators.",
+      how: "Group recent refund orders by category, product, and return reason.",
+      metrics: ["Refund rate", "Complaint rate", "Satisfaction", "Top return reasons"],
+      deadline: "Finish the first review within 1 week",
+      owner_hint: "Operations / After-sales / Product owner",
+      reason: "Legacy reason should not be the primary text.",
+      monitoring_metric: "legacy_refund_rate",
+      expected_action_window: "legacy window",
+    },
   ],
   limitations: ["ROI cannot be calculated without ad_spend or campaign_cost."],
   next_questions: ["Continue by product category in high-risk regions."],
@@ -103,7 +121,7 @@ function makeRecord(report: AgentBusinessReport | null = businessReport): Busine
 }
 
 describe("M6.6 Business Report frontend adaptation", () => {
-  it("renders business_report as the default user-facing report", () => {
+  it("renders business_report as the default user-facing report with recommendations before evidence", () => {
     render(<BusinessResult record={makeRecord()} rows={[]} columns={[]} />);
 
     expect(screen.getByText("Overall revenue is strong, but refund and service risks need priority attention.")).toBeInTheDocument();
@@ -111,8 +129,19 @@ describe("M6.6 Business Report frontend adaptation", () => {
     expect(screen.getByText("Total sales reached 12.5M.")).toBeInTheDocument();
     expect(screen.getByText("South China refund pressure")).toBeInTheDocument();
     expect(screen.getByText("Audit the top refund products in South China this week.")).toBeInTheDocument();
+    expect(screen.getByText("South China has strong sales but weaker refund and complaint indicators.")).toBeInTheDocument();
+    expect(screen.getByText("Group recent refund orders by category, product, and return reason.")).toBeInTheDocument();
+    expect(screen.getByText("Finish the first review within 1 week")).toBeInTheDocument();
+    expect(screen.getByText("Operations / After-sales / Product owner")).toBeInTheDocument();
+    expect(screen.getByText("Refund rate")).toBeInTheDocument();
     expect(screen.getByText("ROI cannot be calculated without ad_spend or campaign_cost.")).toBeInTheDocument();
     expect(screen.getByText("Continue by product category in high-risk regions.")).toBeInTheDocument();
+
+    const content = document.body.textContent ?? "";
+    expect(content.indexOf("Priority actions")).toBeGreaterThan(-1);
+    expect(content.indexOf("Evidence summary")).toBeGreaterThan(-1);
+    expect(content.indexOf("Priority actions")).toBeLessThan(content.indexOf("Evidence summary"));
+    expect(content).not.toContain("legacy_refund_rate");
   });
 
   it("keeps SQL, trace, tool calls, provider, run id and memory hidden by default", () => {
@@ -125,12 +154,13 @@ describe("M6.6 Business Report frontend adaptation", () => {
     expect(screen.queryByText("run-business-1")).not.toBeInTheDocument();
     expect(screen.queryByText("memory_used")).not.toBeInTheDocument();
     expect(screen.queryByText("provider fallback detail")).not.toBeInTheDocument();
+    expect(screen.queryByText("Data evidence")).not.toBeInTheDocument();
   });
 
   it("shows technical details only after the accordion is expanded", () => {
-    render(<BusinessResult record={makeRecord()} rows={[]} columns={[]} />);
+    render(<BusinessResult record={makeRecord()} rows={[{ order_id: "o-1", sales_amount: 100 }]} columns={["order_id", "sales_amount"]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Technical Details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Technical details / Data evidence" }));
 
     expect(screen.getByText("SELECT * FROM revenue")).toBeInTheDocument();
     expect(screen.getByText(/compute_overall_kpis/)).toBeInTheDocument();
@@ -138,6 +168,29 @@ describe("M6.6 Business Report frontend adaptation", () => {
     expect(screen.getByText("doubao")).toBeInTheDocument();
     expect(screen.getAllByText("run-business-1").length).toBeGreaterThan(0);
     expect(screen.getByText(/memory_used/)).toBeInTheDocument();
+    expect(screen.getByText("Data evidence")).toBeInTheDocument();
+    expect(screen.getByText("order_id")).toBeInTheDocument();
+  });
+
+  it("uses legacy recommendation fields only when new fields are missing", () => {
+    const legacyReport: AgentBusinessReport = {
+      ...businessReport,
+      recommendations: [
+        {
+          action: "Review legacy promotion risk.",
+          reason: "Legacy reason is available.",
+          monitoring_metric: "legacy_margin",
+          expected_action_window: "legacy 7 days",
+        },
+      ],
+    };
+
+    render(<BusinessResult record={makeRecord(legacyReport)} rows={[]} columns={[]} />);
+
+    expect(screen.getByText("Review legacy promotion risk.")).toBeInTheDocument();
+    expect(screen.getByText("Legacy reason is available.")).toBeInTheDocument();
+    expect(screen.getByText("legacy_margin")).toBeInTheDocument();
+    expect(screen.getByText("legacy 7 days")).toBeInTheDocument();
   });
 
   it("falls back to the legacy answer when business_report is missing", () => {

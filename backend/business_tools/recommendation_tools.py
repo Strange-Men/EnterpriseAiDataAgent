@@ -32,18 +32,34 @@ def recommendation_builder(input_data: RecommendationInput, *, db_manager: Datab
     for risk in input_data.risks[:5]:
         target = risk.risk_name.split(":", 1)[-1].strip()
         metric = "refund_rate"
-        action = f"对 {target} 建立售后复盘清单，优先抽查退款订单、退货原因和高投诉订单。"
+        metrics = ["退款率", "投诉率", "满意度", "退货原因 Top 3"]
+        action = f"优先排查 {target} 的退款和售后问题"
+        why = risk.reason or f"{target} 已被识别为风险对象，说明收入、退款、投诉或体验指标之间可能存在不健康组合。"
+        how = f"先抽取 {target} 近 7 天相关订单，按品类、商品和退货原因分组，找出退款和投诉最集中的问题来源。"
+        deadline = "建议 1 周内完成初查"
+        owner_hint = "运营 / 售后 / 商品负责人"
         if "促销" in risk.risk_name:
             metric = "avg_discount + gross_margin_rate"
-            action = f"对 {target} 暂停追加大额促销预算，先复核折扣门槛、毛利底线和活动商品组合。"
+            metrics = ["平均折扣", "毛利率", "销售额", "退款率"]
+            action = f"暂停对 {target} 追加大额促销预算"
+            how = f"先复核 {target} 的折扣门槛、毛利底线和活动商品组合，把低毛利高折扣对象从主推清单中单独标记。"
+            owner_hint = "运营 / 财务 / 商品负责人"
         elif "履约" in risk.risk_name:
             metric = "avg_shipping_days + complaint_rate"
-            action = f"对 {target} 排查仓配链路，列出超过 7 天发货订单并设定每日清零目标。"
+            metrics = ["平均发货周期", "超 7 天订单数", "投诉率", "满意度"]
+            action = f"优先排查 {target} 的仓配履约链路"
+            how = f"列出 {target} 超过 7 天发货的订单，按仓库、地区和商品分组，设定每日清零目标并同步客服安抚话术。"
+            owner_hint = "仓配 / 物流 / 客服负责人"
         recommendations.append(
             RecommendationItem(
-                priority="P0" if risk.risk_level == "high" else "P1",
+                priority="high" if risk.risk_level == "high" else "medium",
                 target_object=target,
                 action=action,
+                why=why,
+                how=how,
+                metrics=metrics,
+                deadline=deadline,
+                owner_hint=owner_hint,
                 monitoring_metric=metric,
                 expected_action_window="within 7 days",
                 reason=risk.reason,
@@ -52,9 +68,14 @@ def recommendation_builder(input_data: RecommendationInput, *, db_manager: Datab
     for opportunity in input_data.opportunities[:3]:
         recommendations.append(
             RecommendationItem(
-                priority="P1",
+                priority="medium",
                 target_object=opportunity.object_name,
-                action=f"对 {opportunity.object_name} 做小流量加投或资源倾斜试点，同时设置退款率、折扣率和满意度护栏。",
+                action=f"对 {opportunity.object_name} 做小流量加投或资源倾斜试点",
+                why=opportunity.reason or f"{opportunity.object_name} 在销售、利润或体验指标上具备增长候选价值。",
+                how=f"先选择 {opportunity.object_name} 的 1-2 个代表商品或地区做两周试点，同时设置退款率、折扣率和满意度护栏。",
+                metrics=["销售额", "毛利率", "退款率", "满意度"],
+                deadline="建议 2-4 周内完成试点复盘",
+                owner_hint="运营 / 商品 / 增长负责人",
                 monitoring_metric="sales_amount + gross_margin_rate + refund_rate + avg_satisfaction_score",
                 expected_action_window="next 2-4 weeks",
                 reason=opportunity.reason,
