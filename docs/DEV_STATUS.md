@@ -4,14 +4,14 @@
 
 ## Current Branch
 
-- Branch: `m6-business-capability-pressure-test`
-- Stage: M6.7 comprehensive business capability pressure testing
+- Branch: `m6-final-qa-manual-test-ready`
+- Stage: M6.8 Final QA / Manual Test Ready
 
 ## Current Work
 
-M6.7 comprehensive business capability pressure testing is complete and ready for review.
+M6.8 Final QA / Manual Test Ready is complete and ready to merge back to master for user manual testing.
 
-M6.6 GitHub Actions run `28836528225` passed before M6.7 started. M6.6 was merged into `master`, validated, and pushed. M6.7 adds deterministic pressure tests for the 25-question Business Analyst Agent capability plan and fixes only the necessary defects exposed by those tests.
+M6.7 CI was confirmed as passed before M6.8. M6.7 was merged into `master`, validated, and pushed. M6.8 performs final QA, creates the manual test guide, creates the M6 Final QA report, and prepares `master` for user manual testing.
 
 Completed:
 
@@ -57,13 +57,17 @@ Completed:
 - M6.7 pressure tests passed locally: `7 passed`.
 - Full backend CI command passed locally: `python -m pytest tests/ -x -q --ignore=tests/ai` -> `859 passed`.
 - Frontend CI commands passed locally: `npm ci`, `npx tsc --noEmit`, `npm run test`, `npm run build`.
+- Merged M6.7 Business Capability Pressure Tests into master.
+- Added `docs/reports/m6-manual-test-guide.md`.
+- Added `docs/reports/m6-final-qa-manual-test-ready.md`.
+- M6.8 Final QA passed locally: backend import, M6 focused tests, full backend CI, frontend install, typecheck, tests, and build.
 
 ## Boundaries
 
 This branch does not:
 
-- Start M6.8 final QA.
-- Create a final release candidate.
+- Start M6.9.
+- Add new product functionality.
 - Restore Sidebar.
 - Restore five-tab navigation.
 - Add Multi-Agent, LangGraph, or RAG.
@@ -71,4 +75,4 @@ This branch does not:
 
 ## Next Step
 
-Wait for M6.7 branch CI and user review. The next stage is M6.8 Final QA / Tag Candidate.
+Merge M6.8 back to `master` and let the user perform manual testing from `master`. If manual testing passes, the next user-approved step can be creating the M6 final tag.
