@@ -772,6 +772,11 @@ class LangChainSingleAgentService:
         self._append_tool_result(run=run, result=schema_result, input_json={"table_name": table_name})
         self._merge_tool_context(context=context, result=schema_result)
         available_fields = self._column_names(context.get("schema") or [])
+        context["sql"] = self._deterministic_sql(
+            table_name,
+            user_goal=request.user_input,
+            schema_columns=context.get("schema") or [],
+        )
 
         question_type = str(classification.get("question_type") or "business_health_check")
         plan = build_analysis_plan(question_type, request.user_input, available_fields, prior_memory=prior_memory)

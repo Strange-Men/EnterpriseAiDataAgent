@@ -303,3 +303,69 @@ Safety search result: PASS, no real credential, `.env`, private learning materia
 ## 15. Next Stage Recommendation
 
 建议等待用户审查 M6.5。审查通过后，下一阶段才进入 M6.6 Business Report frontend adaptation。
+
+## 16. CI Fix
+
+> Date: 2026-07-07
+> Scope: M6.5 backend CI fix only.
+
+CI 失败原因：
+
+- GitHub Actions backend job 执行 `python -m pytest tests/ -x -q --ignore=tests/ai` 时，旧回归测试 `tests/unit/test_agent_langchain_single_agent_polish.py::test_mock_agent_generates_region_sales_ranking_sql` 失败。
+- M6.5 业务编排分支命中了“不同地区销售额排名”这类地区分析问题，但只生成了 `business_report`，没有为旧兼容字段 `run.sql` 填入 schema-aware deterministic SQL。
+- 旧测试期望 mock agent 对地区销售额排名仍返回包含 `SUM(` / `GROUP BY` / `ORDER BY total_sales DESC` 的 SQL，因此 `run.sql == ""` 导致断言失败。
+- Node.js 20 deprecated 是 GitHub Actions warning，不是 backend job 失败原因。
+
+backend job 失败位置：
+
+```text
+tests/unit/test_agent_langchain_single_agent_polish.py::test_mock_agent_generates_region_sales_ranking_sql
+AssertionError: assert 'SUM(' in ''
+```
+
+修复内容：
+
+- 在 M6.5 business orchestration 路径完成 schema inspection 后，为 `context["sql"]` 填入现有 `_deterministic_sql()` 结果。
+- `business_report` 仍不包含 SQL / trace / tool_calls / provider / run_id / memory。
+- 保留 M6.5 核心能力，不回退 business_report，不跳过测试。
+
+是否修改 CI workflow：否。
+
+是否修改依赖文件：否。
+
+是否修改测试：否。
+
+本地复现命令：
+
+```bash
+gh run view 28801709028 --log-failed
+python -m pytest tests/unit/test_agent_langchain_single_agent_polish.py::test_mock_agent_generates_region_sales_ranking_sql -q
+```
+
+修复后验证：
+
+```bash
+python -c "from backend.main import app; print('backend import OK')"
+python -m pytest tests/test_m6_langchain_business_agent_orchestration.py -q
+python -m pytest tests/test_m6_business_analysis_tools.py -q
+python -m pytest tests/test_m6_business_semantic_layer.py -q
+python -m pytest tests/test_m6_demo_business_dataset.py -q
+python -m pytest tests/ -x -q --ignore=tests/ai
+```
+
+结果：
+
+- backend import: PASS
+- M6.5 orchestration tests: PASS, `13 passed`
+- M6.4 tools tests: PASS, `17 passed`
+- M6.3 semantic tests: PASS, `9 passed`
+- M6.2 dataset tests: PASS, `2 passed`
+- Full backend CI command: PASS, `852 passed`
+
+范围确认：
+
+- 仍保持 M6.5 范围。
+- 未进入 M6.6 / M6.7 / M6.8。
+- 未改前端 UI。
+- 未做正式 25 题压力测试。
+- 未打 tag，未合并 master。

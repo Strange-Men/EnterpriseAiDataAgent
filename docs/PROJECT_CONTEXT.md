@@ -1,6 +1,6 @@
 # Project Context
 
-> Last updated: 2026-07-06
+> Last updated: 2026-07-07
 
 ## Current Baseline
 
@@ -64,9 +64,10 @@ M6.5 adds backend Business Analyst Agent orchestration:
 - `business_report` backend response field
 - compact memory summary for follow-up questions
 - anti-hallucination field handling for unsupported fields such as ROI, membership level and fine-grained location
+- CI fix: business orchestration now also fills the legacy-compatible `run.sql` field with deterministic SQL after schema inspection, so older Agent SQL regressions remain valid while `business_report` keeps technical details hidden.
 
 M6.5 preserves the existing `answer`, `sql`, `evidence`, `warnings`, `trace`, and `tool_calls` fields for frontend compatibility. It does not change frontend UI.
 
 ## Next Stage
 
-M6.6 Business Report frontend adaptation is the next implementation stage after user review. M6.5 did not touch frontend UI, did not run formal 25-question pressure scoring, and did not create a tag.
+M6.6 Business Report frontend adaptation is the next implementation stage after the M6.5 CI fix passes GitHub Actions and the user approves. M6.5 did not touch frontend UI, did not run formal 25-question pressure scoring, and did not create a tag.

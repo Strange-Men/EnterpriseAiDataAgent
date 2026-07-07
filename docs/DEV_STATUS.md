@@ -1,6 +1,6 @@
 # Development Status
 
-> Last updated: 2026-07-06
+> Last updated: 2026-07-07
 
 ## Current Branch
 
@@ -10,6 +10,8 @@
 ## Current Work
 
 M6.5 LangChain Agent orchestration enhancement is complete and ready for review.
+
+M6.5 backend CI fix is complete. GitHub Actions backend failed because an old LangChain Single Agent regression still expected deterministic SQL in `run.sql` for a region sales ranking question. The M6.5 business orchestration path now keeps `business_report` while also filling the legacy-compatible SQL field from the existing deterministic SQL helper.
 
 Completed:
 
@@ -38,6 +40,8 @@ Completed:
 - Added multi-evidence business orchestration, anti-hallucination field handling, and compact memory summary support.
 - Added `tests/test_m6_langchain_business_agent_orchestration.py`.
 - Added `docs/reports/m6-langchain-business-agent-orchestration.md`.
+- Added M6.5 CI Fix notes to `docs/reports/m6-langchain-business-agent-orchestration.md`.
+- Full backend CI command passed locally: `python -m pytest tests/ -x -q --ignore=tests/ai` -> `852 passed`.
 
 ## Boundaries
 
@@ -54,4 +58,4 @@ This branch does not:
 
 ## Next Step
 
-Wait for user review. If approved, the next stage is M6.6 Business Report frontend adaptation.
+Wait for GitHub Actions to rerun on the pushed M6.5 CI fix. If CI passes and the user approves, the next stage is M6.6 Business Report frontend adaptation.
