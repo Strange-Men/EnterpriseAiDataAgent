@@ -2,6 +2,13 @@
 
 > Last updated: 2026-07-07
 
+## M6 Manual Fix Plan Docs
+
+- Created documentation-only branch `m6-manual-fix-plan-docs`.
+- Added `docs/reports/m6-manual-fix-plan.md` to capture the 9 user manual-test issues and the proposed Manual Fix 1 / 2 / 3 sequence.
+- This round is documentation only: no frontend, backend, tests, CI, tag, or master merge changes.
+- Current recommendation: start with Manual Fix 1 for default dark state, async upload, and session table state in a separate implementation prompt.
+
 ## M6.8 Final QA / Manual Test Ready
 
 - M6.7 CI was confirmed by user as passed before M6.8.
