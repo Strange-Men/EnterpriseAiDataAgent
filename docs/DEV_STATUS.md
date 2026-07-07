@@ -4,14 +4,14 @@
 
 ## Current Branch
 
-- Branch: `m6-final-qa-manual-test-ready`
-- Stage: M6.8 Final QA / Manual Test Ready
+- Branch: `m6-manual-fix-plan-docs`
+- Stage: M6 manual-test fix planning docs
 
 ## Current Work
 
-M6.8 Final QA / Manual Test Ready is complete and ready to merge back to master for user manual testing.
+M6 manual-test fix planning docs are in progress as a documentation-only follow-up to M6.8 manual testing.
 
-M6.7 CI was confirmed as passed before M6.8. M6.7 was merged into `master`, validated, and pushed. M6.8 performs final QA, creates the manual test guide, creates the M6 Final QA report, and prepares `master` for user manual testing.
+M6.8 has already been merged to `master`, and user manual testing surfaced 9 product and report usability issues. This branch only records the technical fix plan in Markdown. It does not implement Manual Fix 1, Manual Fix 2, or Manual Fix 3.
 
 Completed:
 
@@ -61,6 +61,7 @@ Completed:
 - Added `docs/reports/m6-manual-test-guide.md`.
 - Added `docs/reports/m6-final-qa-manual-test-ready.md`.
 - M6.8 Final QA passed locally: backend import, M6 focused tests, full backend CI, frontend install, typecheck, tests, and build.
+- Added `docs/reports/m6-manual-fix-plan.md` as a documentation-only plan for Manual Fix 1 / 2 / 3.
 
 ## Boundaries
 
@@ -68,6 +69,11 @@ This branch does not:
 
 - Start M6.9.
 - Add new product functionality.
+- Implement Manual Fix 1, Manual Fix 2, or Manual Fix 3.
+- Change frontend code.
+- Change backend code.
+- Change tests.
+- Change CI.
 - Restore Sidebar.
 - Restore five-tab navigation.
 - Add Multi-Agent, LangGraph, or RAG.
@@ -75,4 +81,4 @@ This branch does not:
 
 ## Next Step
 
-Merge M6.8 back to `master` and let the user perform manual testing from `master`. If manual testing passes, the next user-approved step can be creating the M6 final tag.
+Wait for user review of `docs/reports/m6-manual-fix-plan.md`. If approved, start Manual Fix 1 in a separate implementation prompt.
