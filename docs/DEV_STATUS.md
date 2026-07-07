@@ -4,14 +4,14 @@
 
 ## Current Branch
 
-- Branch: `m6-business-report-frontend-adaptation`
-- Stage: M6.6 Business Report frontend adaptation
+- Branch: `m6-business-capability-pressure-test`
+- Stage: M6.7 comprehensive business capability pressure testing
 
 ## Current Work
 
-M6.6 Business Report frontend adaptation is complete and ready for review.
+M6.7 comprehensive business capability pressure testing is complete and ready for review.
 
-M6.5 GitHub Actions run `28835705148` passed before M6.6 started. M6.5 was merged into `master`, validated, and pushed. M6.6 keeps the single-page Astryx workbench and adapts the main Agent answer area to show `business_report` by default while keeping SQL and technical internals collapsed.
+M6.6 GitHub Actions run `28836528225` passed before M6.7 started. M6.6 was merged into `master`, validated, and pushed. M6.7 adds deterministic pressure tests for the 25-question Business Analyst Agent capability plan and fixes only the necessary defects exposed by those tests.
 
 Completed:
 
@@ -49,14 +49,21 @@ Completed:
 - Added `frontend-react/src/components/astryx/__tests__/business-report-view.test.tsx`.
 - Added `docs/reports/m6-business-report-frontend-adaptation.md`.
 - Frontend CI commands passed locally: `npm ci`, `npx tsc --noEmit`, `npm run test`, `npm run build`.
+- Merged M6.6 Business Report frontend adaptation into master.
+- Added `tests/fixtures/m6_pressure_questions.json` covering all 25 M6 pressure questions.
+- Added `tests/test_m6_business_capability_pressure.py`.
+- Added `docs/reports/m6-business-capability-pressure-test.md`.
+- Fixed M6.7-discovered gaps in fallback recommendations and monitoring/KPI question classification.
+- M6.7 pressure tests passed locally: `7 passed`.
+- Full backend CI command passed locally: `python -m pytest tests/ -x -q --ignore=tests/ai` -> `859 passed`.
+- Frontend CI commands passed locally: `npm ci`, `npx tsc --noEmit`, `npm run test`, `npm run build`.
 
 ## Boundaries
 
 This branch does not:
 
-- Start M6.7 pressure testing.
 - Start M6.8 final QA.
-- Do formal 25-question M6.7 scoring.
+- Create a final release candidate.
 - Restore Sidebar.
 - Restore five-tab navigation.
 - Add Multi-Agent, LangGraph, or RAG.
@@ -64,4 +71,4 @@ This branch does not:
 
 ## Next Step
 
-Wait for M6.6 branch CI and user review. The next stage is M6.7 comprehensive business capability pressure testing.
+Wait for M6.7 branch CI and user review. The next stage is M6.8 Final QA / Tag Candidate.

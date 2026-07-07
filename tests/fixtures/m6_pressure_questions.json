@@ -1,0 +1,227 @@
+[
+  {
+    "id": "M6-Q01",
+    "question": "帮我评估这张表整体经营健康度，先给结论，再说明主要风险和机会。",
+    "category": "business_health_check",
+    "expected_capabilities": ["overall_kpis", "multi_evidence", "risk_priority", "recommendations"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q02",
+    "question": "如果我要开业务复盘会，这份数据最该讲哪几个重点？",
+    "category": "business_review_summary",
+    "expected_capabilities": ["trend", "dimension_comparison", "business_language"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q03",
+    "question": "哪些地区是高收入但高风险？",
+    "category": "region_analysis",
+    "expected_capabilities": ["region_dimension", "refund_risk", "risk_priority"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q04",
+    "question": "哪些地区虽然销售不是最高，但值得加大投入？",
+    "category": "growth_opportunity",
+    "expected_capabilities": ["opportunity_finder", "region_dimension", "recommendations"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q05",
+    "question": "哪些品类存在促销依赖风险？",
+    "category": "category_product_analysis",
+    "expected_capabilities": ["discount_risk", "profitability", "category_dimension"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q06",
+    "question": "哪些商品销量高但利润质量差？",
+    "category": "category_product_analysis",
+    "expected_capabilities": ["profitability", "product_dimension", "recommendations"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q07",
+    "question": "帮我找退款风险最高的品类和可能原因。",
+    "category": "category_product_analysis",
+    "expected_capabilities": ["refund_risk", "root_cause_hypothesis", "candidate_cause_wording"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q08",
+    "question": "哪些渠道带来了订单，但客户体验可能不好？",
+    "category": "channel_analysis",
+    "expected_capabilities": ["channel_effectiveness", "experience_risk", "recommendations"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q09",
+    "question": "发货效率有没有拖累客户体验？",
+    "category": "shipping_efficiency_analysis",
+    "expected_capabilities": ["shipping_efficiency", "complaint_or_satisfaction_evidence", "recommendations"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q10",
+    "question": "三四线城市和一线城市的经营差异是什么？",
+    "category": "region_analysis",
+    "expected_capabilities": ["city_level_dimension", "dimension_comparison", "recommendations"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q11",
+    "question": "年轻客户更偏好哪些品类？这些品类健康吗？",
+    "category": "customer_profile_analysis",
+    "expected_capabilities": ["customer_profile", "category_preference", "risk_context"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q12",
+    "question": "高价值客户贡献了多少销售额？风险如何？",
+    "category": "customer_profile_analysis",
+    "expected_capabilities": ["customer_segment", "sales_contribution", "risk_context"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q13",
+    "question": "最近几个月经营趋势是在变好还是变差？",
+    "category": "trend_analysis",
+    "expected_capabilities": ["trend", "monthly_kpis", "business_judgment"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q14",
+    "question": "哪些指标最需要持续监控？",
+    "category": "business_health_check",
+    "expected_capabilities": ["kpi_monitoring", "thresholds", "recommendations"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q15",
+    "question": "这张表有哪些明显的数据质量问题？",
+    "category": "data_quality_check",
+    "expected_capabilities": ["data_quality_check", "anomaly_counts", "recommendations"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q16",
+    "question": "帮我输出一份面向老板的经营简报。",
+    "category": "business_review_summary",
+    "expected_capabilities": ["executive_brief", "business_language", "hidden_technical_details"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q17",
+    "question": "找出最适合下季度重点投入的 3 个对象，可以是地区、品类或渠道。",
+    "category": "growth_opportunity",
+    "expected_capabilities": ["opportunity_finder", "cross_dimension", "risk_reminder"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q18",
+    "question": "如果只能先处理一个风险，你建议处理什么？",
+    "category": "recommendation_request",
+    "expected_capabilities": ["risk_priority", "recommendation_builder", "business_judgment"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q19",
+    "question": "哪些退款原因最集中？应该先排查哪类商品？",
+    "category": "category_product_analysis",
+    "expected_capabilities": ["refund_reason", "category_product_analysis", "recommendations"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q20",
+    "question": "帮我比较华南和华东的经营质量。",
+    "category": "region_analysis",
+    "expected_capabilities": ["region_comparison", "multi_metric", "recommendations"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q21",
+    "question": "我想知道广告花费 ROI，帮我分析。",
+    "category": "anti_hallucination_field_check",
+    "expected_capabilities": ["missing_field", "alternative_analysis", "no_roi_fabrication"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "limitations", "next_questions"],
+    "anti_hallucination_expectations": ["ad_spend", "campaign_cost"],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q22",
+    "question": "按会员等级分析复购率。",
+    "category": "anti_hallucination_field_check",
+    "expected_capabilities": ["missing_field", "alternative_analysis", "no_membership_fabrication"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "limitations", "next_questions"],
+    "anti_hallucination_expectations": ["membership_level"],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q23",
+    "question": "用户来自哪些小区？",
+    "category": "anti_hallucination_field_check",
+    "expected_capabilities": ["missing_field", "alternative_analysis", "no_neighborhood_fabrication"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "limitations", "next_questions"],
+    "anti_hallucination_expectations": ["neighborhood", "address", "latitude", "longitude"],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q24",
+    "question": "刚才说的高风险地区里，继续看具体品类原因。",
+    "category": "follow_up_drilldown",
+    "expected_capabilities": ["memory_read", "drilldown", "root_cause_hypothesis"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "risk_priorities", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  },
+  {
+    "id": "M6-Q25",
+    "question": "基于上一题，给我一个一周内能执行的整改计划。",
+    "category": "follow_up_drilldown",
+    "expected_capabilities": ["memory_read", "action_plan", "recommendation_builder"],
+    "required_business_report_sections": ["executive_summary", "key_findings", "evidence_summary", "recommendations", "next_questions"],
+    "anti_hallucination_expectations": [],
+    "min_score_hint": 8
+  }
+]
