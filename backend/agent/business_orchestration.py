@@ -59,7 +59,17 @@ COMPLEX_QUESTION_TYPES: set[str] = {
 
 
 TECHNICAL_DETAIL_KEYS: set[str] = set(HIDDEN_TECHNICAL_FIELDS).union(
-    {"provider_used", "provider_requested", "fallback_reason", "tool_call", "tool_calls"}
+    {
+        "provider_used",
+        "provider_requested",
+        "requested_provider",
+        "provider_status",
+        "is_simulated",
+        "fallback_triggered",
+        "fallback_reason",
+        "tool_call",
+        "tool_calls",
+    }
 )
 
 
@@ -641,7 +651,7 @@ def _humanize_business_text(text: str) -> str:
     result = text
     for raw, label in replacements.items():
         result = result.replace(raw, label)
-    result = re.sub(r"\b(tool_name|tool_calls|trace|run_id|provider_used|provider_requested)\b", "", result)
+    result = re.sub(r"\b(tool_name|tool_calls|trace|run_id|provider_used|provider_requested|requested_provider|provider_status|is_simulated)\b", "", result)
     return " ".join(result.split())
 
 

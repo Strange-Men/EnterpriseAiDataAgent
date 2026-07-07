@@ -104,6 +104,13 @@ class FallbackType(str, Enum):
     UI = "ui"
 
 
+class ProviderStatus(str, Enum):
+    LIVE_SUCCESS = "live_success"
+    MOCK = "mock"
+    FALLBACK = "fallback"
+    ERROR = "error"
+
+
 class RiskLevel(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
@@ -376,6 +383,7 @@ class AgentRunSummary(BaseModel):
     status: AgentStatus
     agent_role: AgentRole = AgentRole.DATA_ANALYST
     provider_used: str = Field(min_length=1)
+    provider_status: ProviderStatus = ProviderStatus.MOCK
     is_simulated: bool
     fallback_triggered: bool
     step_count: int = Field(ge=0)
@@ -396,7 +404,9 @@ class AgentRun(BaseModel):
     intent: IntentCategory | None = None
     selected_mode: SelectedMode | None = None
     provider_requested: str = Field(default="mock", min_length=1)
+    requested_provider: str | None = None
     provider_used: str = Field(default="mock", min_length=1)
+    provider_status: ProviderStatus = ProviderStatus.MOCK
     is_simulated: bool = True
     fallback_triggered: bool = False
     fallback_type: FallbackType = FallbackType.NONE
@@ -428,14 +438,52 @@ class AgentRun(BaseModel):
     def _default_root_run_id(self) -> "AgentRun":
         if self.root_run_id is None:
             self.root_run_id = self.run_id
+        self.sync_provider_status()
+        return self
+
+    def sync_provider_status(self) -> "AgentRun":
+        """Keep product-facing provider status aligned with legacy metadata."""
+
+        requested = (self.provider_requested or self.requested_provider or "mock").strip().lower() or "mock"
+        used = (self.provider_used or "mock").strip().lower() or "mock"
+        self.provider_requested = requested
+        self.requested_provider = requested
+        self.provider_used = used
+        self.fallback_reason = _safe_fallback_reason(self.fallback_reason)
+
+        if requested == "mock":
+            self.provider_status = ProviderStatus.MOCK
+            self.provider_used = "mock"
+            self.is_simulated = True
+            self.fallback_triggered = False
+            self.fallback_type = FallbackType.NONE
+            self.fallback_reason = None
+        elif self.status == AgentStatus.FAILED and not self.fallback_triggered and used != "mock":
+            self.provider_status = ProviderStatus.ERROR
+            self.is_simulated = False
+        elif self.fallback_triggered or used == "mock":
+            self.provider_status = ProviderStatus.FALLBACK
+            self.provider_used = "mock"
+            self.is_simulated = True
+            self.fallback_triggered = True
+            self.fallback_type = FallbackType.PROVIDER
+            self.fallback_reason = self.fallback_reason or "provider_fallback_to_mock"
+        else:
+            self.provider_status = ProviderStatus.LIVE_SUCCESS
+            self.is_simulated = False
+            self.fallback_triggered = False
+            self.fallback_type = FallbackType.NONE
+            self.fallback_reason = None
         return self
 
     def to_summary(self, findings_count: int = 0) -> AgentRunSummary:
+        self.sync_provider_status()
         return AgentRunSummary(
             run_id=self.run_id,
             status=self.status,
             agent_role=self.agent_role,
             provider_used=self.provider_used,
+            provider_status=self.provider_status,
             is_simulated=self.is_simulated,
             fallback_triggered=self.fallback_triggered,
             step_count=len(self.steps),
@@ -443,4 +491,17 @@ class AgentRun(BaseModel):
             findings_count=findings_count,
             trace_id=self.trace_id,
         )
+
+
+def _safe_fallback_reason(reason: str | None) -> str | None:
+    if not reason:
+        return None
+    text = " ".join(str(reason).split())
+    if not text:
+        return None
+    if any(marker in text for marker in ("Traceback", "File \"", "File '", " at ", "\\backend\\", "/backend/")):
+        return "provider_request_failed"
+    if len(text) > 180:
+        return text[:177].rstrip() + "..."
+    return text
 

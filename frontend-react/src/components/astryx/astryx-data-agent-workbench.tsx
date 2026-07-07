@@ -47,6 +47,7 @@ import { cn } from "@/utils/cn";
 
 type WorkbenchFocus = "workbench" | "upload" | "results" | "history" | "settings" | "expert";
 type UploadStage = "idle" | "uploading" | "parsing" | "loading" | "profiling" | "done" | "failed";
+type ProviderDisplayStatus = "live_success" | "mock" | "fallback" | "error";
 
 const APP_DEFAULT_TABLE = "demo_sales_business_50k";
 
@@ -237,6 +238,17 @@ function recommendationView(item: BusinessReportItem): RecommendationViewModel {
   };
 }
 
+function providerDisplayStatus(record: BusinessAnalysisRecord): ProviderDisplayStatus {
+  const explicit = String(record.providerStatus ?? "").trim();
+  if (explicit === "live_success" || explicit === "mock" || explicit === "fallback" || explicit === "error") {
+    return explicit;
+  }
+  if (record.fallbackTriggered) return "fallback";
+  if (record.status === "failed") return "error";
+  if (record.isSimulated || record.providerUsed === "mock") return "mock";
+  return "live_success";
+}
+
 function firstMeaningfulSentence(text: string): string {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (!normalized) return "";
@@ -274,8 +286,11 @@ function buildRecord(
     sql: run.sql ?? null,
     warnings,
     nextSteps,
+    requestedProvider: run.requested_provider ?? run.provider_requested ?? null,
     providerRequested: run.provider_requested ?? null,
     providerUsed: run.provider_used ?? null,
+    providerStatus: run.provider_status ?? null,
+    isSimulated: Boolean(run.is_simulated),
     fallbackTriggered: Boolean(run.fallback_triggered),
     fallbackReason: run.fallback_reason ?? null,
     status: run.status,
@@ -299,6 +314,7 @@ function wait(ms: number): Promise<void> {
 export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: WorkbenchFocus }) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const questionInputRef = useRef<HTMLTextAreaElement | null>(null);
   const tables = useDataStore((s) => s.tables);
   const setTables = useDataStore((s) => s.setTables);
   const currentData = useDataStore((s) => s.currentData);
@@ -532,6 +548,16 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
     }
   }, [addRecord, nextSteps, provider, question, tableName, t]);
 
+  const handleNextQuestionSelect = useCallback((nextQuestion: string) => {
+    if (isAnalyzing) return;
+    setQuestion(nextQuestion);
+    setError(null);
+    window.requestAnimationFrame(() => {
+      questionInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      questionInputRef.current?.focus();
+    });
+  }, [isAnalyzing]);
+
   return (
     <div data-astryx-workbench className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_34%),var(--bg-primary)]">
       <header className="sticky top-0 z-30 border-b border-[var(--astryx-line)] bg-[var(--bg-primary)]/92 backdrop-blur-xl">
@@ -670,6 +696,7 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
               <div className="space-y-4">
                 <Textarea
                   id="astryx-question"
+                  ref={questionInputRef}
                   value={question}
                   disabled={isAnalyzing}
                   onChange={(event) => setQuestion(event.target.value)}
@@ -718,7 +745,13 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
               </div>
             </Panel>
 
-            <BusinessResult record={activeRecord} rows={currentData ?? []} columns={currentColumns} />
+            <BusinessResult
+              record={activeRecord}
+              rows={currentData ?? []}
+              columns={currentColumns}
+              onNextQuestionSelect={handleNextQuestionSelect}
+              nextQuestionDisabled={isAnalyzing}
+            />
 
             <Panel title={t("astryx.expert.title")} icon={<Database className="h-4 w-4" />} defaultOpen={initialExpertOpen}>
               <p className="mb-3 text-xs leading-5 text-[var(--text-muted)]">{t("astryx.expert.desc")}</p>
@@ -905,10 +938,14 @@ export function BusinessResult({
   record,
   rows,
   columns,
+  onNextQuestionSelect,
+  nextQuestionDisabled = false,
 }: {
   record: BusinessAnalysisRecord | null;
   rows: Record<string, unknown>[];
   columns: string[];
+  onNextQuestionSelect?: (question: string) => void;
+  nextQuestionDisabled?: boolean;
 }) {
   const { t } = useTranslation();
   const [technicalOpen, setTechnicalOpen] = useState(false);
@@ -928,6 +965,7 @@ export function BusinessResult({
     ? Object.keys(previewRows[0]).slice(0, 6)
     : columns.slice(0, 6);
   const businessReport = hasBusinessReport(record.businessReport) ? record.businessReport : null;
+  const displayStatus = providerDisplayStatus(record);
 
   return (
     <Panel title={t("astryx.result.title")} icon={<BarChart3 className="h-4 w-4" />}>
@@ -940,8 +978,14 @@ export function BusinessResult({
           <span className="text-xs text-[var(--text-muted)]">{formatDate(record.createdAt)}</span>
         </div>
 
-        {businessReport ? (
-          <BusinessReportView report={businessReport} />
+        <ProviderStatusBanner record={record} />
+
+        {displayStatus === "error" ? null : businessReport ? (
+          <BusinessReportView
+            report={businessReport}
+            onNextQuestionSelect={onNextQuestionSelect}
+            nextQuestionDisabled={nextQuestionDisabled}
+          />
         ) : (
           <LegacyAnswerView record={record} />
         )}
@@ -978,6 +1022,7 @@ export function BusinessResult({
               <div className="grid gap-2 md:grid-cols-2">
                 <MiniStat label={t("astryx.result.provider-requested")} value={record.providerRequested ?? "-"} />
                 <MiniStat label={t("astryx.result.provider-used")} value={record.providerUsed ?? "-"} />
+                <MiniStat label={t("astryx.result.provider-status")} value={record.providerStatus ?? "-"} />
                 <MiniStat label={t("astryx.result.fallback-reason")} value={record.fallbackReason ?? t("astryx.result.none")} />
                 <MiniStat label={t("astryx.result.record")} value={record.runId} />
               </div>
@@ -1030,7 +1075,52 @@ export function BusinessResult({
   );
 }
 
-function BusinessReportView({ report }: { report: AgentBusinessReport }) {
+function ProviderStatusBanner({ record }: { record: BusinessAnalysisRecord }) {
+  const { t } = useTranslation();
+  const status = providerDisplayStatus(record);
+  if (status === "live_success") return null;
+  const isError = status === "error";
+  const isFallback = status === "fallback";
+  const title = isError
+    ? t("astryx.provider.error-title")
+    : isFallback
+      ? t("astryx.provider.fallback-title")
+      : t("astryx.provider.mock-title");
+  const description = isError
+    ? t("astryx.provider.error-desc")
+    : isFallback
+      ? t("astryx.provider.fallback-desc")
+      : t("astryx.provider.mock-desc");
+  return (
+    <section
+      className={cn(
+        "rounded-xl border px-4 py-3 text-sm",
+        isError
+          ? "border-[var(--error)]/35 bg-[var(--danger-subtle)]"
+          : "border-[var(--warning)]/35 bg-[var(--warning-subtle)]"
+      )}
+      role={isError ? "alert" : "status"}
+    >
+      <p className={cn("font-semibold", isError ? "text-[var(--error)]" : "text-[var(--warning)]")}>{title}</p>
+      <p className="mt-1 leading-6 text-[var(--text-secondary)]">{description}</p>
+      {record.fallbackReason && (
+        <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+          {t("astryx.provider.reason")}: {record.fallbackReason}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function BusinessReportView({
+  report,
+  onNextQuestionSelect,
+  nextQuestionDisabled = false,
+}: {
+  report: AgentBusinessReport;
+  onNextQuestionSelect?: (question: string) => void;
+  nextQuestionDisabled?: boolean;
+}) {
   const { t } = useTranslation();
   const findings = reportItems(report.key_findings);
   const evidence = reportItems(report.evidence_summary);
@@ -1102,18 +1192,41 @@ function BusinessReportView({ report }: { report: AgentBusinessReport }) {
           <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{t("astryx.result.next-questions")}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {nextQuestions.map((item, index) => (
-              <button
+              <NextQuestionChip
                 key={`${reportItemTitle(item)}-${index}`}
-                type="button"
-                className="rounded-full border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--text-secondary)]"
-              >
-                {reportItemTitle(item)}
-              </button>
+                question={reportItemTitle(item)}
+                disabled={nextQuestionDisabled}
+                onSelect={onNextQuestionSelect}
+              />
             ))}
           </div>
         </section>
       )}
     </div>
+  );
+}
+
+function NextQuestionChip({
+  question,
+  disabled,
+  onSelect,
+}: {
+  question: string;
+  disabled: boolean;
+  onSelect?: (question: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={question}
+      disabled={disabled || !onSelect}
+      onClick={() => {
+        if (!disabled) onSelect?.(question);
+      }}
+      className="max-w-[280px] truncate rounded-full border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {question}
+    </button>
   );
 }
 

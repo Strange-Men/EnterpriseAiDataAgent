@@ -6,8 +6,8 @@
 
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
-- Current product state: M6 Business Analyst Agent is ready for manual testing, with Manual Fix 1 default-state repairs and Manual Fix 2 business-report readability repairs implemented.
-- Current stage: M6 Manual Fix 2 implementation complete locally; Manual Fix 3 has not started.
+- Current product state: M6 Business Analyst Agent is ready for renewed manual testing, with Manual Fix 1 default-state repairs, Manual Fix 2 business-report readability repairs, and Manual Fix 3 provider transparency / next-question interaction repairs implemented locally.
+- Current stage: M6 Manual Fix 3 implementation complete locally; merge back to `master` is pending in this round.
 
 ## M6 Direction
 
@@ -33,7 +33,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - M6.8 focuses on Final QA / Manual Test Ready.
 - M6 Manual Fix 1 focuses on default dark state, async upload, clean homepage state, and session table recovery.
 - M6 Manual Fix 2 focuses on Business Report output contract, recommendation validation, report order, and technical data folding.
-- M6 Manual Fix 3 has not started.
+- M6 Manual Fix 3 focuses on provider transparency, fallback visibility, next-question click-to-fill interaction, and final regression.
 - M6.9, Multi-Agent, LangGraph, and RAG have not started.
 - Any future Multi-Agent expansion must be separately reviewed and approved.
 
@@ -56,6 +56,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - `docs/reports/m6-manual-fix-plan.md`
 - `docs/reports/m6-manual-fix-1-default-state-async-upload.md`
 - `docs/reports/m6-manual-fix-2-business-report-readable.md`
+- `docs/reports/m6-manual-fix-3-provider-next-question.md`
 
 ## M6.2 Dataset
 
@@ -185,6 +186,22 @@ Manual Fix 2 implements the second approved repair set from `docs/reports/m6-man
 
 Manual Fix 2 does not change provider status transparency, Doubao fallback investigation, next-question click-to-fill behavior, async upload, or any M6.9 scope.
 
+## M6 Manual Fix 3
+
+Manual Fix 3 implements the third approved repair set from `docs/reports/m6-manual-fix-plan.md`:
+
+- adds a backend provider status contract with `live_success`, `mock`, `fallback`, and `error`;
+- returns `requested_provider`, `provider_status`, `provider_used`, `fallback_reason`, and `is_simulated` in Agent responses;
+- keeps provider metadata out of the user-facing `business_report`;
+- sanitizes fallback reasons so exception stacks and local paths are not exposed to users;
+- shows frontend provider banners for demo mode, fallback simulation, and explicit error states;
+- prevents fallback output from being presented as a real Doubao result;
+- makes `business_report.next_questions` chips clickable so they fill and focus the input without auto-submitting;
+- disables next-question chips while a request is submitting;
+- preserves Manual Fix 2 report order and recommendation card structure.
+
+Manual Fix 3 does not change Manual Fix 1 upload/session behavior, does not change Manual Fix 2 recommendation contract, does not add M6.9, and does not create a tag.
+
 ## Next Stage
 
-After Manual Fix 2 is merged back to `master`, the user can continue manual testing. If Fix 2 passes, the next approved stage is Manual Fix 3: provider transparency, next-question click-to-fill interaction, and final regression.
+After Manual Fix 3 is merged back to `master`, the next step is renewed manual testing. If manual testing passes, creating the M6 final tag should be a separate user-approved step.
