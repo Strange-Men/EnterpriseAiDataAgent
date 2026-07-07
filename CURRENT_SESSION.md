@@ -2,6 +2,20 @@
 
 > Last updated: 2026-07-07
 
+## M6.6 Business Report Frontend Adaptation
+
+- M6.5 GitHub Actions run `28835705148` passed before M6.6 started.
+- `origin/m6-langchain-business-agent-orchestration` was merged into `master`, validated, and pushed.
+- M6.6 Business Report frontend adaptation completed on branch `m6-business-report-frontend-adaptation`.
+- Updated the Astryx single-page workbench result area to render `business_report` by default when present.
+- Default Business Report sections now include executive summary, key findings, evidence summary, risk priorities, recommendations, limitations, and next questions.
+- SQL, trace, tool_calls, provider, run_id, memory, raw JSON, and fallback reason stay hidden in a collapsed Technical Details section.
+- Added frontend API and persisted record types for `business_report`.
+- Added focused frontend tests in `frontend-react/src/components/astryx/__tests__/business-report-view.test.tsx`.
+- Added M6.6 report at `docs/reports/m6-business-report-frontend-adaptation.md`.
+- Backend import, M6.5/M6.4/M6.3/M6.2 tests, full backend CI command, frontend `npm ci`, typecheck, full Vitest, and Next build passed locally.
+- M6.7 pressure testing and M6.8 Final QA have not started. Sidebar and five-tab navigation were not restored. Tag has not been created.
+
 ## M6.5 LangChain Business Agent Orchestration
 
 - M6.5 LangChain Agent orchestration enhancement completed on branch `m6-langchain-business-agent-orchestration`.
