@@ -130,6 +130,9 @@ def classify_business_question(question: str, *, has_prior_memory: bool = False)
     if _contains_any(text, ("建议", "整改", "行动计划", "怎么做", "优先处理", "一周内", "运营经理")):
         return _classification("recommendation_request", 0.86, "question asks for actions or priority handling")
 
+    if _contains_any(text, ("指标", "监控", "持续监控", "KPI", "kpi")):
+        return _classification("business_health_check", 0.84, "question asks which business metrics need monitoring")
+
     ordered_rules: tuple[tuple[str, float, str, tuple[str, ...]], ...] = (
         ("business_health_check", 0.92, "question asks for overall business health", ("经营健康", "健康度", "整体经营", "总体表现", "怎么样")),
         ("business_review_summary", 0.9, "question asks for review or executive brief", ("复盘", "汇报", "简报", "老板", "经营简报")),
@@ -238,6 +241,8 @@ def build_business_report(
     evidence_summary = _collect_evidence_summary(evidence_results)
     key_findings = _build_key_findings(question_type, evidence_results, risks, opportunities, limitations)
     risk_priorities = _rank_risks(risks)
+    if not recommendations and question_type != "anti_hallucination_field_check":
+        recommendations = _fallback_recommendations(question_type, evidence_summary, limitations)
 
     if question_type == "anti_hallucination_field_check":
         executive_summary = _anti_hallucination_summary(evidence_results, limitations)
@@ -550,6 +555,66 @@ def _next_questions(question_type: str) -> list[str]:
         "follow_up_drilldown": ["是否继续按商品或渠道拆解上一轮对象？"],
     }
     return (typed.get(question_type) or []) + common
+
+
+def _fallback_recommendations(
+    question_type: str,
+    evidence_summary: list[dict[str, Any]],
+    limitations: list[str],
+) -> list[dict[str, Any]]:
+    """Build conservative action suggestions when evidence exists but no risk/opportunity item was emitted."""
+
+    if not evidence_summary:
+        return []
+    first_summary = str(evidence_summary[0].get("summary") or "").strip()
+    reason = first_summary or "The recommendation is based on the current deterministic evidence summary."
+    defaults: dict[str, dict[str, str]] = {
+        "customer_profile_analysis": {
+            "target_object": "customer segments",
+            "action": "Compare the top customer segment by sales and satisfaction, then run a small controlled promotion before expanding budget.",
+            "monitoring_metric": "sales_amount + avg_order_value + refund_rate + avg_satisfaction_score",
+            "expected_action_window": "next 2 weeks",
+        },
+        "trend_analysis": {
+            "target_object": "latest trend period",
+            "action": "Review the latest month against the prior month and set weekly monitoring for sales, refund rate, and gross margin.",
+            "monitoring_metric": "monthly_sales + refund_rate + gross_margin_rate",
+            "expected_action_window": "within 7 days",
+        },
+        "data_quality_check": {
+            "target_object": "quality anomalies",
+            "action": "Clean invalid sales, quantity, discount, shipping date, refund, satisfaction, and channel records before executive decisions.",
+            "monitoring_metric": "anomaly_count + missing_rate",
+            "expected_action_window": "within 3 days",
+        },
+        "business_review_summary": {
+            "target_object": "review focus areas",
+            "action": "Use the evidence summary to align revenue, risk, fulfillment, and customer experience owners before the review meeting.",
+            "monitoring_metric": "total_sales + refund_rate + avg_shipping_days + avg_satisfaction_score",
+            "expected_action_window": "before next business review",
+        },
+    }
+    selected = defaults.get(
+        question_type,
+        {
+            "target_object": "business evidence",
+            "action": "Pick the top evidence item, assign an owner, and track sales, profit, refund, satisfaction, and fulfillment metrics together.",
+            "monitoring_metric": "sales_amount + gross_margin_rate + refund_rate + avg_satisfaction_score + avg_shipping_days",
+            "expected_action_window": "within 7 days",
+        },
+    )
+    if limitations:
+        reason = f"{reason} Data limitations should be checked before final decisions."
+    return [
+        {
+            "priority": "P1",
+            "target_object": selected["target_object"],
+            "action": selected["action"],
+            "monitoring_metric": selected["monitoring_metric"],
+            "expected_action_window": selected["expected_action_window"],
+            "reason": reason,
+        }
+    ]
 
 
 def _find_result(evidence_results: list[dict[str, Any]], tool_name: str) -> dict[str, Any] | None:

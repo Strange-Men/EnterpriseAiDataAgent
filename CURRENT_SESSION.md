@@ -2,6 +2,19 @@
 
 > Last updated: 2026-07-07
 
+## M6.7 Business Capability Pressure Test
+
+- M6.6 GitHub Actions run `28836528225` passed before M6.7 started.
+- `origin/m6-business-report-frontend-adaptation` was merged into `master`, validated, and pushed.
+- M6.7 comprehensive business capability pressure testing completed on branch `m6-business-capability-pressure-test`.
+- Added `tests/fixtures/m6_pressure_questions.json` covering M6-Q01 through M6-Q25.
+- Added `tests/test_m6_business_capability_pressure.py` with deterministic scoring for Business Report structure, multi-evidence behavior, anti-hallucination handling, memory follow-up, mock provider, fallback behavior, hidden technical details, and performance.
+- Automated coverage: 25/25 questions. Questions scoring at least 8/10: 25/25. Minimum score: 9. Average duration: 0.620s. Max duration: 2.831s.
+- Fixed two M6.7-discovered defects: evidence-backed fallback recommendations when no explicit risk/opportunity exists, and classification for monitoring/KPI questions.
+- Added M6.7 report at `docs/reports/m6-business-capability-pressure-test.md`.
+- Backend import, M6.7 pressure tests, M6.5/M6.4/M6.3/M6.2 regression tests, full backend CI command, frontend `npm ci`, typecheck, Vitest, and Next build passed locally.
+- M6.8 Final QA has not started. Tag has not been created.
+
 ## M6.6 Business Report Frontend Adaptation
 
 - M6.5 GitHub Actions run `28835705148` passed before M6.6 started.
