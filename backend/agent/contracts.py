@@ -213,6 +213,7 @@ class AgentRun(BaseModel):
     fallback_reason: str | None = None
     status: AgentStatus = AgentStatus.CREATED
     answer: str | None = None
+    business_report: dict[str, Any] | None = None
     sql: str | None = None
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     result_preview: dict[str, Any] | None = None
