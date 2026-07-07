@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from backend.services.data_service import APP_DEFAULT_TABLE, ensure_default_business_table, table_exists
+from backend.services.data_service import (
+    APP_DEFAULT_TABLE,
+    ensure_default_business_table,
+    get_table_summary,
+    table_exists,
+)
 from backend.services.data_service import get_db
 
 
@@ -69,8 +74,16 @@ def clear_current_table() -> str:
 
 def session_payload() -> dict:
     current_table = get_current_table()
+    current_summary = get_table_summary(current_table)
+    default_summary = get_table_summary(APP_DEFAULT_TABLE)
     return {
         "app_default_table": APP_DEFAULT_TABLE,
         "current_table": current_table,
         "user_active_table": current_table,
+        "current_table_exists": current_summary["exists"],
+        "current_table_row_count": current_summary["row_count"],
+        "current_table_column_count": current_summary["column_count"],
+        "app_default_table_exists": default_summary["exists"],
+        "app_default_table_row_count": default_summary["row_count"],
+        "app_default_table_column_count": default_summary["column_count"],
     }

@@ -63,6 +63,7 @@ vi.mock("react-i18next", () => ({
         "astryx.data.drop-title": "Upload CSV/Excel",
         "astryx.data.drop-desc": "Choose a spreadsheet.",
         "astryx.data.current": "Current table",
+        "astryx.data.empty": "Default demo table is unavailable.",
         "astryx.data.columns": "Fields",
         "astryx.data.rows": "Rows",
         "astryx.quality.empty": "Quality empty",
@@ -142,6 +143,12 @@ function setupDefaultApi() {
     app_default_table: "demo_sales_business_50k",
     current_table: "demo_sales_business_50k",
     user_active_table: "demo_sales_business_50k",
+    current_table_exists: true,
+    current_table_row_count: 50000,
+    current_table_column_count: 28,
+    app_default_table_exists: true,
+    app_default_table_row_count: 50000,
+    app_default_table_column_count: 28,
   });
   apiMocks.fetchTables.mockResolvedValue([defaultTable]);
   apiMocks.fetchTableData.mockResolvedValue({ columns: ["order_id"], data: [{ order_id: "o-1" }] });
@@ -151,6 +158,12 @@ function setupDefaultApi() {
     app_default_table: "demo_sales_business_50k",
     current_table: "demo_sales_business_50k",
     user_active_table: "demo_sales_business_50k",
+    current_table_exists: true,
+    current_table_row_count: 50000,
+    current_table_column_count: 28,
+    app_default_table_exists: true,
+    app_default_table_row_count: 50000,
+    app_default_table_column_count: 28,
   });
 }
 
@@ -239,6 +252,34 @@ describe("M6 Manual Fix 1 workbench defaults and async upload", () => {
     await waitFor(() => expect(apiMocks.fetchUploadTaskStatus).toHaveBeenCalledWith("task-1"), { timeout: 4_000 });
     await waitFor(() => expect(screen.getAllByText(/uploaded_orders/).length).toBeGreaterThan(0), { timeout: 4_000 });
   }, 10_000);
+
+  it("recovers from a transient upload status timeout and switches to the uploaded table", async () => {
+    apiMocks.startUploadTask.mockResolvedValue({
+      task_id: "task-retry",
+      status: "running",
+      progress: 10,
+      stage: "parsing",
+    });
+    apiMocks.fetchUploadTaskStatus
+      .mockRejectedValueOnce(new Error("signal timed out"))
+      .mockResolvedValueOnce({
+        task_id: "task-retry",
+        status: "success",
+        progress: 100,
+        stage: "done",
+        table_name: "uploaded_orders",
+        error_message: null,
+      });
+    const { container } = render(<AstryxDataAgentWorkbench />);
+    await waitFor(() => expect(apiMocks.fetchSessionTableState).toHaveBeenCalled());
+    apiMocks.fetchTables.mockResolvedValue([defaultTable, uploadedTable]);
+
+    uploadFile(container);
+
+    await waitFor(() => expect(apiMocks.fetchUploadTaskStatus).toHaveBeenCalledTimes(2), { timeout: 7_000 });
+    await waitFor(() => expect(screen.getAllByText(/uploaded_orders/).length).toBeGreaterThan(0), { timeout: 7_000 });
+    expect(document.body.textContent).not.toContain("Upload timed out.");
+  }, 12_000);
 
   it("shows task failure reason instead of infinite loading", async () => {
     apiMocks.startUploadTask.mockResolvedValue({

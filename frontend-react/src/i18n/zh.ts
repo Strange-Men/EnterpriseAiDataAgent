@@ -870,7 +870,7 @@ const zh = {
     "astryx.data.drop-title": "上传 CSV/Excel",
     "astryx.data.drop-desc": "选择公开测试表或业务表格。",
     "astryx.data.current": "当前数据表",
-    "astryx.data.empty": "上传 CSV/Excel 文件后开始分析。",
+    "astryx.data.empty": "默认 demo 表未加载，请检查后端启动状态和 testExcel 演示数据。",
     "astryx.data.columns": "字段",
     "astryx.data.rows": "行数",
     "astryx.quality.title": "质量简报",

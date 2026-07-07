@@ -117,6 +117,9 @@ def test_app_default_table_is_m6_business_demo(client):
     session = client.get("/api/session/current").json()
     assert session["app_default_table"] == APP_DEFAULT_TABLE
     assert session["current_table"] == APP_DEFAULT_TABLE
+    assert session["current_table_exists"] is True
+    assert session["current_table_row_count"] == 50000
+    assert session["current_table_column_count"] == 28
 
     tables = client.get("/api/tables").json()
     names = {table["name"] for table in tables}

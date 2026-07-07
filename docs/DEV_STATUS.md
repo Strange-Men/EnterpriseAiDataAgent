@@ -4,10 +4,26 @@
 
 ## Current Branch
 
-- Branch: `m6-manual-fix-3-provider-next-question`
-- Stage: M6 Manual Fix 3 provider transparency / next-question click-to-fill / final regression
+- Branch: `m6-manual-regression-default-table-upload-qa`
+- Stage: M6 manual regression hotfix for default table, upload timeout diagnosis, and hard-question QA
 
 ## Current Work
+
+M6 manual regression hotfix is complete locally. This is not M6.9 and no tag has been created.
+
+Completed in this hotfix:
+
+- Started from latest `master` and created `m6-manual-regression-default-table-upload-qa`.
+- Fixed the first-load default demo table path so `demo_sales_business_50k` is guaranteed by backend table/session endpoints and can be displayed by the frontend even if the table list is stale.
+- Added session metadata for current/default table existence, row count, and column count.
+- Replaced the default empty upload-first wording with a clearer default-demo-unavailable error for developer diagnosis.
+- Diagnosed large upload `signal timed out` as a frontend request-timeout/state-machine issue on the initial upload request, plus a stale final task-state normalization gap.
+- Added per-request upload timeout support, longer initial upload timeout, transient polling retry behavior, and backend normalization for `stage=done` / `progress=100` tasks.
+- Added `tests/test_m6_manual_regression_default_table_upload_qa.py`.
+- Ran five hard business questions against `demo_sales_business_50k`; all passed, including the membership-level anti-hallucination case.
+- Added `docs/reports/m6-manual-regression-default-table-upload-qa.md`.
+- Backend import, hotfix tests, Manual Fix 1 / 2 / 3 regressions, M6.7/M6.5 regressions, full backend CI, frontend install, typecheck, tests, and build passed locally.
+- Next step remains renewed manual testing from `master`; if manual testing passes, the next user-approved step can be an M6 final tag.
 
 M6 Manual Fix 3 is complete locally as an implementation follow-up to M6.8 manual testing.
 

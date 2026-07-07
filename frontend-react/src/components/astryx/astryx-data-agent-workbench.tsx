@@ -44,12 +44,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea, Select } from "@/components/ui/input";
 import { cn } from "@/utils/cn";
+import type { TableInfo } from "@/types";
 
 type WorkbenchFocus = "workbench" | "upload" | "results" | "history" | "settings" | "expert";
 type UploadStage = "idle" | "uploading" | "parsing" | "loading" | "profiling" | "done" | "failed";
 type ProviderDisplayStatus = "live_success" | "mock" | "fallback" | "error";
 
 const APP_DEFAULT_TABLE = "demo_sales_business_50k";
+const UPLOAD_TASK_TIMEOUT_MS = 310_000;
+const UPLOAD_STATUS_RETRY_LIMIT = 3;
 
 const PROVIDERS: Array<{ value: AgentProviderRequested; label: string }> = [
   { value: "mock", label: "Mock" },
@@ -311,6 +314,46 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function tableFromSession(session: {
+  current_table?: string;
+  current_table_exists?: boolean;
+  current_table_row_count?: number;
+  current_table_column_count?: number;
+  app_default_table?: string;
+  app_default_table_exists?: boolean;
+  app_default_table_row_count?: number;
+  app_default_table_column_count?: number;
+}): TableInfo | null {
+  const currentName = session.current_table || session.app_default_table || APP_DEFAULT_TABLE;
+  if (session.current_table_exists && session.current_table) {
+    return {
+      name: session.current_table,
+      rowCount: session.current_table_row_count ?? 0,
+      columnCount: session.current_table_column_count ?? 0,
+    };
+  }
+  if (session.app_default_table_exists && session.app_default_table) {
+    return {
+      name: session.app_default_table,
+      rowCount: session.app_default_table_row_count ?? 0,
+      columnCount: session.app_default_table_column_count ?? 0,
+    };
+  }
+  if (currentName === APP_DEFAULT_TABLE && session.current_table_row_count) {
+    return {
+      name: APP_DEFAULT_TABLE,
+      rowCount: session.current_table_row_count,
+      columnCount: session.current_table_column_count ?? 0,
+    };
+  }
+  return null;
+}
+
+function isTimeoutLikeError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /timeout|timed out|aborted|abortsignal/i.test(message);
+}
+
 export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: WorkbenchFocus }) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -416,7 +459,14 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
         if (target) {
           await loadTableContext(target.name);
         } else {
-          setActiveTable(preferred);
+          const sessionTable = tableFromSession(session);
+          if (sessionTable) {
+            setTables([sessionTable]);
+            await loadTableContext(sessionTable.name);
+          } else {
+            setActiveTable(preferred);
+            setError(t("astryx.data.empty"));
+          }
         }
       } catch (loadError) {
         if (!cancelled) setError(loadError instanceof Error ? loadError.message : t("astryx.error.table-load"));
@@ -462,6 +512,7 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
     setUploadMessage(t("astryx.upload.stage.uploading"));
     setError(null);
     const started = Date.now();
+    let statusFailures = 0;
     try {
       const task = await startUploadTask(file);
       setUploadProgress(task.progress ?? 0);
@@ -470,11 +521,20 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
 
       let latest = task;
       while (latest.status === "pending" || latest.status === "running") {
-        if (Date.now() - started > 310_000) {
+        if (Date.now() - started > UPLOAD_TASK_TIMEOUT_MS) {
           throw new Error(t("astryx.error.upload-timeout"));
         }
         await wait(2_000);
-        latest = await fetchUploadTaskStatus(task.task_id);
+        try {
+          latest = await fetchUploadTaskStatus(task.task_id);
+          statusFailures = 0;
+        } catch (statusError) {
+          statusFailures += 1;
+          if (Date.now() - started > UPLOAD_TASK_TIMEOUT_MS || statusFailures >= UPLOAD_STATUS_RETRY_LIMIT) {
+            throw new Error(isTimeoutLikeError(statusError) ? t("astryx.error.upload-timeout") : t("astryx.error.upload"));
+          }
+          continue;
+        }
         setUploadProgress(latest.progress ?? 0);
         setUploadStage(latest.stage ?? "uploading");
         setUploadMessage(t(`astryx.upload.stage.${latest.stage ?? "uploading"}`));
@@ -506,7 +566,7 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
     } catch (uploadError) {
       setUploadStage("failed");
       setUploadProgress(100);
-      setError(uploadError instanceof Error ? uploadError.message : t("astryx.error.upload"));
+      setError(isTimeoutLikeError(uploadError) ? t("astryx.error.upload-timeout") : uploadError instanceof Error ? uploadError.message : t("astryx.error.upload"));
     } finally {
       setIsUploading(false);
     }
