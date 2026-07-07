@@ -13,7 +13,6 @@ import {
   Lightbulb,
   ListChecks,
   Loader2,
-  Moon,
   ShieldAlert,
   Settings,
   Sparkles,
@@ -22,10 +21,13 @@ import {
 } from "lucide-react";
 import {
   createAgentRun,
+  clearSessionState,
   fetchQualityReport,
+  fetchSessionTableState,
   fetchTableData,
   fetchTables,
-  uploadFile,
+  fetchUploadTaskStatus,
+  startUploadTask,
   type AgentBusinessReport,
   type AgentProviderRequested,
   type AgentRun,
@@ -37,7 +39,6 @@ import { useInvestigationStore } from "@/stores/investigation-store";
 import { useAstryxWorkbenchStore, type BusinessAnalysisRecord } from "@/stores/astryx-workbench-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 import { useLanguage } from "@/hooks/use-language";
-import { useThemeStore } from "@/hooks/use-theme";
 import { SqlWorkspacePanel } from "@/panels/sql-workspace-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,9 @@ import { Textarea, Select } from "@/components/ui/input";
 import { cn } from "@/utils/cn";
 
 type WorkbenchFocus = "workbench" | "upload" | "results" | "history" | "settings" | "expert";
+type UploadStage = "idle" | "uploading" | "parsing" | "loading" | "profiling" | "done" | "failed";
+
+const APP_DEFAULT_TABLE = "demo_sales_business_50k";
 
 const PROVIDERS: Array<{ value: AgentProviderRequested; label: string }> = [
   { value: "mock", label: "Mock" },
@@ -238,6 +242,10 @@ function formatDate(value: string): string {
   }
 }
 
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: WorkbenchFocus }) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -252,27 +260,31 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
   const setUploadedFiles = useDataStore((s) => s.setUploadedFiles);
   const activeTable = useInvestigationStore((s) => s.activeTable);
   const setActiveTable = useInvestigationStore((s) => s.setActiveTable);
+  const clearInvestigation = useInvestigationStore((s) => s.clear);
   const storeProvider = useAstryxWorkbenchStore((s) => s.provider);
   const setStoreProvider = useAstryxWorkbenchStore((s) => s.setProvider);
   const records = useAstryxWorkbenchStore((s) => s.records);
   const activeRunId = useAstryxWorkbenchStore((s) => s.activeRunId);
   const setActiveRunId = useAstryxWorkbenchStore((s) => s.setActiveRunId);
+  const clearActiveRun = useAstryxWorkbenchStore((s) => s.clearActiveRun);
   const addRecord = useAstryxWorkbenchStore((s) => s.addRecord);
   const llmProvider = useWorkspaceStore((s) => s.llmProvider);
   const setLlmProvider = useWorkspaceStore((s) => s.setLlmProvider);
   const { language, toggleLanguage } = useLanguage();
-  const { theme, toggleTheme } = useThemeStore();
 
   const [question, setQuestion] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState<UploadStage>("idle");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(focus === "history" || focus === "results");
+  const [historyOpen, setHistoryOpen] = useState(focus === "history");
   const [settingsOpen, setSettingsOpen] = useState(focus === "settings");
 
-  const tableName = activeTable || tables[0]?.name || null;
+  const tableName = activeTable || tables.find((table) => table.name === APP_DEFAULT_TABLE)?.name || tables[0]?.name || null;
   const currentTable = tables.find((table) => table.name === tableName);
-  const activeRecord = records.find((record) => record.runId === activeRunId) ?? records[0] ?? null;
+  const activeRecord = activeRunId ? records.find((record) => record.runId === activeRunId) ?? null : null;
   const provider = storeProvider || "mock";
   const initialExpertOpen = focus === "expert";
   const nextSteps = useMemo(
@@ -298,19 +310,15 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
   }, [llmProvider, setStoreProvider, storeProvider]);
 
   useEffect(() => {
-    if (focus === "history" || focus === "results") setHistoryOpen(true);
+    if (focus === "history") setHistoryOpen(true);
     if (focus === "settings") setSettingsOpen(true);
   }, [focus]);
 
   const refreshTables = useCallback(async () => {
     const nextTables = await fetchTables();
     setTables(nextTables);
-    if (!tableName && nextTables.length > 0) setActiveTable(nextTables[0].name);
-  }, [setActiveTable, setTables, tableName]);
-
-  useEffect(() => {
-    if (tables.length > 0 && !tableName) setActiveTable(tables[0].name);
-  }, [setActiveTable, tableName, tables]);
+    return nextTables;
+  }, [setTables]);
 
   const loadTableContext = useCallback(async (name: string) => {
     setError(null);
@@ -327,27 +335,111 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
     }
   }, [setActiveTable, setCurrentData, setQualityReport, t]);
 
+  useEffect(() => {
+    let cancelled = false;
+    clearActiveRun();
+    const restoreTable = async () => {
+      try {
+        const session = await fetchSessionTableState();
+        const nextTables = await refreshTables();
+        if (cancelled) return;
+        const preferred = session.current_table || session.app_default_table || APP_DEFAULT_TABLE;
+        const target = nextTables.find((table) => table.name === preferred)
+          ?? nextTables.find((table) => table.name === APP_DEFAULT_TABLE)
+          ?? nextTables[0];
+        if (target) {
+          await loadTableContext(target.name);
+        } else {
+          setActiveTable(preferred);
+        }
+      } catch (loadError) {
+        if (!cancelled) setError(loadError instanceof Error ? loadError.message : t("astryx.error.table-load"));
+      }
+    };
+    void restoreTable();
+    return () => {
+      cancelled = true;
+    };
+  }, [clearActiveRun, loadTableContext, refreshTables, setActiveTable, t]);
+
+  useEffect(() => {
+    if (tables.length > 0 && !tableName) {
+      const defaultTable = tables.find((table) => table.name === APP_DEFAULT_TABLE) ?? tables[0];
+      setActiveTable(defaultTable.name);
+    }
+  }, [setActiveTable, tableName, tables]);
+
+  const handleResetSession = useCallback(async () => {
+    setError(null);
+    setQuestion("");
+    setHistoryOpen(false);
+    clearActiveRun();
+    clearInvestigation();
+    setCurrentData(null, []);
+    setQualityReport(null);
+    try {
+      const cleared = await clearSessionState();
+      const nextTables = await refreshTables();
+      const target = nextTables.find((table) => table.name === cleared.current_table)
+        ?? nextTables.find((table) => table.name === APP_DEFAULT_TABLE)
+        ?? nextTables[0];
+      await loadTableContext(target?.name ?? APP_DEFAULT_TABLE);
+    } catch (resetError) {
+      setError(resetError instanceof Error ? resetError.message : t("astryx.error.table-load"));
+    }
+  }, [clearActiveRun, clearInvestigation, loadTableContext, refreshTables, setCurrentData, setQualityReport, t]);
+
   const handleFile = useCallback(async (file: File) => {
     setIsUploading(true);
+    setUploadStage("uploading");
+    setUploadProgress(0);
+    setUploadMessage(t("astryx.upload.stage.uploading"));
     setError(null);
+    const started = Date.now();
     try {
-      const uploaded = await uploadFile(file);
+      const task = await startUploadTask(file);
+      setUploadProgress(task.progress ?? 0);
+      setUploadStage(task.stage ?? "uploading");
+      setUploadMessage(t(`astryx.upload.stage.${task.stage ?? "uploading"}`));
+
+      let latest = task;
+      while (latest.status === "pending" || latest.status === "running") {
+        if (Date.now() - started > 310_000) {
+          throw new Error(t("astryx.error.upload-timeout"));
+        }
+        await wait(2_000);
+        latest = await fetchUploadTaskStatus(task.task_id);
+        setUploadProgress(latest.progress ?? 0);
+        setUploadStage(latest.stage ?? "uploading");
+        setUploadMessage(t(`astryx.upload.stage.${latest.stage ?? "uploading"}`));
+      }
+
+      if (latest.status !== "success" || !latest.table_name) {
+        throw new Error(latest.error_message || t("astryx.error.upload"));
+      }
+
+      const nextTables = await refreshTables();
+      const uploadedTable = nextTables.find((table) => table.name === latest.table_name);
       setUploadedFiles([
         {
           name: file.name,
           size: `${(file.size / 1024).toFixed(1)} KB`,
           type: file.type || "spreadsheet",
           uploadedAt: new Date().toISOString(),
-          tableName: uploaded.tableName,
-          rowCount: uploaded.rowCount,
-          columnCount: uploaded.columnCount,
+          tableName: latest.table_name,
+          rowCount: uploadedTable?.rowCount ?? 0,
+          columnCount: uploadedTable?.columnCount ?? 0,
           status: "success",
         },
         ...uploadedFiles,
       ]);
-      await refreshTables();
-      await loadTableContext(uploaded.tableName);
+      setUploadStage("done");
+      setUploadProgress(100);
+      setUploadMessage(t("astryx.upload.stage.done"));
+      await loadTableContext(latest.table_name);
     } catch (uploadError) {
+      setUploadStage("failed");
+      setUploadProgress(100);
       setError(uploadError instanceof Error ? uploadError.message : t("astryx.error.upload"));
     } finally {
       setIsUploading(false);
@@ -464,6 +556,7 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
                 className="flex w-full flex-col items-center justify-center rounded-xl border border-dashed border-[var(--astryx-line)] bg-[var(--astryx-soft)] px-4 py-6 text-center transition-colors hover:border-[var(--accent)]"
               >
                 {isUploading ? (
@@ -474,6 +567,22 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
                 <span className="mt-3 text-sm font-medium text-[var(--text-primary)]">{t("astryx.data.drop-title")}</span>
                 <span className="mt-1 text-xs text-[var(--text-muted)]">{t("astryx.data.drop-desc")}</span>
               </button>
+              {isUploading || uploadStage !== "idle" ? (
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-medium text-[var(--text-primary)]">
+                      {uploadMessage ?? t("astryx.upload.stage.uploading")}
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)]">{uploadProgress}%</span>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--astryx-soft)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--accent)] transition-all"
+                      style={{ width: `${Math.max(0, Math.min(uploadProgress, 100))}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
 
               <div className="space-y-2">
                 <label className="text-xs font-medium text-[var(--text-muted)]">{t("astryx.data.current")}</label>
@@ -611,8 +720,8 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
             <Button type="button" variant="secondary" size="sm" onClick={toggleLanguage} leftIcon={<Languages className="h-3.5 w-3.5" />}>
               {t(language === "zh" ? "astryx.language.en" : "astryx.language.zh")}
             </Button>
-            <Button type="button" variant="secondary" size="sm" onClick={toggleTheme} leftIcon={<Moon className="h-3.5 w-3.5" />}>
-              {theme === "dark" ? t("astryx.settings.light") : t("astryx.settings.dark")}
+            <Button type="button" variant="secondary" size="sm" onClick={handleResetSession}>
+              {t("astryx.settings.reset-session")}
             </Button>
           </div>
         </div>

@@ -18,9 +18,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                var s = localStorage.getItem('workspace-theme');
-                var t = s ? JSON.parse(s).state.theme : 'dark';
-                document.documentElement.setAttribute('data-theme', t);
+                localStorage.setItem('workspace-theme', JSON.stringify({ state: { theme: 'dark' }, version: 1 }));
+                document.documentElement.setAttribute('data-theme', 'dark');
               } catch(e) {
                 document.documentElement.setAttribute('data-theme', 'dark');
               }

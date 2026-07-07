@@ -2,6 +2,18 @@
 
 > Last updated: 2026-07-07
 
+## M6 Manual Fix 1 Default State / Async Upload / Session Table State
+
+- Merged `origin/m6-manual-fix-plan-docs` into `master` and pushed `master`.
+- Created implementation branch `m6-manual-fix-1-default-state-async-upload`.
+- Completed Manual Fix 1 only: dark-only UI state, default `demo_sales_business_50k`, clean first-load answer area, user-opened history drawer, async upload task API, upload task polling UI, backend session `current_table`, and reset session via backend clear endpoint.
+- Added backend task/session services and routes: `backend/services/upload_tasks.py`, `backend/services/session_state.py`, `backend/routes/session.py`, and updated `backend/routes/upload.py`.
+- Added frontend task polling and default session table restore in `frontend-react/src/components/astryx/astryx-data-agent-workbench.tsx`.
+- Added tests: `tests/test_m6_manual_fix1_upload_tasks.py` and `frontend-react/src/components/astryx/__tests__/manual-fix1-workbench.test.tsx`.
+- Added report: `docs/reports/m6-manual-fix-1-default-state-async-upload.md`.
+- Verification passed: backend import, M6 Fix 1 focused tests, M6.7/M6.5/M6.4/M6.3/M6.2 regressions, full backend CI (`865 passed`), frontend `npm ci`, `npx tsc --noEmit`, full Vitest (`50 files`, `1183 tests`), and `npm run build`.
+- Manual Fix 2 and Manual Fix 3 have not started. M6.9 has not been added. Tag has not been created.
+
 ## M6 Manual Fix Plan Docs
 
 - Created documentation-only branch `m6-manual-fix-plan-docs`.

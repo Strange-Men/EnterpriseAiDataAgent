@@ -15,25 +15,26 @@ export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
       theme: "dark",
-      toggleTheme: () =>
-        set((s) => ({ theme: s.theme === "dark" ? "light" : "dark" })),
-      setTheme: (theme) => set({ theme }),
+      toggleTheme: () => set({ theme: "dark" }),
+      setTheme: () => set({ theme: "dark" }),
     }),
     {
       name: "workspace-theme",
       storage: createJSONStorage(() => localStorage),
       version: 1,
-      migrate: (persisted: unknown, _version: number) => {
-        if (!persisted || typeof persisted !== "object") return { theme: "dark" };
-        const p = persisted as Record<string, unknown>;
-        const validTheme = p.theme === "light" || p.theme === "dark";
-        return { theme: validTheme ? p.theme : "dark" };
+      migrate: (_persisted: unknown, _version: number) => {
+        return { theme: "dark" };
       },
     }
   )
 );
 
-export function applyTheme(theme: Theme) {
+export function applyTheme(_theme: Theme) {
   if (typeof document === "undefined") return;
-  document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.setAttribute("data-theme", "dark");
+  try {
+    localStorage.setItem("workspace-theme", JSON.stringify({ state: { theme: "dark" }, version: 1 }));
+  } catch {
+    // Ignore storage errors; the DOM theme is already dark.
+  }
 }

@@ -4,17 +4,28 @@
 
 ## Current Branch
 
-- Branch: `m6-manual-fix-plan-docs`
-- Stage: M6 manual-test fix planning docs
+- Branch: `m6-manual-fix-1-default-state-async-upload`
+- Stage: M6 Manual Fix 1 default state / async upload / session table state
 
 ## Current Work
 
-M6 manual-test fix planning docs are in progress as a documentation-only follow-up to M6.8 manual testing.
+M6 Manual Fix 1 is complete locally as an implementation follow-up to M6.8 manual testing.
 
-M6.8 has already been merged to `master`, and user manual testing surfaced 9 product and report usability issues. This branch only records the technical fix plan in Markdown. It does not implement Manual Fix 1, Manual Fix 2, or Manual Fix 3.
+Manual Fix 1 addresses the default product state and upload/session issues found during manual testing. It does not implement Manual Fix 2 or Manual Fix 3, does not add M6.9, and does not create a tag.
 
 Completed:
 
+- Merged `origin/m6-manual-fix-plan-docs` into `master` and pushed `master`.
+- Created implementation branch `m6-manual-fix-1-default-state-async-upload`.
+- Forced dark-only frontend behavior and removed the Astryx light-mode entry from Settings.
+- Changed default table recovery to `demo_sales_business_50k`.
+- Added backend session table state for `current_table`.
+- Added async upload task state stored in the existing DuckDB database through internal `__eai_*` tables.
+- Added `POST /api/upload` task creation and `GET /api/tasks/{task_id}/status` polling.
+- Added `POST /api/session/clear` and frontend reset session integration.
+- Kept the homepage clean by not automatically loading old analysis records into the main answer area.
+- Kept history available only through the user-opened History drawer.
+- Added Manual Fix 1 tests and report.
 - Created `docs/reports/m6-business-analyst-agent-architecture.md`.
 - Created `docs/reports/m6-business-capability-research.md`.
 - Created `docs/reports/m6-demo-dataset-redesign-spec.md`.
@@ -62,18 +73,21 @@ Completed:
 - Added `docs/reports/m6-final-qa-manual-test-ready.md`.
 - M6.8 Final QA passed locally: backend import, M6 focused tests, full backend CI, frontend install, typecheck, tests, and build.
 - Added `docs/reports/m6-manual-fix-plan.md` as a documentation-only plan for Manual Fix 1 / 2 / 3.
+- Added `docs/reports/m6-manual-fix-1-default-state-async-upload.md`.
+- Full backend CI command passed locally: `python -m pytest tests/ -x -q --ignore=tests/ai` -> `865 passed`.
+- Frontend CI commands passed locally: `npm ci`, `npx tsc --noEmit`, `npm run test` -> `50 files / 1183 tests`, and `npm run build`.
 
 ## Boundaries
 
 This branch does not:
 
 - Start M6.9.
-- Add new product functionality.
-- Implement Manual Fix 1, Manual Fix 2, or Manual Fix 3.
-- Change frontend code.
-- Change backend code.
-- Change tests.
-- Change CI.
+- Implement Manual Fix 2.
+- Implement Manual Fix 3.
+- Change business report output contract.
+- Change recommendation schema or report order.
+- Change provider status/fallback transparency.
+- Implement next-question click-to-fill.
 - Restore Sidebar.
 - Restore five-tab navigation.
 - Add Multi-Agent, LangGraph, or RAG.
@@ -81,4 +95,4 @@ This branch does not:
 
 ## Next Step
 
-Wait for user review of `docs/reports/m6-manual-fix-plan.md`. If approved, start Manual Fix 1 in a separate implementation prompt.
+After Manual Fix 1 is merged back to `master`, the user can continue manual testing. If approved, the next stage is Manual Fix 2: business report output contract, recommendation validator, and report reorder.

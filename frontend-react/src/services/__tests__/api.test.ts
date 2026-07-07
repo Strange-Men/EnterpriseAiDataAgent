@@ -18,6 +18,8 @@ import {
   exportQueryResult,
   fetchAllSchemas,
   uploadFile,
+  startUploadTask,
+  fetchUploadTaskStatus,
   fetchQualityReport,
   fetchStatus,
   aiQuery,
@@ -190,12 +192,29 @@ describe("api service", () => {
   });
 
   describe("uploadFile", () => {
-    it("should upload file and return metadata", async () => {
-      mockFetch.mockResolvedValueOnce(mockJsonResponse({ tableName: "data", rowCount: 10, columnCount: 3, status: "success" }));
+    it("should upload file through async task polling", async () => {
+      mockFetch
+        .mockResolvedValueOnce(mockJsonResponse({ task_id: "task-1", status: "pending", progress: 0, stage: "uploading" }))
+        .mockResolvedValueOnce(mockJsonResponse({ task_id: "task-1", status: "success", progress: 100, stage: "done", table_name: "data" }));
       const file = new File(["a,b\n1,2"], "data.csv", { type: "text/csv" });
       const res = await uploadFile(file);
       expect(res.tableName).toBe("data");
-      expect(res.rowCount).toBe(10);
+      expect(mockFetch).toHaveBeenNthCalledWith(1, "http://localhost:8000/api/upload", expect.objectContaining({ method: "POST" }));
+      expect(mockFetch).toHaveBeenNthCalledWith(2, "http://localhost:8000/api/tasks/task-1/status", expect.any(Object));
+    });
+
+    it("should expose upload task start and status helpers", async () => {
+      mockFetch
+        .mockResolvedValueOnce(mockJsonResponse({ task_id: "task-2", status: "pending", progress: 0, stage: "uploading" }))
+        .mockResolvedValueOnce(mockJsonResponse({ task_id: "task-2", status: "failed", progress: 100, stage: "failed", error_message: "bad file" }));
+      const file = new File(["bad"], "bad.csv", { type: "text/csv" });
+
+      const task = await startUploadTask(file);
+      const status = await fetchUploadTaskStatus(task.task_id);
+
+      expect(task.task_id).toBe("task-2");
+      expect(status.status).toBe("failed");
+      expect(status.error_message).toBe("bad file");
     });
   });
 
