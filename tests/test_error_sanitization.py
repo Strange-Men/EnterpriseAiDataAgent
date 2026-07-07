@@ -40,7 +40,17 @@ def _upload_csv(client, prefix="san", rows=b"id,val\n1,a\n2,b"):
     files = {"file": (fname, io.BytesIO(rows), "text/csv")}
     res = client.post("/api/upload", files=files)
     assert res.status_code == 200
-    return res.json()["tableName"]
+    task = _wait_upload_task(client, res)
+    assert task["status"] == "success"
+    return task["table_name"]
+
+
+def _wait_upload_task(client, upload_res):
+    data = upload_res.json()
+    assert "task_id" in data
+    status_res = client.get(f"/api/tasks/{data['task_id']}/status")
+    assert status_res.status_code == 200
+    return status_res.json()
 
 
 def _assert_no_internal_leak(response_json: dict):
@@ -138,9 +148,10 @@ class TestUploadErrorSanitization:
     def test_upload_invalid_format_sanitized(self, client):
         files = {"file": ("bad.xyz", io.BytesIO(b"not a real file"), "application/octet-stream")}
         res = client.post("/api/upload", files=files)
-        # Should return 422 or 500, but error must be sanitized
-        assert res.status_code in (422, 500)
-        _assert_no_internal_leak(res.json())
+        assert res.status_code == 200
+        task = _wait_upload_task(client, res)
+        assert task["status"] == "failed"
+        _assert_no_internal_leak({"detail": task["error_message"]})
 
     def test_upload_csv_normal_path(self, client):
         table = _upload_csv(client, "unorm", b"id,name\n1,Alice\n2,Bob")
@@ -162,7 +173,8 @@ class TestUploadErrorSanitization:
             files = {"file": (fname, buf, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
             res = client.post("/api/upload", files=files)
             assert res.status_code == 200
-            assert res.json()["status"] == "success"
+            task = _wait_upload_task(client, res)
+            assert task["status"] == "success"
         except ImportError:
             pytest.skip("openpyxl not installed")
 

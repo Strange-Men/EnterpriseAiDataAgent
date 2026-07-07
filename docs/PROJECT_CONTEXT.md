@@ -6,8 +6,8 @@
 
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
-- Current product state: M5 Agent main path is runnable after the final Astryx UX simplification and Doubao provider QA.
-- Current stage: M6 manual-test fix planning docs.
+- Current product state: M6 Business Analyst Agent is ready for manual testing, with Manual Fix 1 default-state and async-upload repairs implemented.
+- Current stage: M6 Manual Fix 1 implementation complete locally; Manual Fix 2 and Manual Fix 3 have not started.
 
 ## M6 Direction
 
@@ -17,7 +17,7 @@ M6 is being planned as a Business Analyst Agent upgrade:
 understand question -> decompose metrics -> query evidence -> judge risk -> find opportunity -> recommend action -> support follow-up
 ```
 
-M6.1 is documentation only. M6.2 adds the synthetic business demo dataset. M6.3 adds the backend Business Semantic Layer. M6.4 adds deterministic backend Business Analysis Tools. M6.5 connects the semantic layer and business tools into the LangChain Single Agent backend orchestration. M6.6 adapts the frontend single-page workbench to show the backend `business_report` as the default user-facing answer. M6.7 validates the integrated Business Analyst Agent capability with deterministic pressure tests. M6.8 prepares `master` for user manual testing. The current documentation-only follow-up captures manual-test fixes before implementation.
+M6.1 is documentation only. M6.2 adds the synthetic business demo dataset. M6.3 adds the backend Business Semantic Layer. M6.4 adds deterministic backend Business Analysis Tools. M6.5 connects the semantic layer and business tools into the LangChain Single Agent backend orchestration. M6.6 adapts the frontend single-page workbench to show the backend `business_report` as the default user-facing answer. M6.7 validates the integrated Business Analyst Agent capability with deterministic pressure tests. M6.8 prepares `master` for user manual testing. Manual Fix 1 repairs the manual-test issues around default dark state, async upload, clean homepage state, and session table recovery.
 
 ## Important Boundary
 
@@ -31,7 +31,8 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - M6.6 focuses on Business Report frontend adaptation.
 - M6.7 focuses on comprehensive business capability pressure testing.
 - M6.8 focuses on Final QA / Manual Test Ready.
-- M6 Manual Fix planning focuses on documenting user manual-test issues and the proposed Fix 1 / Fix 2 / Fix 3 sequence.
+- M6 Manual Fix 1 focuses on default dark state, async upload, clean homepage state, and session table recovery.
+- M6 Manual Fix 2 and Manual Fix 3 have not started.
 - M6.9, Multi-Agent, LangGraph, and RAG have not started.
 - Any future Multi-Agent expansion must be separately reviewed and approved.
 
@@ -150,6 +151,22 @@ The proposed development order is:
 
 No code implementation has started for these fixes. No tag has been created.
 
+## M6 Manual Fix 1
+
+Manual Fix 1 implements the first approved repair set from `docs/reports/m6-manual-fix-plan.md`:
+
+- forces the Astryx workbench into dark-only mode and ignores old light-mode localStorage state;
+- uses `demo_sales_business_50k` as the app default table;
+- keeps the homepage clean by not restoring old answers into the main result area automatically;
+- keeps history available only through the explicit History action;
+- changes upload to an async task model with `task_id` and `GET /api/tasks/{task_id}/status`;
+- stores upload task status in the existing DuckDB-backed persistence layer through an internal `__eai_upload_tasks` table;
+- applies a 300-second running timeout fallback with a clear user-facing failure message;
+- tracks `current_table` separately from the app default table through backend session state;
+- adds `POST /api/session/clear` so reset clears backend memory/current table and returns to `demo_sales_business_50k`.
+
+Manual Fix 1 does not change the business report output contract, recommendation schema, provider transparency contract, Doubao fallback logic, next-question chip behavior, or any M6.9 scope.
+
 ## Next Stage
 
-The next step is user review of the Manual Fix plan. If approved, Manual Fix 1 should start in a separate implementation prompt.
+After Manual Fix 1 is merged back to `master`, the user can continue manual testing. If Fix 1 passes, the next approved stage is Manual Fix 2: business report output contract, recommendation validation, and report ordering.

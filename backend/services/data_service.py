@@ -3,7 +3,10 @@
 import io
 import time
 import threading
+from datetime import datetime, timezone
+from pathlib import Path
 
+import pandas as pd
 from database.db_manager import DatabaseManager
 from database.file_loader import load_file
 from database.schema_detector import detect_schema
@@ -42,6 +45,7 @@ _readonly_executor: QueryExecutor | None = None
 _init_lock = threading.Lock()
 _start_time = time.time()
 _UPLOAD_TIMESTAMPS: dict[str, str] = {}  # table_name → ISO 8601 upload timestamp
+APP_DEFAULT_TABLE = "demo_sales_business_50k"
 
 
 def get_db() -> DatabaseManager:
@@ -179,10 +183,16 @@ def get_system_health() -> dict:
 
 
 def list_tables() -> list[dict]:
-    tables = get_db().list_tables()
+    tables = [tbl for tbl in get_db().list_tables() if not str(tbl.get("name", "")).startswith("__eai_")]
     for tbl in tables:
         tbl["uploadTime"] = _UPLOAD_TIMESTAMPS.get(tbl["name"])
     return tables
+
+
+def set_upload_timestamp(table_name: str) -> str:
+    timestamp = datetime.now(timezone.utc).isoformat()
+    _UPLOAD_TIMESTAMPS[table_name] = timestamp
+    return timestamp
 
 
 def upload_file(filename: str, content: bytes) -> dict:
@@ -191,14 +201,37 @@ def upload_file(filename: str, content: bytes) -> dict:
     table_name = get_db().import_dataframe(df, filename=filename)
     schema = detect_schema(df)
     name = table_name["table_name"]
-    from datetime import datetime, timezone
-    _UPLOAD_TIMESTAMPS[name] = datetime.now(timezone.utc).isoformat()
+    set_upload_timestamp(name)
     return {
         "tableName": name,
         "rowCount": schema["row_count"],
         "columnCount": schema["col_count"],
         "status": "success",
     }
+
+
+def table_exists(table_name: str) -> bool:
+    try:
+        get_db().get_table_info(table_name)
+        return True
+    except Exception:
+        return False
+
+
+def ensure_default_business_table() -> str:
+    """Ensure the M6 business demo table exists for first-run manual testing."""
+    if table_exists(APP_DEFAULT_TABLE):
+        return APP_DEFAULT_TABLE
+
+    root = Path(__file__).resolve().parents[2]
+    csv_path = root / "testExcel" / f"{APP_DEFAULT_TABLE}.csv"
+    if not csv_path.exists():
+        return APP_DEFAULT_TABLE
+
+    df = pd.read_csv(csv_path)
+    get_db().import_dataframe(df, table_name=APP_DEFAULT_TABLE)
+    set_upload_timestamp(APP_DEFAULT_TABLE)
+    return APP_DEFAULT_TABLE
 
 
 def get_table_preview(table_name: str, limit: int = 100) -> dict:

@@ -50,7 +50,7 @@ export interface UploadedFile {
   tableName?: string;
   rowCount: number;
   columnCount: number;
-  status: "pending" | "success" | "error";
+  status: "pending" | "running" | "success" | "error";
   error?: string;
   columns?: string[];
 }

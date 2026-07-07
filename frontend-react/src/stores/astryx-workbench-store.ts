@@ -29,6 +29,7 @@ interface AstryxWorkbenchState {
   setProvider: (provider: AgentProviderRequested) => void;
   addRecord: (record: BusinessAnalysisRecord) => void;
   setActiveRunId: (runId: string | null) => void;
+  clearActiveRun: () => void;
   getActiveRecord: () => BusinessAnalysisRecord | null;
 }
 
@@ -50,9 +51,12 @@ export const useAstryxWorkbenchStore = create<AstryxWorkbenchState>()(
           };
         }),
       setActiveRunId: (activeRunId) => set({ activeRunId }),
+      clearActiveRun: () => set({ activeRunId: null }),
       getActiveRecord: () => {
         const state = get();
-        return state.records.find((record) => record.runId === state.activeRunId) ?? state.records[0] ?? null;
+        return state.activeRunId
+          ? state.records.find((record) => record.runId === state.activeRunId) ?? null
+          : null;
       },
     }),
     {
@@ -62,7 +66,7 @@ export const useAstryxWorkbenchStore = create<AstryxWorkbenchState>()(
       partialize: (state) => ({
         provider: state.provider,
         records: state.records.slice(0, MAX_RECORDS),
-        activeRunId: state.activeRunId,
+        activeRunId: null,
       }),
     }
   )

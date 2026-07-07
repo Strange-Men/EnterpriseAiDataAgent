@@ -36,6 +36,17 @@ def _unique_name(prefix: str) -> str:
     return f"{prefix}_{int(time.time()*1000)}"
 
 
+def _wait_upload_success(client, upload_res):
+    data = upload_res.json()
+    assert "task_id" in data
+    status_res = client.get(f"/api/tasks/{data['task_id']}/status")
+    assert status_res.status_code == 200
+    task = status_res.json()
+    assert task["status"] == "success"
+    assert task["table_name"]
+    return task["table_name"]
+
+
 class TestUploadRoute:
     def test_upload_csv(self, client):
         csv_content = b"id,name,value\n1,Alice,100\n2,Bob,200"
@@ -44,9 +55,12 @@ class TestUploadRoute:
         res = client.post("/api/upload", files=files)
         assert res.status_code == 200
         data = res.json()
-        assert data["status"] == "success"
-        assert "tableName" in data
-        assert data["rowCount"] == 2
+        assert data["status"] in {"pending", "running"}
+        assert "task_id" in data
+        table_name = _wait_upload_success(client, res)
+        table_res = client.get(f"/api/tables/{table_name}")
+        assert table_res.status_code == 200
+        assert table_res.json()["rowCount"] == 2
 
     def test_upload_no_file(self, client):
         res = client.post("/api/upload")
@@ -72,7 +86,7 @@ class TestQualityRoute:
         files = {"file": (fname, io.BytesIO(csv_content), "text/csv")}
         upload_res = client.post("/api/upload", files=files)
         assert upload_res.status_code == 200
-        table_name = upload_res.json()["tableName"]
+        table_name = _wait_upload_success(client, upload_res)
         res = client.get(f"/api/quality/{table_name}")
         assert res.status_code == 200
         data = res.json()
@@ -87,7 +101,7 @@ class TestTableRoutes:
         files = {"file": (fname, io.BytesIO(csv_content), "text/csv")}
         upload_res = client.post("/api/upload", files=files)
         assert upload_res.status_code == 200
-        table_name = upload_res.json()["tableName"]
+        table_name = _wait_upload_success(client, upload_res)
         res = client.get(f"/api/tables/{table_name}")
         assert res.status_code == 200
         data = res.json()
@@ -100,7 +114,7 @@ class TestTableRoutes:
         files = {"file": (fname, io.BytesIO(csv_content), "text/csv")}
         upload_res = client.post("/api/upload", files=files)
         assert upload_res.status_code == 200
-        table_name = upload_res.json()["tableName"]
+        table_name = _wait_upload_success(client, upload_res)
         res = client.get(f"/api/tables/{table_name}/schema")
         assert res.status_code == 200
         schema = res.json()
@@ -112,7 +126,7 @@ class TestTableRoutes:
         files = {"file": (fname, io.BytesIO(csv_content), "text/csv")}
         upload_res = client.post("/api/upload", files=files)
         assert upload_res.status_code == 200
-        table_name = upload_res.json()["tableName"]
+        table_name = _wait_upload_success(client, upload_res)
         res = client.delete(f"/api/tables/{table_name}")
         assert res.status_code == 200
 
@@ -122,7 +136,7 @@ class TestTableRoutes:
         files = {"file": (fname, io.BytesIO(csv_content), "text/csv")}
         upload_res = client.post("/api/upload", files=files)
         assert upload_res.status_code == 200
-        table_name = upload_res.json()["tableName"]
+        table_name = _wait_upload_success(client, upload_res)
         res = client.get(f"/api/tables/{table_name}/data?page=0&page_size=2")
         assert res.status_code == 200
         data = res.json()
@@ -155,7 +169,7 @@ class TestAnalyzeRoute:
         files = {"file": (fname, io.BytesIO(csv_content), "text/csv")}
         upload_res = client.post("/api/upload", files=files)
         assert upload_res.status_code == 200
-        table_name = upload_res.json()["tableName"]
+        table_name = _wait_upload_success(client, upload_res)
 
         res = client.get(f"/api/analyze/{table_name}/profile")
         assert res.status_code == 200
@@ -176,7 +190,7 @@ class TestAnalyzeRoute:
         fname = _unique_name("prof") + ".csv"
         files = {"file": (fname, io.BytesIO(csv_content), "text/csv")}
         upload_res = client.post("/api/upload", files=files)
-        table_name = upload_res.json()["tableName"]
+        table_name = _wait_upload_success(client, upload_res)
 
         res = client.get(f"/api/analyze/{table_name}/profile")
         profile = res.json()["profile"]

@@ -47,7 +47,16 @@ export {
   fetchQueryHistory,
 } from "@/services/api/query";
 
-export { fetchQualityReport, uploadFile } from "@/services/api/data";
+export type { SessionTableState, UploadTaskResponse, UploadTaskStage, UploadTaskStatus } from "@/services/api/data";
+export {
+  clearSessionState,
+  fetchQualityReport,
+  fetchSessionTableState,
+  fetchUploadTaskStatus,
+  startUploadTask,
+  uploadFile,
+  waitForUploadTask,
+} from "@/services/api/data";
 
 export type {
   AdaptedQuestion,

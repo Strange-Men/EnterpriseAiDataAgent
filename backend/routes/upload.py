@@ -1,10 +1,9 @@
 """Upload endpoint — POST /api/upload."""
 
 import logging
-from fastapi import APIRouter, UploadFile, HTTPException
+from fastapi import APIRouter, BackgroundTasks, UploadFile, HTTPException
 from backend.config import MAX_UPLOAD_BYTES
-from backend.services.data_service import upload_file
-from database.file_loader import FileLoadError
+from backend.services.upload_tasks import create_upload_task, get_upload_task_status, run_upload_task
 
 logger = logging.getLogger("enterprise_ai.upload")
 
@@ -34,17 +33,29 @@ async def _read_upload_with_limit(file: UploadFile) -> bytes:
 
 
 @router.post("/upload")
-async def upload(file: UploadFile):
+async def upload(file: UploadFile, background_tasks: BackgroundTasks):
     content = await _read_upload_with_limit(file)
     if not content:
         raise HTTPException(status_code=400, detail="Empty file")
 
+    filename = file.filename or "uploaded_data.csv"
     try:
-        result = upload_file(file.filename, content)
-        return result
-    except FileLoadError as e:
-        logger.warning(f"File load error for '{file.filename}': {e}")
-        raise HTTPException(status_code=422, detail="Failed to load file. Please check the format and try again.")
+        task = create_upload_task(filename)
+        background_tasks.add_task(run_upload_task, task["task_id"], filename, content)
+        return {
+            "task_id": task["task_id"],
+            "status": task["status"],
+            "progress": task["progress"],
+            "stage": task["stage"],
+        }
     except Exception as e:
-        logger.error(f"Upload failed for '{file.filename}': {type(e).__name__}: {e}", exc_info=True)
+        logger.error(f"Upload task creation failed for '{filename}': {type(e).__name__}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Upload failed")
+
+
+@router.get("/tasks/{task_id}/status")
+async def upload_task_status(task_id: str):
+    task = get_upload_task_status(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Upload task not found")
+    return task

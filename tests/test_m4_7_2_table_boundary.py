@@ -15,6 +15,16 @@ from backend.main import app
 client = TestClient(app)
 
 
+def _uploaded_table_name(upload_resp):
+    data = upload_resp.json()
+    assert "task_id" in data
+    status_resp = client.get(f"/api/tasks/{data['task_id']}/status")
+    assert status_resp.status_code == 200
+    task = status_resp.json()
+    assert task["status"] == "success"
+    return task["table_name"]
+
+
 class TestTableBoundaryValidation:
     """Test that backend properly validates table existence."""
 
@@ -39,7 +49,7 @@ class TestTableBoundaryValidation:
         files = {"file": ("test_boundary.csv", io.BytesIO(csv_content), "text/csv")}
         upload_resp = client.post("/api/upload", files=files)
         assert upload_resp.status_code == 200
-        table_name = upload_resp.json().get("tableName", "test_boundary")
+        table_name = _uploaded_table_name(upload_resp)
 
         # Now query with the valid table
         resp = client.post("/api/ai/query", json={
@@ -85,7 +95,7 @@ class TestTableBoundaryValidation:
         files = {"file": ("test_select.csv", io.BytesIO(csv_content), "text/csv")}
         upload_resp = client.post("/api/upload", files=files)
         assert upload_resp.status_code == 200
-        table_name = upload_resp.json().get("tableName", "test_select")
+        table_name = _uploaded_table_name(upload_resp)
 
         # Execute SELECT
         resp = client.post("/api/query", json={
@@ -105,7 +115,7 @@ class TestTableBoundaryValidation:
         files = {"file": ("test_delete.csv", io.BytesIO(csv_content), "text/csv")}
         upload_resp = client.post("/api/upload", files=files)
         assert upload_resp.status_code == 200
-        table_name = upload_resp.json().get("tableName", "test_delete")
+        table_name = _uploaded_table_name(upload_resp)
 
         # Delete the table
         del_resp = client.delete(f"/api/tables/{table_name}")
