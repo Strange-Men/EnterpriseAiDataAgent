@@ -9,6 +9,13 @@ export type AgentProviderRequested =
   | "mimo"
   | string;
 
+export type AgentProviderStatus =
+  | "live_success"
+  | "mock"
+  | "fallback"
+  | "error"
+  | string;
+
 export interface CreateAgentRunRequest {
   user_input: string;
   table_name?: string | null;
@@ -57,8 +64,10 @@ export interface AgentRun {
   warnings?: string[];
   trace?: unknown;
   selected_mode?: string | null;
+  requested_provider?: string | null;
   provider_requested?: string | null;
   provider_used?: string | null;
+  provider_status?: AgentProviderStatus | null;
   fallback_triggered?: boolean;
   fallback_type?: string | null;
   fallback_reason?: string | null;

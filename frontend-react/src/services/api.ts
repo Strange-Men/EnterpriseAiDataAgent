@@ -122,6 +122,7 @@ export {
 export type {
   AgentBusinessReport,
   AgentProviderRequested,
+  AgentProviderStatus,
   AgentRun,
   AgentRunMode,
   AgentStep,

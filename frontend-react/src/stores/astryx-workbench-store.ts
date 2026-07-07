@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { AgentRun, AgentProviderRequested, AgentBusinessReport } from "@/services/api";
+import type { AgentRun, AgentProviderRequested, AgentBusinessReport, AgentProviderStatus } from "@/services/api";
 
 export interface BusinessAnalysisRecord {
   runId: string;
@@ -13,8 +13,11 @@ export interface BusinessAnalysisRecord {
   sql: string | null;
   warnings: string[];
   nextSteps: string[];
+  requestedProvider: string | null;
   providerRequested: string | null;
   providerUsed: string | null;
+  providerStatus: AgentProviderStatus | null;
+  isSimulated: boolean;
   fallbackTriggered: boolean;
   fallbackReason: string | null;
   status: string;

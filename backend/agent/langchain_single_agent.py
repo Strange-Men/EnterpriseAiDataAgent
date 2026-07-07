@@ -35,6 +35,7 @@ from backend.agent.contracts import (
     EvidenceRef,
     FallbackType,
     IntentCategory,
+    ProviderStatus,
     ToolCall,
     ToolCallStatus,
     ToolResult,
@@ -166,8 +167,10 @@ class LangChainSingleAgentService:
             intent=route.intent,
             selected_mode=route.selected_mode,
             provider_requested=provider_metadata["provider_requested"],
+            requested_provider=provider_metadata["provider_requested"],
             provider_used=provider_metadata["provider_used"],
-            is_simulated=provider_metadata["provider_used"] == "mock",
+            provider_status=provider_metadata["provider_status"],
+            is_simulated=provider_metadata["is_simulated"],
             fallback_triggered=provider_metadata["fallback_triggered"],
             fallback_type=FallbackType.PROVIDER if provider_metadata["fallback_triggered"] else FallbackType.NONE,
             fallback_reason=provider_metadata["fallback_reason"],
@@ -829,6 +832,8 @@ class LangChainSingleAgentService:
         context["provider_used"] = provider_metadata["provider_used"]
         context["fallback_triggered"] = provider_metadata["fallback_triggered"]
         context["fallback_reason"] = provider_metadata["fallback_reason"]
+        context["provider_status"] = provider_metadata["provider_status"]
+        context["is_simulated"] = provider_metadata["is_simulated"]
 
         if run.status == AgentStatus.RUNNING:
             run.status = AgentStatus.COMPLETED
@@ -1133,8 +1138,9 @@ class LangChainSingleAgentService:
         run.evidence = list(context.get("evidence") or [])
         run.result_preview = context.get("result_preview") or {"columns": [], "rows": [], "row_count": 0}
         run.memory_used = bool(context.get("memory_used") or self._memory_notes)
+        run.provider_requested = str(context.get("provider_requested") or provider_metadata["provider_requested"])
+        run.requested_provider = run.provider_requested
         run.provider_used = str(context.get("provider_used") or provider_metadata["provider_used"])
-        run.is_simulated = run.provider_used == "mock"
         run.fallback_triggered = bool(
             context.get("fallback_triggered")
             if "fallback_triggered" in context
@@ -1146,6 +1152,9 @@ class LangChainSingleAgentService:
             if run.fallback_triggered
             else None
         )
+        if context.get("provider_status") == ProviderStatus.ERROR.value:
+            run.provider_status = ProviderStatus.ERROR
+        run.sync_provider_status()
         run.trace.update(
             {
                 "tool_calls": [
@@ -1158,8 +1167,11 @@ class LangChainSingleAgentService:
                 ],
                 "memory": self._memory_notes,
                 "provider": {
+                    "requested_provider": run.requested_provider,
                     "provider_requested": run.provider_requested,
                     "provider_used": run.provider_used,
+                    "provider_status": run.provider_status.value,
+                    "is_simulated": run.is_simulated,
                     "fallback_triggered": run.fallback_triggered,
                     "fallback_reason": run.fallback_reason,
                 },
@@ -1172,6 +1184,14 @@ class LangChainSingleAgentService:
     def _merge_provider_context(self, *, context: dict[str, Any], output: dict[str, Any]) -> None:
         if output.get("provider_used"):
             context["provider_used"] = output.get("provider_used")
+        if output.get("provider_requested"):
+            context["provider_requested"] = output.get("provider_requested")
+        if output.get("requested_provider"):
+            context["provider_requested"] = output.get("requested_provider")
+        if output.get("provider_status"):
+            context["provider_status"] = output.get("provider_status")
+        if "is_simulated" in output:
+            context["is_simulated"] = bool(output.get("is_simulated"))
         if "fallback_triggered" in output:
             context["fallback_triggered"] = bool(output.get("fallback_triggered"))
         if "fallback_reason" in output:
@@ -1184,6 +1204,7 @@ class LangChainSingleAgentService:
             )
 
     def _finalize_run(self, *, run: AgentRun, warnings: list[str]) -> None:
+        run.sync_provider_status()
         run.warnings = list(dict.fromkeys(warnings))
         run.updated_at = _utc_now()
 
@@ -1201,20 +1222,29 @@ class LangChainSingleAgentService:
         if requested == "mock":
             return {
                 "provider_requested": "mock",
+                "requested_provider": "mock",
                 "provider_used": "mock",
+                "provider_status": ProviderStatus.MOCK.value,
+                "is_simulated": True,
                 "fallback_triggered": False,
                 "fallback_reason": None,
             }
         if requested not in SUPPORTED_LLM_PROVIDERS:
             return {
                 "provider_requested": requested,
+                "requested_provider": requested,
                 "provider_used": "mock",
+                "provider_status": ProviderStatus.FALLBACK.value,
+                "is_simulated": True,
                 "fallback_triggered": True,
                 "fallback_reason": "unsupported_provider",
             }
         return {
             "provider_requested": requested,
+            "requested_provider": requested,
             "provider_used": "mock",
+            "provider_status": ProviderStatus.FALLBACK.value,
+            "is_simulated": True,
             "fallback_triggered": True,
             "fallback_reason": "provider_unavailable_or_mock_fallback",
         }
@@ -1222,10 +1252,21 @@ class LangChainSingleAgentService:
     def _metadata_from_llm_events(self, provider_requested: str, llm_metadata: dict[str, Any]) -> dict[str, Any]:
         requested = str(llm_metadata.get("provider_requested") or provider_requested or "mock")
         used = str(llm_metadata.get("provider_used") or "mock")
+        fallback_triggered = bool(llm_metadata.get("fallback_triggered") or (requested != used))
+        provider_status = (
+            ProviderStatus.MOCK.value
+            if requested == "mock"
+            else ProviderStatus.FALLBACK.value
+            if fallback_triggered or used == "mock"
+            else ProviderStatus.LIVE_SUCCESS.value
+        )
         return {
             "provider_requested": requested,
+            "requested_provider": requested,
             "provider_used": used,
-            "fallback_triggered": bool(llm_metadata.get("fallback_triggered") or (requested != used)),
+            "provider_status": provider_status,
+            "is_simulated": provider_status in {ProviderStatus.MOCK.value, ProviderStatus.FALLBACK.value},
+            "fallback_triggered": fallback_triggered,
             "fallback_reason": llm_metadata.get("fallback_reason"),
         }
 

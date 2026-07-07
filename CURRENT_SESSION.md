@@ -2,6 +2,19 @@
 
 > Last updated: 2026-07-07
 
+## M6 Manual Fix 3 Provider Transparency / Next Questions
+
+- Confirmed latest `master` GitHub Actions was green before starting Fix 3.
+- Created implementation branch `m6-manual-fix-3-provider-next-question` from `master` commit `2ab62acf0a87c4b4de8482d9985b90ec307eddfb`.
+- Completed Manual Fix 3 only: backend provider status contract, fallback transparency, frontend provider banners, and next-question click-to-fill.
+- Added `ProviderStatus` and synchronized `requested_provider`, `provider_status`, `fallback_reason`, and `is_simulated` in the Agent response contract.
+- Updated frontend Business Report rendering to distinguish `live_success`, `mock`, `fallback`, and `error` states without putting provider metadata inside `business_report`.
+- Added click-to-fill next-question chips that populate and focus the input without auto-submitting; chips are disabled while submitting.
+- Added tests: `tests/test_m6_manual_fix3_provider_status.py` and updated `frontend-react/src/components/astryx/__tests__/business-report-view.test.tsx`.
+- Added report: `docs/reports/m6-manual-fix-3-provider-next-question.md`.
+- Verification passed: backend import, Fix 3 tests (`8 passed`), Fix 2/Fix 1/M6 regressions, full backend CI (`886 passed`), frontend `npm ci`, `npx tsc --noEmit`, full Vitest (`50 files`, `1192 tests`), and `npm run build`.
+- Manual Fix 1 / 2 / 3 are now implemented and awaiting renewed manual testing after merge to `master`. M6.9 has not been added. Tag has not been created.
+
 ## M6 Manual Fix 2 Business Report Readability
 
 - Confirmed latest `master` GitHub Actions was green before starting Fix 2.

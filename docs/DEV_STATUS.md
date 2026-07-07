@@ -4,17 +4,30 @@
 
 ## Current Branch
 
-- Branch: `m6-manual-fix-2-business-report-readable`
-- Stage: M6 Manual Fix 2 business report output contract / recommendation validation / report reorder
+- Branch: `m6-manual-fix-3-provider-next-question`
+- Stage: M6 Manual Fix 3 provider transparency / next-question click-to-fill / final regression
 
 ## Current Work
 
-M6 Manual Fix 2 is complete locally as an implementation follow-up to M6.8 manual testing.
+M6 Manual Fix 3 is complete locally as an implementation follow-up to M6.8 manual testing.
 
-Manual Fix 2 addresses the business report readability issues found during manual testing. It upgrades recommendation output, validates recommendation shape defensively, reorders the frontend report to show conclusion and action first, and hides related data inside technical details / data evidence. It does not implement Manual Fix 3, does not add M6.9, and does not create a tag.
+Manual Fix 3 addresses provider transparency and next-question interaction issues found during manual testing. It adds explicit backend provider status, shows frontend Mock/Fallback/Error state clearly, and lets users click next-question chips to fill the input without auto-submitting. It does not add M6.9 and does not create a tag.
 
 Completed:
 
+- Confirmed latest master CI passed before starting Fix 3.
+- Created implementation branch `m6-manual-fix-3-provider-next-question`.
+- Added product-level provider status fields: `requested_provider`, `provider_status`, `provider_used`, `fallback_reason`, and `is_simulated`.
+- Added provider states: `live_success`, `mock`, `fallback`, and `error`.
+- Sanitized fallback reasons so frontend users see readable failure reasons instead of exception stacks or local paths.
+- Updated frontend provider banners for live success, demo mode, fallback simulation, and explicit error states.
+- Added click-to-fill next-question chips that scroll and focus the input without auto-submitting.
+- Kept next-question chips disabled while an analysis request is submitting.
+- Preserved Manual Fix 2 report order and recommendation contract.
+- Added `tests/test_m6_manual_fix3_provider_status.py`.
+- Updated frontend Business Report tests for provider banners and next-question interaction.
+- Added `docs/reports/m6-manual-fix-3-provider-next-question.md`.
+- Backend import, Fix 3 tests, Fix 2/Fix 1/M6 focused regression, full backend CI, frontend install, typecheck, full Vitest, and Next build passed locally.
 - Confirmed latest master CI passed before starting Fix 2.
 - Created implementation branch `m6-manual-fix-2-business-report-readable`.
 - Added `BusinessRecommendation`, `DEFAULT_RECOMMENDATION`, and `validate_business_recommendations()` in `backend/agent/contracts.py`.
@@ -92,9 +105,8 @@ Completed:
 This branch does not:
 
 - Start M6.9.
-- Implement Manual Fix 3.
-- Change provider status/fallback transparency.
-- Implement next-question click-to-fill.
+- Rework Manual Fix 1 upload/session behavior.
+- Rework Manual Fix 2 recommendation contract or report order.
 - Change async upload task logic.
 - Restore Sidebar.
 - Restore five-tab navigation.
@@ -103,4 +115,4 @@ This branch does not:
 
 ## Next Step
 
-After Manual Fix 2 is merged back to `master`, the user can continue manual testing. If approved, the next stage is Manual Fix 3: provider transparency, next-question click-to-fill interaction, and final regression.
+After Manual Fix 3 is merged back to `master`, the next step is renewed manual testing. If manual testing passes, the M6 final tag should only be created after explicit user approval.
