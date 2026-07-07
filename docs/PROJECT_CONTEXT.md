@@ -7,7 +7,7 @@
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
 - Current product state: M5 Agent main path is runnable after the final Astryx UX simplification and Doubao provider QA.
-- Current stage: M6.7 comprehensive business capability pressure testing completed for review.
+- Current stage: M6.8 Final QA / Manual Test Ready.
 
 ## M6 Direction
 
@@ -17,7 +17,7 @@ M6 is being planned as a Business Analyst Agent upgrade:
 understand question -> decompose metrics -> query evidence -> judge risk -> find opportunity -> recommend action -> support follow-up
 ```
 
-M6.1 is documentation only. M6.2 adds the synthetic business demo dataset. M6.3 adds the backend Business Semantic Layer. M6.4 adds deterministic backend Business Analysis Tools. M6.5 connects the semantic layer and business tools into the LangChain Single Agent backend orchestration. M6.6 adapts the frontend single-page workbench to show the backend `business_report` as the default user-facing answer. M6.7 validates the integrated Business Analyst Agent capability with deterministic pressure tests.
+M6.1 is documentation only. M6.2 adds the synthetic business demo dataset. M6.3 adds the backend Business Semantic Layer. M6.4 adds deterministic backend Business Analysis Tools. M6.5 connects the semantic layer and business tools into the LangChain Single Agent backend orchestration. M6.6 adapts the frontend single-page workbench to show the backend `business_report` as the default user-facing answer. M6.7 validates the integrated Business Analyst Agent capability with deterministic pressure tests. M6.8 prepares `master` for user manual testing.
 
 ## Important Boundary
 
@@ -30,7 +30,8 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - M6.5 focuses on LangChain Agent orchestration enhancement.
 - M6.6 focuses on Business Report frontend adaptation.
 - M6.7 focuses on comprehensive business capability pressure testing.
-- M6.8 Final QA, Multi-Agent, LangGraph, and RAG have not started.
+- M6.8 focuses on Final QA / Manual Test Ready.
+- M6.9, Multi-Agent, LangGraph, and RAG have not started.
 - Any future Multi-Agent expansion must be separately reviewed and approved.
 
 ## Active Planning Docs
@@ -47,6 +48,8 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - `docs/reports/m6-langchain-business-agent-orchestration.md`
 - `docs/reports/m6-business-report-frontend-adaptation.md`
 - `docs/reports/m6-business-capability-pressure-test.md`
+- `docs/reports/m6-manual-test-guide.md`
+- `docs/reports/m6-final-qa-manual-test-ready.md`
 
 ## M6.2 Dataset
 
@@ -118,6 +121,19 @@ The test harness validates:
 
 M6.7 automated coverage is 25/25 pressure questions, with 25/25 scoring at least 8/10. M6.7 also fixed two pressure-test-discovered issues: fallback recommendations for evidence-backed questions without explicit risk/opportunity objects, and classification coverage for monitoring/KPI questions.
 
+## M6.8 Manual Test Ready
+
+M6.8 performs final QA and prepares `master` for user manual testing:
+
+- M6.7 branch was merged into `master`, validated, and pushed.
+- Backend import and M6 focused tests pass.
+- Full backend CI command passes.
+- Frontend dependency install, typecheck, tests, and build pass.
+- Manual test guide is available at `docs/reports/m6-manual-test-guide.md`.
+- Final QA report is available at `docs/reports/m6-final-qa-manual-test-ready.md`.
+
+M6.8 did not add new product functionality and did not create a tag. If manual testing passes, the next user-approved step can be creating the M6 final tag.
+
 ## Next Stage
 
-M6.8 Final QA / Tag Candidate is the next implementation stage after M6.7 branch CI and user review. M6.7 did not create a tag.
+The next step is user manual testing from `master`. M6 final tag should be created only after manual testing passes and the user explicitly approves tagging.

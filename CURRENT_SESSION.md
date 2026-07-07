@@ -2,6 +2,18 @@
 
 > Last updated: 2026-07-07
 
+## M6.8 Final QA / Manual Test Ready
+
+- M6.7 CI was confirmed by user as passed before M6.8.
+- `origin/m6-business-capability-pressure-test` was merged into `master`, validated, and pushed.
+- M6.8 Final QA completed on branch `m6-final-qa-manual-test-ready`.
+- Final QA verified M6.1-M6.7 deliverables, backend import, M6 focused tests, full backend CI command, frontend dependency install, typecheck, tests, and build.
+- Generated manual test guide at `docs/reports/m6-manual-test-guide.md`.
+- Generated Final QA report at `docs/reports/m6-final-qa-manual-test-ready.md`.
+- No new code defects were found during M6.8. No backend/frontend behavior changes were needed in this stage.
+- M6主体开发 has entered manual-test-ready status. User next step is to test from `master`.
+- Tag has not been created. If manual testing passes, the next user-approved step can be creating the M6 final tag.
+
 ## M6.7 Business Capability Pressure Test
 
 - M6.6 GitHub Actions run `28836528225` passed before M6.7 started.
