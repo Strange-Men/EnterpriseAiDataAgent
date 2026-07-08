@@ -1248,10 +1248,10 @@ class LangChainSingleAgentService:
             "requested_provider": requested,
             "provider_used": "mock",
             "provider_status": ProviderStatus.FALLBACK.value,
-            "is_simulated": True,
-            "fallback_triggered": True,
-            "fallback_reason": "provider_unavailable_or_mock_fallback",
-        }
+                "is_simulated": True,
+                "fallback_triggered": True,
+                "fallback_reason": "真实模型未成功返回，已切换为模拟分析结果。",
+            }
 
     def _metadata_from_llm_events(self, provider_requested: str, llm_metadata: dict[str, Any]) -> dict[str, Any]:
         requested = str(llm_metadata.get("provider_requested") or provider_requested or "mock")

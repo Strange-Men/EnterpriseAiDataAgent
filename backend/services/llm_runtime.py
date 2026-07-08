@@ -7,6 +7,7 @@ from contextvars import ContextVar
 from dataclasses import asdict, dataclass
 import json
 import re
+import time
 from typing import Callable, Iterator, TypeVar
 
 import httpx
@@ -19,6 +20,7 @@ from backend.config import (
     DOUBAO_BASE_URL,
     DOUBAO_MODEL,
     LLM_ALLOWED_PROVIDERS,
+    LLM_CONNECT_TIMEOUT_SECONDS,
     LLM_DEFAULT_PROVIDER,
     LLM_FALLBACK_ON_ERROR,
     LLM_FALLBACK_PROVIDER,
@@ -40,6 +42,15 @@ T = TypeVar("T")
 
 class LLMProviderSelectionError(ValueError):
     """Raised when a requested provider is not supported or allowed."""
+
+
+class LLMProviderRequestError(RuntimeError):
+    """Raised for provider HTTP errors with a product-readable fallback reason."""
+
+    def __init__(self, reason: str, *, retryable: bool = False) -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.retryable = retryable
 
 
 @dataclass(frozen=True)
@@ -163,6 +174,10 @@ def call_llm_text(
         if not text.strip():
             raise RuntimeError("empty_provider_response")
         return text, _recorded(LLMCallMetadata("real", requested, requested))
+    except LLMProviderRequestError as exc:
+        if LLM_FALLBACK_ON_ERROR and LLM_FALLBACK_PROVIDER == "mock":
+            return _fallback_mock(requested, exc.reason, operation, user_message, language)
+        raise RuntimeError("LLM provider request failed")
     except Exception:
         if LLM_FALLBACK_ON_ERROR and LLM_FALLBACK_PROVIDER == "mock":
             return _fallback_mock(requested, "provider_request_failed", operation, user_message, language)
@@ -181,8 +196,36 @@ def _fallback_mock(
     user_message: str,
     language: str,
 ) -> tuple[str, LLMCallMetadata]:
-    metadata = LLMCallMetadata("mock", requested, "mock", True, reason)
+    metadata = LLMCallMetadata("mock", requested, "mock", True, readable_fallback_reason(reason))
     return _mock_response(operation, user_message, language), _recorded(metadata)
+
+
+def readable_fallback_reason(reason: str | None) -> str:
+    text = str(reason or "").strip()
+    mapping = {
+        "provider_unavailable": "未检测到真实模型配置，当前使用演示模式。",
+        "provider_timeout": "真实模型服务响应超时，已切换为模拟分析结果。",
+        "provider_rate_limited": "真实模型服务限流或繁忙，已切换为模拟分析结果。",
+        "provider_server_error": "真实模型服务暂时不可用，已切换为模拟分析结果。",
+        "provider_auth_failed": "真实模型鉴权失败，请检查 provider 配置。",
+        "provider_request_failed": "真实模型请求失败，已切换为模拟分析结果。",
+        "provider_unavailable_or_mock_fallback": "真实模型未成功返回，已切换为模拟分析结果。",
+        "provider_fallback_to_mock": "真实模型未成功返回，已切换为模拟分析结果。",
+        "unsupported_provider": "当前选择的模型 provider 不受支持，已切换为模拟分析结果。",
+        "requested_field_not_found": "当前数据表缺少请求字段，已返回可用字段范围内的替代分析。",
+    }
+    if text in mapping:
+        return mapping[text]
+    lower = text.lower()
+    if "timeout" in lower or "timed out" in lower:
+        return mapping["provider_timeout"]
+    if "401" in text or "403" in text or "unauthorized" in lower or "forbidden" in lower:
+        return mapping["provider_auth_failed"]
+    if "429" in text or "rate" in lower:
+        return mapping["provider_rate_limited"]
+    if len(text) > 180:
+        return text[:177].rstrip() + "..."
+    return text or mapping["provider_request_failed"]
 
 
 def _call_openai_compatible(
@@ -202,18 +245,46 @@ def _call_openai_compatible(
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
-    timeout = httpx.Timeout(float(LLM_REQUEST_TIMEOUT_SECONDS))
+    timeout = httpx.Timeout(
+        timeout=float(LLM_REQUEST_TIMEOUT_SECONDS),
+        connect=float(LLM_CONNECT_TIMEOUT_SECONDS),
+    )
     headers = {"Authorization": f"Bearer {config.api_key}", "Content-Type": "application/json"}
-    last_error: Exception | None = None
+    last_error: LLMProviderRequestError | None = None
     for _attempt in range(max(0, LLM_MAX_RETRIES) + 1):
         try:
             with httpx.Client(timeout=timeout) as client:
                 response = client.post(url, headers=headers, json=payload)
+            if response.status_code in {401, 403}:
+                raise LLMProviderRequestError("provider_auth_failed", retryable=False)
+            if response.status_code == 429:
+                raise LLMProviderRequestError("provider_rate_limited", retryable=True)
+            if 500 <= response.status_code < 600:
+                raise LLMProviderRequestError("provider_server_error", retryable=True)
             response.raise_for_status()
             data = response.json()
             return str(data["choices"][0]["message"]["content"])
-        except Exception as exc:
+        except (httpx.TimeoutException, TimeoutError):
+            last_error = LLMProviderRequestError("provider_timeout", retryable=True)
+        except LLMProviderRequestError as exc:
             last_error = exc
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code if exc.response is not None else 0
+            if status in {401, 403}:
+                last_error = LLMProviderRequestError("provider_auth_failed", retryable=False)
+            elif status == 429:
+                last_error = LLMProviderRequestError("provider_rate_limited", retryable=True)
+            elif status >= 500:
+                last_error = LLMProviderRequestError("provider_server_error", retryable=True)
+            else:
+                last_error = LLMProviderRequestError("provider_request_failed", retryable=False)
+        except httpx.RequestError:
+            last_error = LLMProviderRequestError("provider_request_failed", retryable=True)
+        except Exception:
+            last_error = LLMProviderRequestError("provider_request_failed", retryable=False)
+        if not last_error.retryable or _attempt >= max(0, LLM_MAX_RETRIES):
+            break
+        time.sleep(1.0)
     if last_error is not None:
         raise last_error
     raise RuntimeError("LLM provider request failed")

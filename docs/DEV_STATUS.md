@@ -4,10 +4,29 @@
 
 ## Current Branch
 
-- Branch: `m6-manual-regression-default-table-upload-qa`
-- Stage: M6 manual regression hotfix for default table, upload timeout diagnosis, and hard-question QA
+- Branch: `m6-manual-polish-export-query-provider-timeout`
+- Stage: M6 manual polish hotfix for report export, SQL Query numbering, and provider timeout handling
 
 ## Current Work
+
+M6 manual polish hotfix is complete locally. This is not M6.9 and no tag has been created.
+
+Completed in this hotfix:
+
+- Added Business Report Markdown export with a fixed report template.
+- Added lightweight Business Report HTML export using the same structure.
+- Kept SQL, trace, tool calls, raw JSON, run id, and memory out of exported reports.
+- Added `frontend-react/src/utils/business-report-export.ts`.
+- Added export buttons to the Business Report result card.
+- Fixed Advanced SQL default Query numbering and persisted-state normalization.
+- Added `LLM_CONNECT_TIMEOUT_SECONDS`, changed default request timeout to 60s, and centralized provider timeout handling.
+- Added limited retry for timeout / 429 / 5xx and avoided retry for 401 / 403.
+- Converted provider fallback reasons from internal codes into readable user-facing messages.
+- Ran three default-table business questions against `demo_sales_business_50k`; Q3 passed anti-hallucination for missing ad creative / ROI fields.
+- Added `tests/test_m6_manual_polish_export_query_provider.py` and updated frontend Business Report / SQL store tests.
+- Added `docs/reports/m6-manual-polish-export-query-provider-timeout.md`.
+- Backend import, focused regressions, full backend CI, frontend install, typecheck, tests, and build passed locally.
+- Next step remains renewed manual testing from `master`; if manual testing passes, the next user-approved step can be an M6 final tag.
 
 M6 manual regression hotfix is complete locally. This is not M6.9 and no tag has been created.
 

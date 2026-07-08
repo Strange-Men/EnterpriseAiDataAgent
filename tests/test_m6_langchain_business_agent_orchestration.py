@@ -180,7 +180,7 @@ def test_bad_provider_fallback_is_controlled(m6_db) -> None:
     assert result.run.provider_requested == "bad-provider"
     assert result.run.provider_used == "mock"
     assert result.run.fallback_triggered is True
-    assert result.run.fallback_reason == "unsupported_provider"
+    assert result.run.fallback_reason == "当前选择的模型 provider 不受支持，已切换为模拟分析结果。"
     assert result.run.business_report
 
 

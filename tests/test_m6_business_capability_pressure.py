@@ -285,5 +285,5 @@ def test_mock_provider_and_bad_provider_fallback_are_controlled(m6_pressure_db: 
     assert bad_result.run.provider_requested == "bad-provider"
     assert bad_result.run.provider_used == "mock"
     assert bad_result.run.fallback_triggered is True
-    assert bad_result.run.fallback_reason == "unsupported_provider"
+    assert bad_result.run.fallback_reason == "当前选择的模型 provider 不受支持，已切换为模拟分析结果。"
     assert bad_result.run.business_report

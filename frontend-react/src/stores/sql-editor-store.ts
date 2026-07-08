@@ -41,6 +41,22 @@ const DEFAULT_TAB: QueryTab = {
 const LEGACY_KEY = "query-tabs";
 const NEW_KEY = "sql-editor";
 
+function isDefaultQueryName(name: unknown): boolean {
+  return typeof name !== "string" || !name.trim() || /^Query\s+\d+$/i.test(name.trim());
+}
+
+export function normalizeQueryTabs(tabs: QueryTab[]): QueryTab[] {
+  const safeTabs = tabs
+    .filter((tab): tab is QueryTab => Boolean(tab) && typeof tab.id === "string")
+    .map((tab, index) => ({
+      ...tab,
+      name: isDefaultQueryName(tab.name) ? `Query ${index + 1}` : tab.name.trim(),
+      sql: typeof tab.sql === "string" ? tab.sql : "",
+      createdAt: typeof tab.createdAt === "string" && tab.createdAt ? tab.createdAt : new Date().toISOString(),
+    }));
+  return safeTabs.length > 0 ? safeTabs : [DEFAULT_TAB];
+}
+
 // ── Legacy migration (module-level, runs once) ──────────────────────
 
 function migrateFromLegacy(): void {
@@ -51,9 +67,9 @@ function migrateFromLegacy(): void {
     if (!parsed || typeof parsed !== "object") return;
     const p = parsed as Record<string, unknown>;
     if (!Array.isArray(p.tabs)) return;
-    const tabs = (p.tabs as QueryTab[]).filter(
+    const tabs = normalizeQueryTabs((p.tabs as QueryTab[]).filter(
       (t) => t && typeof t === "object" && typeof t.id === "string"
-    );
+    ));
     if (tabs.length === 0) return;
 
     localStorage.setItem(NEW_KEY, JSON.stringify({
@@ -123,7 +139,8 @@ export const useSqlEditorStore = create<SqlEditorState>()(
       addTab: (name, sql) => {
         const id = generateId();
         // Defense: ensure name is a string (prevent event objects from leaking in)
-        const safeName = typeof name === "string" && name.trim() ? name.trim() : `Query ${get().tabs.length + 1}`;
+        const existingTabs = normalizeQueryTabs(get().tabs);
+        const safeName = typeof name === "string" && name.trim() ? name.trim() : `Query ${existingTabs.length + 1}`;
         const safeSql = typeof sql === "string" ? sql : "";
         const tab: QueryTab = {
           id,
@@ -132,7 +149,7 @@ export const useSqlEditorStore = create<SqlEditorState>()(
           createdAt: new Date().toISOString(),
         };
         set((state) => ({
-          tabs: [...state.tabs, tab],
+          tabs: normalizeQueryTabs([...state.tabs, tab]),
           activeTabId: id,
           currentSql: safeSql,
           // Clear stale result when creating a blank tab
@@ -144,10 +161,11 @@ export const useSqlEditorStore = create<SqlEditorState>()(
       removeTab: (id) => {
         const { tabs, activeTabId } = get();
         if (tabs.length <= 1) return;
-        const newTabs = tabs.filter((t) => t.id !== id);
+        const removedIndex = Math.max(0, tabs.findIndex((t) => t.id === id));
+        const newTabs = normalizeQueryTabs(tabs.filter((t) => t.id !== id));
         let newActiveId = activeTabId;
         if (activeTabId === id) {
-          newActiveId = newTabs[newTabs.length - 1].id;
+          newActiveId = newTabs[Math.min(removedIndex, newTabs.length - 1)].id;
         }
         const newActiveTab = newTabs.find((t) => t.id === newActiveId);
         set({
@@ -159,7 +177,7 @@ export const useSqlEditorStore = create<SqlEditorState>()(
 
       renameTab: (id, name) => {
         set((state) => ({
-          tabs: state.tabs.map((t) => (t.id === id ? { ...t, name } : t)),
+          tabs: normalizeQueryTabs(state.tabs.map((t) => (t.id === id ? { ...t, name } : t))),
         }));
       },
 
@@ -285,9 +303,9 @@ export const useSqlEditorStore = create<SqlEditorState>()(
         const p = persisted as Record<string, unknown>;
         if (version < 1) {
           if (!Array.isArray(p.tabs)) return {};
-          const tabs = (p.tabs as QueryTab[]).filter(
+          const tabs = normalizeQueryTabs((p.tabs as QueryTab[]).filter(
             (t) => t && typeof t === "object" && typeof t.id === "string"
-          );
+          ));
           if (tabs.length === 0) return {};
           const activeTabId = typeof p.activeTabId === "string" ? p.activeTabId : tabs[0].id;
           const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -313,11 +331,7 @@ export const useSqlEditorStore = create<SqlEditorState>()(
         }
         // Defense: sanitize tabs — fix corrupted names from event object leak
         if (Array.isArray(state.tabs)) {
-          state.tabs = state.tabs.map((tab, i) => ({
-            ...tab,
-            name: typeof tab.name === "string" ? tab.name : `Query ${i + 1}`,
-            sql: typeof tab.sql === "string" ? tab.sql : "",
-          }));
+          state.tabs = normalizeQueryTabs(state.tabs);
           // Ensure activeTabId points to a valid tab
           if (!state.tabs.find((t) => t.id === state.activeTabId)) {
             state.activeTabId = state.tabs[0]?.id ?? "tab-default";

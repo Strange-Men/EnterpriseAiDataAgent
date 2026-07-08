@@ -1,8 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AstryxDataAgentWorkbench, BusinessResult } from "@/components/astryx/astryx-data-agent-workbench";
 import type { BusinessAnalysisRecord } from "@/stores/astryx-workbench-store";
 import type { AgentBusinessReport } from "@/services/api";
+import { downloadBlob } from "@/utils/download";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -55,6 +56,9 @@ vi.mock("react-i18next", () => ({
         "astryx.provider.error-title": "Model analysis failed",
         "astryx.provider.error-desc": "The requested model failed and no fallback result is available.",
         "astryx.provider.reason": "Reason",
+        "astryx.export.markdown": "Export Markdown",
+        "astryx.export.html": "Export HTML",
+        "astryx.export.disabled": "No report available to export",
       };
       return labels[key] ?? key;
     },
@@ -63,6 +67,10 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/panels/sql-workspace-panel", () => ({
   SqlWorkspacePanel: () => <div data-testid="sql-workspace-panel" />,
+}));
+
+vi.mock("@/utils/download", () => ({
+  downloadBlob: vi.fn(),
 }));
 
 const businessReport: AgentBusinessReport = {
@@ -135,6 +143,10 @@ function makeRecord(report: AgentBusinessReport | null = businessReport): Busine
 }
 
 describe("M6.6 Business Report frontend adaptation", () => {
+  beforeEach(() => {
+    vi.mocked(downloadBlob).mockClear();
+  });
+
   it("renders business_report as the default user-facing report with recommendations before evidence", () => {
     render(<BusinessResult record={makeRecord()} rows={[]} columns={[]} />);
 
@@ -168,6 +180,45 @@ describe("M6.6 Business Report frontend adaptation", () => {
     expect(screen.queryByText("run-business-1")).not.toBeInTheDocument();
     expect(screen.queryByText("memory_used")).not.toBeInTheDocument();
     expect(screen.queryByText("Data evidence")).not.toBeInTheDocument();
+  });
+
+  it("exports the business report as fixed-template Markdown without raw technical details", () => {
+    render(<BusinessResult record={makeRecord()} rows={[]} columns={[]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Export Markdown/ }));
+
+    expect(downloadBlob).toHaveBeenCalledTimes(1);
+    const [filename, content, mimeType] = vi.mocked(downloadBlob).mock.calls[0];
+    expect(filename).toMatch(/^business-report-\d{8}-\d{6}\.md$/);
+    expect(mimeType).toBe("text/markdown;charset=utf-8");
+    expect(String(content)).toContain("# 业务健康度诊断报告");
+    expect(String(content)).toContain("## 3. 优先行动建议");
+    expect(String(content)).toContain("Audit the top refund products in South China this week.");
+    expect(String(content)).not.toContain("SELECT * FROM revenue");
+    expect(String(content)).not.toContain("compute_overall_kpis");
+    expect(String(content)).not.toContain("hidden trace");
+    expect(String(content)).not.toContain("rawRun");
+  });
+
+  it("exports a lightweight HTML report with the same fixed structure", () => {
+    render(<BusinessResult record={makeRecord()} rows={[]} columns={[]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Export HTML/ }));
+
+    expect(downloadBlob).toHaveBeenCalledTimes(1);
+    const [filename, content, mimeType] = vi.mocked(downloadBlob).mock.calls[0];
+    expect(filename).toMatch(/^business-report-\d{8}-\d{6}\.html$/);
+    expect(mimeType).toBe("text/html;charset=utf-8");
+    expect(String(content)).toContain("<!doctype html>");
+    expect(String(content)).toContain("业务健康度诊断报告");
+    expect(String(content)).not.toContain("SELECT * FROM revenue");
+  });
+
+  it("disables report export when business_report is missing", () => {
+    render(<BusinessResult record={makeRecord(null)} rows={[]} columns={[]} />);
+
+    expect(screen.getByRole("button", { name: /Export Markdown/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Export HTML/ })).toBeDisabled();
   });
 
   it("does not show a fallback banner when provider_status is live_success", () => {

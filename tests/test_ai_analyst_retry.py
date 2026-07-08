@@ -46,7 +46,7 @@ def test_real_provider_missing_config_falls_back_to_mock(monkeypatch, provider):
     assert metadata["provider_requested"] == provider
     assert metadata["provider_used"] == "mock"
     assert metadata["fallback_triggered"] is True
-    assert metadata["fallback_reason"] == "provider_unavailable"
+    assert metadata["fallback_reason"] == "未检测到真实模型配置，当前使用演示模式。"
 
 
 def test_real_provider_request_failure_falls_back_to_mock(monkeypatch):
@@ -67,7 +67,7 @@ def test_real_provider_request_failure_falls_back_to_mock(monkeypatch):
     assert metadata["provider_requested"] == "deepseek"
     assert metadata["provider_used"] == "mock"
     assert metadata["fallback_triggered"] is True
-    assert metadata["fallback_reason"] == "provider_request_failed"
+    assert metadata["fallback_reason"] == "真实模型请求失败，已切换为模拟分析结果。"
     assert "secret-token" not in str(metadata)
 
 

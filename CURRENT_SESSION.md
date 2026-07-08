@@ -2,6 +2,29 @@
 
 > Last updated: 2026-07-07
 
+## M6 Manual Polish Hotfix
+
+- Created branch `m6-manual-polish-export-query-provider-timeout` from latest `master`.
+- Completed an M6 manual polish hotfix without adding M6.9 and without creating a tag.
+- Added Business Report export from the Astryx result card:
+  - Markdown export with fixed business-report template.
+  - Lightweight HTML export using the same fixed structure.
+  - Export excludes SQL, trace, tool calls, raw JSON, run id, and memory.
+- Fixed Advanced SQL Query tab numbering:
+  - Fresh default is `Query 1`.
+  - Added tabs are continuous.
+  - Removed tabs are renumbered.
+  - Persisted stale `Query 2` / skipped Query labels are normalized without losing SQL.
+- Optimized real LLM timeout and fallback handling:
+  - `LLM_REQUEST_TIMEOUT_SECONDS` default is now 60s.
+  - Added `LLM_CONNECT_TIMEOUT_SECONDS` default 10s.
+  - Timeout / 429 / 5xx retry once; 401 / 403 do not retry.
+  - Fallback reasons are now readable user-facing text instead of internal codes.
+- Ran three default-table business questions against `demo_sales_business_50k`; Q1/Q2 produced business reports, and Q3 passed anti-hallucination by refusing ROI/ad-creative analysis without required fields.
+- Added report: `docs/reports/m6-manual-polish-export-query-provider-timeout.md`.
+- Verification passed: backend import, focused M6 polish/Fix regressions (`51 passed`), full backend CI (`896 passed`), frontend `npm ci`, `npx tsc --noEmit`, full Vitest (`50 files`, `1200 tests`), and `npm run build`.
+- Next step remains renewed user manual testing from `master`; if it passes, the next user-approved step can be an M6 final tag.
+
 ## M6 Manual Regression Hotfix
 
 - Created branch `m6-manual-regression-default-table-upload-qa` from latest `master`.

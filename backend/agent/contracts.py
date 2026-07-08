@@ -12,6 +12,7 @@ from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from backend.services.llm_runtime import readable_fallback_reason
 
 
 def _utc_now() -> datetime:
@@ -500,8 +501,8 @@ def _safe_fallback_reason(reason: str | None) -> str | None:
     if not text:
         return None
     if any(marker in text for marker in ("Traceback", "File \"", "File '", " at ", "\\backend\\", "/backend/")):
-        return "provider_request_failed"
+        return readable_fallback_reason("provider_request_failed")
     if len(text) > 180:
         return text[:177].rstrip() + "..."
-    return text
+    return readable_fallback_reason(text)
 
