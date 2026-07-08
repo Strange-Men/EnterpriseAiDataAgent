@@ -47,6 +47,19 @@ export function SqlWorkspacePanel() {
   const resultContainerRef = useRef<HTMLDivElement>(null);
   const activeTab = getActiveTab();
 
+  const writeSqlToCurrentActiveTab = useCallback(
+    (sql: string) => {
+      const latestActiveTab = useSqlEditorStore.getState().getActiveTab();
+      if (!latestActiveTab) {
+        return false;
+      }
+      updateTabSql(latestActiveTab.id, sql);
+      setActivePanelTab("editor");
+      return true;
+    },
+    [setActivePanelTab, updateTabSql]
+  );
+
   // Cleanup: abort any in-flight query on unmount
   useEffect(() => {
     return () => {
@@ -105,10 +118,7 @@ export function SqlWorkspacePanel() {
       const currentTable = useInvestigationStore.getState().activeTable;
       const res = await aiQuery(aiSqlQuestion.trim(), false, false, undefined, i18n.language, currentTable ?? undefined, llmProvider);
       setAiSqlQualityGates(res.quality_gates ?? []);
-      const latestActiveTab = useSqlEditorStore.getState().getActiveTab();
-      if (res.sql && latestActiveTab) {
-        updateTabSql(latestActiveTab.id, res.sql);
-        setActivePanelTab("editor");
+      if (res.sql && writeSqlToCurrentActiveTab(res.sql)) {
         toast.success(t("ai.sql-filled"));
         setAiSqlQuestion("");
       } else {
@@ -119,17 +129,14 @@ export function SqlWorkspacePanel() {
     } finally {
       if (mountedRef.current) setAiSqlLoading(false);
     }
-  }, [aiSqlQuestion, aiSqlLoading, updateTabSql, setActivePanelTab, t, i18n.language, llmProvider]);
+  }, [aiSqlQuestion, aiSqlLoading, writeSqlToCurrentActiveTab, t, i18n.language, llmProvider]);
 
   const handleGenerateAiSql = useCallback(async () => {
     if (!wfTable || generatingSql) return;
     setGeneratingSql(true);
     try {
       const res = await aiQuery(`Show all data from ${wfTable}`, false, false, undefined, i18n.language, wfTable, llmProvider);
-      const latestActiveTab = useSqlEditorStore.getState().getActiveTab();
-      if (res.sql && latestActiveTab) {
-        updateTabSql(latestActiveTab.id, res.sql);
-        setActivePanelTab("editor");
+      if (res.sql && writeSqlToCurrentActiveTab(res.sql)) {
         wfAdvance("sql-ready", { table: wfTable, sql: res.sql });
         toast.success(t("ai.ready"));
       } else {
@@ -140,7 +147,7 @@ export function SqlWorkspacePanel() {
     } finally {
       if (mountedRef.current) setGeneratingSql(false);
     }
-  }, [wfTable, generatingSql, updateTabSql, setActivePanelTab, wfAdvance, t, i18n.language, llmProvider]);
+  }, [wfTable, generatingSql, writeSqlToCurrentActiveTab, wfAdvance, t, i18n.language, llmProvider]);
 
   const handleExecute = useCallback(async () => {
     const sql = currentSql.trim();
@@ -325,7 +332,7 @@ export function SqlWorkspacePanel() {
   }, [renameValue, renameTab]);
 
   return (
-        <div className="flex h-full min-h-[640px] flex-col">
+        <div className="flex h-full min-h-[720px] flex-col overflow-x-hidden overflow-y-auto" data-testid="sql-workspace-panel">
       <QueryTabsBar
         tabs={tabs}
         activeTabId={activeTabId}
@@ -554,11 +561,11 @@ export function SqlWorkspacePanel() {
       )}
 
       {/* ── Monaco Editor ────────────────────────────────── */}
-      <div className="mb-3 h-[360px] min-h-[320px] shrink-0" data-testid="sql-editor-shell">
+      <div className="mb-3 h-[360px] min-h-[320px] max-h-[360px] shrink-0 overflow-hidden rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)]" data-testid="sql-editor-shell">
         <MonacoSqlEditor
           value={currentSql}
           onChange={(val) => {
-            if (activeTab) updateTabSql(activeTab.id, val);
+            writeSqlToCurrentActiveTab(val);
           }}
           onExecute={handleExecute}
           height="360px"
@@ -613,15 +620,21 @@ export function SqlWorkspacePanel() {
 
       {/* ── Result table ─────────────────────────────────── */}
       {queryResult?.status === "success" && queryResult.columns.length > 0 && queryResult.rowCount > 0 && (
-        <div ref={resultContainerRef} className="flex-1 min-h-[200px]" data-testid="query-result-table">
-          <DataTable
-            data={queryResult.data}
-            columns={queryResult.columns}
-            onLoadMore={loadMore}
-            hasMore={hasMore}
-            isLoading={isLoadingMore}
-          />
-          <div className="mt-2 px-1">
+        <div
+          ref={resultContainerRef}
+          className="mt-2 flex min-h-[260px] max-h-[420px] shrink-0 flex-col overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)]"
+          data-testid="query-result-container"
+        >
+          <div className="min-h-0 flex-1 overflow-hidden p-3" data-testid="query-result-scroll-area">
+            <DataTable
+              data={queryResult.data}
+              columns={queryResult.columns}
+              onLoadMore={loadMore}
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+            />
+          </div>
+          <div className="shrink-0 border-t border-[var(--border-default)] px-3 py-2">
             <p className="text-[11px] text-[var(--text-muted)]">
               {t("sql.query-ok", { rows: queryResult.rowCount, ms: queryResult.runtimeMs })} · {t("sql.success-hint")}
             </p>
@@ -631,7 +644,7 @@ export function SqlWorkspacePanel() {
 
       {/* ── Empty result ─────────────────────────────────── */}
       {queryResult?.status === "success" && queryResult.rowCount === 0 && !isExecuting && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="mt-2 flex min-h-[180px] shrink-0 flex-col items-center justify-center rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] py-12 text-center" data-testid="query-empty-result">
           <p className="text-sm text-[var(--text-primary)] font-medium">{t("sql.empty-result-title")}</p>
           <p className="text-xs text-[var(--text-muted)] mt-1">{t("sql.empty-result-hint")}</p>
         </div>
@@ -639,7 +652,7 @@ export function SqlWorkspacePanel() {
 
       {/* ── AI Analysis Panel (feature-flagged) ────────────── */}
       {isFeatureEnabled("showAiButtonsInSqlWorkspace") && showAiPanel && aiMode && queryResult?.status === "success" && (
-        <div className="mt-2 min-h-[200px] max-h-[400px]">
+        <div className="mt-2 min-h-[200px] max-h-[400px] overflow-auto">
           <AIAnalysisPanel
             mode={aiMode}
             sql={queryResult.sql}
@@ -647,8 +660,7 @@ export function SqlWorkspacePanel() {
             results={queryResult.data}
             onClose={() => { setShowAiPanel(false); setAiMode(null); }}
             onSqlGenerated={(newSql) => {
-              if (activeTab) {
-                updateTabSql(activeTab.id, newSql);
+              if (writeSqlToCurrentActiveTab(newSql)) {
                 wfAdvance("sql-ready", { table: wfTable || "", sql: newSql });
               }
             }}

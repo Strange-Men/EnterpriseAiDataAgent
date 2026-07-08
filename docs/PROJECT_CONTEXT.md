@@ -6,8 +6,8 @@
 
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
-- Current product state: M6 Business Analyst Agent has completed Manual Fix / Polish Hotfix stabilization, but latest manual testing shows the Agent output strategy still needs a refactor so it can answer according to question intent instead of overusing the Business Health Report template.
-- Current stage: documentation-only M6 Agent output strategy refactor plan.
+- Current product state: M6 Business Analyst Agent has completed Manual Fix / Polish Hotfix stabilization and the first output-strategy follow-up hotfix for the Advanced SQL editor layout.
+- Current stage: M6 SQL UI Layout Hotfix complete locally; next recommended round is BusinessReportViewModel + locale + export infrastructure after user review.
 
 ## M6 Direction
 
@@ -39,6 +39,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - M6 manual polish regression focuses on restoring the Advanced SQL editor area, aligning English reports with the new business-report structure, diagnosing Doubao-only live LLM behavior, and cleaning exported Markdown/HTML report content.
 - M6 backend CI fix after polish regression stabilizes provider fallback tests so GitHub Actions never performs real Doubao network calls and does not depend on local/CI provider env differences.
 - M6 Agent output strategy refactor plan documents the next architecture correction: SQL UI layout first, then BusinessReportViewModel + locale + export infrastructure, then backend Intent Router + `data_table` output mode, then LangChain compliance / future LangGraph planning.
+- M6 SQL UI Layout Hotfix repairs the Advanced SQL editor/result layout only: the SQL editor remains visible, query results use an independent scroll area, AI-generated SQL writes to the latest active Query, and Query numbering/content normalization remains intact.
 - M6.9, Multi-Agent, LangGraph, and RAG have not started.
 - Any future Multi-Agent expansion must be separately reviewed and approved.
 
@@ -67,6 +68,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - `docs/reports/m6-manual-polish-regression-sql-i18n-doubao-export.md`
 - `docs/reports/m6-ci-fix-backend-after-polish-regression.md`
 - `docs/reports/m6-agent-output-strategy-refactor-plan.md`
+- `docs/reports/m6-polish-sql-editor-layout.md`
 
 ## M6 Agent Output Strategy Refactor Plan
 
@@ -82,6 +84,22 @@ The proposed order is:
 4. `m6-langchain-compliance-langgraph-plan`: write the LangChain compliance audit and future LangGraph plan only; do not implement LangGraph.
 
 This plan does not start M6.9, does not add LangGraph, does not change frontend/backend code, and does not create a tag.
+
+## M6 SQL UI Layout Hotfix
+
+The first implementation round from the output strategy plan is `m6-polish-sql-editor-layout`.
+
+Scope completed:
+
+- Advanced SQL editor shell is fixed and remains visible after executing SQL.
+- Query result table renders inside an independent bounded scroll container.
+- AI-generated SQL writes into the latest active Query editor.
+- Query add/delete/switch normalization remains intact and preserves SQL content.
+- No BusinessReportViewModel, locale pass-through, export changes, Intent Router, `data_table`, LangGraph, Multi-Agent, M6.9, or tag was added.
+
+Report: `docs/reports/m6-polish-sql-editor-layout.md`.
+
+Next recommended implementation round after user review: `m6-output-viewmodel-locale-export`.
 
 ## M6.2 Dataset
 
