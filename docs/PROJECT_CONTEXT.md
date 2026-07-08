@@ -6,8 +6,8 @@
 
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
-- Current product state: M6 Business Analyst Agent is ready for renewed manual testing after Manual Fix 1 / 2 / 3, the manual regression hotfix, the manual polish hotfix, the manual polish regression, and the backend CI stabilization after polish regression.
-- Current stage: backend CI fix complete locally; merge back to `master` is pending in this round.
+- Current product state: M6 Business Analyst Agent has completed Manual Fix / Polish Hotfix stabilization, but latest manual testing shows the Agent output strategy still needs a refactor so it can answer according to question intent instead of overusing the Business Health Report template.
+- Current stage: documentation-only M6 Agent output strategy refactor plan.
 
 ## M6 Direction
 
@@ -38,6 +38,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - M6 manual polish hotfix focuses on Business Report Markdown/HTML export, Advanced SQL Query numbering normalization, and readable provider timeout/fallback behavior.
 - M6 manual polish regression focuses on restoring the Advanced SQL editor area, aligning English reports with the new business-report structure, diagnosing Doubao-only live LLM behavior, and cleaning exported Markdown/HTML report content.
 - M6 backend CI fix after polish regression stabilizes provider fallback tests so GitHub Actions never performs real Doubao network calls and does not depend on local/CI provider env differences.
+- M6 Agent output strategy refactor plan documents the next architecture correction: SQL UI layout first, then BusinessReportViewModel + locale + export infrastructure, then backend Intent Router + `data_table` output mode, then LangChain compliance / future LangGraph planning.
 - M6.9, Multi-Agent, LangGraph, and RAG have not started.
 - Any future Multi-Agent expansion must be separately reviewed and approved.
 
@@ -65,6 +66,22 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - `docs/reports/m6-manual-polish-export-query-provider-timeout.md`
 - `docs/reports/m6-manual-polish-regression-sql-i18n-doubao-export.md`
 - `docs/reports/m6-ci-fix-backend-after-polish-regression.md`
+- `docs/reports/m6-agent-output-strategy-refactor-plan.md`
+
+## M6 Agent Output Strategy Refactor Plan
+
+Latest manual testing shows the largest remaining issue is not a single report sentence or UI label. The Agent still tends to force different questions into the Business Health Report shape instead of reliably answering the specific question asked.
+
+The documentation-only plan is available at `docs/reports/m6-agent-output-strategy-refactor-plan.md`.
+
+The proposed order is:
+
+1. `m6-polish-sql-editor-layout`: fix only the Advanced SQL editor layout and result-table scroll behavior.
+2. `m6-output-viewmodel-locale-export`: add a unified BusinessReportViewModel, locale pass-through, and shared export infrastructure.
+3. `m6-intent-router-data-table-output`: add backend Intent Router and `data_table` output mode so ranking/statistics questions no longer become health-diagnosis reports.
+4. `m6-langchain-compliance-langgraph-plan`: write the LangChain compliance audit and future LangGraph plan only; do not implement LangGraph.
+
+This plan does not start M6.9, does not add LangGraph, does not change frontend/backend code, and does not create a tag.
 
 ## M6.2 Dataset
 
