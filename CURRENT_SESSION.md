@@ -2,6 +2,20 @@
 
 > Last updated: 2026-07-08
 
+## M6 Polish SQL Editor Layout Hotfix
+
+- Merged `origin/m6-agent-output-strategy-plan-docs` into `master` and pushed `master`.
+- Created implementation branch `m6-polish-sql-editor-layout` from latest `master`.
+- Completed only Round 1 from the output strategy refactor plan: SQL UI Layout Hotfix.
+- Fixed the Advanced SQL workspace layout so the SQL editor shell has stable height and remains visible after query execution.
+- Moved query results into an independent bounded result container with its own scroll area.
+- Unified AI-generated SQL writes through the latest active Query tab, avoiding stale-tab writes after Query switching.
+- Preserved Query add/delete numbering normalization and SQL content ownership across Query switching/deletion.
+- Did not implement BusinessReportViewModel, locale pass-through, export changes, Intent Router, `data_table`, LangGraph, Multi-Agent, M6.9, or tag creation.
+- Added report: `docs/reports/m6-polish-sql-editor-layout.md`.
+- Verification passed: SQL workspace focused test (`6 passed`), `npm ci`, `npx tsc --noEmit`, full frontend Vitest (`52 files`, `1209 tests`), `npm run build`, and backend import.
+- Next recommended step after user SQL layout manual test: `m6-output-viewmodel-locale-export`.
+
 ## M6 Agent Output Strategy Refactor Plan Docs
 
 - Created documentation-only branch `m6-agent-output-strategy-plan-docs` from latest `master`.

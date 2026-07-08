@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SqlWorkspacePanel } from "../sql-workspace-panel";
-import { useSqlEditorStore } from "@/stores/sql-editor-store";
+import { normalizeQueryTabs, useSqlEditorStore } from "@/stores/sql-editor-store";
 
 const apiMocks = vi.hoisted(() => ({
   aiQuery: vi.fn(),
@@ -29,6 +29,14 @@ vi.mock("react-hot-toast", () => ({
     success: vi.fn(),
     error: vi.fn(),
   },
+}));
+
+vi.mock("@/components/ui/data-table", () => ({
+  DataTable: ({ data, columns }: { data: Array<Record<string, unknown>>; columns: string[] }) => (
+    <div data-testid="mock-data-table">
+      {data.length} rows / {columns.length} columns
+    </div>
+  ),
 }));
 
 vi.mock("@/services/api", () => ({
@@ -78,7 +86,16 @@ vi.mock("react-i18next", () => ({
         "sql.empty-title": "No query result",
         "sql.empty-desc": "输入 SQL 查询后按 Ctrl+Enter 执行。",
         "sql.query-ok": `Query completed ${params?.rows ?? ""}`,
+        "sql.success-hint": "Editor remains available above the result table.",
         "sql.query-failed": "Query failed",
+        "sql.loading-description": "Executing query",
+        "sql.loading-hint": "Large results may take a moment.",
+        "sql.error-friendly": "The query could not run.",
+        "sql.error-guidance": "Check the SQL and try again.",
+        "sql.retry": "Retry",
+        "sql.error-technical-detail": "Technical detail",
+        "sql.empty-result-title": "No rows returned",
+        "sql.empty-result-hint": "Try a broader query.",
       };
       return labels[key] ?? key;
     },
@@ -88,6 +105,7 @@ vi.mock("react-i18next", () => ({
 describe("SQL workspace polish regression", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
     useSqlEditorStore.setState({
       tabs: [{ id: "tab-default", name: "Query 1", sql: "", createdAt: "2026-01-01T00:00:00.000Z" }],
       activeTabId: "tab-default",
@@ -106,6 +124,8 @@ describe("SQL workspace polish regression", () => {
   it("shows an editable SQL editor area by default", () => {
     render(<SqlWorkspacePanel />);
 
+    expect(screen.getByText("Query 1")).toBeInTheDocument();
+    expect(screen.getByTestId("sql-editor-shell")).toBeInTheDocument();
     const editor = screen.getByLabelText("SQL editor") as HTMLTextAreaElement;
     expect(editor).toBeInTheDocument();
     expect(editor.dataset.height).toBe("360px");
@@ -136,6 +156,62 @@ describe("SQL workspace polish regression", () => {
     expect(useSqlEditorStore.getState().getActiveTab()?.name).toBe("Query 1");
   });
 
+  it("inserts AI-generated SQL only into the current active query", async () => {
+    apiMocks.aiQuery.mockResolvedValue({
+      sql: "SELECT 2 AS active_query_value;",
+      quality_gates: [],
+    });
+
+    render(<SqlWorkspacePanel />);
+
+    fireEvent.change(screen.getByLabelText("SQL editor"), { target: { value: "SELECT 1 AS first_query_value;" } });
+    fireEvent.click(screen.getByRole("button", { name: /Add query/i }));
+    expect(screen.getByText("Query 2")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Generate SQL" }));
+    fireEvent.change(screen.getByPlaceholderText("Describe the SQL you need"), {
+      target: { value: "Generate SQL for active tab" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Generate" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("SQL editor")).toHaveValue("SELECT 2 AS active_query_value;");
+    });
+
+    fireEvent.click(screen.getByText("Query 1"));
+    expect(screen.getByLabelText("SQL editor")).toHaveValue("SELECT 1 AS first_query_value;");
+  });
+
+  it("keeps the editor mounted in a separate shell after query results render", async () => {
+    apiMocks.executeQuery.mockResolvedValue({
+      queryId: "q-1",
+      sql: "SELECT region, sales_amount FROM demo_sales_business_50k LIMIT 1;",
+      columns: ["region", "sales_amount"],
+      data: [{ region: "South China", sales_amount: 100 }],
+      rowCount: 1,
+      runtimeMs: 12,
+      status: "success",
+    });
+
+    render(<SqlWorkspacePanel />);
+
+    fireEvent.change(screen.getByLabelText("SQL editor"), {
+      target: { value: "SELECT region, sales_amount FROM demo_sales_business_50k LIMIT 1;" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Execute" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("query-result-container")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("sql-editor-shell")).toBeInTheDocument();
+    expect(screen.getByLabelText("SQL editor")).toHaveValue(
+      "SELECT region, sales_amount FROM demo_sales_business_50k LIMIT 1;"
+    );
+    expect(screen.getByTestId("query-result-scroll-area")).toBeInTheDocument();
+    expect(screen.getByTestId("mock-data-table")).toHaveTextContent("1 rows / 2 columns");
+  });
+
   it("keeps SQL content attached to the right query after switching and deleting tabs", () => {
     render(<SqlWorkspacePanel />);
 
@@ -157,5 +233,20 @@ describe("SQL workspace polish regression", () => {
     const state = useSqlEditorStore.getState();
     expect(state.tabs.map((tab) => tab.name)).toEqual(["Query 1"]);
     expect(state.currentSql).toBe("SELECT 1;");
+  });
+
+  it("normalizes a stale single Query 2 tab to Query 1 without losing SQL", () => {
+    const normalized = normalizeQueryTabs([
+      {
+        id: "legacy-tab",
+        name: "Query 2",
+        sql: "SELECT * FROM legacy_table;",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+
+    expect(normalized).toHaveLength(1);
+    expect(normalized[0].name).toBe("Query 1");
+    expect(normalized[0].sql).toBe("SELECT * FROM legacy_table;");
   });
 });

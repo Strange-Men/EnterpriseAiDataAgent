@@ -4,10 +4,26 @@
 
 ## Current Branch
 
-- Branch: `m6-agent-output-strategy-plan-docs`
-- Stage: M6 Agent output strategy refactor plan docs
+- Branch: `m6-polish-sql-editor-layout`
+- Stage: M6 SQL UI Layout Hotfix
 
 ## Current Work
+
+M6 SQL UI Layout Hotfix is complete locally. This is Round 1 from the M6 Agent output strategy refactor plan. It only repairs the Advanced SQL editor layout and Query SQL state behavior; it does not start M6.9 and no tag has been created.
+
+Completed in this hotfix:
+
+- Merged `origin/m6-agent-output-strategy-plan-docs` into `master` and pushed `master`.
+- Created implementation branch `m6-polish-sql-editor-layout`.
+- Fixed the Advanced SQL workspace so the SQL editor remains fixed and visible after execution.
+- Isolated query results in a bounded result container with an independent scroll area.
+- Ensured AI-generated SQL writes to the latest active Query editor.
+- Preserved Query add/delete/switch behavior and numbering normalization without losing SQL content.
+- Added/updated SQL workspace frontend regression tests.
+- Added `docs/reports/m6-polish-sql-editor-layout.md`.
+- Verification passed: SQL workspace focused test, frontend install, TypeScript check, full frontend Vitest, frontend build, and backend import.
+- CI workflow was checked and did not need modification.
+- Next recommended step after renewed SQL layout manual testing: `m6-output-viewmodel-locale-export`.
 
 M6 Agent output strategy refactor planning is documented. This is a documentation-only round, not M6.9, and no tag has been created.
 
