@@ -9,6 +9,7 @@ agents, graph orchestration, embedding memory, or frontend behavior.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 import re
 from time import perf_counter
@@ -91,6 +92,7 @@ from backend.services.data_service import get_quality_report, get_readonly_execu
 from backend.services.llm_runtime import (
     LLMProviderSelectionError,
     SUPPORTED_LLM_PROVIDERS,
+    call_llm_text,
     llm_context,
     summarize_llm_events,
 )
@@ -764,6 +766,7 @@ class LangChainSingleAgentService:
         warnings: list[str],
     ) -> AgentRuntimeResult:
         table_name = request.table_name or self._default_table_name()
+        language = str(request.metadata.get("language") or "zh") if isinstance(request.metadata, dict) else "zh"
         context: dict[str, Any] = {
             "table_name": table_name,
             "business_results": [],
@@ -821,6 +824,14 @@ class LangChainSingleAgentService:
             question_type=question_type,
             evidence_results=context.get("business_results") or [],
             prior_memory=prior_memory,
+            language=language,
+        )
+        report, provider_metadata, llm_calls = self._polish_business_report_with_provider(
+            report=report,
+            question=request.user_input,
+            language=language,
+            provider_requested=provider_metadata["provider_requested"],
+            provider_metadata=provider_metadata,
         )
         memory_summary = build_memory_summary(
             table_name=table_name,
@@ -830,7 +841,7 @@ class LangChainSingleAgentService:
             evidence_results=context.get("business_results") or [],
         )
         run.business_report = report
-        context["answer"] = render_business_answer(report)
+        context["answer"] = render_business_answer(report, language=language)
         context["business_report"] = report
         context["business_memory_summary"] = memory_summary
         context["provider_used"] = provider_metadata["provider_used"]
@@ -838,6 +849,7 @@ class LangChainSingleAgentService:
         context["fallback_reason"] = provider_metadata["fallback_reason"]
         context["provider_status"] = provider_metadata["provider_status"]
         context["is_simulated"] = provider_metadata["is_simulated"]
+        context["llm_calls"] = int(context.get("llm_calls") or 0) + llm_calls
 
         if run.status == AgentStatus.RUNNING:
             run.status = AgentStatus.COMPLETED
@@ -848,6 +860,86 @@ class LangChainSingleAgentService:
         )
         self._finalize_run(run=run, warnings=warnings)
         return self._runtime_result(run=run, route=route, warnings=warnings)
+
+    def _polish_business_report_with_provider(
+        self,
+        *,
+        report: dict[str, Any],
+        question: str,
+        language: str,
+        provider_requested: str,
+        provider_metadata: dict[str, Any],
+    ) -> tuple[dict[str, Any], dict[str, Any], int]:
+        """Use a compact real-provider call to polish the business summary when requested."""
+
+        requested = (provider_requested or "mock").strip().lower()
+        if requested == "mock" or requested not in SUPPORTED_LLM_PROVIDERS:
+            return report, provider_metadata, 0
+
+        compact_payload = {
+            "question": question[:500],
+            "executive_summary": report.get("executive_summary"),
+            "key_findings": list(report.get("key_findings") or [])[:3],
+            "risk_priorities": [
+                {
+                    "risk_name": item.get("risk_name"),
+                    "risk_level": item.get("risk_level"),
+                    "reason": item.get("reason"),
+                }
+                for item in list(report.get("risk_priorities") or [])[:3]
+                if isinstance(item, dict)
+            ],
+            "recommendations": [
+                {
+                    "priority": item.get("priority"),
+                    "action": item.get("action"),
+                    "why": item.get("why"),
+                }
+                for item in list(report.get("recommendations") or [])[:3]
+                if isinstance(item, dict)
+            ],
+        }
+        if str(language).lower().startswith("en"):
+            system = "You are a senior business analyst. Rewrite only one concise executive summary in plain English. Do not output SQL, JSON, trace, tool names, or implementation details."
+            user_message = "Rewrite the executive summary for this report in one sentence:\n" + json.dumps(compact_payload, ensure_ascii=False)
+        else:
+            system = "你是一名高级业务分析师。只用一句面向业务负责人的中文改写总体判断，不要输出 SQL、JSON、trace、tool 名或技术细节。"
+            user_message = "请把下面报告的总体判断改写成一句业务负责人能直接看懂的话：\n" + json.dumps(compact_payload, ensure_ascii=False)
+        try:
+            with llm_context(requested):
+                text, _metadata = call_llm_text(
+                    system,
+                    user_message,
+                    max_tokens=220,
+                    temperature=0.2,
+                    language=language,
+                    operation="business_report_polish",
+                )
+                llm_metadata = summarize_llm_events()
+            metadata = self._metadata_from_llm_events(requested, llm_metadata)
+            if metadata["provider_status"] == ProviderStatus.LIVE_SUCCESS.value:
+                polished = self._clean_provider_summary(text)
+                if polished:
+                    report = dict(report)
+                    report["executive_summary"] = polished
+            return report, metadata, int(llm_metadata.get("calls") or 1)
+        except Exception as exc:
+            llm_metadata = {
+                "provider_requested": requested,
+                "provider_used": "mock",
+                "fallback_triggered": True,
+                "fallback_reason": str(exc) or "provider_request_failed",
+                "calls": 1,
+            }
+            return report, self._metadata_from_llm_events(requested, llm_metadata), 1
+
+    @staticmethod
+    def _clean_provider_summary(text: str) -> str:
+        summary = " ".join(str(text or "").split()).strip()
+        summary = re.sub(r"^```(?:json|markdown)?|```$", "", summary).strip()
+        if not summary or summary.startswith("{") or "tool_calls" in summary or "trace" in summary:
+            return ""
+        return summary[:320]
 
     def _input_for_business_tool(
         self,

@@ -191,8 +191,8 @@ describe("M6.6 Business Report frontend adaptation", () => {
     const [filename, content, mimeType] = vi.mocked(downloadBlob).mock.calls[0];
     expect(filename).toMatch(/^business-report-\d{8}-\d{6}\.md$/);
     expect(mimeType).toBe("text/markdown;charset=utf-8");
-    expect(String(content)).toContain("# 业务健康度诊断报告");
-    expect(String(content)).toContain("## 3. 优先行动建议");
+    expect(String(content)).toContain("# Business Health Diagnosis Report");
+    expect(String(content)).toContain("## 3. Top 3 priority action suggestions");
     expect(String(content)).toContain("Audit the top refund products in South China this week.");
     expect(String(content)).not.toContain("SELECT * FROM revenue");
     expect(String(content)).not.toContain("compute_overall_kpis");
@@ -210,7 +210,7 @@ describe("M6.6 Business Report frontend adaptation", () => {
     expect(filename).toMatch(/^business-report-\d{8}-\d{6}\.html$/);
     expect(mimeType).toBe("text/html;charset=utf-8");
     expect(String(content)).toContain("<!doctype html>");
-    expect(String(content)).toContain("业务健康度诊断报告");
+    expect(String(content)).toContain("Business Health Diagnosis Report");
     expect(String(content)).not.toContain("SELECT * FROM revenue");
   });
 

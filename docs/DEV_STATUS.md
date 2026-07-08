@@ -1,13 +1,39 @@
 # Development Status
 
-> Last updated: 2026-07-07
+> Last updated: 2026-07-08
 
 ## Current Branch
 
-- Branch: `m6-manual-polish-export-query-provider-timeout`
-- Stage: M6 manual polish hotfix for report export, SQL Query numbering, and provider timeout handling
+- Branch: `m6-manual-polish-regression-sql-i18n-doubao-export`
+- Stage: M6 manual polish regression for SQL editor visibility, English reports, Doubao timeout diagnosis, and export quality
 
 ## Current Work
+
+M6 manual polish regression is complete locally. This is not M6.9 and no tag has been created.
+
+Completed in this hotfix:
+
+- Fixed the Advanced SQL editor regression after Query numbering normalization:
+  - Stable visible SQL editor area.
+  - AI-generated SQL writes into the active Query.
+  - Query switching preserves SQL content.
+  - Query add/delete numbering normalization remains intact.
+- Fixed English-mode Business Report parity:
+  - English business-report creation no longer routes to unsafe SQL or legacy report lookup.
+  - English reports use the new Manual Fix 2 section order and recommendation structure.
+  - Bare `unsupported` is not shown in the English business-report path.
+- Diagnosed Doubao live LLM path:
+  - Doubao key/base URL/model are detected without exposing the key.
+  - Minimal prompt and Agent smoke both fall back due to a network/TLS style provider failure.
+  - Fallback remains transparent with readable user-facing reason.
+- Improved exported Markdown / HTML quality:
+  - Removed system-log style evidence from export.
+  - Removed raw JSON, SQL, trace, tool calls, dynamic P90, Top/Bottom evidence, and internal scoring language.
+  - Deduplicated recommendations and limited export to the top 3 priority actions.
+- Added regression tests for backend routing/provider diagnosis, frontend SQL editor behavior, and export cleanup.
+- Added `docs/reports/m6-manual-polish-regression-sql-i18n-doubao-export.md`.
+- Backend import, focused regressions, full backend CI, frontend install, typecheck, tests, and build passed locally.
+- Next step remains renewed manual testing from `master`; if manual testing passes, the next user-approved step can be an M6 final tag.
 
 M6 manual polish hotfix is complete locally. This is not M6.9 and no tag has been created.
 

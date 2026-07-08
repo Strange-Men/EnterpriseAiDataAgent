@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass
 import json
 import re
 import time
+from urllib.parse import urlparse
 from typing import Callable, Iterator, TypeVar
 
 import httpx
@@ -98,6 +99,47 @@ def get_provider_config(provider: str) -> LLMProviderConfig:
     if provider == "mimo":
         return LLMProviderConfig(provider, MIMO_API_KEY, MIMO_BASE_URL, MIMO_MODEL)
     return LLMProviderConfig("mock", "", "", "mock-llm")
+
+
+def provider_config_status(provider: str) -> dict[str, object]:
+    """Return provider diagnostics without exposing secrets."""
+
+    normalized = provider.strip().lower()
+    config = get_provider_config(normalized)
+    parsed = urlparse(config.base_url or "")
+    return {
+        "provider": config.provider,
+        "api_key_present": bool(config.api_key),
+        "base_url_present": bool(config.base_url),
+        "base_url_host": parsed.netloc,
+        "model_present": bool(config.model),
+        "model": config.model,
+        "connect_timeout_seconds": float(LLM_CONNECT_TIMEOUT_SECONDS),
+        "request_timeout_seconds": float(LLM_REQUEST_TIMEOUT_SECONDS),
+        "max_retries": int(LLM_MAX_RETRIES),
+        "allowed": config.provider in allowed_providers(),
+    }
+
+
+def classify_provider_failure(reason: str | None) -> str:
+    """Classify a provider failure for QA reports and user-facing fallback states."""
+
+    text = str(reason or "").strip().lower()
+    if not text or "provider_unavailable" in text:
+        return "env"
+    if "auth" in text or "401" in text or "403" in text or "unauthorized" in text or "forbidden" in text:
+        return "auth"
+    if "model" in text or "base_url" in text or "404" in text or "not found" in text:
+        return "model"
+    if "timeout" in text or "timed out" in text:
+        return "timeout"
+    if "rate" in text or "429" in text:
+        return "provider"
+    if "server" in text or "5xx" in text or "500" in text or "502" in text or "503" in text:
+        return "provider"
+    if "network" in text or "connection" in text or "connect" in text or "dns" in text or "ssl" in text or "eof" in text:
+        return "network"
+    return "unknown"
 
 
 @contextmanager
@@ -202,6 +244,10 @@ def _fallback_mock(
 
 def readable_fallback_reason(reason: str | None) -> str:
     text = str(reason or "").strip()
+    if text == "provider_model_or_base_url_error":
+        return "豆包模型地址或模型名不可用，请检查 DOUBAO_BASE_URL / DOUBAO_MODEL 配置。"
+    if text == "provider_network_error":
+        return "真实模型网络连接失败，已切换为模拟分析结果。"
     mapping = {
         "provider_unavailable": "未检测到真实模型配置，当前使用演示模式。",
         "provider_timeout": "真实模型服务响应超时，已切换为模拟分析结果。",
@@ -221,8 +267,12 @@ def readable_fallback_reason(reason: str | None) -> str:
         return mapping["provider_timeout"]
     if "401" in text or "403" in text or "unauthorized" in lower or "forbidden" in lower:
         return mapping["provider_auth_failed"]
+    if "404" in text or "model" in lower or "base_url" in lower or "not found" in lower:
+        return readable_fallback_reason("provider_model_or_base_url_error")
     if "429" in text or "rate" in lower:
         return mapping["provider_rate_limited"]
+    if "ssl" in lower or "eof" in lower or "connect" in lower or "network" in lower:
+        return readable_fallback_reason("provider_network_error")
     if len(text) > 180:
         return text[:177].rstrip() + "..."
     return text or mapping["provider_request_failed"]
@@ -257,6 +307,8 @@ def _call_openai_compatible(
                 response = client.post(url, headers=headers, json=payload)
             if response.status_code in {401, 403}:
                 raise LLMProviderRequestError("provider_auth_failed", retryable=False)
+            if response.status_code == 404:
+                raise LLMProviderRequestError("provider_model_or_base_url_error", retryable=False)
             if response.status_code == 429:
                 raise LLMProviderRequestError("provider_rate_limited", retryable=True)
             if 500 <= response.status_code < 600:
@@ -272,14 +324,17 @@ def _call_openai_compatible(
             status = exc.response.status_code if exc.response is not None else 0
             if status in {401, 403}:
                 last_error = LLMProviderRequestError("provider_auth_failed", retryable=False)
+            elif status == 404:
+                last_error = LLMProviderRequestError("provider_model_or_base_url_error", retryable=False)
             elif status == 429:
                 last_error = LLMProviderRequestError("provider_rate_limited", retryable=True)
             elif status >= 500:
                 last_error = LLMProviderRequestError("provider_server_error", retryable=True)
             else:
                 last_error = LLMProviderRequestError("provider_request_failed", retryable=False)
-        except httpx.RequestError:
-            last_error = LLMProviderRequestError("provider_request_failed", retryable=True)
+        except httpx.RequestError as exc:
+            reason = "provider_timeout" if isinstance(exc, httpx.TimeoutException) else "provider_network_error"
+            last_error = LLMProviderRequestError(reason, retryable=True)
         except Exception:
             last_error = LLMProviderRequestError("provider_request_failed", retryable=False)
         if not last_error.retryable or _attempt >= max(0, LLM_MAX_RETRIES):

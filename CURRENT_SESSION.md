@@ -1,6 +1,35 @@
 # Current Session — Enterprise AI Data Agent
 
-> Last updated: 2026-07-07
+> Last updated: 2026-07-08
+
+## M6 Manual Polish Regression
+
+- Created branch `m6-manual-polish-regression-sql-i18n-doubao-export` from latest `master`.
+- Completed an M6 manual polish regression hotfix without adding M6.9 and without creating a tag.
+- Fixed the Advanced SQL editor regression:
+  - The editor area now has stable height inside the Astryx single-page workbench.
+  - AI-generated SQL is written into the current active Query editor.
+  - Query switching preserves each tab's SQL content.
+  - Query numbering normalization remains intact.
+- Fixed English Business Report routing and rendering:
+  - English business-report creation is no longer treated as destructive SQL.
+  - English executive-report questions use the new Manual Fix 2 report structure.
+  - Bare `unsupported` is not shown in the English business-report path.
+- Diagnosed Doubao live LLM behavior:
+  - Doubao key/base URL/model are detected without printing the key.
+  - Minimal Doubao prompt fell back with a network/TLS style failure.
+  - Q4 Doubao business-report smoke attempted the real provider path and transparently fell back to mock with a readable network failure reason.
+- Optimized Markdown / HTML export quality:
+  - Export now filters system-log style evidence, raw JSON, SQL, trace, tool calls, dynamic P90, Top/Bottom evidence, and internal scoring text.
+  - Exported recommendations are deduplicated and limited to the top 3.
+  - English and Chinese export templates are aligned with the business-facing report structure.
+- Added tests:
+  - `tests/test_m6_manual_polish_regression_sql_i18n_doubao_export.py`
+  - `frontend-react/src/panels/__tests__/sql-workspace-panel-regression.test.tsx`
+  - `frontend-react/src/utils/__tests__/business-report-export-regression.test.ts`
+- Added report: `docs/reports/m6-manual-polish-regression-sql-i18n-doubao-export.md`.
+- Verification passed: backend import, focused M6 polish/Fix regressions, full backend CI (`904 passed`), frontend `npm ci`, `npx tsc --noEmit`, full Vitest (`52 files`, `1206 tests`), and `npm run build`.
+- Next step remains renewed user manual testing from `master`; if it passes, the next user-approved step can be an M6 final tag.
 
 ## M6 Manual Polish Hotfix
 
