@@ -2,6 +2,25 @@
 
 > Last updated: 2026-07-08
 
+## M6 LangGraph README Architecture Docs
+
+- Started from latest `master` after confirming Round 1 SQL UI Layout Hotfix was already merged into `master` at commit `8f1b261`.
+- Created documentation branch `m6-langgraph-readme-architecture-docs`.
+- Updated `docs/reports/m6-agent-output-strategy-refactor-plan.md` to the latest five-round technical route:
+  1. SQL UI 修复.
+  2. LangChain 合规审计 + LangGraph 接入方案文档 + README 一步到位修改.
+  3. BusinessReportViewModel + locale 透传 + Export 清洗统一.
+  4. 后端 Intent Router + `data_table` 输出模式.
+  5. LangGraph MVP.
+- Added `docs/reports/m6-langchain-compliance-langgraph-readme-plan.md`.
+- Completed LangChain compliance audit documentation: current Single Agent entry, StructuredTool wrapping, business_tools typed I/O, evidence-based `business_report`, memory boundary, provider fallback transparency, hidden technical details, and retained value of the LangChain path.
+- Documented LangGraph Multi-Agent Orchestration as part of the project architecture with Question Router Node, Evidence Planner Node, Tool Execution Node, Report Composer Node, Validator Node, and Follow-up Memory Node.
+- Updated `README.md` into the final display form with title `Enterprise AI Data Agent｜Business Analyst Agent for Data-Driven Operations`.
+- README now directly presents `LangChain Single Agent + LangGraph Multi-Agent Orchestration`, BusinessReportViewModel, `data_table`, bilingual reports, Markdown / HTML export, provider fallback transparency, and the six LangGraph nodes.
+- This round only changed README and docs / status documents.
+- No frontend feature code, backend feature code, tests, CI workflow, BusinessReportViewModel implementation, locale pass-through implementation, Intent Router implementation, `data_table` implementation, LangGraph MVP code, M6.9, or tag was added.
+- Next recommended round: `BusinessReportViewModel + locale + export`.
+
 ## M6 Polish SQL Editor Layout Hotfix
 
 - Merged `origin/m6-agent-output-strategy-plan-docs` into `master` and pushed `master`.

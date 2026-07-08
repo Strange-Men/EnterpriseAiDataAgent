@@ -2,115 +2,145 @@
 
 ## 1. Background
 
-M6 已经过多轮 Manual Fix / Polish Hotfix。当前 `master` 已基本稳定了以下能力：
+M6 已完成多轮 Manual Fix / Polish Hotfix，并已稳定以下能力：
 
-- 默认展示 `demo_sales_business_50k`。
+- 默认 `demo_sales_business_50k` 表展示。
 - 异步上传与 session 当前表状态。
 - Business Report 基础结构。
 - `provider_status` / fallback 透明度。
-- Markdown / HTML 导出。
+- Markdown / HTML 报告导出。
 - 高级 SQL Query 编号 normalize。
-- 英文模式部分修复。
-- backend / frontend CI 已重新修绿。
+- 英文模式业务报告基础对齐。
+- backend / frontend CI 修复。
+- 第 1 轮 SQL UI 修复：高级 SQL 编辑器固定可见，结果表格独立滚动，AI 生成 SQL 写入当前 Query。
 
-最新手动测试继续暴露出 Agent 输出策略的架构级缺陷。问题不是某个模板文案不好，而是 Agent 还没有稳定做到“按问题类型回答”。它仍然倾向把不同问题塞进经营健康度诊断模板，导致排序、统计、列表类问题也被包装成风险、机会和行动建议。
+最新手动测试继续暴露 Agent 输出策略的架构级缺陷。问题不只是某个模板文案不好，而是 Agent 仍未稳定做到“问什么答什么”。排序、统计、列表类问题容易被强行套入经营健康度诊断模板；增长机会仍可能暴露半技术对象；英文 locale 和导出层也需要统一中间层约束。
 
-本文只固化后续技术方案，不做开发。本轮不是 M6.9，不是新路线，而是 M6 手测后的输出策略重构计划。
+本文固化最新五轮技术路线。本轮文档不进行前端功能代码、后端功能代码、测试或 CI 修改；本轮不是 M6.9，不创建 tag。
 
 ## 2. Latest User Feedback
 
-最新手测反馈集中在 6 个问题：
+最新 6 个问题：
 
-1. SQL 工具执行结果会挤压或覆盖 SQL 编辑器区域，导致上方 SQL 编辑区看不清。
-2. Mock 输出中的“增长机会”仍暴露 `object_type` / `object_name` / `score` / `evidence` dict 等半技术对象，业务人员看不懂。
-3. 用户问“按地区统计销售额并排序”，Agent 却强行套用经营健康度模板，输出退款风险、增长机会和行动建议，没有围绕“排序结果”作答。
-4. “表面增长不错但有隐患”这类问题回答较好，主要因为命中特定模板，说明 Agent 不是完全不会分析，而是输出策略太依赖固定模板。
-5. 英文页面下 Agent 回答仍可能中英混杂，英文模式必须纯英文。
-6. 需要检查当前 LangChain 是否合规，并设计未来如果加 LangGraph 时的最小风险接入方案。
+1. SQL 工具执行结果挤压 / 覆盖 SQL 编辑器区域。
+2. “增长机会”输出仍暴露 `object_type` / `object_name` / `score` / `evidence` dict，业务人员看不懂。
+3. “按地区统计销售额并排序”被错误套用经营诊断模板。
+4. “表面增长不错但有隐患”回答较好，是因为命中特定模板，说明 Agent 不是不会分析，而是输出策略太依赖固定模板。
+5. 英文模式下仍可能中英混杂，英文页面必须纯英文。
+6. 需要审计当前 LangChain 合规性，并给出 LangGraph 接入方案。
 
 ## 3. Core Diagnosis
 
-当前核心问题是：
+核心问题：
 
 ```text
-Agent 没有做到“问什么答什么”，而是倾向把不同问题都套进经营健康度诊断模板。
+Agent 没有稳定做到“问什么答什么”，而是倾向把不同问题套进经营健康度诊断模板。
 ```
 
 具体表现：
 
-- 排序 / 统计 / 列表类问题，本应输出数据表和简短解读。
-- 当前却容易强行输出风险、机会和行动建议。
-- 诊断类问题表现较好，是因为命中了现有模板。
+- 排序 / 统计 / 列表类问题，本应输出数据表 + 简短解读。
+- 当前容易输出不相关的退款风险、增长机会和行动建议。
+- 诊断类问题表现较好，是因为命中已有模板。
 - 增长机会输出仍偏技术对象，不是业务语言。
 - 英文 locale 没有全链路控制，导致中英混杂。
-- 导出层和 UI 层仍可能各自拼模板，缺少统一 ViewModel。
+- UI、导出、英文模式可能各自拼模板，缺少统一 BusinessReportViewModel。
 
-后续优化重点不是继续堆更多固定模板，而是先建立统一输出中间层，再让后端根据 intent 选择不同报告形态。
+## 4. Confirmed Five-Round Technical Route
 
-## 4. Optimized Development Order
+最新五轮顺序固定为：
 
-### Round 1：SQL UI Layout Hotfix
+1. **SQL UI 修复**
+   - 修复高级 SQL 编辑器布局。
+   - SQL 编辑器固定可见。
+   - 结果表格进入独立滚动区域。
+   - AI 生成 SQL 写入当前 active Query。
+   - Query 新增 / 删除 / 切换不丢 SQL 内容。
 
-只修高级 SQL 工具前端布局。
+2. **LangChain 合规审计 + LangGraph 接入方案文档 + README 一步到位修改**
+   - 只做 LangChain 合规审计。
+   - 只做 LangGraph Multi-Agent Orchestration 架构文档。
+   - 只改 README 文本和状态文档。
+   - 不写前端 / 后端功能代码。
+   - README 直接呈现 `LangChain Single Agent + LangGraph Multi-Agent Orchestration`。
 
-目标：
+3. **BusinessReportViewModel + locale 透传 + Export 清洗统一**
+   - 建立统一 BusinessReportViewModel。
+   - 前端 `/api/agent/runs` 透传 `locale`。
+   - 后端 Prompt、Mock 模板、fallback 文案、report label、export label 按 locale 输出。
+   - Markdown / HTML 导出从同一个 ViewModel 生成。
+   - 增长机会、风险、证据先转成人话 view model，再展示 / 导出。
 
-- SQL 编辑器固定可见。
-- 执行结果表格不能挤压或覆盖编辑器。
-- AI 生成 SQL 后写入当前 Query 并可见。
-- Query 新增 / 删除 / 切换不丢内容。
-- 继续保持 Query 编号 normalize。
+4. **后端 Intent Router + data_table 输出模式**
+   - Intent Router 位于后端 `business_orchestration` 入口。
+   - Router 输出 `intent_type`。
+   - Prompt、Tool 选择、BusinessReport 结构依赖 `intent_type`。
+   - 排序 / 统计类问题优先输出 `data_table`，不套经营健康度诊断模板。
 
-本轮不涉及 Agent 输出策略。
+5. **LangGraph MVP**
+   - LangGraph Multi-Agent Orchestration 进入可运行的最小闭环。
+   - 节点包括 Question Router Node、Evidence Planner Node、Tool Execution Node、Report Composer Node、Validator Node、Follow-up Memory Node。
+   - 保留现有 FastAPI、Business Tools、Semantic Layer、BusinessReport contract、ViewModel 和前端工作台。
 
-### Round 2：BusinessReportViewModel + Locale + Export Infrastructure
+## 5. Round 2 Documentation Scope
 
-先搭统一输出基础设施，再改 Agent 策略。
+第 2 轮就是本轮：
 
-目标：
+- LangChain 合规审计。
+- LangGraph 接入方案文档。
+- README 一步到位修改。
+- 更新旧固化方案为五轮路线。
+- 更新状态文档。
 
-- 增加统一 `BusinessReportViewModel`。
-- 前端 `/api/agent/runs` 必须传 `locale`：`zh-CN` 或 `en-US`。
-- 后端 Prompt / Mock 模板 / fallback 文案 / report label / export label 都必须根据 locale 输出。
-- Markdown / HTML 导出必须从同一个 ViewModel 生成。
-- 导出层不再直接读 raw `business_report` / evidence dict。
-- 增长机会、风险、证据都要先转成人话 ViewModel，再展示或导出。
+第 2 轮不写：
 
-### Round 3：Backend Intent Router + Intent-aware Business Report
+- BusinessReportViewModel 功能代码。
+- locale 透传功能代码。
+- Export 清洗功能代码。
+- Intent Router 功能代码。
+- `data_table` 功能代码。
+- LangGraph MVP 功能代码。
+- 前端 / 后端业务功能代码。
+- 测试或 CI。
 
-在后端 Agent orchestration 层实现 Intent Router。
+## 6. LangGraph Architecture Expression
 
-目标：
+LangChain Single Agent 与 LangGraph Multi-Agent 共同构成编排层：
 
-- Intent Router 位于后端 `business_orchestration` 入口。
-- 在调用任何业务工具之前执行。
-- Router 输出 `intent_type`。
-- 后续 Prompt、Tool 选择、Business Report 结构必须依赖 `intent_type`。
-- 前端只传 question / locale / table，不负责判断 intent。
+```text
+Frontend Workbench
+  ↓
+FastAPI Backend
+  ↓
+LangChain Single Agent + LangGraph Multi-Agent Orchestration
+  ├─ Question Router Node
+  ├─ Evidence Planner Node
+  ├─ Tool Execution Node
+  ├─ Report Composer Node
+  ├─ Validator Node
+  └─ Follow-up Memory Node
+  ↓
+Business Semantic Layer + Business Tools
+  ↓
+DuckDB / Excel / CSV
+  ↓
+BusinessReportViewModel
+  ↓
+UI / Markdown Export / HTML Export
+```
 
-必须支持 intent 类型：
+节点职责：
 
-- `ranking_summary`：排序 / 统计 / 汇总 / top / by region / by category。
-- `business_diagnosis`：经营健康度 / 综合诊断 / 老板视角。
-- `risk_opportunity`：隐患 / 高增长高风险 / 增长机会 / 风险机会平衡。
-- `action_plan`：第一周怎么做 / 负责人分工 / 行动清单。
-- `unsupported_metric`：ROI / 会员等级 / 小区 / 广告创意等缺字段问题。
-- `follow_up`：基于上文继续追问。
+- Question Router Node 负责识别用户问题类型，包括 `ranking_summary`、`business_diagnosis`、`risk_opportunity`、`action_plan`、`unsupported_metric`、`follow_up`。
+- Evidence Planner Node 负责根据 intent 规划证据收集路径、指标维度和工具调用顺序。
+- Tool Execution Node 负责调用现有 Business Tools，不重写数据分析工具。
+- Report Composer Node 负责组织 `data_table`、经营诊断、风险机会、行动方案和缺字段解释。
+- Validator Node 负责检查答非所问、字段幻觉、语言混杂、技术细节泄露和 provider fallback 透明度。
+- Follow-up Memory Node 负责处理连续追问上下文，不污染新问题。
 
-### Round 4：LangChain Compliance Audit + LangGraph Integration Plan
+## 7. Intent Router Backend Placement
 
-只写架构审计文档，不接入 LangGraph。
-
-目标：
-
-- 审计当前 LangChain 是否合规。
-- 判断当前是不是只是 LangChain 套壳。
-- 给出未来 LangGraph 接入方式。
-- 设计为可选 orchestration 层替换，不推翻现有工具、前端和数据层。
-
-## 5. Intent Router Backend Placement
-
-Intent Router 必须放在后端，不允许放前端。
+Intent Router 必须放在后端，不放前端。
 
 推荐位置：
 
@@ -136,11 +166,11 @@ question + locale + current_table
 - 只改前端展示文案来伪装 intent-aware。
 - 所有问题继续强行生成经营健康报告。
 
-## 6. data_table Output Mode
+## 8. data_table Output Mode
 
 排序 / 统计 / 列表类问题需要 `data_table`，不能硬塞 recommendations。
 
-建议在 `BusinessReport` 或 ViewModel 中增加可选字段：
+建议合约：
 
 ```json
 {
@@ -151,23 +181,23 @@ question + locale + current_table
       ["South China", 22846695.96, 12402, "28.7%"],
       ["East China", 18563137.15, 11089, "23.3%"]
     ],
-    "summary": "South China 销售额最高，但也需要关注退款和售后压力。"
+    "summary": "South China 销售额最高，同时需要关注退款和售后压力。"
   }
 }
 ```
 
 规则：
 
-- `ranking_summary` 必须优先输出 `data_table`。
+- `ranking_summary` 优先输出 `data_table`。
 - 不强制生成 `recommendations`。
-- 可附带简短业务解读。
+- 可附带 1-3 条简短业务解读。
 - 不输出完整经营健康诊断。
-- 导出 Markdown / HTML 时也要渲染这个表格。
-- 前端 UI 应把 `data_table` 放在主答案区域。
+- Markdown / HTML 导出渲染这个表格。
+- 前端 UI 把 `data_table` 放在主答案区域。
 
-## 7. Intent-specific Output Rules
+## 9. Intent-specific Output Rules
 
-### 7.1 ranking_summary
+### 9.1 ranking_summary
 
 用于：
 
@@ -189,7 +219,7 @@ question + locale + current_table
 - 强制输出经营健康度报告。
 - 输出不相关风险建议。
 
-### 7.2 business_diagnosis
+### 9.2 business_diagnosis
 
 用于：
 
@@ -206,7 +236,7 @@ question + locale + current_table
 - 数据局限。
 - `next_questions`。
 
-### 7.3 risk_opportunity
+### 9.3 risk_opportunity
 
 用于：
 
@@ -232,7 +262,7 @@ question + locale + current_table
 - raw `evidence` dict
 - `impact` / `severity` / `confidence`
 
-### 7.4 action_plan
+### 9.4 action_plan
 
 用于：
 
@@ -248,7 +278,7 @@ question + locale + current_table
 - 优先级。
 - 风险提醒。
 
-### 7.5 unsupported_metric
+### 9.5 unsupported_metric
 
 用于：
 
@@ -261,11 +291,11 @@ question + locale + current_table
 
 - 明确不能直接分析。
 - 缺少哪些字段。
-- 不能编造结果。
+- 不编造结果。
 - 给替代分析建议。
 - 可继续问什么。
 
-### 7.6 follow_up
+### 9.6 follow_up
 
 用于：
 
@@ -275,13 +305,13 @@ question + locale + current_table
 
 输出：
 
-- 必须引用上一轮上下文。
-- 不要重新跑偏。
-- 如果上下文不足，要说明需要先选择对象。
+- 引用上一轮上下文。
+- 不重新跑偏。
+- 上下文不足时说明需要先选择对象。
 
-## 8. Locale and Pure-English Requirements
+## 10. Locale and Pure-English Requirements
 
-前端调用 `/api/agent/runs` 时必须传：
+前端调用 `/api/agent/runs` 时传：
 
 ```json
 {
@@ -297,7 +327,7 @@ question + locale + current_table
 }
 ```
 
-后端必须用 locale 控制：
+后端用 locale 控制：
 
 - Prompt 模板语言。
 - Mock 模板语言。
@@ -309,25 +339,22 @@ question + locale + current_table
 
 英文模式要求：
 
-- 回答必须纯英文。
-- 不允许中英混杂。
-- 不允许出现“退款率 / 建议负责人 / 具体怎么做 / 暂无”等中文。
-- 不允许裸露 `unsupported`。
-- 如果无法回答，应输出英文解释：
+- 回答纯英文。
+- 不出现中文标签。
+- 不裸露 `unsupported`。
+- 无法回答时输出英文解释：
   - "The current data does not support this analysis directly."
   - "Missing required fields: ..."
   - "You can use these alternative analyses instead: ..."
 
 中文模式要求：
 
-- 回答必须自然中文。
-- 不要混入 `object_type` / evidence dict / raw JSON。
+- 回答自然中文。
+- 不混入 `object_type` / evidence dict / raw JSON。
 
-## 9. BusinessReportViewModel Design
+## 11. BusinessReportViewModel Design
 
-需要先做 ViewModel，是因为当前 UI、导出、英文模式可能各自拼模板，导致输出不一致。
-
-建议增加统一中间层：
+统一中间层：
 
 ```text
 BusinessReport / Tool Evidence
@@ -348,7 +375,7 @@ ViewModel 负责：
 - fallback / mock 提示只出现一次。
 - `unsupported_metric` 输出清晰替代建议。
 
-## 10. Export Quality Rules
+## 12. Export Quality Rules
 
 Markdown / HTML 导出必须遵守：
 
@@ -365,27 +392,28 @@ Markdown / HTML 导出必须遵守：
 - 中文页面导出中文模板。
 - 英文页面导出英文模板。
 
-## 11. SQL UI Layout Rules
+## 13. SQL UI Layout Rules
 
-SQL 工具修复规则：
+SQL 工具规则：
 
-- 编辑器区域必须固定可见。
-- 结果表格必须在独立 scroll container。
-- 执行结果不能覆盖或挤压编辑器。
-- AI 生成 SQL 后必须写入 active Query editor。
+- 编辑器区域固定可见。
+- 结果表格在独立 scroll container。
+- 执行结果不覆盖或挤压编辑器。
+- AI 生成 SQL 后写入 active Query editor。
 - Query 切换不丢 SQL。
 - 删除 Query 后编号 normalize，但内容不乱串。
 - 只修 SQL 工具内部布局，不恢复 Sidebar / 五分页导航。
 
-## 12. LangChain Compliance Audit Scope
+## 14. LangChain Compliance Audit Scope
 
-后续文档要审计：
+合规审计检查：
 
-- 当前是否真正使用 LangChain Tool / StructuredTool。
+- 当前 LangChain Single Agent 入口。
+- 是否使用 LangChain Tool / StructuredTool。
 - Tool 输入输出是否清晰。
 - Agent 是否基于工具证据生成回答。
 - Prompt 是否过度模板化。
-- Router / Tool / Composer / Validator 是否职责清晰。
+- Router / Tool / Composer / Validator 职责是否清晰。
 - Memory 是否只服务 follow-up，不污染新问题。
 - provider fallback 是否透明。
 - `business_report` 是否可验证。
@@ -393,13 +421,11 @@ SQL 工具修复规则：
 
 初步判断：
 
-当前项目工程上已使用 LangChain Single Agent / StructuredTool，但输出策略仍偏模板化。后续优化重点不是堆更多框架，而是让 Router、Tool Evidence、Report Composer、Validator 的职责更清晰。
+当前项目工程上已使用 LangChain Single Agent / StructuredTool，M6.5 已把 M6.4 business tools 包装进现有 Single Agent 后端循环。现有短板集中在输出策略、intent 路由、ViewModel 清洗和多节点职责分离，不是继续堆模板。
 
-## 13. LangGraph Future Integration Plan
+## 15. LangGraph Multi-Agent Orchestration Scope
 
-现在不接入 LangGraph，只设计未来方案。
-
-未来最优方式是保留：
+LangGraph Multi-Agent Orchestration 保留：
 
 - 现有 FastAPI API。
 - 现有 `business_tools`。
@@ -407,9 +433,7 @@ SQL 工具修复规则：
 - 现有 BusinessReport contract / ViewModel。
 - 现有 frontend workbench。
 
-LangGraph 只替换 orchestration 层。
-
-推荐节点：
+LangGraph 负责 orchestration 层节点化：
 
 ```text
 Question Router Node
@@ -420,43 +444,49 @@ Question Router Node
   -> Follow-up Memory Node
 ```
 
-不要：
+不做：
 
 - 推翻现有前端。
 - 重写数据层。
 - 重写全部 tools。
-- 同时引入 Multi-Agent 和 LangGraph。
-- 在 M6 未封板前贸然实装。
+- 同时引入额外 RAG 路线。
 
-## 14. Proposed Implementation Prompts
-
-后续建议分轮：
+## 16. Proposed Implementation Branches
 
 1. `m6-polish-sql-editor-layout`
    - 修 SQL 编辑器布局和结果区滚动。
-2. `m6-output-viewmodel-locale-export`
+
+2. `m6-langgraph-readme-architecture-docs`
+   - LangChain 合规审计。
+   - LangGraph 接入方案文档。
+   - README 一步到位修改。
+
+3. `m6-output-viewmodel-locale-export`
    - 建 `BusinessReportViewModel`。
    - locale 全链路透传。
    - export 走统一 ViewModel。
    - 增长机会 / evidence 清洗。
-3. `m6-intent-router-data-table-output`
+
+4. `m6-intent-router-data-table-output`
    - 后端 Intent Router。
    - `data_table` 输出模式。
    - intent-specific report composition。
    - 排序 / 统计类问题不再套经营诊断模板。
-4. `m6-langchain-compliance-langgraph-plan`
-   - 只写审计文档。
-   - 不接入 LangGraph。
 
-以上只是后续分轮建议，不是本轮开发 prompt。
+5. `m6-langgraph-mvp`
+   - LangGraph Multi-Agent Orchestration 最小闭环。
+   - 六个节点串联现有 semantic layer、business tools、BusinessReportViewModel 和 memory summary。
 
-## 15. Non-goals
+## 17. Non-goals
 
-- 本文档不进行开发。
+- 本文档不进行功能开发。
 - 不新增 M6.9。
 - 不打 tag。
-- 不接入 LangGraph。
-- 不做 Multi-Agent。
+- 不写前端功能代码。
+- 不写后端功能代码。
+- 不改测试。
+- 不改 CI。
+- 不做 RAG。
 - 不重写前端。
 - 不重写数据层。
 - 不恢复 Sidebar。
@@ -465,13 +495,12 @@ Question Router Node
 - 不提交 `.env`。
 - 不提交私人学习 / 面试 / 简历 / 包装内容。
 
-## 16. Acceptance Criteria for This Documentation Round
-
-文档完成后应满足：
+## 18. Acceptance Criteria for This Documentation Round
 
 - 清楚记录最新 6 个问题。
 - 明确核心诊断：Agent 没有问什么答什么。
-- 明确新的执行顺序。
+- 明确最新五轮路线。
+- 明确第 2 轮只做 LangChain 合规审计、LangGraph 文档和 README。
 - 明确 Intent Router 在后端 orchestration 层。
 - 明确 `data_table` 输出模式。
 - 明确 locale 前端传后端。
@@ -479,5 +508,5 @@ Question Router Node
 - 明确 export 清洗规则。
 - 明确 SQL UI 修复边界。
 - 明确 LangChain 审计范围。
-- 明确 LangGraph 未来接入方式。
-- 明确本轮不开发。
+- 明确 LangGraph Multi-Agent Orchestration 节点与职责。
+- 明确本轮不开发功能代码。
