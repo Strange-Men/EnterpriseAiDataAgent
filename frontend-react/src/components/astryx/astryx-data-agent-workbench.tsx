@@ -605,6 +605,7 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
         table_name: tableName,
         provider_requested: provider,
         mode: "skeleton",
+        metadata: { language },
       });
       const record = buildRecord(response.run, trimmed, tableName, toStringList(response.warnings), nextSteps);
       addRecord(record);
@@ -613,7 +614,7 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
     } finally {
       setIsAnalyzing(false);
     }
-  }, [addRecord, nextSteps, provider, question, tableName, t]);
+  }, [addRecord, language, nextSteps, provider, question, tableName, t]);
 
   const handleNextQuestionSelect = useCallback((nextQuestion: string) => {
     if (isAnalyzing) return;
@@ -822,7 +823,7 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
 
             <Panel title={t("astryx.expert.title")} icon={<Database className="h-4 w-4" />} defaultOpen={initialExpertOpen}>
               <p className="mb-3 text-xs leading-5 text-[var(--text-muted)]">{t("astryx.expert.desc")}</p>
-              <div className="min-h-[560px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
+              <div className="h-[760px] min-h-[640px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
                 <SqlWorkspacePanel />
               </div>
             </Panel>
@@ -1014,7 +1015,7 @@ export function BusinessResult({
   onNextQuestionSelect?: (question: string) => void;
   nextQuestionDisabled?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [technicalOpen, setTechnicalOpen] = useState(false);
   if (!record) {
     return (
@@ -1040,6 +1041,7 @@ export function BusinessResult({
     providerStatus: record.providerStatus,
     isSimulated: record.isSimulated,
     fallbackReason: record.fallbackReason,
+    language: i18n.language,
   };
   const handleExportMarkdown = () => {
     if (!businessReport) return;

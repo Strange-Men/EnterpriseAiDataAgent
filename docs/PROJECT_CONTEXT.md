@@ -1,13 +1,13 @@
 # Project Context
 
-> Last updated: 2026-07-07
+> Last updated: 2026-07-08
 
 ## Current Baseline
 
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
-- Current product state: M6 Business Analyst Agent is ready for renewed manual testing after Manual Fix 1 / 2 / 3, the manual regression hotfix, and the manual polish hotfix for report export, SQL Query numbering, and provider timeout handling.
-- Current stage: M6 manual polish hotfix complete locally; merge back to `master` is pending in this round.
+- Current product state: M6 Business Analyst Agent is ready for renewed manual testing after Manual Fix 1 / 2 / 3, the manual regression hotfix, the manual polish hotfix, and the manual polish regression for SQL editor visibility, English reports, Doubao timeout diagnosis, and export quality.
+- Current stage: M6 manual polish regression complete locally; merge back to `master` is pending in this round.
 
 ## M6 Direction
 
@@ -36,6 +36,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - M6 Manual Fix 3 focuses on provider transparency, fallback visibility, next-question click-to-fill interaction, and final regression.
 - M6 manual regression hotfix focuses on making `demo_sales_business_50k` reliably available by default, diagnosing large upload timeout behavior, and validating five hard business questions against the default table.
 - M6 manual polish hotfix focuses on Business Report Markdown/HTML export, Advanced SQL Query numbering normalization, and readable provider timeout/fallback behavior.
+- M6 manual polish regression focuses on restoring the Advanced SQL editor area, aligning English reports with the new business-report structure, diagnosing Doubao-only live LLM behavior, and cleaning exported Markdown/HTML report content.
 - M6.9, Multi-Agent, LangGraph, and RAG have not started.
 - Any future Multi-Agent expansion must be separately reviewed and approved.
 
@@ -61,6 +62,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - `docs/reports/m6-manual-fix-3-provider-next-question.md`
 - `docs/reports/m6-manual-regression-default-table-upload-qa.md`
 - `docs/reports/m6-manual-polish-export-query-provider-timeout.md`
+- `docs/reports/m6-manual-polish-regression-sql-i18n-doubao-export.md`
 
 ## M6.2 Dataset
 
@@ -151,13 +153,13 @@ Manual testing after M6.8 surfaced 9 issues around default product state, upload
 
 The documentation-only plan is available at `docs/reports/m6-manual-fix-plan.md`.
 
-The proposed development order is:
+The original proposed development order was:
 
 1. Manual Fix 1: default dark state, async upload, session table state.
 2. Manual Fix 2: business report output contract, recommendation validator, report reorder.
 3. Manual Fix 3: provider transparency, next-question click-to-fill interaction, final regression.
 
-No code implementation has started for these fixes. No tag has been created.
+Manual Fix 1 / 2 / 3 have since been implemented and followed by manual regression / polish hotfixes. No tag has been created. The next step is renewed user manual testing from `master`.
 
 ## M6 Manual Fix 1
 

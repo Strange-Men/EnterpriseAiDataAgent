@@ -121,6 +121,51 @@ def classify_business_question(question: str, *, has_prior_memory: bool = False)
     text = (question or "").strip()
     lowered = text.lower()
     requested_missing_fields = requested_unsupported_fields(text)
+    if not requested_missing_fields and _contains_any(
+        text,
+        ("刚才", "上一轮", "上次", "基于上", "继续看", "换成看", "刚刚"),
+    ):
+        return {
+            "question_type": "follow_up_drilldown",
+            "confidence": 0.9 if has_prior_memory else 0.76,
+            "reason": "question references previous evidence or asks for drill-down",
+            "requested_missing_fields": [],
+        }
+    if not requested_missing_fields:
+        utf8_chinese_rules: tuple[tuple[str, float, str, tuple[str, ...]], ...] = (
+            ("business_health_check", 0.94, "question asks for overall business health", ("经营健康", "健康度", "经营诊断", "综合判断", "整体经营", "总体表现", "业务健康度", "老板能直接看懂")),
+            ("risk_diagnosis", 0.92, "question asks for risks or hidden issues", ("风险", "危险", "隐患", "异常", "问题", "排查", "高风险", "中风险", "低风险")),
+            ("business_review_summary", 0.92, "question asks for review or executive brief", ("复盘", "汇报", "简报", "老板", "经营简报", "诊断报告")),
+            ("growth_opportunity", 0.88, "question asks for growth or investment opportunities", ("机会", "增长", "加大投入", "下季度", "值得投入")),
+            ("shipping_efficiency_analysis", 0.88, "question asks about shipping or fulfillment", ("发货", "物流", "履约", "配送", "发货慢")),
+            ("data_quality_check", 0.9, "question asks for data quality", ("数据质量", "脏数据", "缺失", "异常值", "质量问题")),
+            ("channel_analysis", 0.87, "question asks about channel quality", ("渠道", "广告", "投放", "流量", "直播", "信息流")),
+            ("customer_profile_analysis", 0.86, "question asks about customer profile", ("客户", "用户", "人群", "年龄", "性别", "高价值客户")),
+            ("category_product_analysis", 0.86, "question asks about category or product", ("商品", "品类", "产品", "SKU", "销量", "退款原因")),
+            ("region_analysis", 0.86, "question asks about regions", ("地区", "区域", "省份", "城市", "华南", "华东")),
+            ("trend_analysis", 0.84, "question asks about trend", ("趋势", "最近", "月份", "环比", "变好", "变差")),
+            ("recommendation_request", 0.86, "question asks for actions or priority handling", ("建议", "整改", "行动计划", "怎么做", "优先处理", "优先行动")),
+        )
+        for question_type, confidence, reason, keywords in utf8_chinese_rules:
+            if _contains_any(text, keywords):
+                return _classification(question_type, confidence, reason)
+        english_rules: tuple[tuple[str, float, str, tuple[str, ...]], ...] = (
+            ("business_health_check", 0.94, "question asks for overall business health", ("business health", "overall assessment", "operational diagnosis", "overall performance", "health diagnosis", "executive-level operational diagnosis")),
+            ("risk_diagnosis", 0.92, "question asks for risks or hidden issues", ("risk", "danger", "hidden issue", "hidden risk", "most dangerous", "diagnose", "red flag")),
+            ("business_review_summary", 0.92, "question asks for review or executive brief", ("business review", "executive summary", "executive report", "briefing", "for the boss", "for executives")),
+            ("growth_opportunity", 0.88, "question asks for growth or investment opportunities", ("growth", "opportunity", "invest", "continue investing", "increase investment", "worth investing")),
+            ("shipping_efficiency_analysis", 0.88, "question asks about shipping or fulfillment", ("shipping", "delivery", "fulfillment", "logistics", "slow delivery")),
+            ("data_quality_check", 0.9, "question asks for data quality", ("data quality", "dirty data", "missing value", "invalid value", "anomaly")),
+            ("channel_analysis", 0.87, "question asks about channel quality", ("channel", "advertising", "ad channel", "traffic source", "livestream", "live stream")),
+            ("customer_profile_analysis", 0.86, "question asks about customer profile", ("customer", "segment", "age", "gender", "high-value customer")),
+            ("category_product_analysis", 0.86, "question asks about category or product", ("category", "product", "sku", "return reason")),
+            ("region_analysis", 0.86, "question asks about regions", ("region", "province", "city", "south china", "east china")),
+            ("trend_analysis", 0.84, "question asks about trend", ("trend", "recent months", "month over month", "monthly")),
+            ("recommendation_request", 0.86, "question asks for actions or priority handling", ("recommendation", "action plan", "what should we do", "next action")),
+        )
+        for question_type, confidence, reason, keywords in english_rules:
+            if _contains_any(lowered, keywords):
+                return _classification(question_type, confidence, reason)
     if not requested_missing_fields and _contains_any(text, ("刚才", "上一轮", "上次", "基于上", "继续看", "换成看", "刚刚")):
         return {
             "question_type": "follow_up_drilldown",
@@ -254,6 +299,17 @@ def requested_unsupported_fields(question: str) -> list[str]:
     for rule_fields, patterns in normalized_rules:
         if _contains_any(question, patterns):
             fields.extend(rule_fields)
+    lowered = question.lower()
+    english_missing_rules: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
+        (("ad_spend", "campaign_cost"), ("roi", "ad spend", "campaign cost", "advertising spend")),
+        (("membership_level",), ("membership level", "member level", "loyalty tier")),
+        (("neighborhood", "address", "latitude", "longitude"), ("neighborhood", "address", "store location", "latitude", "longitude")),
+        (("campaign_creative",), ("campaign creative", "ad creative", "advertising creative")),
+        (("service_ticket_text",), ("service ticket", "complaint text", "ticket text")),
+    )
+    for rule_fields, patterns in english_missing_rules:
+        if _contains_any(lowered, patterns):
+            fields.extend(rule_fields)
     for rule in UNSUPPORTED_FIELD_RULES:
         if _contains_any(question, rule.patterns):
             fields.extend(rule.fields)
@@ -275,6 +331,7 @@ def build_business_report(
     question_type: str,
     evidence_results: list[dict[str, Any]],
     prior_memory: dict[str, Any] | None = None,
+    language: str = "zh",
 ) -> dict[str, Any]:
     """Build a user-facing business report from deterministic evidence."""
 
@@ -312,11 +369,16 @@ def build_business_report(
         "next_questions": _next_questions(question_type),
         "limitations": limitations,
     }
+    if _is_english(language):
+        report = _english_business_report(report, question_type=question_type, evidence_results=evidence_results)
     return sanitize_business_report(report)
 
 
-def render_business_answer(report: dict[str, Any]) -> str:
+def render_business_answer(report: dict[str, Any], *, language: str = "zh") -> str:
     """Render a compact natural-language answer for existing frontend fields."""
+
+    if _is_english(language):
+        return _render_english_business_answer(report)
 
     lines = [str(report.get("executive_summary") or "已生成业务分析报告。")]
     findings = report.get("key_findings") or []
@@ -686,6 +748,291 @@ def _humanize_business_text(text: str) -> str:
         result = result.replace(raw, label)
     result = re.sub(r"\b(tool_name|tool_calls|trace|run_id|provider_used|provider_requested|requested_provider|provider_status|is_simulated)\b", "", result)
     return " ".join(result.split())
+
+
+def _is_english(language: str | None) -> bool:
+    return str(language or "").lower().startswith("en")
+
+
+def _english_business_report(
+    report: dict[str, Any],
+    *,
+    question_type: str,
+    evidence_results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    missing_fields: list[str] = []
+    for result in evidence_results:
+        missing_fields.extend(str(field) for field in result.get("missing_fields") or [])
+    missing_fields = list(dict.fromkeys(missing_fields))
+
+    risks = [_english_record(item) for item in list(report.get("risk_priorities") or [])[:5] if isinstance(item, dict)]
+    opportunities = [_english_record(item) for item in list(report.get("opportunities") or [])[:5] if isinstance(item, dict)]
+    evidence = _english_evidence(report.get("evidence_summary") or [])
+    findings = _english_findings(report.get("key_findings") or [], question_type=question_type, missing_fields=missing_fields)
+    limitations = _english_limitations(report.get("limitations") or [], missing_fields=missing_fields)
+    recommendations = _english_recommendations(
+        report.get("recommendations") or [],
+        question_type=question_type,
+        risks=risks,
+        missing_fields=missing_fields,
+    )
+
+    if question_type == "anti_hallucination_field_check" or missing_fields:
+        executive_summary = (
+            "The current data does not support this analysis directly because required fields are missing. "
+            "Use the alternative fields below instead of inventing unavailable dimensions."
+        )
+    elif question_type == "growth_opportunity":
+        executive_summary = (
+            "The business has investable growth candidates, but expansion should be protected by refund, margin, and satisfaction guardrails."
+        )
+    elif question_type in {"risk_diagnosis", "recommendation_request"} and risks:
+        executive_summary = f"The highest-priority issue is {risks[0].get('risk_name')}, because it combines business impact with operational risk."
+    elif question_type == "data_quality_check":
+        executive_summary = "The table is usable for analysis, but several data-quality issues should be cleaned before formal decisions."
+    else:
+        executive_summary = (
+            "The business has meaningful revenue scale, while refund pressure, margin quality, fulfillment, customer experience, and channel quality need continued monitoring."
+        )
+
+    return {
+        "executive_summary": executive_summary,
+        "key_findings": findings[:5],
+        "evidence_summary": evidence[:5],
+        "risk_priorities": risks[:5],
+        "opportunities": opportunities[:5],
+        "recommendations": recommendations[:3],
+        "next_questions": _english_next_questions(question_type),
+        "limitations": limitations,
+    }
+
+
+def _render_english_business_answer(report: dict[str, Any]) -> str:
+    lines = [str(report.get("executive_summary") or "Business analysis report generated.")]
+    findings = report.get("key_findings") or []
+    if findings:
+        lines.extend(["", "Key findings:"])
+        lines.extend(f"- {item}" for item in findings[:5])
+    risks = report.get("risk_priorities") or []
+    if risks:
+        lines.extend(["", "Risk priorities:"])
+        for risk in risks[:3]:
+            lines.append(f"- {risk.get('risk_level', 'medium')}: {risk.get('risk_name')} ({risk.get('reason')})")
+    recommendations = report.get("recommendations") or []
+    if recommendations:
+        lines.extend(["", "Priority action suggestions:"])
+        for rec in recommendations[:3]:
+            lines.append(f"- {rec.get('priority', 'medium')}: {rec.get('action')}")
+    limitations = report.get("limitations") or []
+    if limitations:
+        lines.extend(["", "Limitations:"])
+        lines.extend(f"- {item}" for item in limitations[:3])
+    return "\n".join(lines)
+
+
+def _english_record(item: dict[str, Any]) -> dict[str, Any]:
+    converted = dict(item)
+    for key in ["risk_name", "reason", "action", "why", "how", "target_object", "risk_reminder", "object_name", "object_type"]:
+        if key in converted:
+            converted[key] = _english_business_text(converted.get(key))
+    if "metrics" in converted:
+        converted["metrics"] = [_english_business_text(metric) for metric in _as_text_list(converted.get("metrics"))]
+    return converted
+
+
+def _english_evidence(raw_items: Any) -> list[dict[str, str]]:
+    evidence: list[dict[str, str]] = []
+    for item in raw_items if isinstance(raw_items, list) else []:
+        text = item.get("summary") if isinstance(item, dict) else item
+        clean = _english_business_text(text)
+        if clean and not _looks_like_system_log(clean):
+            evidence.append({"summary": clean})
+    if not evidence:
+        evidence.append({"summary": "The analysis used sales, order, refund, margin, fulfillment, and customer-experience signals where available."})
+    return _dedupe_dicts(evidence, "summary")
+
+
+def _english_findings(raw_items: Any, *, question_type: str, missing_fields: list[str]) -> list[str]:
+    if question_type == "anti_hallucination_field_check" or missing_fields:
+        return [
+            f"Missing fields: {', '.join(missing_fields)}." if missing_fields else "The requested dimension is not available in the current table.",
+            "The report does not invent unavailable fields; it switches to alternative analysis paths.",
+        ]
+    findings: list[str] = []
+    for item in raw_items if isinstance(raw_items, list) else []:
+        clean = _english_business_text(item)
+        if clean and not _looks_like_system_log(clean):
+            findings.append(clean)
+    if not findings:
+        findings.append("The report combines revenue, refund, margin, fulfillment, and customer-experience evidence rather than relying on a single metric.")
+    return list(dict.fromkeys(findings))
+
+
+def _english_limitations(raw_items: Any, *, missing_fields: list[str]) -> list[str]:
+    limitations: list[str] = []
+    if missing_fields:
+        limitations.append(f"Missing required fields: {', '.join(missing_fields)}. The current data does not support direct analysis on those dimensions.")
+        if {"ad_spend", "campaign_cost", "campaign_creative"}.intersection(missing_fields):
+            limitations.append("Use channel sales, refund rate, satisfaction, and complaint signals as a quality proxy instead of ROI.")
+        if "membership_level" in missing_fields:
+            limitations.append("Use customer segment, customer_id, and order_date to approximate repeat-purchase behavior instead of membership level.")
+    for item in raw_items if isinstance(raw_items, list) else []:
+        clean = _english_business_text(item)
+        if clean and not _looks_like_system_log(clean):
+            limitations.append(clean)
+    return list(dict.fromkeys(limitations))
+
+
+def _english_recommendations(
+    raw_items: Any,
+    *,
+    question_type: str,
+    risks: list[dict[str, Any]],
+    missing_fields: list[str],
+) -> list[dict[str, Any]]:
+    if question_type == "anti_hallucination_field_check" or missing_fields:
+        return [
+            {
+                "priority": "medium",
+                "action": "Switch to an alternative analysis that uses available fields.",
+                "why": "The requested fields are missing, so a direct answer would be unreliable.",
+                "how": "Use region, category, channel, customer segment, order date, refund, satisfaction, and complaint fields to evaluate business quality.",
+                "metrics": ["sales", "refund rate", "complaint rate", "satisfaction", "customer segment", "repeat-purchase proxy"],
+                "deadline": "Use this alternative view before making the next operating decision.",
+                "owner_hint": "Operations / Data analyst",
+            }
+        ]
+    recommendations: list[dict[str, Any]] = []
+    for item in raw_items if isinstance(raw_items, list) else []:
+        if not isinstance(item, dict):
+            continue
+        converted = _english_record(item)
+        action = _english_business_text(converted.get("action"))
+        if not action:
+            continue
+        recommendations.append(
+            {
+                "priority": str(converted.get("priority") or "medium"),
+                "action": action,
+                "why": _english_business_text(converted.get("why") or converted.get("reason")) or "The evidence points to a business object that needs focused follow-up.",
+                "how": _english_business_text(converted.get("how")) or "Create a short owner-backed checklist and review the related orders by region, channel, category, and return reason.",
+                "metrics": _as_text_list(converted.get("metrics") or converted.get("monitoring_metric")) or ["sales", "refund rate", "margin", "satisfaction"],
+                "deadline": _english_business_text(converted.get("deadline") or converted.get("expected_action_window")) or "Complete the first review within 1 week.",
+                "owner_hint": _english_business_text(converted.get("owner_hint") or converted.get("owner")) or "Operations / After-sales / Product owner",
+            }
+        )
+    if not recommendations and risks:
+        recommendations.append(
+            {
+                "priority": "high",
+                "action": f"Prioritize follow-up on {risks[0].get('risk_name')}.",
+                "why": _english_business_text(risks[0].get("reason")) or "It has the strongest combined risk signal in this run.",
+                "how": "Break the issue down by region, channel, category, product, and return reason, then assign one owner for the first review.",
+                "metrics": ["sales", "refund rate", "complaint rate", "satisfaction", "margin"],
+                "deadline": "Complete the first review within 1 week.",
+                "owner_hint": "Operations / After-sales / Product owner",
+            }
+        )
+    if not recommendations:
+        recommendations.append(
+            {
+                "priority": "medium",
+                "action": "Create a weekly business-quality review using the current evidence.",
+                "why": "The current report identifies measurable operating signals that should be monitored together.",
+                "how": "Review sales, margin, refund, fulfillment, satisfaction, and complaints in one owner-backed checklist.",
+                "metrics": ["sales", "gross margin", "refund rate", "shipping days", "satisfaction"],
+                "deadline": "Start the review this week.",
+                "owner_hint": "Operations / Data analyst",
+            }
+        )
+    return _dedupe_dicts(recommendations, "action")[:3]
+
+
+def _english_next_questions(question_type: str) -> list[str]:
+    typed = {
+        "business_health_check": ["Which regions are high revenue but high risk?", "Which metrics should be monitored every week?"],
+        "risk_diagnosis": ["If we can fix only one risk first, what should it be?", "Which candidate causes are most likely behind the top risk?"],
+        "growth_opportunity": ["Which three objects deserve more investment next quarter?", "What guardrails should protect these growth bets?"],
+        "anti_hallucination_field_check": ["Should we use channel sales, refund rate, and satisfaction as an alternative view?"],
+        "follow_up_drilldown": ["Should we drill down by product or channel for the previous high-risk object?"],
+    }
+    common = [
+        "Should I turn these recommendations into a one-week action plan?",
+        "Do you want a deeper breakdown of the highest-risk object?",
+    ]
+    return (typed.get(question_type) or []) + common
+
+
+def _english_business_text(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    replacements = {
+        "sales_amount": "sales",
+        "total_sales": "sales",
+        "order_count": "order count",
+        "avg_order_value": "average order value",
+        "refund_amount": "refund amount",
+        "refund_rate": "refund rate",
+        "return_rate": "return rate",
+        "gross_margin_rate": "gross margin rate",
+        "avg_discount": "average discount",
+        "avg_shipping_days": "average shipping days",
+        "shipping_days": "shipping days",
+        "complaint_rate": "complaint rate",
+        "complaint_count": "complaints",
+        "avg_satisfaction_score": "satisfaction",
+        "satisfaction_score": "satisfaction",
+        "ad_channel": "channel",
+        "city_level": "city tier",
+        "customer_segment": "customer segment",
+        "business_tool": "business evidence",
+    }
+    result = text
+    for raw, label in replacements.items():
+        result = result.replace(raw, label)
+    result = re.sub(r"\b(tool_name|tool_calls|trace|run_id|provider_used|provider_requested|requested_provider|provider_status|is_simulated)\b", "", result)
+    if result.strip().lower() == "unsupported":
+        return "The current data does not support this analysis directly."
+    return " ".join(result.split())
+
+
+def _as_text_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [_english_business_text(item) for item in value if _english_business_text(item)]
+    if isinstance(value, str):
+        return [_english_business_text(item) for item in re.split(r"[+,/，、]", value) if _english_business_text(item)]
+    return [_english_business_text(value)] if value is not None else []
+
+
+def _looks_like_system_log(text: str) -> bool:
+    lowered = text.lower()
+    blocked = (
+        "tool call",
+        "tool_calls",
+        "trace",
+        "raw json",
+        "dynamic p90",
+        "top/bottom evidence",
+        "field validation completed",
+        "business term mapping completed",
+        "impact",
+        "severity",
+        "confidence",
+    )
+    return any(term in lowered for term in blocked)
+
+
+def _dedupe_dicts(items: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in items:
+        marker = str(item.get(key) or item).strip().lower()
+        if not marker or marker in seen:
+            continue
+        seen.add(marker)
+        deduped.append(item)
+    return deduped
 
 
 def _find_result(evidence_results: list[dict[str, Any]], tool_name: str) -> dict[str, Any] | None:

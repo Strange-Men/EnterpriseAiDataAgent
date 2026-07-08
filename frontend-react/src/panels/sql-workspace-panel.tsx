@@ -34,7 +34,7 @@ export function SqlWorkspacePanel() {
     currentSql,
     hasMore, isLoadingMore, limit, loadMore,
     tabs, activeTabId, addTab, removeTab, renameTab,
-    setActiveTab, updateTabSql, getActiveTab,
+    setActiveTab, updateTabSql, getActiveTab, setActivePanelTab,
   } = useSqlEditorStore();
   const { addEntry, fetchHistory } = useSqlHistoryStore();
   const { queries: savedQueries, saveQuery, deleteQuery, toggleFavorite } = useSavedQueriesStore();
@@ -105,8 +105,10 @@ export function SqlWorkspacePanel() {
       const currentTable = useInvestigationStore.getState().activeTable;
       const res = await aiQuery(aiSqlQuestion.trim(), false, false, undefined, i18n.language, currentTable ?? undefined, llmProvider);
       setAiSqlQualityGates(res.quality_gates ?? []);
-      if (res.sql && activeTab) {
-        updateTabSql(activeTab.id, res.sql);
+      const latestActiveTab = useSqlEditorStore.getState().getActiveTab();
+      if (res.sql && latestActiveTab) {
+        updateTabSql(latestActiveTab.id, res.sql);
+        setActivePanelTab("editor");
         toast.success(t("ai.sql-filled"));
         setAiSqlQuestion("");
       } else {
@@ -117,15 +119,17 @@ export function SqlWorkspacePanel() {
     } finally {
       if (mountedRef.current) setAiSqlLoading(false);
     }
-  }, [aiSqlQuestion, aiSqlLoading, activeTab, updateTabSql, t, i18n.language, llmProvider]);
+  }, [aiSqlQuestion, aiSqlLoading, updateTabSql, setActivePanelTab, t, i18n.language, llmProvider]);
 
   const handleGenerateAiSql = useCallback(async () => {
     if (!wfTable || generatingSql) return;
     setGeneratingSql(true);
     try {
       const res = await aiQuery(`Show all data from ${wfTable}`, false, false, undefined, i18n.language, wfTable, llmProvider);
-      if (res.sql && activeTab) {
-        updateTabSql(activeTab.id, res.sql);
+      const latestActiveTab = useSqlEditorStore.getState().getActiveTab();
+      if (res.sql && latestActiveTab) {
+        updateTabSql(latestActiveTab.id, res.sql);
+        setActivePanelTab("editor");
         wfAdvance("sql-ready", { table: wfTable, sql: res.sql });
         toast.success(t("ai.ready"));
       } else {
@@ -136,7 +140,7 @@ export function SqlWorkspacePanel() {
     } finally {
       if (mountedRef.current) setGeneratingSql(false);
     }
-  }, [wfTable, generatingSql, activeTab, updateTabSql, wfAdvance, t, i18n.language, llmProvider]);
+  }, [wfTable, generatingSql, updateTabSql, setActivePanelTab, wfAdvance, t, i18n.language, llmProvider]);
 
   const handleExecute = useCallback(async () => {
     const sql = currentSql.trim();
@@ -321,7 +325,7 @@ export function SqlWorkspacePanel() {
   }, [renameValue, renameTab]);
 
   return (
-        <div className="flex flex-col h-full">
+        <div className="flex h-full min-h-[640px] flex-col">
       <QueryTabsBar
         tabs={tabs}
         activeTabId={activeTabId}
@@ -550,14 +554,14 @@ export function SqlWorkspacePanel() {
       )}
 
       {/* ── Monaco Editor ────────────────────────────────── */}
-      <div className="flex-1 min-h-[280px] mb-3">
+      <div className="mb-3 h-[360px] min-h-[320px] shrink-0" data-testid="sql-editor-shell">
         <MonacoSqlEditor
           value={currentSql}
           onChange={(val) => {
             if (activeTab) updateTabSql(activeTab.id, val);
           }}
           onExecute={handleExecute}
-          height="100%"
+          height="360px"
         />
       </div>
 

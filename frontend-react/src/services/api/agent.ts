@@ -21,6 +21,7 @@ export interface CreateAgentRunRequest {
   table_name?: string | null;
   provider_requested?: AgentProviderRequested;
   mode?: AgentRunMode;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AgentStep {
@@ -104,9 +105,14 @@ export async function createAgentRun(
     payload.provider_requested = request.provider_requested;
   }
 
+  if (request.metadata !== undefined) {
+    payload.metadata = request.metadata;
+  }
+
   return apiFetch<CreateAgentRunResponse>("/agent/runs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+    timeoutMs: 140_000,
   });
 }

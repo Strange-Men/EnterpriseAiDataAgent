@@ -96,7 +96,9 @@ def test_doubao_business_orchestration_fallback_is_transparent(m6_db: DatabaseMa
     assert result.run.provider_status == ProviderStatus.FALLBACK
     assert result.run.is_simulated is True
     assert result.run.fallback_triggered is True
-    assert result.run.fallback_reason == "真实模型未成功返回，已切换为模拟分析结果。"
+    assert result.run.fallback_reason
+    assert "模拟分析结果" in result.run.fallback_reason
+    assert "Traceback" not in result.run.fallback_reason
     assert result.run.business_report
 
 

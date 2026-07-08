@@ -191,6 +191,16 @@ def route_intent(user_goal: str, *, table_name: str | None = None) -> IntentRout
             safety_flags=[],
         )
 
+    if _is_business_report_generation_request(normalized_goal) or _is_business_field_gap_request(normalized_goal):
+        return IntentRoute(
+            intent=IntentCategory.AGENT_ANALYSIS,
+            confidence=0.84,
+            selected_mode=SelectedMode.AGENT_RUN,
+            route_reason="Request needs business-report generation or missing-field handling.",
+            requires_agent=True,
+            safety_flags=[],
+        )
+
     if _contains_any(normalized_goal, _DATA_PREVIEW_PATTERNS):
         return IntentRoute(
             intent=IntentCategory.DATA_PREVIEW,
@@ -255,7 +265,72 @@ def _contains_any(value: str, patterns: Iterable[str]) -> bool:
     return any(pattern in value for pattern in patterns)
 
 
+def _is_safe_create_report_request(value: str) -> bool:
+    if "create" not in value:
+        return False
+
+    unsafe_objects = ("create table", "create database", "create schema", "create view", "create index")
+    if _contains_any(value, unsafe_objects):
+        return False
+    if "report" in value and _contains_any(value, ("business", "executive", "operational", "diagnosis", "analysis")):
+        return True
+    if "summary" in value and _contains_any(value, ("business", "executive", "operational", "analysis")):
+        return True
+
+    safe_objects = (
+        "report",
+        "business report",
+        "analysis report",
+        "operational diagnosis report",
+        "diagnosis report",
+        "summary",
+        "executive summary",
+        "brief",
+        "briefing",
+        "analysis",
+    )
+    return any(
+        f"create {prefix}{safe_object}" in value
+        for safe_object in safe_objects
+        for prefix in ("", "a ", "an ", "the ")
+    )
+
+
+def _is_business_report_generation_request(value: str) -> bool:
+    generation_terms = (
+        "business report",
+        "analysis report",
+        "operational diagnosis report",
+        "diagnosis report",
+        "executive report",
+        "executive-level operational diagnosis",
+        "overall assessment",
+        "priority action",
+        "main risks and opportunities",
+        "key evidence",
+        "next-step questions",
+    )
+    return _is_safe_create_report_request(value) or _contains_any(value, generation_terms)
+
+
+def _is_business_field_gap_request(value: str) -> bool:
+    missing_field_terms = (
+        "roi",
+        "ad creative",
+        "campaign creative",
+        "membership level",
+        "neighborhood",
+        "address",
+        "latitude",
+        "longitude",
+        "service ticket",
+    )
+    return _contains_any(value, missing_field_terms)
+
+
 def _is_report_lookup(value: str) -> bool:
+    if _is_business_report_generation_request(value):
+        return False
     if _contains_any(value, _REPORT_LOOKUP_PATTERNS):
         return True
     return "记录" in value and _contains_any(value, ("历史", "之前", "上次", "报告", "详情"))
@@ -264,13 +339,21 @@ def _is_report_lookup(value: str) -> bool:
 def _unsupported_flags(value: str) -> list[str]:
     flags: list[str] = []
 
-    destructive_sql = ("drop", "delete", "update", "insert", "alter", "create", "truncate")
+    safe_create_report = _is_safe_create_report_request(value)
+    destructive_sql = ("drop", "delete", "update", "insert", "alter", "truncate")
     credential_terms = ("api key", "token", "credential", "密钥")
     external_terms = ("external database", "connect production", "生产数据库", "外部数据库")
     external_action_terms = ("send email", "call external", "发送邮件", "调用外部")
     data_write_terms = ("删除", "删表", "修改", "写入", "插入", "建表", "删掉")
 
-    if _contains_any(value, destructive_sql) or _contains_any(value, data_write_terms):
+    unsafe_create_terms = ("create table", "create database", "create schema", "create view", "create index")
+
+    if (
+        _contains_any(value, destructive_sql)
+        or _contains_any(value, data_write_terms)
+        or _contains_any(value, unsafe_create_terms)
+        or ("create" in value and not safe_create_report)
+    ):
         flags.append("unsafe_write_or_destructive_action")
     if _contains_any(value, credential_terms):
         flags.append("credential_exposure_request")
@@ -279,7 +362,8 @@ def _unsupported_flags(value: str) -> list[str]:
     if _contains_any(value, external_action_terms):
         flags.append("external_service_request")
 
-    if not flags and _contains_any(value, _UNSUPPORTED_PATTERNS):
+    unsupported_value = value.replace("create", "") if safe_create_report else value
+    if not flags and _contains_any(unsupported_value, _UNSUPPORTED_PATTERNS):
         flags.append("unsupported_action")
 
     return flags
