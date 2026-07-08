@@ -36,6 +36,29 @@ def _run(question: str, db: DatabaseManager, *, provider: str = "mock"):
     )
 
 
+def _patch_doubao_fallback(monkeypatch, reason: str = "真实模型服务响应超时，已切换为模拟分析结果。") -> None:
+    import backend.agent.langchain_single_agent as single_agent
+
+    @contextmanager
+    def fake_llm_context(provider: str):
+        assert provider == "doubao"
+        yield
+
+    monkeypatch.setattr(single_agent, "llm_context", fake_llm_context)
+    monkeypatch.setattr(single_agent, "call_llm_text", lambda *args, **kwargs: ("[Mock LLM] fallback", object()))
+    monkeypatch.setattr(
+        single_agent,
+        "summarize_llm_events",
+        lambda: {
+            "provider_requested": "doubao",
+            "provider_used": "mock",
+            "fallback_triggered": True,
+            "fallback_reason": reason,
+            "calls": 1,
+        },
+    )
+
+
 def test_mock_provider_returns_mock_provider_status(m6_db: DatabaseManager) -> None:
     result = _run("Which channels have many orders but poor experience?", m6_db, provider="mock")
 
@@ -87,7 +110,9 @@ def test_doubao_success_metadata_returns_live_success_status(monkeypatch, m6_db:
     assert result.run.fallback_triggered is False
 
 
-def test_doubao_business_orchestration_fallback_is_transparent(m6_db: DatabaseManager) -> None:
+def test_doubao_business_orchestration_fallback_is_transparent(monkeypatch, m6_db: DatabaseManager) -> None:
+    _patch_doubao_fallback(monkeypatch)
+
     result = _run("帮我评估这张表整体经营健康度，并说明主要风险。", m6_db, provider="doubao")
 
     assert result.run.requested_provider == "doubao"
@@ -147,7 +172,9 @@ def test_fallback_reason_is_readable_and_not_exception_stack() -> None:
     assert "backend/service.py" not in str(run.fallback_reason)
 
 
-def test_business_report_excludes_provider_status_and_technical_fields(m6_db: DatabaseManager) -> None:
+def test_business_report_excludes_provider_status_and_technical_fields(monkeypatch, m6_db: DatabaseManager) -> None:
+    _patch_doubao_fallback(monkeypatch)
+
     result = _run("帮我评估这张表整体经营健康度，并说明主要风险。", m6_db, provider="doubao")
     report = result.run.business_report or {}
     serialized = str(report)
@@ -167,7 +194,9 @@ def test_business_report_excludes_provider_status_and_technical_fields(m6_db: Da
         assert forbidden not in serialized
 
 
-def test_trace_provider_metadata_matches_top_level_status(m6_db: DatabaseManager) -> None:
+def test_trace_provider_metadata_matches_top_level_status(monkeypatch, m6_db: DatabaseManager) -> None:
+    _patch_doubao_fallback(monkeypatch)
+
     result = _run("帮我评估这张表整体经营健康度，并说明主要风险。", m6_db, provider="doubao")
     provider_trace = result.run.trace["provider"]
 

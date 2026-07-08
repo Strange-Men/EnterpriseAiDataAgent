@@ -4,10 +4,23 @@
 
 ## Current Branch
 
-- Branch: `m6-manual-polish-regression-sql-i18n-doubao-export`
-- Stage: M6 manual polish regression for SQL editor visibility, English reports, Doubao timeout diagnosis, and export quality
+- Branch: `m6-ci-fix-backend-after-polish-regression`
+- Stage: Backend CI fix after M6 manual polish regression
 
 ## Current Work
+
+M6 backend CI fix is complete locally. This is not a new feature round, not M6.9, and no tag has been created.
+
+Completed in this CI fix:
+
+- Inspected GitHub Actions run `28917188098` for commit `de4e777bd5d6e2acd79f2c7249b1e35e0f5250c4`.
+- Confirmed backend job failed while frontend passed.
+- Identified the failure as an environment-dependent Doubao fallback assertion in `tests/test_m6_manual_fix3_provider_status.py`.
+- Reworked the Doubao fallback transparency tests to use monkeypatched fake provider metadata, so default CI never performs a real Doubao network call and does not depend on whether env keys exist.
+- Preserved provider status, fallback transparency, business_report hiding, and trace metadata coverage.
+- Added `docs/reports/m6-ci-fix-backend-after-polish-regression.md`.
+- Backend import, target tests, focused M6 backend regressions, and full backend CI passed locally.
+- Next step is to wait for GitHub Actions to rerun green; after CI is green, resume manual testing from `master`.
 
 M6 manual polish regression is complete locally. This is not M6.9 and no tag has been created.
 

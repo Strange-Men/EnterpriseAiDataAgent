@@ -2,6 +2,19 @@
 
 > Last updated: 2026-07-08
 
+## M6 Backend CI Fix After Polish Regression
+
+- Created branch `m6-ci-fix-backend-after-polish-regression` from latest `master`.
+- Investigated failed GitHub Actions run `28917188098` for commit `de4e777bd5d6e2acd79f2c7249b1e35e0f5250c4`.
+- Confirmed the failing job was backend; frontend had passed.
+- Root cause: `tests/test_m6_manual_fix3_provider_status.py::test_doubao_business_orchestration_fallback_is_transparent` depended on local Doubao env behavior. Local env produced a network fallback reason containing simulated-result wording, while CI has no Doubao key and correctly returned the missing-config demo-mode fallback reason.
+- Fixed the test to use monkeypatched fake Doubao fallback metadata instead of any real provider/network path.
+- Kept provider_status and fallback transparency assertions intact.
+- No product feature, frontend behavior, backend business logic, CI workflow, M6.9, or tag was added.
+- Added report: `docs/reports/m6-ci-fix-backend-after-polish-regression.md`.
+- Verification passed: backend import, failed target test (`8 passed`), polish regression test (`8 passed`), focused M6 backend regressions (`43 passed`), and full backend CI (`904 passed`).
+- Next step: wait for GitHub Actions backend/frontend to rerun green, then resume manual testing from `master`.
+
 ## M6 Manual Polish Regression
 
 - Created branch `m6-manual-polish-regression-sql-i18n-doubao-export` from latest `master`.
