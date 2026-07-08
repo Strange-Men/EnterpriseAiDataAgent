@@ -22,6 +22,7 @@ import {
   fetchUploadTaskStatus,
   fetchQualityReport,
   fetchStatus,
+  createAgentRun,
   aiQuery,
   unwrapApiResponse,
 } from "../api";
@@ -256,6 +257,36 @@ describe("api service", () => {
       }));
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(Object.keys(body).join(" ")).not.toMatch(/API_KEY|api_key|secret/i);
+    });
+  });
+
+  describe("createAgentRun locale", () => {
+    it("should send locale as a first-class Agent run field", async () => {
+      mockFetch.mockResolvedValueOnce(mockJsonResponse({ run: { run_id: "run-1", status: "completed" } }));
+
+      await createAgentRun({
+        user_input: "Assess business health",
+        table_name: "demo_sales_business_50k",
+        provider_requested: "mock",
+        locale: "en-US",
+        metadata: { language: "en" },
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/agent/runs", expect.objectContaining({
+        method: "POST",
+      }));
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.locale).toBe("en-US");
+      expect(body.metadata.language).toBe("en");
+    });
+
+    it("should default Agent run locale to zh-CN", async () => {
+      mockFetch.mockResolvedValueOnce(mockJsonResponse({ run: { run_id: "run-2", status: "completed" } }));
+
+      await createAgentRun({ user_input: "分析经营健康度" });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.locale).toBe("zh-CN");
     });
   });
 

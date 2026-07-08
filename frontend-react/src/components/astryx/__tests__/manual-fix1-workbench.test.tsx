@@ -190,6 +190,7 @@ describe("M6 Manual Fix 1 workbench defaults and async upload", () => {
           tableName: "demo_sales_business_50k",
           answer: "Old answer should stay hidden",
           businessReport: null,
+          businessReportViewModel: null,
           findings: ["Old finding"],
           evidencePreview: [],
           sql: null,

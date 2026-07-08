@@ -33,6 +33,7 @@ import {
   type AgentProviderRequested,
   type AgentRun,
   type BusinessReportItem,
+  type BusinessReportViewModel,
   type LlmProvider,
 } from "@/services/api";
 import { useDataStore } from "@/stores/data-store";
@@ -139,6 +140,29 @@ function hasBusinessReport(report: AgentBusinessReport | null | undefined): repo
     report.next_questions,
     report.limitations,
   ].some((items) => reportItems(items).length > 0);
+}
+
+function viewModelToBusinessReport(viewModel: BusinessReportViewModel | null | undefined): AgentBusinessReport | null {
+  if (!viewModel) return null;
+  const hasContent = Boolean(
+    viewModel.overall_assessment ||
+    viewModel.priority_actions?.length ||
+    viewModel.risks_and_opportunities?.length ||
+    viewModel.key_evidence?.length ||
+    viewModel.limitations?.length ||
+    viewModel.next_questions?.length
+  );
+  if (!hasContent) return null;
+  return {
+    executive_summary: viewModel.overall_assessment ?? null,
+    key_findings: viewModel.risks_and_opportunities ?? [],
+    evidence_summary: (viewModel.key_evidence ?? []).map((summary: string) => ({ summary })),
+    risk_priorities: viewModel.risks_and_opportunities ?? [],
+    opportunities: [],
+    recommendations: viewModel.priority_actions ?? [],
+    next_questions: viewModel.next_questions ?? [],
+    limitations: viewModel.limitations ?? [],
+  };
 }
 
 function reportItemTitle(item: BusinessReportItem): string {
@@ -276,8 +300,10 @@ function buildRecord(
   const answer = run.answer?.trim()
     || firstMeaningfulSentence(run.intent ?? "")
     || "Analysis completed. Review the related data and warnings before making a decision.";
+  const businessReportViewModel = run.business_report_view_model ?? null;
+  const normalizedBusinessReport = viewModelToBusinessReport(businessReportViewModel) ?? run.business_report ?? null;
   const findings = [
-    ...reportItems(run.business_report?.key_findings).map(reportItemTitle),
+    ...reportItems(normalizedBusinessReport?.key_findings).map(reportItemTitle),
     ...toStringList(run.findings),
     ...toStringList(run.key_findings),
     ...(run.intent ? [run.intent] : []),
@@ -290,7 +316,8 @@ function buildRecord(
     question,
     tableName,
     answer,
-    businessReport: run.business_report ?? null,
+    businessReport: normalizedBusinessReport,
+    businessReportViewModel,
     findings: findings.length > 0 ? findings : [firstMeaningfulSentence(answer)],
     evidencePreview,
     sql: run.sql ?? null,
@@ -604,6 +631,7 @@ export function AstryxDataAgentWorkbench({ focus = "workbench" }: { focus?: Work
         user_input: trimmed,
         table_name: tableName,
         provider_requested: provider,
+        locale: language === "en" ? "en-US" : "zh-CN",
         mode: "skeleton",
         metadata: { language },
       });
@@ -1033,6 +1061,7 @@ export function BusinessResult({
     ? Object.keys(previewRows[0]).slice(0, 6)
     : columns.slice(0, 6);
   const businessReport = hasBusinessReport(record.businessReport) ? record.businessReport : null;
+  const exportReport = record.businessReportViewModel ?? businessReport;
   const displayStatus = providerDisplayStatus(record);
   const exportMetadata = {
     generatedAt: record.createdAt,
@@ -1041,21 +1070,21 @@ export function BusinessResult({
     providerStatus: record.providerStatus,
     isSimulated: record.isSimulated,
     fallbackReason: record.fallbackReason,
-    language: i18n.language,
+    language: record.businessReportViewModel?.locale ?? i18n.language,
   };
   const handleExportMarkdown = () => {
-    if (!businessReport) return;
+    if (!exportReport) return;
     downloadBlob(
       businessReportFilename("md"),
-      buildBusinessReportMarkdown(businessReport, exportMetadata),
+      buildBusinessReportMarkdown(exportReport, exportMetadata),
       "text/markdown;charset=utf-8"
     );
   };
   const handleExportHtml = () => {
-    if (!businessReport) return;
+    if (!exportReport) return;
     downloadBlob(
       businessReportFilename("html"),
-      buildBusinessReportHtml(businessReport, exportMetadata),
+      buildBusinessReportHtml(exportReport, exportMetadata),
       "text/html;charset=utf-8"
     );
   };
@@ -1076,9 +1105,9 @@ export function BusinessResult({
               type="button"
               variant="secondary"
               size="sm"
-              disabled={!businessReport}
+              disabled={!exportReport}
               onClick={handleExportMarkdown}
-              title={businessReport ? t("astryx.export.markdown") : t("astryx.export.disabled")}
+              title={exportReport ? t("astryx.export.markdown") : t("astryx.export.disabled")}
             >
               <Download className="mr-1.5 h-3.5 w-3.5" />
               {t("astryx.export.markdown")}
@@ -1087,9 +1116,9 @@ export function BusinessResult({
               type="button"
               variant="secondary"
               size="sm"
-              disabled={!businessReport}
+              disabled={!exportReport}
               onClick={handleExportHtml}
-              title={businessReport ? t("astryx.export.html") : t("astryx.export.disabled")}
+              title={exportReport ? t("astryx.export.html") : t("astryx.export.disabled")}
             >
               <Download className="mr-1.5 h-3.5 w-3.5" />
               {t("astryx.export.html")}

@@ -4,10 +4,29 @@
 
 ## Current Branch
 
-- Branch: `m6-langgraph-readme-architecture-docs`
-- Stage: M6 LangChain compliance + LangGraph architecture README docs
+- Branch: `m6-output-viewmodel-locale-export`
+- Stage: M6 Round 3 BusinessReportViewModel + locale + export
 
 ## Current Work
+
+M6 Round 3 is complete locally. This round implements BusinessReportViewModel + locale pass-through + Export cleanup unification without changing README / LangGraph architecture text and without entering Intent Router, `data_table` generation, or LangGraph MVP.
+
+Completed in this round:
+
+- Created branch `m6-output-viewmodel-locale-export` from latest `master` commit `6355a9d`.
+- Added backend `business_report_view_model` normalization in `backend/agent/business_report_view_model.py`.
+- Added first-class Agent `locale` support with `zh-CN` / `en-US` normalization and invalid-locale fallback to `zh-CN`.
+- Preserved existing `business_report` compatibility while adding `business_report_view_model`.
+- Updated frontend Agent requests to send `locale` based on the current UI language.
+- Updated frontend workbench records and export helpers to prefer the ViewModel while retaining old `business_report` fallback.
+- Unified Markdown / HTML export through the ViewModel path.
+- Cleaned growth opportunities, risks, evidence, mock/fallback notices, and technical/system-log language into business-facing text.
+- Reserved optional `data_table` as a `null` placeholder only; no ranking/statistics `data_table` generation was added.
+- Added backend and frontend tests for ViewModel, locale, export cleanup, and compatibility.
+- Verification passed: backend import, focused backend tests, full backend CI (`909 passed`), `npm ci`, `npx tsc --noEmit`, full frontend tests (`53 files`, `1214 tests`), and frontend build.
+- No M6.9 was added and no tag was created.
+
+Next recommended round: backend Intent Router + `data_table` output mode.
 
 M6 Round 2 documentation / README finalization is complete locally. Round 1 SQL UI 修复 is already in `master`; this round updates the M6 output-strategy plan, adds LangChain compliance + LangGraph architecture documentation, and rewrites README into the final display form. It only changes README and docs / status documents; it does not modify frontend feature code, backend feature code, tests, or CI.
 

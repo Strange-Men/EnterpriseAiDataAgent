@@ -415,6 +415,8 @@ class AgentRun(BaseModel):
     status: AgentStatus = AgentStatus.CREATED
     answer: str | None = None
     business_report: dict[str, Any] | None = None
+    business_report_view_model: dict[str, Any] | None = None
+    locale: str = "zh-CN"
     sql: str | None = None
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     result_preview: dict[str, Any] | None = None
@@ -434,6 +436,14 @@ class AgentRun(BaseModel):
         if isinstance(value, str):
             value = value.strip()
         return value
+
+    @field_validator("locale", mode="before")
+    @classmethod
+    def _normalize_locale(cls, value: Any) -> str:
+        text = str(value or "").strip().lower().replace("_", "-")
+        if text in {"en", "en-us", "enus"}:
+            return "en-US"
+        return "zh-CN"
 
     @model_validator(mode="after")
     def _default_root_run_id(self) -> "AgentRun":

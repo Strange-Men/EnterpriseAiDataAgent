@@ -57,7 +57,10 @@ def test_runtime_request_mapping_preserves_fields() -> None:
     assert runtime_request.provider_requested == request.provider_requested
     assert runtime_request.table_name == request.table_name
     assert runtime_request.dataset_id == request.dataset_id
-    assert runtime_request.metadata == request.metadata
+    assert runtime_request.metadata["source"] == request.metadata["source"]
+    assert runtime_request.metadata["language"] == "zh-CN"
+    assert runtime_request.metadata["locale"] == "zh-CN"
+    assert runtime_request.locale == "zh-CN"
     assert runtime_request.mode == AgentRuntimeMode.SIMULATED
 
 

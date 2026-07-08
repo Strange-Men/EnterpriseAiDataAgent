@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { AgentRun, AgentProviderRequested, AgentBusinessReport, AgentProviderStatus } from "@/services/api";
+import type {
+  AgentRun,
+  AgentProviderRequested,
+  AgentBusinessReport,
+  AgentProviderStatus,
+  BusinessReportViewModel,
+} from "@/services/api";
 
 export interface BusinessAnalysisRecord {
   runId: string;
@@ -8,6 +14,7 @@ export interface BusinessAnalysisRecord {
   tableName: string | null;
   answer: string;
   businessReport: AgentBusinessReport | null;
+  businessReportViewModel: BusinessReportViewModel | null;
   findings: string[];
   evidencePreview: Record<string, unknown>[];
   sql: string | null;
