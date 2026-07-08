@@ -6,8 +6,8 @@
 
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
-- Current product state: M6 Business Analyst Agent is ready for renewed manual testing after Manual Fix 1 / 2 / 3 plus the manual regression hotfix for default demo table recovery, large-upload timeout handling, and five hard-question QA.
-- Current stage: M6 manual regression hotfix complete locally; merge back to `master` is pending in this round.
+- Current product state: M6 Business Analyst Agent is ready for renewed manual testing after Manual Fix 1 / 2 / 3, the manual regression hotfix, and the manual polish hotfix for report export, SQL Query numbering, and provider timeout handling.
+- Current stage: M6 manual polish hotfix complete locally; merge back to `master` is pending in this round.
 
 ## M6 Direction
 
@@ -35,6 +35,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - M6 Manual Fix 2 focuses on Business Report output contract, recommendation validation, report order, and technical data folding.
 - M6 Manual Fix 3 focuses on provider transparency, fallback visibility, next-question click-to-fill interaction, and final regression.
 - M6 manual regression hotfix focuses on making `demo_sales_business_50k` reliably available by default, diagnosing large upload timeout behavior, and validating five hard business questions against the default table.
+- M6 manual polish hotfix focuses on Business Report Markdown/HTML export, Advanced SQL Query numbering normalization, and readable provider timeout/fallback behavior.
 - M6.9, Multi-Agent, LangGraph, and RAG have not started.
 - Any future Multi-Agent expansion must be separately reviewed and approved.
 
@@ -59,6 +60,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - `docs/reports/m6-manual-fix-2-business-report-readable.md`
 - `docs/reports/m6-manual-fix-3-provider-next-question.md`
 - `docs/reports/m6-manual-regression-default-table-upload-qa.md`
+- `docs/reports/m6-manual-polish-export-query-provider-timeout.md`
 
 ## M6.2 Dataset
 

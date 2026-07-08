@@ -96,7 +96,7 @@ def test_doubao_business_orchestration_fallback_is_transparent(m6_db: DatabaseMa
     assert result.run.provider_status == ProviderStatus.FALLBACK
     assert result.run.is_simulated is True
     assert result.run.fallback_triggered is True
-    assert result.run.fallback_reason == "provider_unavailable_or_mock_fallback"
+    assert result.run.fallback_reason == "真实模型未成功返回，已切换为模拟分析结果。"
     assert result.run.business_report
 
 
@@ -108,7 +108,7 @@ def test_bad_provider_fallback_keeps_legacy_fields_compatible(m6_db: DatabaseMan
     assert result.run.provider_used == "mock"
     assert result.run.provider_status == ProviderStatus.FALLBACK
     assert result.run.fallback_triggered is True
-    assert result.run.fallback_reason == "unsupported_provider"
+    assert result.run.fallback_reason == "当前选择的模型 provider 不受支持，已切换为模拟分析结果。"
     assert result.run.is_simulated is True
 
 
@@ -140,7 +140,7 @@ def test_fallback_reason_is_readable_and_not_exception_stack() -> None:
     run.sync_provider_status()
 
     assert run.provider_status == ProviderStatus.FALLBACK
-    assert run.fallback_reason == "provider_request_failed"
+    assert run.fallback_reason == "真实模型请求失败，已切换为模拟分析结果。"
     assert "Traceback" not in str(run.fallback_reason)
     assert "backend/service.py" not in str(run.fallback_reason)
 

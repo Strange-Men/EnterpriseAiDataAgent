@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useSqlEditorStore } from "../sql-editor-store";
+import { normalizeQueryTabs, useSqlEditorStore } from "../sql-editor-store";
 
 describe("sql-editor-store", () => {
   beforeEach(() => {
@@ -137,6 +137,14 @@ describe("sql-editor-store", () => {
 
       expect(newTab?.sql).toBe("");
     });
+
+    it("should create continuous default Query numbers", () => {
+      const { addTab } = useSqlEditorStore.getState();
+      addTab();
+      addTab();
+
+      expect(useSqlEditorStore.getState().tabs.map((tab) => tab.name)).toEqual(["Query 1", "Query 2", "Query 3"]);
+    });
   });
 
   describe("setActiveTab", () => {
@@ -178,6 +186,38 @@ describe("sql-editor-store", () => {
       const state = useSqlEditorStore.getState();
       expect(state.tabs).toHaveLength(2);
       expect(state.activeTabId).toBe(tab3Id);
+    });
+
+    it("should renumber default Query tabs after deletion", () => {
+      const { addTab, removeTab } = useSqlEditorStore.getState();
+      const tab2Id = addTab();
+      addTab();
+
+      removeTab(tab2Id);
+
+      expect(useSqlEditorStore.getState().tabs.map((tab) => tab.name)).toEqual(["Query 1", "Query 2"]);
+    });
+  });
+
+  describe("normalizeQueryTabs", () => {
+    it("should normalize a persisted single Query 2 tab to Query 1 without losing SQL", () => {
+      const tabs = normalizeQueryTabs([
+        { id: "legacy-tab", name: "Query 2", sql: "SELECT 2", createdAt: "2026-01-01T00:00:00.000Z" },
+      ]);
+
+      expect(tabs).toHaveLength(1);
+      expect(tabs[0].name).toBe("Query 1");
+      expect(tabs[0].sql).toBe("SELECT 2");
+    });
+
+    it("should normalize skipped Query numbers while preserving SQL content", () => {
+      const tabs = normalizeQueryTabs([
+        { id: "tab-a", name: "Query 2", sql: "SELECT 2", createdAt: "2026-01-01T00:00:00.000Z" },
+        { id: "tab-b", name: "Query 4", sql: "SELECT 4", createdAt: "2026-01-01T00:00:00.000Z" },
+      ]);
+
+      expect(tabs.map((tab) => tab.name)).toEqual(["Query 1", "Query 2"]);
+      expect(tabs.map((tab) => tab.sql)).toEqual(["SELECT 2", "SELECT 4"]);
     });
   });
 });

@@ -45,10 +45,16 @@ LLM_FALLBACK_PROVIDER: str = os.getenv("LLM_FALLBACK_PROVIDER", "mock").strip().
 LLM_FALLBACK_ON_ERROR: bool = os.getenv("LLM_FALLBACK_ON_ERROR", "true").lower() not in ("false", "0", "no")
 
 try:
-    LLM_REQUEST_TIMEOUT_SECONDS: float = float(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "30"))
+    LLM_REQUEST_TIMEOUT_SECONDS: float = float(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "60"))
 except ValueError:
-    logger.warning("Invalid LLM_REQUEST_TIMEOUT_SECONDS value, using default 30")
-    LLM_REQUEST_TIMEOUT_SECONDS = 30.0
+    logger.warning("Invalid LLM_REQUEST_TIMEOUT_SECONDS value, using default 60")
+    LLM_REQUEST_TIMEOUT_SECONDS = 60.0
+
+try:
+    LLM_CONNECT_TIMEOUT_SECONDS: float = float(os.getenv("LLM_CONNECT_TIMEOUT_SECONDS", "10"))
+except ValueError:
+    logger.warning("Invalid LLM_CONNECT_TIMEOUT_SECONDS value, using default 10")
+    LLM_CONNECT_TIMEOUT_SECONDS = 10.0
 
 try:
     LLM_MAX_RETRIES: int = int(os.getenv("LLM_MAX_RETRIES", "1"))

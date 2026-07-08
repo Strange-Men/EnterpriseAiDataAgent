@@ -7,6 +7,7 @@ import {
   BarChart3,
   ChevronDown,
   Database,
+  Download,
   FileSpreadsheet,
   History,
   Languages,
@@ -44,6 +45,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea, Select } from "@/components/ui/input";
 import { cn } from "@/utils/cn";
+import { downloadBlob } from "@/utils/download";
+import {
+  buildBusinessReportHtml,
+  buildBusinessReportMarkdown,
+  businessReportFilename,
+} from "@/utils/business-report-export";
 import type { TableInfo } from "@/types";
 
 type WorkbenchFocus = "workbench" | "upload" | "results" | "history" | "settings" | "expert";
@@ -1026,16 +1033,66 @@ export function BusinessResult({
     : columns.slice(0, 6);
   const businessReport = hasBusinessReport(record.businessReport) ? record.businessReport : null;
   const displayStatus = providerDisplayStatus(record);
+  const exportMetadata = {
+    generatedAt: record.createdAt,
+    tableName: record.tableName,
+    requestedProvider: record.requestedProvider,
+    providerStatus: record.providerStatus,
+    isSimulated: record.isSimulated,
+    fallbackReason: record.fallbackReason,
+  };
+  const handleExportMarkdown = () => {
+    if (!businessReport) return;
+    downloadBlob(
+      businessReportFilename("md"),
+      buildBusinessReportMarkdown(businessReport, exportMetadata),
+      "text/markdown;charset=utf-8"
+    );
+  };
+  const handleExportHtml = () => {
+    if (!businessReport) return;
+    downloadBlob(
+      businessReportFilename("html"),
+      buildBusinessReportHtml(businessReport, exportMetadata),
+      "text/html;charset=utf-8"
+    );
+  };
 
   return (
     <Panel title={t("astryx.result.title")} icon={<BarChart3 className="h-4 w-4" />}>
       <div className="space-y-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={record.status === "completed" ? "success" : record.status === "failed" ? "error" : "muted"}>
-            {record.status === "completed" ? t("astryx.status.completed") : record.status}
-          </Badge>
-          {record.fallbackTriggered && <Badge variant="warning">{t("astryx.status.demo")}</Badge>}
-          <span className="text-xs text-[var(--text-muted)]">{formatDate(record.createdAt)}</span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={record.status === "completed" ? "success" : record.status === "failed" ? "error" : "muted"}>
+              {record.status === "completed" ? t("astryx.status.completed") : record.status}
+            </Badge>
+            {record.fallbackTriggered && <Badge variant="warning">{t("astryx.status.demo")}</Badge>}
+            <span className="text-xs text-[var(--text-muted)]">{formatDate(record.createdAt)}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={!businessReport}
+              onClick={handleExportMarkdown}
+              title={businessReport ? t("astryx.export.markdown") : t("astryx.export.disabled")}
+            >
+              <Download className="mr-1.5 h-3.5 w-3.5" />
+              {t("astryx.export.markdown")}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={!businessReport}
+              onClick={handleExportHtml}
+              title={businessReport ? t("astryx.export.html") : t("astryx.export.disabled")}
+            >
+              <Download className="mr-1.5 h-3.5 w-3.5" />
+              {t("astryx.export.html")}
+            </Button>
+          </div>
         </div>
 
         <ProviderStatusBanner record={record} />
