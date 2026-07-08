@@ -28,6 +28,7 @@ from backend.agent.business_orchestration import (
     should_use_business_orchestration,
     summarize_prior_record,
 )
+from backend.agent.business_report_view_model import build_business_report_view_model, normalize_locale
 from backend.agent.contracts import (
     AgentRun,
     AgentStatus,
@@ -176,6 +177,7 @@ class LangChainSingleAgentService:
             fallback_triggered=provider_metadata["fallback_triggered"],
             fallback_type=FallbackType.PROVIDER if provider_metadata["fallback_triggered"] else FallbackType.NONE,
             fallback_reason=provider_metadata["fallback_reason"],
+            locale=request.locale,
             status=AgentStatus.RUNNING,
             agent_name="data_analyst_agent",
             trace={
@@ -766,7 +768,7 @@ class LangChainSingleAgentService:
         warnings: list[str],
     ) -> AgentRuntimeResult:
         table_name = request.table_name or self._default_table_name()
-        language = str(request.metadata.get("language") or "zh") if isinstance(request.metadata, dict) else "zh"
+        language = normalize_locale(request.locale)
         context: dict[str, Any] = {
             "table_name": table_name,
             "business_results": [],
@@ -840,9 +842,19 @@ class LangChainSingleAgentService:
             report=report,
             evidence_results=context.get("business_results") or [],
         )
+        view_model = build_business_report_view_model(
+            report,
+            locale=language,
+            provider_status=provider_metadata.get("provider_status"),
+            is_simulated=bool(provider_metadata.get("is_simulated")),
+            fallback_reason=provider_metadata.get("fallback_reason"),
+        )
         run.business_report = report
+        run.business_report_view_model = view_model
+        run.locale = language
         context["answer"] = render_business_answer(report, language=language)
         context["business_report"] = report
+        context["business_report_view_model"] = view_model
         context["business_memory_summary"] = memory_summary
         context["provider_used"] = provider_metadata["provider_used"]
         context["fallback_triggered"] = provider_metadata["fallback_triggered"]
@@ -1230,6 +1242,8 @@ class LangChainSingleAgentService:
         run.answer = str(context.get("answer") or self._deterministic_summary(run.user_goal, context.get("sql"), context.get("rows") or []))
         if isinstance(context.get("business_report"), dict):
             run.business_report = context.get("business_report")
+        if isinstance(context.get("business_report_view_model"), dict):
+            run.business_report_view_model = context.get("business_report_view_model")
         run.sql = str(context.get("sql") or "")
         run.evidence = list(context.get("evidence") or [])
         run.result_preview = context.get("result_preview") or {"columns": [], "rows": [], "row_count": 0}

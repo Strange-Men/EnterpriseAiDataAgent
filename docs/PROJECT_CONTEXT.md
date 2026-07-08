@@ -6,8 +6,8 @@
 
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
-- Current product state: M6 Business Analyst Agent has completed Manual Fix / Polish Hotfix stabilization, SQL UI Layout Hotfix, and Round 2 LangChain compliance + LangGraph architecture README documentation.
-- Current stage: M6 Round 2 documentation / README finalization complete locally; next recommended round is BusinessReportViewModel + locale + export.
+- Current product state: M6 Business Analyst Agent has completed Manual Fix / Polish Hotfix stabilization, SQL UI Layout Hotfix, Round 2 LangChain compliance + LangGraph architecture README documentation, and Round 3 BusinessReportViewModel + locale + export unification.
+- Current stage: M6 Round 3 BusinessReportViewModel + locale + export complete locally; next recommended round is backend Intent Router + `data_table` output mode.
 
 ## M6 Direction
 
@@ -41,6 +41,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - M6 Agent output strategy refactor plan now documents the confirmed five-round technical route: SQL UI 修复; LangChain 合规审计 + LangGraph 接入方案文档 + README 一步到位修改; BusinessReportViewModel + locale 透传 + Export 清洗统一; 后端 Intent Router + `data_table` 输出模式; LangGraph MVP.
 - M6 SQL UI Layout Hotfix repairs the Advanced SQL editor/result layout only: the SQL editor remains visible, query results use an independent scroll area, AI-generated SQL writes to the latest active Query, and Query numbering/content normalization remains intact.
 - M6 Round 2 updates README and architecture docs so LangChain Single Agent + LangGraph Multi-Agent Orchestration are expressed as the project architecture.
+- M6 Round 3 adds `business_report_view_model`, locale pass-through, and unified Markdown / HTML export cleanup while preserving legacy `business_report`.
 - M6.9 and tag creation have not started.
 
 ## Active Planning Docs
@@ -70,6 +71,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - `docs/reports/m6-agent-output-strategy-refactor-plan.md`
 - `docs/reports/m6-polish-sql-editor-layout.md`
 - `docs/reports/m6-langchain-compliance-langgraph-readme-plan.md`
+- `docs/reports/m6-output-viewmodel-locale-export.md`
 
 ## M6 Agent Output Strategy Refactor Plan
 
@@ -103,6 +105,25 @@ Scope completed:
 - No frontend feature code, backend feature code, tests, CI, M6.9, or tag was added.
 
 Next recommended implementation round: `m6-output-viewmodel-locale-export`.
+
+## M6 Output ViewModel Locale Export
+
+The third round from the five-round route is `m6-output-viewmodel-locale-export`.
+
+Scope completed:
+
+- Backend now emits `business_report_view_model` while preserving legacy `business_report`.
+- Agent API/runtime contracts now accept `locale` as a first-class field and normalize it to `zh-CN` or `en-US`.
+- Frontend Agent requests send `locale` based on the current UI language.
+- Frontend records store both ViewModel and legacy report shapes.
+- UI and Markdown / HTML export prefer the ViewModel and fall back to old `business_report` when needed.
+- Export cleanup removes technical/system-log evidence from the report body and keeps provider mock/fallback notices unified.
+- Growth opportunities are converted from semi-technical object fields into business-facing language.
+- Optional `data_table` is reserved as `null` only; no ranking/statistics `data_table` generation was added.
+- README / LangGraph architecture documentation remains unchanged.
+- No Intent Router, LangGraph MVP, M6.9, or tag was added.
+
+Next recommended implementation round: backend Intent Router + `data_table` output mode.
 
 ## M6 SQL UI Layout Hotfix
 

@@ -16,10 +16,13 @@ export type AgentProviderStatus =
   | "error"
   | string;
 
+export type AgentLocale = "zh-CN" | "en-US" | string;
+
 export interface CreateAgentRunRequest {
   user_input: string;
   table_name?: string | null;
   provider_requested?: AgentProviderRequested;
+  locale?: AgentLocale;
   mode?: AgentRunMode;
   metadata?: Record<string, unknown>;
 }
@@ -53,12 +56,50 @@ export interface AgentBusinessReport {
   [key: string]: unknown;
 }
 
+export interface BusinessReportViewModelAction {
+  priority?: string | null;
+  action?: string | null;
+  why?: string | null;
+  how?: string | null;
+  metrics?: string[] | null;
+  deadline?: string | null;
+  owner_hint?: string | null;
+  [key: string]: unknown;
+}
+
+export interface BusinessReportViewModelNotice {
+  type?: "mock" | "fallback" | "error" | string;
+  title?: string | null;
+  message?: string | null;
+  [key: string]: unknown;
+}
+
+export interface BusinessReportViewModel {
+  title?: string | null;
+  locale?: AgentLocale | null;
+  provider_badge?: Record<string, unknown> | null;
+  provider_notice?: BusinessReportViewModelNotice | null;
+  is_simulated?: boolean;
+  sections?: Array<{ id?: string; title?: string } & Record<string, unknown>> | null;
+  overall_assessment?: string | null;
+  priority_actions?: BusinessReportViewModelAction[] | null;
+  risks_and_opportunities?: string[] | null;
+  key_evidence?: string[] | null;
+  limitations?: string[] | null;
+  next_questions?: string[] | null;
+  technical_note?: string | null;
+  data_table?: Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
 export interface AgentRun {
   run_id: string;
   status: string;
   intent?: string | null;
   answer?: string | null;
   business_report?: AgentBusinessReport | null;
+  business_report_view_model?: BusinessReportViewModel | null;
+  locale?: AgentLocale | null;
   sql?: string | null;
   evidence?: unknown;
   result_preview?: unknown;
@@ -94,6 +135,7 @@ export async function createAgentRun(
 ): Promise<CreateAgentRunResponse> {
   const payload: CreateAgentRunRequest = {
     user_input: request.user_input,
+    locale: request.locale ?? "zh-CN",
     mode: "skeleton",
   };
 

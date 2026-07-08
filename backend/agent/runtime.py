@@ -43,6 +43,7 @@ class AgentRuntimeRequest(BaseModel):
     table_name: str | None = None
     dataset_id: str | None = None
     provider_requested: str = Field(default="mock", min_length=1)
+    locale: str = "zh-CN"
     mode: AgentRuntimeMode = AgentRuntimeMode.SKELETON
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -60,6 +61,14 @@ class AgentRuntimeRequest(BaseModel):
             stripped = value.strip()
             return stripped or None
         return value
+
+    @field_validator("locale", mode="before")
+    @classmethod
+    def _normalize_locale(cls, value: Any) -> str:
+        text = str(value or "").strip().lower().replace("_", "-")
+        if text in {"en", "en-us", "enus"}:
+            return "en-US"
+        return "zh-CN"
 
 
 class AgentRuntimeConfig(BaseModel):
@@ -111,6 +120,7 @@ def run_agent_runtime_skeleton(
         fallback_triggered=fallback_triggered,
         fallback_type=FallbackType.PROVIDER if fallback_triggered else FallbackType.NONE,
         fallback_reason="Agent runtime skeleton uses mock provider boundary." if fallback_triggered else None,
+        locale=request.locale,
         status=_status_for_route(route),
         agent_name="data_analyst_agent",
     )
@@ -233,6 +243,7 @@ def _new_runtime_run(*, request: AgentRuntimeRequest, route: IntentRoute, mode: 
         fallback_triggered=fallback_triggered,
         fallback_type=FallbackType.PROVIDER if fallback_triggered else FallbackType.NONE,
         fallback_reason=f"Agent runtime {mode.value} uses mock provider boundary." if fallback_triggered else None,
+        locale=request.locale,
         status=_status_for_route(route),
         agent_name="data_analyst_agent",
     )

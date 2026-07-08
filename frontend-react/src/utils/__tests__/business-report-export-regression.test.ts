@@ -92,7 +92,7 @@ describe("business report export polish regression", () => {
       { language: "en", providerStatus: "mock", isSimulated: true }
     );
 
-    expect(markdown).toContain("# Business Health Diagnosis Report");
+    expect(markdown).toContain("# Business Diagnosis Report");
     expect(markdown).toContain("## 3. Top 3 priority action suggestions");
     expect(markdown).toContain("This is a simulated analysis result");
     expect(markdown.toLowerCase()).not.toContain("\nunsupported");
@@ -110,7 +110,7 @@ describe("business report export polish regression", () => {
 
     expect(html).toContain("<!doctype html>");
     expect(html).toContain("<html lang=\"en\">");
-    expect(html).toContain("Business Health Diagnosis Report");
+    expect(html).toContain("Business Diagnosis Report");
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
   });

@@ -28,6 +28,7 @@ class AgentRunRequest(BaseModel):
     table_name: str | None = None
     dataset_id: str | None = None
     provider_requested: str = Field(default="mock", min_length=1)
+    locale: str = "zh-CN"
     mode: AgentRunMode = AgentRunMode.SKELETON
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -45,6 +46,14 @@ class AgentRunRequest(BaseModel):
             stripped = value.strip()
             return stripped or None
         return value
+
+    @field_validator("locale", mode="before")
+    @classmethod
+    def _normalize_locale(cls, value: Any) -> str:
+        text = str(value or "").strip().lower().replace("_", "-")
+        if text in {"en", "en-us", "enus"}:
+            return "en-US"
+        return "zh-CN"
 
 
 class AgentRunResponse(BaseModel):
@@ -91,8 +100,9 @@ def runtime_request_from_api_request(request: AgentRunRequest) -> AgentRuntimeRe
         table_name=request.table_name,
         dataset_id=request.dataset_id,
         provider_requested=request.provider_requested,
+        locale=request.locale,
         mode=_runtime_mode_from_api_mode(request.mode),
-        metadata=request.metadata,
+        metadata={**request.metadata, "language": request.locale, "locale": request.locale},
     )
 
 

@@ -2,6 +2,25 @@
 
 > Last updated: 2026-07-08
 
+## M6 Output ViewModel Locale Export
+
+- Created implementation branch `m6-output-viewmodel-locale-export` from latest `master` commit `6355a9d`.
+- Completed Round 3 of the confirmed five-round route: BusinessReportViewModel + locale pass-through + Export cleanup unification.
+- Added backend `backend/agent/business_report_view_model.py`.
+- Added first-class `locale` to Agent API/runtime contracts and preserved legacy `metadata.language` compatibility.
+- Backend now returns `business_report_view_model` while preserving the existing `business_report` field.
+- Frontend `/api/agent/runs` requests now send `locale: "zh-CN"` or `locale: "en-US"` based on the UI language.
+- Frontend records store both `businessReport` and `businessReportViewModel`; UI and Markdown / HTML export prefer the ViewModel while keeping old `business_report` fallback.
+- Markdown / HTML export now shares the ViewModel cleanup path, limits priority actions to Top 3, limits key evidence to five items, and avoids raw technical objects in the exported report body.
+- Growth opportunity objects such as `object_type`, `object_name`, `score`, and raw evidence dictionaries are converted into business-facing language.
+- Mock/fallback notices are unified in the ViewModel and export path.
+- Optional `data_table` is reserved as a `null` placeholder only; this round does not generate ranking/statistics `data_table` output.
+- README / LangGraph architecture documentation remains unchanged.
+- No Intent Router, `data_table` generation, LangGraph MVP code, M6.9, or tag was added.
+- Verification passed: backend import, new ViewModel backend tests, M6 focused backend regressions, full backend CI (`909 passed`), frontend `npm ci`, `npx tsc --noEmit`, full Vitest (`53 files`, `1214 tests`), and `npm run build`.
+- Added report: `docs/reports/m6-output-viewmodel-locale-export.md`.
+- Next recommended round: backend Intent Router + `data_table` output mode.
+
 ## M6 LangGraph README Architecture Docs
 
 - Started from latest `master` after confirming Round 1 SQL UI Layout Hotfix was already merged into `master` at commit `8f1b261`.

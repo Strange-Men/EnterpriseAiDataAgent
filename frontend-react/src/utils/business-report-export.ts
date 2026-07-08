@@ -1,4 +1,4 @@
-import type { AgentBusinessReport, BusinessReportItem } from "@/services/api";
+import type { AgentBusinessReport, BusinessReportItem, BusinessReportViewModel } from "@/services/api";
 
 export interface BusinessReportExportMetadata {
   generatedAt?: Date | string;
@@ -12,6 +12,44 @@ export interface BusinessReportExportMetadata {
 
 function isEnglish(language: string | null | undefined): boolean {
   return String(language || "").toLowerCase().startsWith("en");
+}
+
+type ExportableBusinessReport = AgentBusinessReport | BusinessReportViewModel;
+
+function isBusinessReportViewModel(report: ExportableBusinessReport): report is BusinessReportViewModel {
+  return Boolean(
+    report &&
+    (
+      "overall_assessment" in report ||
+      "priority_actions" in report ||
+      "key_evidence" in report ||
+      "risks_and_opportunities" in report
+    )
+  );
+}
+
+function viewModelToLegacyReport(report: BusinessReportViewModel): AgentBusinessReport {
+  return {
+    executive_summary: report.overall_assessment ?? null,
+    key_findings: report.risks_and_opportunities ?? [],
+    evidence_summary: (report.key_evidence ?? []).map((summary: string) => ({ summary })),
+    risk_priorities: report.risks_and_opportunities ?? [],
+    opportunities: [],
+    recommendations: report.priority_actions ?? [],
+    next_questions: report.next_questions ?? [],
+    limitations: report.limitations ?? [],
+  };
+}
+
+function normalizeExportInput(report: ExportableBusinessReport, metadata: BusinessReportExportMetadata) {
+  if (isBusinessReportViewModel(report)) {
+    return {
+      report: viewModelToLegacyReport(report),
+      viewModel: report,
+      language: metadata.language ?? report.locale ?? null,
+    };
+  }
+  return { report, viewModel: null as BusinessReportViewModel | null, language: metadata.language ?? null };
 }
 
 function stringify(value: unknown): string {
@@ -133,6 +171,19 @@ function humanizeText(value: unknown, language: string | null | undefined): stri
     .replace(/\bseverity\b/gi, english ? "risk level" : "风险等级")
     .replace(/\bconfidence\b/gi, english ? "evidence reliability" : "证据可靠性")
     .replace(/\bunsupported\b/gi, english ? "The current data does not support this analysis directly." : "当前数据不支持直接分析该问题。");
+  if (english) {
+    text = text
+      .replaceAll("退款率", "refund rate")
+      .replaceAll("建议负责人", "suggested owner")
+      .replaceAll("具体怎么做", "how to do it")
+      .replaceAll("看什么指标", "metrics to watch")
+      .replaceAll("建议周期", "suggested timeline")
+      .replaceAll("暂无", "Not available")
+      .replaceAll("数据局限", "Data limitations")
+      .replaceAll("下一步可以继续问", "Follow-up questions")
+      .replaceAll("当前为模拟分析结果", "This is a simulated analysis result")
+      .replaceAll("真实模型未成功返回", "The live model did not return successfully");
+  }
   if (!english) {
     text = text
       .replace(/\s+(销售额|订单数|客单价|退款金额|退款率|退货率|毛利率|平均折扣|平均发货周期|发货周期|投诉率|投诉量|满意度|渠道|城市等级|客户分层)/g, "$1")
@@ -242,19 +293,26 @@ export function businessReportFilename(extension: "md" | "html", now = new Date(
 }
 
 export function buildBusinessReportMarkdown(
-  report: AgentBusinessReport,
+  inputReport: ExportableBusinessReport,
   metadata: BusinessReportExportMetadata = {}
 ): string {
-  const english = isEnglish(metadata.language);
+  const normalized = normalizeExportInput(inputReport, metadata);
+  const report = normalized.report;
+  const viewModel = normalized.viewModel;
+  const language = normalized.language;
+  const english = isEnglish(language);
   const emptyText = english ? "Not available." : "暂无。";
-  const recommendations = cleanRecommendations(items(report.recommendations), metadata.language);
-  const risksAndOpportunities = cleanEvidence([...items(report.risk_priorities), ...items(report.opportunities), ...items(report.key_findings)], metadata.language);
-  const evidence = cleanEvidence(items(report.evidence_summary), metadata.language);
-  const limitations = cleanEvidence(items(report.limitations), metadata.language);
-  const nextQuestions = cleanEvidence(items(report.next_questions), metadata.language);
+  const recommendations = cleanRecommendations(items(report.recommendations), language);
+  const risksAndOpportunities = cleanEvidence([...items(report.risk_priorities), ...items(report.opportunities), ...items(report.key_findings)], language);
+  const evidence = cleanEvidence(items(report.evidence_summary), language);
+  const limitations = cleanEvidence(items(report.limitations), language);
+  const nextQuestions = cleanEvidence(items(report.next_questions), language);
   const providerStatus = metadata.providerStatus || "unknown";
-  const fallbackReason = cleanBusinessText(metadata.fallbackReason, metadata.language);
-  const simulatedNotice = metadata.isSimulated
+  const fallbackReason = cleanBusinessText(metadata.fallbackReason, language);
+  const viewModelNotice = cleanBusinessText(viewModel?.provider_notice?.message, language);
+  const simulatedNotice = viewModelNotice
+    ? `> ${viewModelNotice}`
+    : metadata.isSimulated
     ? english
       ? `> This is a simulated analysis result for reference only. Reason: ${fallbackReason || "the live model did not return successfully and the system switched to a simulated result."}`
       : `> 当前为模拟分析结果，仅供参考。原因：${fallbackReason || "真实模型未成功返回，已切换为模拟分析结果。"}`
@@ -262,7 +320,7 @@ export function buildBusinessReportMarkdown(
 
   const labels = english
     ? {
-        title: "# Business Health Diagnosis Report",
+        title: "# Business Diagnosis Report",
         info: "## 1. Report information",
         time: "Generated at",
         table: "Current table",
@@ -318,14 +376,14 @@ export function buildBusinessReportMarkdown(
     labels.info,
     "",
     `- ${labels.time}: ${formatGeneratedAt(metadata.generatedAt)}`,
-    `- ${labels.table}: ${safeLine(metadata.tableName || (english ? "Not specified" : "未指定"), metadata.language)}`,
-    `- ${labels.provider}: ${safeLine(providerStatus, metadata.language)}`,
+    `- ${labels.table}: ${safeLine(metadata.tableName || (english ? "Not specified" : "未指定"), language)}`,
+    `- ${labels.provider}: ${safeLine(providerStatus, language)}`,
     `- ${labels.simulated}: ${metadata.isSimulated ? labels.yes : labels.no}`,
     simulatedNotice,
     "",
     labels.summary,
     "",
-    safeLine(report.executive_summary || emptyText, metadata.language),
+    safeLine(report.executive_summary || emptyText, language),
     "",
     labels.actions,
     "",
@@ -336,14 +394,14 @@ export function buildBusinessReportMarkdown(
   } else {
     recommendations.forEach((rec, index) => {
       lines.push(
-        `### ${labels.actionPrefix} ${index + 1}: ${safeLine(rec.action, metadata.language)}`,
+        `### ${labels.actionPrefix} ${index + 1}: ${safeLine(rec.action, language)}`,
         "",
-        `- ${labels.priority}: ${safeLine(rec.priority || "medium", metadata.language)}`,
-        `- ${labels.why}: ${safeLine(rec.why || (english ? "This recommendation is based on the current business evidence." : "该建议基于当前业务证据。"), metadata.language)}`,
-        `- ${labels.how}: ${safeLine(rec.how || (english ? "Review related orders by business object and assign an owner." : "按相关业务对象导出明细并分配负责人排查。"), metadata.language)}`,
-        `- ${labels.metrics}: ${rec.metrics.length ? rec.metrics.map((metric) => safeLine(metric, metadata.language)).join(english ? ", " : "、") : (english ? "refund rate, complaint rate, satisfaction, margin" : "退款率、投诉率、满意度、利润率")}`,
-        `- ${labels.deadline}: ${safeLine(rec.deadline || (english ? "Complete the first review within 1 week." : "建议 1 周内完成初查"), metadata.language)}`,
-        `- ${labels.owner}: ${safeLine(rec.ownerHint || (english ? "Operations / After-sales / Product owner" : "运营 / 售后 / 商品负责人"), metadata.language)}`,
+        `- ${labels.priority}: ${safeLine(rec.priority || "medium", language)}`,
+        `- ${labels.why}: ${safeLine(rec.why || (english ? "This recommendation is based on the current business evidence." : "该建议基于当前业务证据。"), language)}`,
+        `- ${labels.how}: ${safeLine(rec.how || (english ? "Review related orders by business object and assign an owner." : "按相关业务对象导出明细并分配负责人排查。"), language)}`,
+        `- ${labels.metrics}: ${rec.metrics.length ? rec.metrics.map((metric) => safeLine(metric, language)).join(english ? ", " : "、") : (english ? "refund rate, complaint rate, satisfaction, margin" : "退款率、投诉率、满意度、利润率")}`,
+        `- ${labels.deadline}: ${safeLine(rec.deadline || (english ? "Complete the first review within 1 week." : "建议 1 周内完成初查"), language)}`,
+        `- ${labels.owner}: ${safeLine(rec.ownerHint || (english ? "Operations / After-sales / Product owner" : "运营 / 售后 / 商品负责人"), language)}`,
         ""
       );
     });
@@ -352,19 +410,19 @@ export function buildBusinessReportMarkdown(
   lines.push(
     labels.risks,
     "",
-    sectionList(risksAndOpportunities, metadata.language, emptyText, 5),
+    sectionList(risksAndOpportunities, language, emptyText, 5),
     "",
     labels.evidence,
     "",
-    sectionList(evidence, metadata.language, emptyText, 5),
+    sectionList(evidence, language, emptyText, 5),
     "",
     labels.limitations,
     "",
-    sectionList(limitations, metadata.language, emptyText, 5),
+    sectionList(limitations, language, emptyText, 5),
     "",
     labels.next,
     "",
-    sectionList(nextQuestions, metadata.language, emptyText, 3),
+    sectionList(nextQuestions, language, emptyText, 3),
     "",
     labels.technical,
     "",
@@ -399,7 +457,7 @@ function markdownToSimpleHtml(markdown: string, language: string | null | undefi
     })
     .join("\n");
   const lang = isEnglish(language) ? "en" : "zh-CN";
-  const title = isEnglish(language) ? "Business Health Diagnosis Report" : "业务健康度诊断报告";
+  const title = isEnglish(language) ? "Business Diagnosis Report" : "业务健康度诊断报告";
   return `<!doctype html>
 <html lang="${lang}">
 <head>
@@ -421,8 +479,9 @@ ${body}
 }
 
 export function buildBusinessReportHtml(
-  report: AgentBusinessReport,
+  report: ExportableBusinessReport,
   metadata: BusinessReportExportMetadata = {}
 ): string {
-  return markdownToSimpleHtml(buildBusinessReportMarkdown(report, metadata), metadata.language);
+  const language = isBusinessReportViewModel(report) ? metadata.language ?? report.locale : metadata.language;
+  return markdownToSimpleHtml(buildBusinessReportMarkdown(report, metadata), language);
 }
