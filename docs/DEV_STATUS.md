@@ -4,10 +4,26 @@
 
 ## Current Branch
 
-- Branch: `m6-ci-fix-backend-after-polish-regression`
-- Stage: Backend CI fix after M6 manual polish regression
+- Branch: `m6-agent-output-strategy-plan-docs`
+- Stage: M6 Agent output strategy refactor plan docs
 
 ## Current Work
+
+M6 Agent output strategy refactor planning is documented. This is a documentation-only round, not M6.9, and no tag has been created.
+
+Completed in this documentation round:
+
+- Added `docs/reports/m6-agent-output-strategy-refactor-plan.md`.
+- Recorded the latest 6 manual-test issues around SQL editor layout, overly technical growth-opportunity output, ranking questions being forced into health-diagnosis reports, template-dependent success, mixed English output, and LangChain / LangGraph architecture review.
+- Locked the core diagnosis: the Agent still does not reliably "answer what was asked"; it overuses the Business Health Report template.
+- Proposed the next development order:
+  1. SQL UI Layout Hotfix.
+  2. BusinessReportViewModel + locale + export infrastructure.
+  3. Backend Intent Router + `data_table` output.
+  4. LangChain compliance audit + LangGraph future integration plan.
+- No frontend code, backend code, tests, CI workflow, README, M6.9, or tag change was made.
+
+Next step after user review: start with `m6-polish-sql-editor-layout` as a separate implementation prompt.
 
 M6 backend CI fix is complete locally. This is not a new feature round, not M6.9, and no tag has been created.
 

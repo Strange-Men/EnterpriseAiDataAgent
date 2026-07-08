@@ -2,6 +2,16 @@
 
 > Last updated: 2026-07-08
 
+## M6 Agent Output Strategy Refactor Plan Docs
+
+- Created documentation-only branch `m6-agent-output-strategy-plan-docs` from latest `master`.
+- Added `docs/reports/m6-agent-output-strategy-refactor-plan.md`.
+- This round only documents the M6 Agent output strategy refactor plan after manual testing found that the Agent still does not consistently answer according to the user's exact question type.
+- The plan records the latest 6 issues: SQL editor layout pressure, technical growth-opportunity objects, ranking questions being forced into health-diagnosis reports, template-dependent success cases, mixed English output, and LangChain / future LangGraph architecture review needs.
+- The plan recommends the next development order: SQL UI Layout Hotfix, then BusinessReportViewModel + locale + export infrastructure, then backend Intent Router + `data_table` output mode, then LangChain compliance / LangGraph integration planning.
+- No frontend code, backend code, tests, CI workflow, M6.9, tag, or master merge work was done in this round.
+- Next recommended step: start with `m6-polish-sql-editor-layout` in a separate implementation prompt after user review.
+
 ## M6 Backend CI Fix After Polish Regression
 
 - Created branch `m6-ci-fix-backend-after-polish-regression` from latest `master`.
