@@ -4,10 +4,36 @@
 
 ## Current Branch
 
-- Branch: `m6-polish-sql-editor-layout`
-- Stage: M6 SQL UI Layout Hotfix
+- Branch: `m6-langgraph-readme-architecture-docs`
+- Stage: M6 LangChain compliance + LangGraph architecture README docs
 
 ## Current Work
+
+M6 Round 2 documentation / README finalization is complete locally. Round 1 SQL UI 修复 is already in `master`; this round updates the M6 output-strategy plan, adds LangChain compliance + LangGraph architecture documentation, and rewrites README into the final display form. It only changes README and docs / status documents; it does not modify frontend feature code, backend feature code, tests, or CI.
+
+Latest confirmed five-round route:
+
+1. SQL UI 修复.
+2. LangChain 合规审计 + LangGraph 接入方案文档 + README 一步到位修改.
+3. BusinessReportViewModel + locale 透传 + Export 清洗统一.
+4. 后端 Intent Router + `data_table` 输出模式.
+5. LangGraph MVP.
+
+Completed in this round:
+
+- Confirmed `master` contains SQL UI Layout Hotfix (`8f1b261`).
+- Created branch `m6-langgraph-readme-architecture-docs`.
+- Updated `docs/reports/m6-agent-output-strategy-refactor-plan.md` to the latest five-round route.
+- Added `docs/reports/m6-langchain-compliance-langgraph-readme-plan.md`.
+- Documented LangChain compliance audit: Single Agent entry, StructuredTool usage, business_tools typed I/O, evidence-based `business_report`, memory boundary, provider fallback transparency, hidden technical details, and retained value of the LangChain path.
+- Documented LangGraph Multi-Agent Orchestration with six nodes: Question Router, Evidence Planner, Tool Execution, Report Composer, Validator, and Follow-up Memory.
+- Updated README title to `Enterprise AI Data Agent｜Business Analyst Agent for Data-Driven Operations`.
+- README directly presents `LangChain Single Agent + LangGraph Multi-Agent Orchestration` as project architecture.
+- README keeps the existing high-level structure while updating description, core capabilities, architecture, workflow, API examples, boundaries, FAQ, and glossary.
+- README forbidden weak-state word check passed.
+- No M6.9 was added and no tag was created.
+
+Next recommended round: `BusinessReportViewModel + locale + export`.
 
 M6 SQL UI Layout Hotfix is complete locally. This is Round 1 from the M6 Agent output strategy refactor plan. It only repairs the Advanced SQL editor layout and Query SQL state behavior; it does not start M6.9 and no tag has been created.
 
