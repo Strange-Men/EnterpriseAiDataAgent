@@ -6,8 +6,8 @@
 
 - App version: `1.4.1`
 - Stable release tag: `v1.4.1-m4-engineering-complete`
-- Current product state: M6 Business Analyst Agent is ready for renewed manual testing after Manual Fix 1 / 2 / 3, the manual regression hotfix, the manual polish hotfix, and the manual polish regression for SQL editor visibility, English reports, Doubao timeout diagnosis, and export quality.
-- Current stage: M6 manual polish regression complete locally; merge back to `master` is pending in this round.
+- Current product state: M6 Business Analyst Agent is ready for renewed manual testing after Manual Fix 1 / 2 / 3, the manual regression hotfix, the manual polish hotfix, the manual polish regression, and the backend CI stabilization after polish regression.
+- Current stage: backend CI fix complete locally; merge back to `master` is pending in this round.
 
 ## M6 Direction
 
@@ -37,6 +37,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - M6 manual regression hotfix focuses on making `demo_sales_business_50k` reliably available by default, diagnosing large upload timeout behavior, and validating five hard business questions against the default table.
 - M6 manual polish hotfix focuses on Business Report Markdown/HTML export, Advanced SQL Query numbering normalization, and readable provider timeout/fallback behavior.
 - M6 manual polish regression focuses on restoring the Advanced SQL editor area, aligning English reports with the new business-report structure, diagnosing Doubao-only live LLM behavior, and cleaning exported Markdown/HTML report content.
+- M6 backend CI fix after polish regression stabilizes provider fallback tests so GitHub Actions never performs real Doubao network calls and does not depend on local/CI provider env differences.
 - M6.9, Multi-Agent, LangGraph, and RAG have not started.
 - Any future Multi-Agent expansion must be separately reviewed and approved.
 
@@ -63,6 +64,7 @@ Historical roadmap documents described M6 as Multi-Agent Expansion. The current 
 - `docs/reports/m6-manual-regression-default-table-upload-qa.md`
 - `docs/reports/m6-manual-polish-export-query-provider-timeout.md`
 - `docs/reports/m6-manual-polish-regression-sql-i18n-doubao-export.md`
+- `docs/reports/m6-ci-fix-backend-after-polish-regression.md`
 
 ## M6.2 Dataset
 
